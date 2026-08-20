@@ -3,7 +3,7 @@
 - **Current phase:** Phase 1 — Foundation (IN PROGRESS)
 - **Latest verified:** 2026-08-20
 - **Tests passing:** 23/23 (accounting-invariant + unit: money, accounting-kernel, numbering, rbac)
-- **Latest commit:** _(set after initial commit; see `git log`)_
+- **Latest commit:** `8bf145b` docs(spec): Phase-1 status
 
 ## Legend
 `COMPLETE` fully implemented + tested · `PARTIAL` partially implemented · `SCAFFOLD ONLY` structure without logic.
