@@ -2,9 +2,11 @@
 
 - **Current phase:** Phase 1 — Foundation (IN PROGRESS)
 - **Latest verified:** 2026-08-20
-- **Tests passing:** 57 passing + 1 DB-gated integration (skips locally, runs in CI with Postgres)
-- **Latest commit:** see `git log` (feature/phase1-integration → develop)
-- **Remote:** develop `6bce8e4` (Phase-1 app layer, squashed). Session is read-only; pushes handed off via bundle.
+- **Tests passing:** 62 passing + 1 DB-gated integration (skips locally, runs in CI with Postgres) = 63
+- **Latest local commit:** `470a4d4` (branch `develop`)
+- **Remote:** `origin/develop` last confirmed `ffc6bc4`; local is ahead by ~11 commits (handed off via bundle/zip). Session is READ-ONLY on the remote.
+- **Verification (local):** `eslint --max-warnings=0` clean · `vitest` 62 pass/1 skip · `tsc` clean **except 5 Prisma-client-generation errors** (the sandbox blocks `binaries.prisma.sh`; `prisma generate` in a normal env / CI resolves them).
+- **Handoff:** see `CONTINUE_HERE.md` and `NEXT_TASKS.md` at repo root.
 
 ## Legend
 `COMPLETE` fully implemented + tested · `PARTIAL` partially implemented · `SCAFFOLD ONLY` structure without logic.
