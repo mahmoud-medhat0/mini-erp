@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini ERP — Design Foundation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font-sans-en:"Source Sans 3",system-ui,sans-serif;
+  --font-sans-ar:"Cairo","Segoe UI",Tahoma,sans-serif;
+  --font-display:"Playfair Display",Georgia,serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --brand-500:#2563a8;--brand-600:#1f5490;--brand-700:#194476;
+  --radius-sm:5px;--radius-md:8px;--radius-lg:12px;--radius-full:9999px;
+  --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;--space-6:1.5rem;
+  --sidebar-w:248px;--header-h:56px;--dur:180ms;--ease:cubic-bezier(.2,0,0,1);
+}
+:root,[data-theme="light"]{
+  --background:#f5f6f8;--surface:#fff;--surface-elevated:#fff;--surface-muted:#eef0f3;
+  --surface-hover:#f0f2f5;--surface-active:#e6e9ee;--border:#dfe3e8;--border-strong:#c6ccd4;
+  --text-primary:#1a2230;--text-secondary:#4d5768;--text-muted:#7a8496;--text-disabled:#aab2bf;
+  --primary:var(--brand-500);--primary-hover:var(--brand-600);--primary-subtle:#e8f0f9;--on-primary:#fff;
+  --focus-ring:rgba(37,99,168,.35);
+  --success:#1f8a4c;--success-subtle:#e4f4ea;--warning:#b26b00;--warning-subtle:#fbeed3;
+  --danger:#c62a2a;--danger-subtle:#fbe3e3;--info:#2563a8;--info-subtle:#e6f0f9;
+  --income:#1f8a4c;--expense:#c05621;--profit:#1f8a4c;--loss:#c62a2a;--receivable:#2563a8;
+  --payable:#8a4bbd;--cash:#0f8f8f;--bank:#2f6ad9;--inventory:#7a6b17;--tax:#9a5b00;
+  --shadow-sm:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.04);
+  --shadow-md:0 4px 12px rgba(16,24,40,.08),0 2px 4px rgba(16,24,40,.04);
+  --overlay:rgba(16,24,40,.44);
+}
+[data-theme="dark"]{
+  --background:#0e1420;--surface:#161d2b;--surface-elevated:#1d2637;--surface-muted:#131a27;
+  --surface-hover:#202a3c;--surface-active:#263248;--border:#2a3446;--border-strong:#3a465c;
+  --text-primary:#e7ecf3;--text-secondary:#aeb8c8;--text-muted:#7d8798;--text-disabled:#576073;
+  --primary:#4d90d4;--primary-hover:#62a0de;--primary-subtle:#17273a;--on-primary:#06111f;
+  --focus-ring:rgba(93,155,216,.45);
+  --success:#4cc27e;--success-subtle:#12271a;--warning:#e6a545;--warning-subtle:#2a2010;
+  --danger:#ec5b5b;--danger-subtle:#2c1414;--info:#4d90d4;--info-subtle:#122236;
+  --income:#4cc27e;--expense:#e07a4a;--profit:#4cc27e;--loss:#ec5b5b;--receivable:#5b9bd8;
+  --payable:#b083df;--cash:#35b3b3;--bank:#5b8ff0;--inventory:#cbb54a;--tax:#d69a3f;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow-md:0 6px 16px rgba(0,0,0,.5);--overlay:rgba(3,7,14,.6);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html[data-theme="dark"]{color-scheme:dark}
+body{background:var(--background);color:var(--text-primary);font-family:var(--font-sans-en);
+  font-size:14px;line-height:1.45;transition:background var(--dur),color var(--dur)}
+[dir="rtl"] body{font-family:var(--font-sans-ar)}
+.fig{font-variant-numeric:tabular-nums lining-nums;unicode-bidi:isolate}
+.fig.neg{color:var(--loss)}
+.code{unicode-bidi:isolate;direction:ltr;font-family:var(--font-mono);font-size:12.5px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+
+/* Layout */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;grid-template-rows:var(--header-h) 1fr;
+  grid-template-areas:"side head" "side main";min-height:100vh}
+.sidebar{grid-area:side;background:var(--surface);border-inline-end:1px solid var(--border);
+  padding:var(--space-3);display:flex;flex-direction:column;gap:2px}
+.brand{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3) var(--space-4);
+  font-weight:700;font-size:15px}
+.brand .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--brand-500),var(--brand-700));
+  display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+.nav{display:flex;align-items:center;gap:var(--space-3);padding:8px var(--space-3);border-radius:var(--radius-sm);
+  color:var(--text-secondary);cursor:pointer;font-size:13.5px;font-weight:500;transition:background var(--dur)}
+.nav:hover{background:var(--surface-hover);color:var(--text-primary)}
+.nav.active{background:var(--primary-subtle);color:var(--primary);font-weight:600}
+.nav .ic{width:16px;text-align:center;opacity:.85}
+.nav-group{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);
+  padding:var(--space-4) var(--space-3) var(--space-2);font-weight:600}
+.header{grid-area:head;background:var(--surface);border-block-end:1px solid var(--border);
+  display:flex;align-items:center;gap:var(--space-3);padding:0 var(--space-4)}
+.search{flex:1;max-width:420px;position:relative}
+.search input{width:100%;padding:7px var(--space-3);padding-inline-start:32px;border:1px solid var(--border);
+  background:var(--background);color:var(--text-primary);border-radius:var(--radius-sm);font-size:13px}
+.search .mag{position:absolute;inset-inline-start:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
+.hspace{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-full);font-size:12px;color:var(--text-secondary);background:var(--surface);cursor:pointer}
+.main{grid-area:main;padding:var(--space-6);overflow:auto}
+.pagehead{display:flex;align-items:center;gap:var(--space-3);margin-block-end:var(--space-6)}
+.pagehead h1{font-size:22px;font-weight:700}
+.crumb{color:var(--text-muted);font-size:12.5px;margin-block-end:4px;display:flex;gap:6px;align-items:center}
+.crumb .sep{opacity:.6}
+[dir="rtl"] .crumb .sep{transform:scaleX(-1)}
+
+/* Cards & grid */
+.section{margin-block-end:var(--space-6)}
+.section h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);
+  margin-block-end:var(--space-3);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-4)}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:var(--space-4);box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow var(--dur),border-color var(--dur)}
+.kpi:hover{box-shadow:var(--shadow-md);border-color:var(--border-strong)}
+.kpi .lbl{color:var(--text-secondary);font-size:12.5px;display:flex;align-items:center;gap:6px}
+.kpi .val{font-size:26px;font-weight:700;margin-block:6px 4px}
+.kpi .delta{font-size:12px;font-weight:600;display:inline-flex;gap:4px;align-items:center}
+.kpi .dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+.up{color:var(--income)} .down{color:var(--loss)}
+.link{color:var(--primary);text-decoration:none;font-weight:600}
+.drill{color:var(--text-muted);font-size:11.5px;display:inline-flex;gap:4px;align-items:center;margin-top:8px}
+[dir="rtl"] .drill .arw,[dir="rtl"] .link .arw{transform:scaleX(-1)}
+
+/* Buttons */
+.btns{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:center}
+.btn{border:1px solid transparent;border-radius:var(--radius-sm);padding:7px 14px;font-size:13px;
+  font-weight:600;cursor:pointer;font-family:inherit;transition:background var(--dur),border-color var(--dur);display:inline-flex;gap:6px;align-items:center}
+.btn-primary{background:var(--primary);color:var(--on-primary)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:var(--surface);color:var(--text-primary);border-color:var(--border-strong)}
+.btn-secondary:hover{background:var(--surface-hover)}
+.btn-ghost{background:transparent;color:var(--text-secondary)}
+.btn-ghost:hover{background:var(--surface-hover);color:var(--text-primary)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-full);
+  font-size:11.5px;font-weight:600;line-height:1}
+.badge .bd{width:6px;height:6px;border-radius:50%}
+.b-draft{background:var(--surface-muted);color:var(--text-secondary)}.b-draft .bd{background:var(--text-muted)}
+.b-approved{background:var(--info-subtle);color:var(--info)}.b-approved .bd{background:var(--info)}
+.b-posted{background:var(--success-subtle);color:var(--success)}.b-posted .bd{background:var(--success)}
+.b-overdue{background:var(--danger-subtle);color:var(--danger)}.b-overdue .bd{background:var(--danger)}
+.b-pending{background:var(--warning-subtle);color:var(--warning)}.b-pending .bd{background:var(--warning)}
+
+/* Table */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.toolbar{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-block-end:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--surface-muted);color:var(--text-secondary);font-weight:600;font-size:11.5px;
+  text-transform:uppercase;letter-spacing:.03em;text-align:start;padding:9px var(--space-4);position:sticky;top:0}
+tbody td{padding:10px var(--space-4);border-block-start:1px solid var(--border);color:var(--text-primary)}
+tbody tr:hover{background:var(--surface-hover)}
+td.num,th.num{text-align:end;font-variant-numeric:tabular-nums}
+.money{font-weight:600}
+
+/* Form */
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-6)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12.5px;font-weight:600;color:var(--text-secondary)}
+.field label .req{color:var(--danger)}
+.field input,.field select{padding:8px var(--space-3);border:1px solid var(--border);background:var(--background);
+  color:var(--text-primary);border-radius:var(--radius-sm);font-size:13px;font-family:inherit}
+.field input:focus{border-color:var(--primary)}
+.field.err input{border-color:var(--danger);background:var(--danger-subtle)}
+.field .msg{font-size:11.5px;color:var(--danger)}
+.field .hint{font-size:11.5px;color:var(--text-muted)}
+.currency{position:relative}
+.currency .cur{position:absolute;inset-inline-end:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:12px}
+.currency input{text-align:end;padding-inline-end:44px;font-variant-numeric:tabular-nums}
+.span2{grid-column:1 / -1}
+
+/* Swatches */
+.swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-3)}
+.sw{border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;background:var(--surface)}
+.sw .chip{height:52px;border:0;border-radius:0}
+.sw .meta{padding:8px 10px;font-size:11px}
+.sw .meta b{display:block;color:var(--text-primary);font-weight:600;font-size:11.5px}
+.sw .meta span{color:var(--text-muted)}
+
+/* Empty & alert */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)}
+.empty{background:var(--surface);border:1px dashed var(--border-strong);border-radius:var(--radius-lg);
+  padding:var(--space-6);text-align:center}
+.empty .em-ic{font-size:26px;margin-block-end:8px}
+.empty h3{font-size:15px;margin-block-end:4px}
+.empty p{color:var(--text-muted);font-size:12.5px;margin-block-end:var(--space-4)}
+.alert{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);
+  font-size:12.5px;border:1px solid;align-items:flex-start}
+.alert.warn{background:var(--warning-subtle);border-color:var(--warning);color:var(--warning)}
+.alert b{display:block}
+
+/* Controls bar (demo) */
+.controls{position:sticky;top:0;z-index:50;background:var(--surface-elevated);border-block-end:1px solid var(--border);
+  padding:10px var(--space-6);display:flex;gap:var(--space-3);align-items:center;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+.controls .t{font-weight:700;font-size:14px;margin-inline-end:auto;display:flex;align-items:center;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.seg button{border:0;background:var(--surface);color:var(--text-secondary);padding:6px 12px;font-size:12.5px;
+  font-weight:600;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--primary);color:var(--on-primary)}
+.qa{font-size:11.5px;color:var(--text-muted)}
+@media(max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-areas:"head" "main"}
+  .sidebar{display:none}.kpis{grid-template-columns:repeat(2,1fr)}
+  .formgrid,.two,.swatches{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="controls">
+  <div class="t"><span>🎛️</span> Mini ERP — Design Foundation</div>
+  <span class="qa" id="qa">EN · LTR · Light</span>
+  <div class="seg" role="group" aria-label="Language">
+    <button id="en" class="on" onclick="setLang('en')">English</button>
+    <button id="ar" onclick="setLang('ar')">العربية</button>
+  </div>
+  <div class="seg" role="group" aria-label="Theme">
+    <button id="light" class="on" onclick="setTheme('light')">Light</button>
+    <button id="dark" onclick="setTheme('dark')">Dark</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">ME</span><span data-i="brand">Mini ERP</span></div>
+    <div class="nav active"><span class="ic">◧</span><span data-i="nav_dash">Dashboard</span></div>
+    <div class="nav"><span class="ic">▤</span><span data-i="nav_acc">Accounting</span></div>
+    <div class="nav"><span class="ic">↑</span><span data-i="nav_sales">Sales</span></div>
+    <div class="nav"><span class="ic">↓</span><span data-i="nav_pur">Purchasing</span></div>
+    <div class="nav"><span class="ic">▦</span><span data-i="nav_inv">Inventory</span></div>
+    <div class="nav-group" data-i="grp_ops">Operations</div>
+    <div class="nav"><span class="ic">⚙</span><span data-i="nav_tools">Tools & Equipment</span></div>
+    <div class="nav"><span class="ic">◷</span><span data-i="nav_rent">Rentals</span></div>
+    <div class="nav"><span class="ic">☺</span><span data-i="nav_cust">Customers</span></div>
+    <div class="nav"><span class="ic">▣</span><span data-i="nav_sup">Suppliers</span></div>
+    <div class="nav-group" data-i="grp_fin">Finance</div>
+    <div class="nav"><span class="ic">$</span><span data-i="nav_cash">Cash</span></div>
+    <div class="nav"><span class="ic">🏦</span><span data-i="nav_bank">Banks</span></div>
+    <div class="nav"><span class="ic">✓</span><span data-i="nav_appr">Approvals</span></div>
+  </aside>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="search"><span class="mag">⌕</span><input placeholder="Search…" data-ip="search"></div>
+    <div class="hspace"></div>
+    <span class="chip" data-i="quick">＋ Quick Create</span>
+    <span class="chip"><span class="code">FY 2026</span></span>
+    <span class="chip">🔔 <span data-i="alerts">3</span></span>
+    <span class="chip">MM</span>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div>
+      <div class="crumb"><span data-i="nav_dash">Dashboard</span><span class="sep">›</span><span data-i="overview">Overview</span></div>
+      <div class="pagehead"><h1 data-i="dash_title">Dashboard</h1>
+        <div class="hspace"></div>
+        <div class="btns"><button class="btn btn-secondary" data-i="export">Export</button>
+        <button class="btn btn-primary">＋ <span data-i="new_inv">New Invoice</span></button></div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="section">
+        <h2 data-i="fin_kpi">Financial KPIs · every figure is clickable → source</h2>
+        <div class="kpis">
+          <div class="kpi"><div class="lbl"><span class="dot" style="background:var(--income)"></span><span data-i="k_rev">Revenue</span></div>
+            <div class="val fig">1,284,500</div><div class="delta up"><span class="arw">▲</span> 12.4%</div>
+            <div class="drill"><span data-i="view_src">View source</span> <span class="arw">→</span></div></div>
+          <div class="kpi"><div class="lbl"><span class="dot" style="background:var(--receivable)"></span><span data-i="k_ar">Receivables</span></div>
+            <div class="val fig">342,120</div><div class="delta down"><span class="arw">▲</span> 4.1%</div>
+            <div class="drill"><span data-i="view_src">View source</span> <span class="arw">→</span></div></div>
+          <div class="kpi"><div class="lbl"><span class="dot" style="background:var(--profit)"></span><span data-i="k_np">Net Profit</span></div>
+            <div class="val fig">218,940</div><div class="delta up"><span class="arw">▲</span> 8.7%</div>
+            <div class="drill"><span data-i="view_src">View source</span> <span class="arw">→</span></div></div>
+          <div class="kpi"><div class="lbl"><span class="dot" style="background:var(--cash)"></span><span data-i="k_cash">Cash & Bank</span></div>
+            <div class="val fig">596,300</div><div class="delta"><span data-i="stable">Stable</span></div>
+            <div class="drill"><span data-i="view_src">View source</span> <span class="arw">→</span></div></div>
+        </div>
+      </div>
+
+      <!-- Alert -->
+      <div class="section">
+        <div class="alert warn"><span>⚠</span><div><b data-i="al_t">Low stock &amp; overdue receivables need attention</b>
+          <span data-i="al_b">4 items below reorder level · 3 invoices overdue by 30+ days.</span></div></div>
+      </div>
+
+      <!-- Table -->
+      <div class="section">
+        <h2 data-i="recent_inv">Recent Sales Invoices — mixed AR/EN, tabular figures, status</h2>
+        <div class="panel">
+          <div class="toolbar">
+            <span class="chip">⌕ <span data-i="filter">Filter</span></span>
+            <span class="chip" data-i="this_month">This month</span>
+            <div class="hspace"></div>
+            <span style="color:var(--text-muted);font-size:12px" data-i="rows">128 records</span>
+          </div>
+          <table>
+            <thead><tr>
+              <th data-i="c_num">Number</th><th data-i="c_cust">Customer</th><th data-i="c_date">Date</th>
+              <th class="num" data-i="c_total">Total</th><th class="num" data-i="c_due">Balance</th><th data-i="c_status">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="code">INV-2026-00128</span></td><td data-i="cn1">شركة النور</td><td class="code">2026-08-18</td>
+                <td class="num money fig">42,500.00</td><td class="num money fig neg">-12,500.00</td>
+                <td><span class="badge b-overdue"><span class="bd"></span><span data-i="s_over">Overdue</span></span></td></tr>
+              <tr><td><span class="code">INV-2026-00127</span></td><td>ABC Trading Co.</td><td class="code">2026-08-17</td>
+                <td class="num money fig">18,900.00</td><td class="num money fig">0.00</td>
+                <td><span class="badge b-posted"><span class="bd"></span><span data-i="s_paid">Posted</span></span></td></tr>
+              <tr><td><span class="code">INV-2026-00126</span></td><td data-i="cn3">مؤسسة الأمل التجارية</td><td class="code">2026-08-16</td>
+                <td class="num money fig">7,240.00</td><td class="num money fig">7,240.00</td>
+                <td><span class="badge b-approved"><span class="bd"></span><span data-i="s_appr">Approved</span></span></td></tr>
+              <tr><td><span class="code">INV-2026-00125</span></td><td>Delta Rentals LLC</td><td class="code">2026-08-15</td>
+                <td class="num money fig">115,000.00</td><td class="num money fig">40,000.00</td>
+                <td><span class="badge b-pending"><span class="bd"></span><span data-i="s_pend">Pending</span></span></td></tr>
+              <tr><td><span class="code">INV-2026-00124</span></td><td data-i="cn5">عميل نقدي</td><td class="code">2026-08-15</td>
+                <td class="num money fig">960.00</td><td class="num money fig">0.00</td>
+                <td><span class="badge b-draft"><span class="bd"></span><span data-i="s_draft">Draft</span></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Form + Empty -->
+      <div class="section">
+        <h2 data-i="create_form">Create form pattern · currency &amp; validation · empty state</h2>
+        <div class="two">
+          <div class="formgrid">
+            <div class="field span2"><label data-i="f_cust">Customer <span class="req">*</span></label>
+              <select><option data-i="opt_pick">Select customer…</option><option>شركة النور</option><option>ABC Trading Co.</option></select></div>
+            <div class="field"><label data-i="f_date">Invoice date <span class="req">*</span></label><input class="code" value="2026-08-20"></div>
+            <div class="field"><label data-i="f_terms">Payment terms</label><select><option data-i="opt_net30">Net 30</option><option data-i="opt_cash">Cash</option></select></div>
+            <div class="field currency"><label data-i="f_amount">Amount <span class="req">*</span></label>
+              <div class="currency"><input class="fig" value="42,500.00"><span class="cur">EGP</span></div></div>
+            <div class="field err"><label data-i="f_tax">Tax (VAT)</label><input class="fig" value=""><span class="msg" data-i="f_taxerr">Required when line items are taxable.</span></div>
+            <div class="field span2 btns" style="justify-content:flex-end;margin-top:4px">
+              <button class="btn btn-ghost" data-i="cancel">Cancel</button>
+              <button class="btn btn-secondary" data-i="save_draft">Save draft</button>
+              <button class="btn btn-primary" data-i="post">Post</button></div>
+          </div>
+          <div class="empty">
+            <div class="em-ic">▦</div>
+            <h3 data-i="e_t">No products yet</h3>
+            <p data-i="e_b">Add your first product to start tracking stock, cost, and valuation.</p>
+            <button class="btn btn-primary">＋ <span data-i="e_cta">Create Product</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buttons, badges, swatches -->
+      <div class="section">
+        <h2 data-i="components">Buttons · status badges · financial color tokens</h2>
+        <div class="panel" style="padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-6)">
+          <div class="btns">
+            <button class="btn btn-primary" data-i="b_primary">Primary</button>
+            <button class="btn btn-secondary" data-i="b_secondary">Secondary</button>
+            <button class="btn btn-ghost" data-i="b_ghost">Ghost</button>
+            <button class="btn btn-danger" data-i="b_danger">Reverse</button>
+            <button class="btn btn-secondary" disabled data-i="b_disabled">Disabled</button>
+          </div>
+          <div class="btns">
+            <span class="badge b-draft"><span class="bd"></span><span data-i="s_draft">Draft</span></span>
+            <span class="badge b-pending"><span class="bd"></span><span data-i="s_pend">Pending</span></span>
+            <span class="badge b-approved"><span class="bd"></span><span data-i="s_appr">Approved</span></span>
+            <span class="badge b-posted"><span class="bd"></span><span data-i="s_paid">Posted</span></span>
+            <span class="badge b-overdue"><span class="bd"></span><span data-i="s_over">Overdue</span></span>
+          </div>
+          <div class="swatches">
+            <div class="sw"><div class="chip" style="background:var(--income)"></div><div class="meta"><b data-i="t_income">Income</b><span>--income</span></div></div>
+            <div class="sw"><div class="chip" style="background:var(--expense)"></div><div class="meta"><b data-i="t_expense">Expense</b><span>--expense</span></div></div>
+            <div class="sw"><div class="chip" style="background:var(--receivable)"></div><div class="meta"><b data-i="t_recv">Receivable</b><span>--receivable</span></div></div>
+            <div class="sw"><div class="chip" style="background:var(--payable)"></div><div class="meta"><b data-i="t_pay">Payable</b><span>--payable</span></div></div>
+            <div class="sw"><div class="chip" style="background:var(--tax)"></div><div class="meta"><b data-i="t_tax">Tax</b><span>--tax</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const I = {
+  en:{brand:"Mini ERP",nav_dash:"Dashboard",nav_acc:"Accounting",nav_sales:"Sales",nav_pur:"Purchasing",
+    nav_inv:"Inventory",grp_ops:"Operations",nav_tools:"Tools & Equipment",nav_rent:"Rentals",nav_cust:"Customers",
+    nav_sup:"Suppliers",grp_fin:"Finance",nav_cash:"Cash",nav_bank:"Banks",nav_appr:"Approvals",quick:"＋ Quick Create",
+    alerts:"3",overview:"Overview",dash_title:"Dashboard",export:"Export",new_inv:"New Invoice",
+    fin_kpi:"Financial KPIs · every figure is clickable → source",k_rev:"Revenue",k_ar:"Receivables",k_np:"Net Profit",
+    k_cash:"Cash & Bank",view_src:"View source",stable:"Stable",al_t:"Low stock & overdue receivables need attention",
+    al_b:"4 items below reorder level · 3 invoices overdue by 30+ days.",recent_inv:"Recent Sales Invoices — mixed AR/EN, tabular figures, status",
+    filter:"Filter",this_month:"This month",rows:"128 records",c_num:"Number",c_cust:"Customer",c_date:"Date",
+    c_total:"Total",c_due:"Balance",c_status:"Status",cn1:"شركة النور",cn3:"مؤسسة الأمل التجارية",cn5:"عميل نقدي",
+    s_over:"Overdue",s_paid:"Posted",s_appr:"Approved",s_pend:"Pending",s_draft:"Draft",
+    create_form:"Create form pattern · currency & validation · empty state",f_cust:"Customer",f_date:"Invoice date",
+    f_terms:"Payment terms",opt_net30:"Net 30",opt_cash:"Cash",f_amount:"Amount",f_tax:"Tax (VAT)",
+    f_taxerr:"Required when line items are taxable.",opt_pick:"Select customer…",cancel:"Cancel",save_draft:"Save draft",post:"Post",
+    e_t:"No products yet",e_b:"Add your first product to start tracking stock, cost, and valuation.",e_cta:"Create Product",
+    components:"Buttons · status badges · financial color tokens",b_primary:"Primary",b_secondary:"Secondary",
+    b_ghost:"Ghost",b_danger:"Reverse",b_disabled:"Disabled",t_income:"Income",t_expense:"Expense",t_recv:"Receivable",
+    t_pay:"Payable",t_tax:"Tax",search:"Search…"},
+  ar:{brand:"نظام إدارة الشركات",nav_dash:"لوحة التحكم",nav_acc:"المحاسبة",nav_sales:"المبيعات",nav_pur:"المشتريات",
+    nav_inv:"المخزون",grp_ops:"العمليات",nav_tools:"الأدوات والمعدات",nav_rent:"التأجير",nav_cust:"العملاء",
+    nav_sup:"الموردون",grp_fin:"المالية",nav_cash:"النقدية",nav_bank:"البنوك",nav_appr:"الاعتمادات",quick:"＋ إنشاء سريع",
+    alerts:"٣",overview:"نظرة عامة",dash_title:"لوحة التحكم",export:"تصدير",new_inv:"فاتورة جديدة",
+    fin_kpi:"المؤشرات المالية · كل رقم قابل للنقر ← المصدر",k_rev:"الإيرادات",k_ar:"الذمم المدينة",k_np:"صافي الربح",
+    k_cash:"النقدية والبنوك",view_src:"عرض المصدر",stable:"مستقر",al_t:"مخزون منخفض وذمم متأخرة تحتاج انتباهك",
+    al_b:"٤ أصناف تحت حد الطلب · ٣ فواتير متأخرة أكثر من ٣٠ يومًا.",recent_inv:"أحدث فواتير المبيعات — محتوى مختلط، أرقام منتظمة، الحالة",
+    filter:"تصفية",this_month:"هذا الشهر",rows:"١٢٨ سجل",c_num:"الرقم",c_cust:"العميل",c_date:"التاريخ",
+    c_total:"الإجمالي",c_due:"الرصيد",c_status:"الحالة",cn1:"شركة النور",cn3:"مؤسسة الأمل التجارية",cn5:"عميل نقدي",
+    s_over:"متأخر",s_paid:"مُرحّل",s_appr:"معتمد",s_pend:"قيد الانتظار",s_draft:"مسودة",
+    create_form:"نمط نموذج الإنشاء · العملة والتحقق · حالة فارغة",f_cust:"العميل",f_date:"تاريخ الفاتورة",
+    f_terms:"شروط الدفع",opt_net30:"صافي ٣٠",opt_cash:"نقدًا",f_amount:"المبلغ",f_tax:"الضريبة (ق.م)",
+    f_taxerr:"مطلوب عند وجود بنود خاضعة للضريبة.",opt_pick:"اختر العميل…",cancel:"إلغاء",save_draft:"حفظ كمسودة",post:"ترحيل",
+    e_t:"لا توجد منتجات بعد",e_b:"أضف أول منتج لبدء تتبع المخزون والتكلفة والتقييم.",e_cta:"إنشاء منتج",
+    components:"الأزرار · شارات الحالة · ألوان الرموز المالية",b_primary:"أساسي",b_secondary:"ثانوي",
+    b_ghost:"شفاف",b_danger:"عكس القيد",b_disabled:"معطّل",t_income:"إيراد",t_expense:"مصروف",t_recv:"مدين",
+    t_pay:"دائن",t_tax:"ضريبة",search:"بحث…"}
+};
+let lang="en", theme="light";
+function apply(){
+  const d=I[lang];
+  document.querySelectorAll("[data-i]").forEach(el=>{const k=el.getAttribute("data-i"); if(d[k]!==undefined) el.textContent=d[k];});
+  document.querySelectorAll("[data-ip]").forEach(el=>{const k=el.getAttribute("data-ip"); if(d[k]!==undefined) el.setAttribute("placeholder",d[k]);});
+  document.documentElement.lang=lang;
+  document.documentElement.dir = lang==="ar" ? "rtl" : "ltr";
+  document.documentElement.setAttribute("data-theme",theme);
+  document.getElementById("en").classList.toggle("on",lang==="en");
+  document.getElementById("ar").classList.toggle("on",lang==="ar");
+  document.getElementById("light").classList.toggle("on",theme==="light");
+  document.getElementById("dark").classList.toggle("on",theme==="dark");
+  document.getElementById("qa").textContent =
+    (lang==="ar"?"AR · RTL":"EN · LTR")+" · "+(theme==="dark"?"Dark":"Light");
+}
+function setLang(l){lang=l;apply();}
+function setTheme(t){theme=t;apply();}
+apply();
+</script>
+</body>
+</html>
