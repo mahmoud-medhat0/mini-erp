@@ -18,6 +18,7 @@ model Company {
   nameEn         String
   nameAr         String
   baseCurrency   String   @default("EGP")
+  settingsJson   Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

@@ -39,8 +39,23 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - `npm install` (319 pkgs) ✓ · `eslint --max-warnings=0` ✓ · `vitest` 57 passed / 1 skipped ✓.
 - `tsc --noEmit`: only 5 errors remain, all from the **ungenerated Prisma client** (blocked binaries.prisma.sh in the sandbox); CI's `prisma generate` resolves them.
 
+### Added — reusable UI + app shell (locally typechecked + linted)
+- UI primitives: **Button** (primary/secondary/ghost/danger + loading/disabled), **Input** (label/error/hint), **StatusBadge** (colour + dot + label, never colour-alone), **Card / PageHeader / EmptyState / PermissionDenied**. Token-styled, RTL-safe via logical CSS properties, light/dark via variables.
+- **AppShell** (sidebar + topbar, localized nav, active state) and a **protected route group** (`(app)/layout` enforces `requireAuth`) with a **dashboard shell** that shows an EmptyState — no mock KPIs.
+- Verified: `eslint --max-warnings=0` clean; `vitest` 57 passed; `tsc` adds zero new errors.
+
+### Added — auth route + Settings (locally verified)
+- **NextAuth route handler** (`/api/auth/[...nextauth]`, Node runtime) — credentials flow is now end-to-end.
+- **Company settings**: `SettingsService` (validated) + `PrismaSettingsRepository` (JSON column `settingsJson`), a **Settings hub** and a **Company settings screen** (currency/locale/timezone/fiscal-start) built from the UI components, EN/AR, server-action persistence with server-derived tenant context.
+- Verified: `eslint --max-warnings=0` clean; `vitest` **60 passed**; `tsc` clean except Prisma-client generation (CI).
+
+### Added — Branches + Numbering settings (locally verified)
+- **BranchService** (unique code per company, validation) + `PrismaBranchRepository` + tests.
+- **Branches settings screen** (list + add) and **Numbering settings screen** (list configs + add/update sequence with reset policy + next-number preview), wired to the tested services, EN/AR, server-derived tenant context.
+- Verified: lint clean; `tsc` clean except Prisma-client generation (CI); `vitest` **62 passed / 1 skipped**.
+
 ### Tests
-- 57 passing + 1 DB-gated integration (skips without DATABASE_URL, runs in CI). Invariant suite intact.
+- 62 passing + 1 DB-gated integration (skips without DATABASE_URL, runs in CI). Invariant suite intact.
 
 ### Notes
 - GitHub remote not yet connected — session token is repo-bound and no repo is enabled for this session (see IMPLEMENTATION_STATUS → Remote).
