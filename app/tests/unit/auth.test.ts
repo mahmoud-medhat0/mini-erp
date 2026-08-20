@@ -21,7 +21,7 @@ describe('Auth — credentials', () => {
     const svc = new CredentialsAuthService(repoWith([alice]), fakeHasher());
     const res = await svc.authenticate('Alice@Acme.test', 'secret');
     expect(res).toEqual({ id: 'u1', email: 'alice@acme.test', name: 'Alice' });
-    expect((res as Record<string, unknown>).passwordHash).toBeUndefined();
+    expect((res as unknown as Record<string, unknown>).passwordHash).toBeUndefined();
   });
 
   it('rejects a wrong password with a generic error', async () => {

@@ -23,5 +23,10 @@
   "status.paid": "مدفوع",
   "status.overdue": "متأخر",
   "status.cancelled": "ملغى",
-  "status.reversed": "معكوس"
+  "status.reversed": "معكوس",
+  "auth.email": "البريد الإلكتروني",
+  "auth.password": "كلمة المرور",
+  "auth.signIn": "تسجيل الدخول",
+  "auth.signOut": "تسجيل الخروج",
+  "auth.invalidCredentials": "بريد إلكتروني أو كلمة مرور غير صحيحة"
 }

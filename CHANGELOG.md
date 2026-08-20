@@ -23,8 +23,24 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - **Jobs:** queue-agnostic job runner (idempotency + exponential backoff) + pg-boss adapter + worker entrypoint.
 - **Company:** company/branch onboarding + settings service (validated; owner admin role seeded).
 
+### Added — Phase 1 integration layer
+- **DB:** Prisma client singleton + repositories (user, audit append-only, numbering with atomic `INSERT … ON CONFLICT DO UPDATE RETURNING`). Repositories are the only DB-touching layer.
+- **Auth.js:** NextAuth v5 credentials config wired to the tested auth service + Argon2 + Prisma user repo; JWT session carries server-derived companyId + RBAC grants; login screen (EN/AR, tokens, light/dark); `requireAuth` route guard.
+- **CI:** now provisions a Postgres service, runs `prisma db push`, and executes the DB-gated numbering-concurrency integration test alongside the blocking invariant suite. Working directory set to `app/`; triggers on main + develop.
+
+### Added / Fixed — toolchain hardening (verified via real install)
+- Generated **package-lock.json** (CI `npm ci` now works).
+- **TS-aware ESLint** (typescript-eslint) — `npm run lint` passes clean at `--max-warnings=0`.
+- Fixed **pg-boss v10** adapter (batch `Job[]` work handler, `pollingIntervalSeconds`, `includeMetadata`).
+- Fixed login **server-action signature** (+ generic error display via `?error=1`).
+- Lint/type nits: `const` in money.allocate, unused imports, test cast, tailwind token typing.
+
+### Verification (this increment, real tooling)
+- `npm install` (319 pkgs) ✓ · `eslint --max-warnings=0` ✓ · `vitest` 57 passed / 1 skipped ✓.
+- `tsc --noEmit`: only 5 errors remain, all from the **ungenerated Prisma client** (blocked binaries.prisma.sh in the sandbox); CI's `prisma generate` resolves them.
+
 ### Tests
-- 57/57 passing (was 23) — added auth, roles, audit, tenant, numbering-service, attachments, notifications, jobs, company suites. Invariant suite intact.
+- 57 passing + 1 DB-gated integration (skips without DATABASE_URL, runs in CI). Invariant suite intact.
 
 ### Notes
 - GitHub remote not yet connected — session token is repo-bound and no repo is enabled for this session (see IMPLEMENTATION_STATUS → Remote).

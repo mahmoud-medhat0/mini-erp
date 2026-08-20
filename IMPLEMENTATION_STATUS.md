@@ -2,8 +2,9 @@
 
 - **Current phase:** Phase 1 — Foundation (IN PROGRESS)
 - **Latest verified:** 2026-08-20
-- **Tests passing:** 57/57 (invariants + unit: money, accounting-kernel, numbering, rbac, auth, roles, audit, tenant, numbering-service, attachments, notifications, jobs, company)
-- **Latest commit:** `8bf145b` docs(spec): Phase-1 status
+- **Tests passing:** 57 passing + 1 DB-gated integration (skips locally, runs in CI with Postgres)
+- **Latest commit:** see `git log` (feature/phase1-integration → develop)
+- **Remote:** develop `6bce8e4` (Phase-1 app layer, squashed). Session is read-only; pushes handed off via bundle.
 
 ## Legend
 `COMPLETE` fully implemented + tested · `PARTIAL` partially implemented · `SCAFFOLD ONLY` structure without logic.
@@ -28,7 +29,10 @@
 | Argon2id password hasher | PARTIAL | real adapter written (OWASP params); native module runs at full install |
 | Auth rate limiter | COMPLETE | fixed-window, injectable clock; tested |
 | Session + route guard | COMPLETE | `requireSession`/`authorize`; server-derived tenant |
-| Auth.js provider wiring | SCAFFOLD ONLY | credentials service ready; NextAuth route + protected pages pending (needs app runtime) |
+| Auth.js provider wiring | PARTIAL | NextAuth v5 credentials config (`src/auth.ts`) + login screen (EN/AR) + `requireAuth`; verified at full runtime |
+| Prisma repositories (user/audit/numbering) | PARTIAL | real repos incl. atomic numbering SQL; run at full install + Postgres |
+| DB integration test (numbering concurrency) | PARTIAL | `tests/integration/numbering.pg.test.ts`; runs in CI (Postgres service) |
+| CI Postgres + integration | COMPLETE | CI provisions Postgres, `prisma db push`, runs invariants + integration |
 | RBAC permission catalog | COMPLETE | 24 modules × actions + sensitive caps |
 | RBAC role templates (9) | COMPLETE | deny-by-default; SUPER_ADMIN…VIEWER; 7 tests |
 | RBAC seed plan | COMPLETE (plan) / PARTIAL (persist) | pure planner tested; `prisma/seed.ts` applies (needs DB) |

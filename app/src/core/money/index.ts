@@ -89,7 +89,7 @@ export function allocate(amount: Money, weights: number[]): Money[] {
   const magnitude = totalMinor < 0n ? -totalMinor : totalMinor;
 
   const rawParts = weights.map((w) => (magnitude * BigInt(w)) / BigInt(total));
-  let distributed = rawParts.reduce((a, b) => a + b, 0n);
+  const distributed = rawParts.reduce((a, b) => a + b, 0n);
   let remainder = magnitude - distributed;
 
   // distribute the remaining minor units one-by-one to the largest fractional remainders
@@ -110,7 +110,7 @@ export function allocate(amount: Money, weights: number[]): Money[] {
 }
 
 /** Locale-aware formatting for display only (never for authoritative math). */
-export function formatMoney(m: Money, locale: 'en' | 'ar' = 'en'): string {
+export function formatMoney(m: Money, _locale: 'en' | 'ar' = 'en'): string {
   const exp = currencyExponent(m.currency);
   const neg = m.amountMinor < 0n;
   const mag = neg ? -m.amountMinor : m.amountMinor;

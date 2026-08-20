@@ -23,5 +23,10 @@
   "status.paid": "Paid",
   "status.overdue": "Overdue",
   "status.cancelled": "Cancelled",
-  "status.reversed": "Reversed"
+  "status.reversed": "Reversed",
+  "auth.email": "Email",
+  "auth.password": "Password",
+  "auth.signIn": "Sign in",
+  "auth.signOut": "Sign out",
+  "auth.invalidCredentials": "Invalid email or password"
 }
