@@ -33,5 +33,6 @@ prisma/*.db
 .idea/
 .vscode/
 
-# Packaging scratch
-mini-erp-phase1.zip
+# Packaging / delivery artifacts (regenerable — not source)
+*.bundle
+*.zip

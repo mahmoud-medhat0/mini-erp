@@ -26,6 +26,7 @@ export interface AuditRecord {
   before?: unknown;
   after?: unknown;
   reason?: string | null;
+  requestId?: string | null;
   ip?: string | null;
   device?: string | null;
   at: Date;
