@@ -74,3 +74,29 @@ export class ControlAccountViolationError extends DomainError {
     });
   }
 }
+
+export class UnauthenticatedError extends DomainError {
+  constructor() {
+    super('unauthenticated', 'Authentication required', 401);
+  }
+}
+
+export class InvalidCredentialsError extends DomainError {
+  // Generic on purpose — never reveals whether the email exists.
+  constructor() {
+    super('invalid_credentials', 'Invalid email or password', 401);
+  }
+}
+
+export class RateLimitedError extends DomainError {
+  constructor(retryAfterMs: number) {
+    super('rate_limited', 'Too many attempts, please try again later', 429, { retryAfterMs });
+  }
+}
+
+export class CrossTenantError extends DomainError {
+  constructor() {
+    // Do not leak the other company's id.
+    super('cross_tenant', 'Resource does not belong to the current company', 403);
+  }
+}

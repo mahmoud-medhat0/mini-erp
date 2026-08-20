@@ -209,6 +209,7 @@ model AuditLog {
   beforeJson Json?
   afterJson  Json?
   reason     String?
+  requestId  String?
   ip         String?
   device     String?
   at         DateTime @default(now())

@@ -2,7 +2,7 @@
 
 - **Current phase:** Phase 1 — Foundation (IN PROGRESS)
 - **Latest verified:** 2026-08-20
-- **Tests passing:** 23/23 (accounting-invariant + unit: money, accounting-kernel, numbering, rbac)
+- **Tests passing:** 57/57 (invariants + unit: money, accounting-kernel, numbering, rbac, auth, roles, audit, tenant, numbering-service, attachments, notifications, jobs, company)
 - **Latest commit:** `8bf145b` docs(spec): Phase-1 status
 
 ## Legend
@@ -16,18 +16,30 @@
 | Numbering (format + atomic allocate) | COMPLETE | 4 tests incl. 1000-parallel uniqueness |
 | RBAC (server-side, scope, tenant isolation) | COMPLETE | 5 tests |
 | Errors (typed domain errors) | COMPLETE | used across suite |
-| Audit (types + diff) | PARTIAL | types done; Prisma writer + wiring pending |
 | Currency registry | COMPLETE | EGP seed, multi-currency |
-| Prisma kernel schema | PARTIAL | schema written; migrate/generate pending (needs DB) |
+| Prisma kernel schema | PARTIAL | schema written (+requestId); migrate/generate pending (needs DB) |
 | i18n EN/AR + RTL + theming | PARTIAL | wired; full component library pending |
-| Auth.js + argon2 | SCAFFOLD ONLY | folder present; not implemented |
-| RBAC seed (roles→permissions) | SCAFFOLD ONLY | templates defined in code; DB seed pending |
-| Company/Branch + Settings UI | SCAFFOLD ONLY | schema present; services/UI pending |
-| Numbering config UI | SCAFFOLD ONLY | engine done; UI pending |
-| Attachments adapter | SCAFFOLD ONLY | schema present |
-| Notifications foundation | SCAFFOLD ONLY | schema present |
-| Job runner (pg-boss) | SCAFFOLD ONLY | dependency declared; bootstrap pending |
 | CI workflow | COMPLETE | blocking invariant job |
+
+## Phase-1 application services (this increment — real + unit-tested)
+| Item | Status | Notes |
+|---|---|---|
+| Credentials auth service | COMPLETE | anti-enumeration timing, generic errors, no hash leakage; 6 tests |
+| Argon2id password hasher | PARTIAL | real adapter written (OWASP params); native module runs at full install |
+| Auth rate limiter | COMPLETE | fixed-window, injectable clock; tested |
+| Session + route guard | COMPLETE | `requireSession`/`authorize`; server-derived tenant |
+| Auth.js provider wiring | SCAFFOLD ONLY | credentials service ready; NextAuth route + protected pages pending (needs app runtime) |
+| RBAC permission catalog | COMPLETE | 24 modules × actions + sensitive caps |
+| RBAC role templates (9) | COMPLETE | deny-by-default; SUPER_ADMIN…VIEWER; 7 tests |
+| RBAC seed plan | COMPLETE (plan) / PARTIAL (persist) | pure planner tested; `prisma/seed.ts` applies (needs DB) |
+| Tenant context + isolation | COMPLETE | server-derived; cross-company rejected; tested |
+| Append-only audit service | COMPLETE | redaction + field diff + requestId; append-only by construction; tested |
+| Numbering config + allocation service | COMPLETE | validate/persist/preview/allocate; 1000-parallel uniqueness; per-company isolation |
+| Attachment storage abstraction | COMPLETE | interface + validation + company scope; local adapter written; tested |
+| Notification service | COMPLETE | create/list/read + company scope; channel interface; tested |
+| Job runner (idempotency + backoff) | COMPLETE | once-only, retry-on-throw, capped backoff; tested |
+| pg-boss adapter + worker entrypoint | PARTIAL | real code (publish/work/graceful shutdown); runs at full install + DB |
+| Company/Branch onboarding + settings | COMPLETE (service) / PARTIAL (persist+UI) | validation + owner admin role; repo interface; Prisma repo + UI pending |
 
 ## Modules (Phases 2–10)
 All 24 domain modules are `SCAFFOLD ONLY` (directory + boundary files); implemented in their roadmap phases. **No module is marked COMPLETE.**
