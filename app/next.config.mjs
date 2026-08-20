@@ -1,0 +1,12 @@
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  // Accounting/DB operations require the Node.js runtime — never Edge.
+  experimental: { serverActions: { bodySizeLimit: '2mb' } },
+};
+
+export default withNextIntl(nextConfig);
