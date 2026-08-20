@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   Mini ERP — Design Tokens
+   Single source of truth for color, typography, spacing, radius, elevation.
+   Consumed by Tailwind (see tailwind.tokens.js) and raw CSS.
+   Theme swap = flip [data-theme]; direction swap = flip dir="rtl"/"ltr".
+   Nothing here is hardcoded in components — components read var(--token) only.
+   ============================================================================ */
+
+:root {
+  /* -- Typography ---------------------------------------------------------- */
+  --font-sans-en: "Source Sans 3", system-ui, sans-serif;
+  --font-sans-ar: "Cairo", "Segoe UI", Tahoma, sans-serif;
+  --font-display: "Playfair Display", Georgia, serif; /* sparing, headings only */
+  --font-mono: "JetBrains Mono", ui-monospace, monospace; /* codes, IDs, numbers */
+
+  --text-2xs: 0.6875rem;  /* 11px table meta */
+  --text-xs:  0.75rem;    /* 12px */
+  --text-sm:  0.8125rem;  /* 13px dense table body */
+  --text-base:0.875rem;   /* 14px default app text */
+  --text-md:  1rem;       /* 16px */
+  --text-lg:  1.125rem;   /* 18px */
+  --text-xl:  1.375rem;   /* 22px page titles */
+  --text-2xl: 1.75rem;    /* 28px KPI figures */
+  --text-3xl: 2.25rem;    /* 36px dashboard hero */
+
+  --font-normal: 400; --font-medium: 500; --font-semibold: 600; --font-bold: 700;
+  --leading-tight: 1.2; --leading-normal: 1.45; --leading-relaxed: 1.6;
+
+  /* Tabular numerals for all financial figures */
+  --num-features: "tnum" 1, "lnum" 1;
+
+  /* -- Spacing scale (4px base) ------------------------------------------- */
+  --space-0:0; --space-1:0.25rem; --space-2:0.5rem; --space-3:0.75rem;
+  --space-4:1rem; --space-5:1.25rem; --space-6:1.5rem; --space-8:2rem;
+  --space-10:2.5rem; --space-12:3rem; --space-16:4rem;
+
+  /* -- Radius -------------------------------------------------------------- */
+  --radius-xs:3px; --radius-sm:5px; --radius-md:8px; --radius-lg:12px;
+  --radius-xl:16px; --radius-full:9999px;
+
+  /* -- Layout -------------------------------------------------------------- */
+  --sidebar-w:264px; --sidebar-w-collapsed:64px; --header-h:56px;
+  --content-max:1440px; --z-header:100; --z-drawer:200; --z-modal:300; --z-toast:400;
+
+  /* -- Motion (restrained; ERP, not a landing page) ----------------------- */
+  --dur-fast:120ms; --dur:180ms; --dur-slow:260ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* -- Brand hue (identity, not copied from any competitor) --------------- */
+  --brand-500:#2563a8;  /* trustworthy financial blue-teal */
+  --brand-600:#1f5490;
+  --brand-700:#194476;
+}
+
+/* ============================================================================
+   LIGHT THEME  (default)
+   Semantic tokens only. Surface hierarchy: bg < surface < elevated.
+   ============================================================================ */
+:root, [data-theme="light"] {
+  --background:        #f5f6f8;
+  --surface:           #ffffff;
+  --surface-elevated:  #ffffff;
+  --surface-muted:     #eef0f3;
+  --surface-hover:     #f0f2f5;
+  --surface-active:    #e6e9ee;
+
+  --border:            #dfe3e8;
+  --border-strong:     #c6ccd4;
+  --border-focus:      var(--brand-500);
+
+  --text-primary:      #1a2230;
+  --text-secondary:    #4d5768;
+  --text-muted:        #7a8496;
+  --text-disabled:     #aab2bf;
+  --text-inverse:      #ffffff;
+
+  --primary:           var(--brand-500);
+  --primary-hover:     var(--brand-600);
+  --primary-active:    var(--brand-700);
+  --primary-subtle:    #e8f0f9;
+  --on-primary:        #ffffff;
+  --focus-ring:        rgba(37, 99, 168, 0.35);
+
+  --success:#1f8a4c; --success-subtle:#e4f4ea; --on-success:#ffffff;
+  --warning:#b26b00; --warning-subtle:#fbeed3; --on-warning:#ffffff;
+  --danger: #c62a2a; --danger-subtle:#fbe3e3;  --on-danger:#ffffff;
+  --info:   #2563a8; --info-subtle:#e6f0f9;    --on-info:#ffffff;
+
+  /* -- Financial semantics (color is ONE signal; always pair w/ label+icon) */
+  --income:      #1f8a4c;  /* revenue / positive */
+  --expense:     #c05621;
+  --profit:      #1f8a4c;
+  --loss:        #c62a2a;
+  --receivable:  #2563a8;
+  --payable:     #8a4bbd;
+  --cash:        #0f8f8f;
+  --bank:        #2f6ad9;
+  --inventory:   #7a6b17;
+  --tax:         #9a5b00;
+  --neutral-fig: var(--text-primary);
+
+  --chart-1:#2563a8; --chart-2:#1f8a4c; --chart-3:#c05621; --chart-4:#8a4bbd;
+  --chart-5:#0f8f8f; --chart-6:#b26b00; --chart-7:#c62a2a; --chart-8:#5a6472;
+
+  --shadow-sm: 0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.04);
+  --shadow-md: 0 4px 12px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04);
+  --shadow-lg: 0 12px 32px rgba(16,24,40,0.14);
+  --overlay:   rgba(16,24,40,0.44);
+}
+
+/* ============================================================================
+   DARK THEME  (designed, not inverted)
+   Elevated surfaces get lighter, not brighter borders; numbers stay legible.
+   ============================================================================ */
+[data-theme="dark"] {
+  --background:        #0e1420;
+  --surface:           #161d2b;
+  --surface-elevated:  #1d2637;
+  --surface-muted:     #131a27;
+  --surface-hover:     #202a3c;
+  --surface-active:    #263248;
+
+  --border:            #2a3446;
+  --border-strong:     #3a465c;
+  --border-focus:      #5b9bd8;
+
+  --text-primary:      #e7ecf3;
+  --text-secondary:    #aeb8c8;
+  --text-muted:        #7d8798;
+  --text-disabled:     #576073;
+  --text-inverse:      #0e1420;
+
+  --primary:           #4d90d4;
+  --primary-hover:     #62a0de;
+  --primary-active:    #7ab0e6;
+  --primary-subtle:    #17273a;
+  --on-primary:        #06111f;
+  --focus-ring:        rgba(93, 155, 216, 0.45);
+
+  --success:#4cc27e; --success-subtle:#12271a; --on-success:#06110a;
+  --warning:#e6a545; --warning-subtle:#2a2010; --on-warning:#0e0a02;
+  --danger: #ec5b5b; --danger-subtle:#2c1414;  --on-danger:#120404;
+  --info:   #4d90d4; --info-subtle:#122236;    --on-info:#06111f;
+
+  --income:      #4cc27e;
+  --expense:     #e07a4a;
+  --profit:      #4cc27e;
+  --loss:        #ec5b5b;
+  --receivable:  #5b9bd8;
+  --payable:     #b083df;
+  --cash:        #35b3b3;
+  --bank:        #5b8ff0;
+  --inventory:   #cbb54a;
+  --tax:         #d69a3f;
+  --neutral-fig: var(--text-primary);
+
+  --chart-1:#5b9bd8; --chart-2:#4cc27e; --chart-3:#e07a4a; --chart-4:#b083df;
+  --chart-5:#35b3b3; --chart-6:#e6a545; --chart-7:#ec5b5b; --chart-8:#8592a6;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 6px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,0.6);
+  --overlay:   rgba(3, 7, 14, 0.6);
+}
+
+/* ============================================================================
+   Base element wiring
+   ============================================================================ */
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-sans-en);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+[dir="rtl"] body, :lang(ar) body { font-family: var(--font-sans-ar); }
+
+/* Financial figures: tabular, direction-isolated so numbers read LTR inside AR */
+.fig, .num, td.num {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: var(--num-features);
+  unicode-bidi: isolate;
+}
+.fig--neg, .num.is-negative { color: var(--loss); }
+
+/* Technical identifiers (INV-2026-00001, SKU, IBAN, email) never flip in RTL */
+.code, .identifier { unicode-bidi: isolate; direction: ltr; font-family: var(--font-mono); }
+
+/* Accessible focus — visible in both themes */
+:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: var(--radius-xs); }

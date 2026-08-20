@@ -1,0 +1,248 @@
+// Mini ERP — Phase 1 kernel schema.
+// Money = BigInt minor units (never Float/Double). Posted financial rows are
+// immutable (enforced in the service layer + DB triggers added in Phase 2).
+// Every business row carries company/branch scope; queries filter by tenant.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Org & tenancy ───────────────────────────
+model Company {
+  id             String   @id @default(uuid())
+  nameEn         String
+  nameAr         String
+  baseCurrency   String   @default("EGP")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  branches       Branch[]
+  users          UserCompany[]
+  numberSeqs     NumberSequence[]
+  fiscalYears    FiscalYear[]
+  auditLogs      AuditLog[]
+
+  @@map("company")
+}
+
+model Branch {
+  id         String  @id @default(uuid())
+  companyId  String
+  code       String
+  nameEn     String
+  nameAr     String
+  isActive   Boolean @default(true)
+  company    Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("branch")
+}
+
+// ─────────────────────────── Identity & RBAC ─────────────────────────
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  name          String
+  passwordHash  String
+  locale        String        @default("en")
+  theme         String        @default("system")
+  isActive      Boolean       @default(true)
+  mfaEnabled    Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  companies     UserCompany[]
+  roles         UserRole[]
+
+  @@map("app_user")
+}
+
+model UserCompany {
+  userId    String
+  companyId String
+  user      User    @relation(fields: [userId], references: [id])
+  company   Company @relation(fields: [companyId], references: [id])
+
+  @@id([userId, companyId])
+  @@map("user_company")
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  companyId   String
+  name        String
+  isTemplate  Boolean          @default(false)
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@unique([companyId, name])
+  @@map("role")
+}
+
+model Permission {
+  id      String           @id @default(uuid())
+  module  String
+  action  String
+  // e.g. module="sales", action="post" -> "sales.post"
+  roles   RolePermission[]
+
+  @@unique([module, action])
+  @@map("permission")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  scopeJson    Json?
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("role_permission")
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  scopeJson Json?
+  user      User @relation(fields: [userId], references: [id])
+  role      Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_role")
+}
+
+// ─────────────────────────── Money & currency ────────────────────────
+model Currency {
+  code     String @id // ISO 4217
+  nameEn   String
+  nameAr   String
+  symbol   String
+  exponent Int    @default(2)
+
+  @@map("currency")
+}
+
+model ExchangeRate {
+  id       String   @id @default(uuid())
+  currency String
+  date     DateTime
+  // rate scaled fixed-point (rate * 10^6) to avoid float
+  rateE6   BigInt
+
+  @@unique([currency, date])
+  @@index([currency, date])
+  @@map("exchange_rate")
+}
+
+// ─────────────────────────── Fiscal periods ──────────────────────────
+model FiscalYear {
+  id        String            @id @default(uuid())
+  companyId String
+  year      Int
+  startDate DateTime
+  endDate   DateTime
+  status    FiscalYearStatus  @default(open)
+  company   Company           @relation(fields: [companyId], references: [id])
+  periods   FinancialPeriod[]
+
+  @@unique([companyId, year])
+  @@map("fiscal_year")
+}
+
+model FinancialPeriod {
+  id           String       @id @default(uuid())
+  fiscalYearId String
+  month        Int
+  startDate    DateTime
+  endDate      DateTime
+  status       PeriodStatus @default(open)
+  fiscalYear   FiscalYear   @relation(fields: [fiscalYearId], references: [id])
+
+  @@unique([fiscalYearId, month])
+  @@map("financial_period")
+}
+
+enum FiscalYearStatus {
+  open
+  closed
+  locked
+}
+
+enum PeriodStatus {
+  open
+  closed
+  reopened
+}
+
+// ─────────────────────────── Numbering ───────────────────────────────
+model NumberSequence {
+  id            String   @id @default(uuid())
+  companyId     String
+  key           String   // bucket key, e.g. "INV|2026" or "INV|CAI|2026-03"
+  docType       String
+  prefix        String
+  includeYear   Boolean  @default(true)
+  includeBranch Boolean  @default(false)
+  padding       Int      @default(5)
+  resetPolicy   String   @default("yearly")
+  nextValue     Int      @default(0)
+  company       Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, key])
+  @@map("number_sequence")
+}
+
+// ─────────────────────────── Audit (append-only) ─────────────────────
+model AuditLog {
+  id         String   @id @default(uuid())
+  companyId  String
+  branchId   String?
+  actorId    String
+  action     String
+  entityType String
+  entityId   String
+  beforeJson Json?
+  afterJson  Json?
+  reason     String?
+  ip         String?
+  device     String?
+  at         DateTime @default(now())
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, entityType, entityId])
+  @@index([companyId, at])
+  @@map("audit_log")
+}
+
+// ─────────────────────────── Attachments & notifications ─────────────
+model Attachment {
+  id         String   @id @default(uuid())
+  companyId  String
+  entityType String
+  entityId   String
+  fileRef    String
+  name       String
+  uploadedBy String
+  at         DateTime @default(now())
+
+  @@index([companyId, entityType, entityId])
+  @@map("attachment")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  type      String
+  targetRef String
+  read      Boolean  @default(false)
+  at        DateTime @default(now())
+
+  @@index([companyId, userId, read])
+  @@map("notification")
+}
