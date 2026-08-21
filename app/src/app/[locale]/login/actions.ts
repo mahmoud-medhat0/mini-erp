@@ -13,7 +13,7 @@ export async function loginAction(locale: string, formData: FormData): Promise<v
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
   try {
-    await signIn('credentials', { email, password, redirectTo: `/${locale}` });
+    await signIn('credentials', { email, password, redirectTo: `/${locale}/dashboard` });
   } catch (e) {
     if (e instanceof AuthError) redirect(`/${locale}/login?error=1`);
     throw e; // success path throws NEXT_REDIRECT — must propagate
