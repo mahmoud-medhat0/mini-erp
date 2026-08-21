@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Currency;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -89,5 +90,32 @@ class FoundationSchemaTest extends TestCase
             'company_id' => $companyId,
             'user_id' => $user->id,
         ]);
+    }
+
+    public function test_foundation_names_are_translatable(): void
+    {
+        $currency = Currency::query()->create([
+            'code' => 'EGP',
+            'name' => ['en' => 'Egyptian Pound', 'ar' => 'الجنيه المصري'],
+            'symbol' => 'E£',
+        ]);
+
+        $company = Company::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => ['en' => 'Demo Company', 'ar' => 'شركة تجريبية'],
+        ]);
+
+        $branch = Branch::query()->create([
+            'id' => (string) Str::uuid(),
+            'company_id' => $company->id,
+            'code' => 'MAIN',
+            'name' => ['en' => 'Main Branch', 'ar' => 'الفرع الرئيسي'],
+        ]);
+
+        foreach ([$currency, $company, $branch] as $model) {
+            $this->assertSame(['name'], $model->getTranslatableAttributes());
+            $this->assertNotSame('', $model->getTranslation('name', 'en'));
+            $this->assertNotSame('', $model->getTranslation('name', 'ar'));
+        }
     }
 }
