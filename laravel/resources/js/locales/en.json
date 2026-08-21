@@ -77,7 +77,12 @@
       "selectAllInModule": "Select All in Module",
       "deselectModule": "Deselect Module",
       "showLess": "Show Less",
-      "showMore": "more"
+      "showMore": "more",
+      "reset": "Reset",
+      "filter": "Filter Logs",
+      "close": "Close",
+      "previous": "Previous",
+      "next": "Next"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -214,6 +219,30 @@
       "searchPermissionsPlaceholder": "Search all permissions...",
       "modulesAndDomains": "Modules & Domains",
       "configureAccessScopes": "Configure granular access scopes by category domain."
+    },
+    "audit": {
+      "title": "System Audit Log",
+      "description": "Immutable append-only audit trail recording all system transactions and security actions.",
+      "empty": "No audit log records found matching the criteria.",
+      "actor": "Actor / User",
+      "action": "Action",
+      "entityType": "Entity Type",
+      "entityId": "Entity ID",
+      "requestId": "Request ID",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "search": "Search",
+      "searchPlaceholder": "Search action or entity...",
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "allUsers": "All Users",
+      "allActions": "All Actions",
+      "allEntities": "All Entities",
+      "viewPayload": "View Payload",
+      "payloadTitle": "Audit Record JSON Payload",
+      "stateBefore": "State Before (BEFORE):",
+      "stateAfter": "State After (AFTER):",
+      "totalRecords": "Total records:"
     },
     "status": {
       "active": "Active",

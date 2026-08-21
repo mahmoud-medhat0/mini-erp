@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import SearchableSelect from '../../Components/SearchableSelect';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -64,15 +65,42 @@ export default function AuditLogIndex({
 }: AuditLogProps) {
   const dict = getDictionary(locale);
   const isAr = locale === 'ar';
+  const auditDict = (dict.app as any)?.audit || {};
 
   const [searchFilter, setSearchFilter] = useState(filters.search ?? '');
-  const [actorFilter, setActorFilter] = useState(filters.actor_id ?? '');
-  const [actionFilter, setActionFilter] = useState(filters.action ?? '');
-  const [entityTypeFilter, setEntityTypeFilter] = useState(filters.entity_type ?? '');
+  const [actorFilter, setActorFilter] = useState<string | number | null>(filters.actor_id ?? '');
+  const [actionFilter, setActionFilter] = useState<string | number | null>(filters.action ?? '');
+  const [entityTypeFilter, setEntityTypeFilter] = useState<string | number | null>(filters.entity_type ?? '');
   const [requestIdFilter, setRequestIdFilter] = useState(filters.request_id ?? '');
   const [dateFrom, setDateFrom] = useState(filters.date_from ?? '');
   const [dateTo, setDateTo] = useState(filters.date_to ?? '');
   const [selectedPayload, setSelectedPayload] = useState<AuditLogRow | null>(null);
+
+  // Options for SearchableSelect
+  const userSelectOptions = [
+    { value: '', label: auditDict.allUsers || (isAr ? 'جميع المستخدمين' : 'All Users') },
+    ...usersList.map((u) => ({
+      value: String(u.id),
+      label: u.name,
+      sublabel: u.email,
+    })),
+  ];
+
+  const actionSelectOptions = [
+    { value: '', label: auditDict.allActions || (isAr ? 'جميع الإجراءات' : 'All Actions') },
+    ...actions.map((act) => ({
+      value: act,
+      label: act,
+    })),
+  ];
+
+  const entityTypeSelectOptions = [
+    { value: '', label: auditDict.allEntities || (isAr ? 'جميع الكائنات' : 'All Entities') },
+    ...entityTypes.map((ent) => ({
+      value: ent,
+      label: ent,
+    })),
+  ];
 
   function handleFilterSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -80,9 +108,9 @@ export default function AuditLogIndex({
       '/audit-log',
       {
         search: searchFilter || undefined,
-        actor_id: actorFilter || undefined,
-        action: actionFilter || undefined,
-        entity_type: entityTypeFilter || undefined,
+        actor_id: actorFilter ? String(actorFilter) : undefined,
+        action: actionFilter ? String(actionFilter) : undefined,
+        entity_type: entityTypeFilter ? String(entityTypeFilter) : undefined,
         request_id: requestIdFilter || undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
@@ -113,129 +141,115 @@ export default function AuditLogIndex({
 
   return (
     <AppLayout active="audit.view">
-      <Head title={isAr ? 'سجل التدقيق' : 'Audit Log'} />
+      <Head title={dict.app?.nav?.auditLog || (isAr ? 'سجل التدقيق' : 'Audit Log')} />
 
       <PageHeader
-        title={isAr ? 'سجل التدقيق والعمليات' : 'System Audit Log'}
+        title={auditDict.title || (isAr ? 'سجل التدقيق والعمليات' : 'System Audit Log')}
         description={
-          isAr
+          auditDict.description ||
+          (isAr
             ? 'سجل التغييرات والأحداث غير القابل للتعديل للنظام (Append-only audit trail)'
-            : 'Immutable append-only audit trail recording all system transactions and security actions'
+            : 'Immutable append-only audit trail recording all system transactions and security actions')
         }
       />
 
       {/* Filter Bar */}
       <Card className="p-4 mb-6 border-[var(--border)] bg-[var(--surface)]">
-        <form onSubmit={handleFilterSubmit} className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3">
+        <form onSubmit={handleFilterSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-end">
             {/* Search Input */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'بحث عام' : 'Search'}
+                {auditDict.search || (dict.app as any).actions?.search || (isAr ? 'بحث عام' : 'Search')}
               </label>
               <input
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder={isAr ? 'بحث عن إجراء أو كائن...' : 'Search action or entity...'}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
+                placeholder={auditDict.searchPlaceholder || (isAr ? 'بحث عن إجراء أو كائن...' : 'Search action or entity...')}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
               />
             </div>
 
-            {/* Actor Filter */}
+            {/* Actor Filter with SearchableSelect */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'المستخدم' : 'Actor / User'}
+                {auditDict.actor || (isAr ? 'المستخدم' : 'Actor / User')}
               </label>
-              <select
-                value={actorFilter}
-                onChange={(e) => setActorFilter(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
-              >
-                <option value="">{isAr ? 'جميع المستخدمين' : 'All Users'}</option>
-                {usersList.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={userSelectOptions}
+                value={actorFilter ? String(actorFilter) : ''}
+                onChange={(val) => setActorFilter(val)}
+                placeholder={auditDict.allUsers || (isAr ? 'جميع المستخدمين' : 'All Users')}
+                isClearable
+              />
             </div>
 
-            {/* Action Filter */}
+            {/* Action Filter with SearchableSelect */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'الإجراء' : 'Action'}
+                {auditDict.action || (isAr ? 'الإجراء' : 'Action')}
               </label>
-              <select
-                value={actionFilter}
-                onChange={(e) => setActionFilter(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
-              >
-                <option value="">{isAr ? 'جميع الإجراءات' : 'All Actions'}</option>
-                {actions.map((act) => (
-                  <option key={act} value={act}>
-                    {act}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={actionSelectOptions}
+                value={actionFilter ? String(actionFilter) : ''}
+                onChange={(val) => setActionFilter(val)}
+                placeholder={auditDict.allActions || (isAr ? 'جميع الإجراءات' : 'All Actions')}
+                isClearable
+              />
             </div>
 
-            {/* Entity Type Filter */}
+            {/* Entity Type Filter with SearchableSelect */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'نوع الكائن' : 'Entity Type'}
+                {auditDict.entityType || (isAr ? 'نوع الكائن' : 'Entity Type')}
               </label>
-              <select
-                value={entityTypeFilter}
-                onChange={(e) => setEntityTypeFilter(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
-              >
-                <option value="">{isAr ? 'جميع الكائنات' : 'All Entities'}</option>
-                {entityTypes.map((ent) => (
-                  <option key={ent} value={ent}>
-                    {ent}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                options={entityTypeSelectOptions}
+                value={entityTypeFilter ? String(entityTypeFilter) : ''}
+                onChange={(val) => setEntityTypeFilter(val)}
+                placeholder={auditDict.allEntities || (isAr ? 'جميع الكائنات' : 'All Entities')}
+                isClearable
+              />
             </div>
 
             {/* Request ID Filter */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'معرف الطلب' : 'Request ID'}
+                {auditDict.requestId || (isAr ? 'معرف الطلب' : 'Request ID')}
               </label>
               <input
                 type="text"
                 value={requestIdFilter}
                 onChange={(e) => setRequestIdFilter(e.target.value)}
-                placeholder={isAr ? 'req-...' : 'req-...'}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
+                placeholder="req-..."
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden font-mono"
               />
             </div>
 
             {/* Date From */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'من تاريخ' : 'Date From'}
+                {auditDict.dateFrom || (isAr ? 'من تاريخ' : 'Date From')}
               </label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
               />
             </div>
 
             {/* Date To */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {isAr ? 'إلى تاريخ' : 'Date To'}
+                {auditDict.dateTo || (isAr ? 'إلى تاريخ' : 'Date To')}
               </label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
               />
             </div>
           </div>
@@ -246,13 +260,13 @@ export default function AuditLogIndex({
               onClick={handleReset}
               className="px-3 py-1.5 text-xs font-bold rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
             >
-              {isAr ? 'إعادة ضبط' : 'Reset'}
+              {(dict.app as any).actions?.reset || (isAr ? 'إعادة ضبط' : 'Reset')}
             </button>
             <button
               type="submit"
               className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
-              {isAr ? 'تصفية النتائج' : 'Filter Logs'}
+              {(dict.app as any).actions?.filter || (isAr ? 'تصفية النتائج' : 'Filter Logs')}
             </button>
           </div>
         </form>
@@ -260,20 +274,20 @@ export default function AuditLogIndex({
 
       {/* Main Audit Table */}
       {logs.data.length === 0 ? (
-        <EmptyState title={isAr ? 'لا توجد سجلات تدقيق مطابقة' : 'No audit log records found'} />
+        <EmptyState title={auditDict.empty || (isAr ? 'لا توجد سجلات تدقيق مطابقة' : 'No audit log records found')} />
       ) : (
         <Card className="overflow-hidden border-[var(--border)]">
           <div className="overflow-x-auto">
             <table className={tableClasses.table}>
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--background)]/50">
-                  <th className={tableClasses.th}>{isAr ? 'التاريخ والوقت' : 'Timestamp'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'المستخدم' : 'Actor'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الإجراء' : 'Action'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'نوع الكائن' : 'Entity Type'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'معرف الكائن' : 'Entity ID'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'معرف الطلب' : 'Request ID'}</th>
-                  <th className={`${tableClasses.th} text-end`}>{isAr ? 'التفاصيل' : 'Details'}</th>
+                  <th className={tableClasses.th}>{auditDict.timestamp || (isAr ? 'التاريخ والوقت' : 'Timestamp')}</th>
+                  <th className={tableClasses.th}>{auditDict.actor || (isAr ? 'المستخدم' : 'Actor')}</th>
+                  <th className={tableClasses.th}>{auditDict.action || (isAr ? 'الإجراء' : 'Action')}</th>
+                  <th className={tableClasses.th}>{auditDict.entityType || (isAr ? 'نوع الكائن' : 'Entity Type')}</th>
+                  <th className={tableClasses.th}>{auditDict.entityId || (isAr ? 'معرف الكائن' : 'Entity ID')}</th>
+                  <th className={tableClasses.th}>{auditDict.requestId || (isAr ? 'معرف الطلب' : 'Request ID')}</th>
+                  <th className={`${tableClasses.th} text-end`}>{auditDict.details || (isAr ? 'التفاصيل' : 'Details')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -323,7 +337,7 @@ export default function AuditLogIndex({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                          <span>{isAr ? 'عرض الحمولة' : 'View Payload'}</span>
+                          <span>{auditDict.viewPayload || (isAr ? 'عرض الحمولة' : 'View Payload')}</span>
                         </button>
                       ) : (
                         <span className="text-xs text-[var(--text-muted)]">-</span>
@@ -338,7 +352,7 @@ export default function AuditLogIndex({
           {/* Pagination Controls */}
           <div className="flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface)]">
             <span className="text-xs text-[var(--text-muted)]">
-              {isAr ? `إجمالي السجلات: ${logs.total}` : `Total records: ${logs.total}`}
+              {auditDict.totalRecords || (isAr ? 'إجمالي السجلات:' : 'Total records:')} {logs.total}
             </span>
             <div className="flex items-center gap-2">
               {logs.prev_page_url ? (
@@ -347,7 +361,7 @@ export default function AuditLogIndex({
                   onClick={() => router.get(logs.prev_page_url!)}
                   className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
                 >
-                  {isAr ? 'السابق' : 'Previous'}
+                  {(dict.app as any).actions?.previous || (isAr ? 'السابق' : 'Previous')}
                 </button>
               ) : null}
               <span className="text-xs font-bold text-[var(--text-primary)] px-2">
@@ -359,7 +373,7 @@ export default function AuditLogIndex({
                   onClick={() => router.get(logs.next_page_url!)}
                   className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
                 >
-                  {isAr ? 'التالي' : 'Next'}
+                  {(dict.app as any).actions?.next || (isAr ? 'التالي' : 'Next')}
                 </button>
               ) : null}
             </div>
@@ -374,7 +388,7 @@ export default function AuditLogIndex({
             <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
               <div>
                 <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {isAr ? 'حمولة التغيير (JSON Payload)' : 'Audit Record JSON Payload'}
+                  {auditDict.payloadTitle || (isAr ? 'حمولة التغيير (JSON Payload)' : 'Audit Record JSON Payload')}
                 </h3>
                 <span className="text-xs text-[var(--text-muted)] font-mono">
                   {selectedPayload.action} • {selectedPayload.entity_type} #{selectedPayload.entity_id}
@@ -395,7 +409,7 @@ export default function AuditLogIndex({
               {selectedPayload.before_json ? (
                 <div>
                   <h5 className="m-0 mb-1 font-bold text-amber-600 dark:text-amber-400">
-                    {isAr ? 'الحالة القبلية (BEFORE):' : 'State Before (BEFORE):'}
+                    {auditDict.stateBefore || (isAr ? 'الحالة القبلية (BEFORE):' : 'State Before (BEFORE):')}
                   </h5>
                   <pre className="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] overflow-x-auto">
                     {parseJsonPayload(selectedPayload.before_json)}
@@ -406,7 +420,7 @@ export default function AuditLogIndex({
               {selectedPayload.after_json ? (
                 <div>
                   <h5 className="m-0 mb-1 font-bold text-emerald-600 dark:text-emerald-400">
-                    {isAr ? 'الحالة البعدية (AFTER):' : 'State After (AFTER):'}
+                    {auditDict.stateAfter || (isAr ? 'الحالة البعدية (AFTER):' : 'State After (AFTER):')}
                   </h5>
                   <pre className="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] overflow-x-auto">
                     {parseJsonPayload(selectedPayload.after_json)}
@@ -421,7 +435,7 @@ export default function AuditLogIndex({
                 onClick={() => setSelectedPayload(null)}
                 className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
               >
-                {isAr ? 'إغلاق' : 'Close'}
+                {(dict.app as any).actions?.close || (isAr ? 'إغلاق' : 'Close')}
               </button>
             </div>
           </Card>

@@ -76,8 +76,13 @@
       "clearAll": "إلغاء تحديد الكل",
       "selectAllInModule": "تحديد كافة صلاحيات الوحدة",
       "deselectModule": "إلغاء تحديد الوحدة",
-      "showLess": "عرض أقل",
-      "showMore": "إضافية"
+      "showLess": "إخفاء التفاصيل",
+      "showMore": "إظهار المزيد",
+      "reset": "إعادة ضبط",
+      "filter": "تصفية النتائج",
+      "close": "إغلاق",
+      "previous": "السابق",
+      "next": "التالي"
     },
     "nav": {
       "dashboard": "لوحة التحكم",
@@ -211,9 +216,33 @@
       "roleName": "اسم الدور",
       "roleNamePlaceholder": "مثال: محاسب أول",
       "selected": "محدد",
-      "searchPermissionsPlaceholder": "البحث في جميع الصلاحيات...",
-      "modulesAndDomains": "الوحدات والنطاقات",
-      "configureAccessScopes": "تخصيص نطاقات الوصول الدقيقة حسب نطاق الوحدة."
+      "searchPermissionsPlaceholder": "البحث في الصلاحيات...",
+      "modulesAndDomains": "الموديولات والنطاقات",
+      "configureAccessScopes": "تكوين نطاقات الوصول الدقيقة حسب الفئة."
+    },
+    "audit": {
+      "title": "سجل التدقيق والعمليات",
+      "description": "سجل التغييرات والأحداث غير القابل للتعديل للنظام (Append-only audit trail)",
+      "empty": "لا توجد سجلات تدقيق مطابقة للشروط الحالية.",
+      "actor": "المستخدم",
+      "action": "الإجراء",
+      "entityType": "نوع الكائن",
+      "entityId": "معرف الكائن",
+      "requestId": "معرف الطلب",
+      "timestamp": "التاريخ والوقت",
+      "details": "التفاصيل",
+      "search": "بحث عام",
+      "searchPlaceholder": "بحث عن إجراء أو كائن...",
+      "dateFrom": "من تاريخ",
+      "dateTo": "إلى تاريخ",
+      "allUsers": "جميع المستخدمين",
+      "allActions": "جميع الإجراءات",
+      "allEntities": "جميع الكائنات",
+      "viewPayload": "عرض الحمولة",
+      "payloadTitle": "حمولة التغيير (JSON Payload)",
+      "stateBefore": "الحالة القبلية (BEFORE):",
+      "stateAfter": "الحالة البعدية (AFTER):",
+      "totalRecords": "إجمالي السجلات:"
     },
     "status": {
       "active": "نشط",
