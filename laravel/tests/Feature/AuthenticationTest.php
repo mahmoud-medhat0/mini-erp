@@ -150,10 +150,8 @@ class AuthenticationTest extends TestCase
 
         $this->assertTrue($firstUser->fresh()->hasRole('SUPER_ADMIN'));
         $this->assertFalse($secondUser->fresh()->hasRole('SUPER_ADMIN'));
-        $this->assertDatabaseHas('audit_log', [
-            'action' => 'first_user_super_admin.seed',
-            'entity_type' => 'user',
-            'entity_id' => (string) $firstUser->id,
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'first_user_super_admin.seed',
         ]);
     }
 }

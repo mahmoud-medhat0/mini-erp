@@ -11,6 +11,7 @@ export type NavKey =
   | 'settings.branches'
   | 'settings.numbering'
   | 'settings.users'
+  | 'audit.view'
   | 'notifications'
   | 'foundation'
   | 'accounting.index'
@@ -527,6 +528,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'settings.branches' as NavKey, href: '/settings/branches', label: dict.app.settings.sections.branches.title, icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
                         { key: 'settings.numbering' as NavKey, href: '/settings/numbering', label: dict.app.settings.sections.numbering.title, icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
                         { key: 'settings.users' as NavKey, href: '/settings/users', label: dict.app.settings.sections.users.title, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+                        { key: 'audit.view' as NavKey, href: '/audit-log', label: dict.app.nav.auditLog, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
                       ].map((subItem) => {
                         const isSubActive = active === subItem.key;
 

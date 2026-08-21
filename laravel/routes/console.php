@@ -106,7 +106,7 @@ Artisan::command('concurrency:stress {--workers=100 : Number of concurrent opera
     }
 })->purpose('Run PostgreSQL concurrency stress checks for numbering and idempotency');
 
-Schedule::command('tokens:gc --batch=500')
+Schedule::command('tokens:gc --batch=100')
     ->hourly()
     ->withoutOverlapping()
     ->description('Delete expired auth and idempotency tokens');

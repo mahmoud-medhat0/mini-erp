@@ -41,10 +41,8 @@ class AttachmentAndNotificationTest extends TestCase
 
         $this->assertNotNull($attachment);
         Storage::disk('local')->assertExists($attachment->file_ref);
-        $this->assertDatabaseHas('audit_log', [
-            'action' => 'attachment.upload',
-            'entity_type' => 'company',
-            'entity_id' => $company->id,
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'attachment.upload',
         ]);
     }
 

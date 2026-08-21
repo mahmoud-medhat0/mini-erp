@@ -84,6 +84,7 @@
       "settings": "الإعدادات",
       "notifications": "الإشعارات",
       "diagnostics": "تشخيصات النظام",
+      "auditLog": "سجل التدقيق",
       "groups": {
         "overview": "الصفحات الرئيسية",
         "modules": "الوحدات والإدارة",

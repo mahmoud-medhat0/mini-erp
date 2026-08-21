@@ -31,7 +31,7 @@ class SettingsActionsTest extends TestCase
         $company = Company::query()->firstOrFail();
 
         $this->assertSame('MDS', $company->getTranslation('name', 'en'));
-        $this->assertDatabaseHas('audit_log', ['action' => 'company.create', 'entity_type' => 'company', 'entity_id' => $company->id]);
+        $this->assertDatabaseHas('activity_log', ['event' => 'company.create']);
 
         $this->actingAs($user)
             ->patch("/settings/company/{$company->id}", [

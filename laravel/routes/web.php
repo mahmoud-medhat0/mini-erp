@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AppPageController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\SettingsActionController;
@@ -49,6 +50,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::get('/attachments/{id}', [AttachmentController::class, 'show'])->name('attachments.show');
     Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+    Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
 
     // Phase 2 Accounting Core Routes
     Route::prefix('accounting')->group(function (): void {

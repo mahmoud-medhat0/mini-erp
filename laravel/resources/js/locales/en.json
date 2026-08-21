@@ -84,6 +84,7 @@
       "settings": "Settings",
       "notifications": "Notifications",
       "diagnostics": "System Diagnostics",
+      "auditLog": "Audit Log",
       "groups": {
         "overview": "Overview",
         "modules": "Modules & Administration",

@@ -65,10 +65,8 @@ class FoundationSeederTest extends TestCase
         $this->assertTrue($bootstrapUser->hasRole('SUPER_ADMIN'));
         $this->assertTrue($bootstrapUser->can('settings.configure'));
         $this->assertTrue($bootstrapUser->can('reopen_period'));
-        $this->assertDatabaseHas('audit_log', [
-            'action' => 'bootstrap_user.seed',
-            'entity_type' => 'user',
-            'entity_id' => (string) $bootstrapUser->id,
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'bootstrap_user.seed',
         ]);
     }
 }

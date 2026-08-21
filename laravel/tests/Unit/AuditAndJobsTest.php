@@ -23,8 +23,9 @@ class AuditAndJobsTest extends TestCase
             after: ['name' => 'Visible', 'password' => 'secret'],
         );
 
-        $row = DB::table('audit_log')->first();
-        $after = json_decode($row->after_json, true);
+        $row = DB::table('activity_log')->first();
+        $props = json_decode($row->properties, true);
+        $after = $props['after'];
 
         $this->assertSame('Visible', $after['name']);
         $this->assertSame('[redacted]', $after['password']);

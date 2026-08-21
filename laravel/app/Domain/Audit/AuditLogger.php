@@ -2,8 +2,7 @@
 
 namespace App\Domain\Audit;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use App\Models\User;
 
 class AuditLogger
 {
@@ -25,20 +24,35 @@ class AuditLogger
         ?string $ip = null,
         ?string $device = null,
     ): void {
-        DB::table('audit_log')->insert([
-            'id' => (string) Str::uuid(),
-            'actor_id' => is_numeric($actorId) ? (int) $actorId : null,
-            'action' => $action,
+        $causer = null;
+
+        if ($actorId !== null && is_numeric($actorId)) {
+            $causer = User::query()->find((int) $actorId);
+        }
+
+        $properties = [
+            'actor_id' => $actorId !== null ? (is_numeric($actorId) ? (int) $actorId : (string) $actorId) : null,
             'entity_type' => $entityType,
             'entity_id' => $entityId,
-            'before_json' => $before === null ? null : json_encode($this->redact($before), JSON_THROW_ON_ERROR),
-            'after_json' => $after === null ? null : json_encode($this->redact($after), JSON_THROW_ON_ERROR),
+            'before' => $before === null ? null : $this->redact($before),
+            'after' => $after === null ? null : $this->redact($after),
             'reason' => $reason,
             'request_id' => $requestId,
             'ip' => $ip,
             'device' => $device,
-            'at' => now(),
-        ]);
+        ];
+
+        $activity = activity('default')
+            ->event($action)
+            ->withProperties($properties);
+
+        if ($causer !== null) {
+            $activity->causedBy($causer);
+        } else {
+            $activity->causedByAnonymous();
+        }
+
+        $activity->log($action);
     }
 
     /**
