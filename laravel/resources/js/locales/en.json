@@ -1,0 +1,38 @@
+{
+  "auth": {
+    "login": {
+      "title": "Sign In — Mini ERP",
+      "heading": "Sign in to your account",
+      "subtitle": "Welcome back! Please enter your details below.",
+      "emailLabel": "Email Address",
+      "passwordLabel": "Password",
+      "forgotPassword": "Forgot password?",
+      "rememberMe": "Remember this device for 30 days",
+      "submitButton": "Sign in to Workspace",
+      "submitting": "Authenticating...",
+      "authFailed": "Authentication failed",
+      "devQuickFill": "Quick Dev Fill:",
+      "heroTag": "Real-Time Accounting & Operations Engine",
+      "heroHeadingPrefix": "Enterprise Resource Planning, ",
+      "heroHeadingHighlight": "Streamlined.",
+      "heroDesc": "Unified financial kernel with double-entry balancing, tenant-isolated branches, and Argon2id security.",
+      "footerText": "Need help accessing your workspace? Contact your system administrator.",
+      "features": [
+        { "title": "Balanced Double-Entry Kernel", "desc": "Guaranteed Σ Dr = Σ Cr ledger integrity" },
+        { "title": "Tenant & Branch Isolation", "desc": "Strict data scoping per company and branch" },
+        { "title": "Granular Spatie RBAC", "desc": "Role templates & custom permission assignments" }
+      ]
+    }
+  },
+  "common": {
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "en": "EN",
+      "ar": "العربية"
+    }
+  }
+}

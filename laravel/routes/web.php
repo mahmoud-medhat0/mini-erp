@@ -22,3 +22,19 @@ Route::get('/', function () {
 })->middleware('auth')->name('foundation');
 
 Route::get('/health', HealthCheckController::class)->name('health');
+
+Route::post('/locale', function (Illuminate\Http\Request $request) {
+    $validated = $request->validate([
+        'locale' => ['required', 'string', 'in:en,ar'],
+    ]);
+
+    $locale = $validated['locale'];
+    $request->session()->put('locale', $locale);
+    app()->setLocale($locale);
+
+    if ($request->user()) {
+        $request->user()->update(['locale' => $locale]);
+    }
+
+    return back();
+})->name('locale.update');

@@ -6,37 +6,40 @@
 @source '../js/**/*.{ts,tsx}';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Alexandria', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Segoe UI', Roboto, sans-serif;
 }
 
 :root,
 [data-theme='light'] {
-    --background: #f5f6f8;
+    --background: #f8fafc;
     --surface: #ffffff;
-    --border: #dfe3e8;
-    --text-primary: #1a2230;
-    --text-secondary: #4d5768;
-    --text-muted: #7a8496;
-    --primary: #2563a8;
-    --success: #1f8a4c;
-    --success-subtle: #e4f4ea;
-    --danger: #c62a2a;
-    --danger-subtle: #fbe3e3;
+    --border: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-glow: rgba(37, 99, 235, 0.15);
+    --success: #16a34a;
+    --success-subtle: #dcfce7;
+    --danger: #dc2626;
+    --danger-subtle: #fee2e2;
 }
 
 [data-theme='dark'] {
-    --background: #0e1420;
-    --surface: #161d2b;
-    --border: #2a3446;
-    --text-primary: #e7ecf3;
-    --text-secondary: #aeb8c8;
-    --text-muted: #7d8798;
-    --primary: #4d90d4;
-    --success: #4cc27e;
-    --success-subtle: #12271a;
-    --danger: #ec5b5b;
-    --danger-subtle: #2c1414;
+    --background: #0b0f17;
+    --surface: #131b2e;
+    --border: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --primary: #3b82f6;
+    --primary-hover: #60a5fa;
+    --primary-glow: rgba(59, 130, 246, 0.25);
+    --success: #22c55e;
+    --success-subtle: #052e16;
+    --danger: #ef4444;
+    --danger-subtle: #450a0a;
 }
 
 html {
@@ -52,6 +55,7 @@ body {
     background: var(--background);
     color: var(--text-primary);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
 }
 
 .code,

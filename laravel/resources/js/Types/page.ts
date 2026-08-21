@@ -4,6 +4,8 @@ export type SharedPageProps = {
       id: number | string;
       name: string;
       email: string;
+      locale?: string;
+      theme?: string;
     };
     permissions: string[];
   };

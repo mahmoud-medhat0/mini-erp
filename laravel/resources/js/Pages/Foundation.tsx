@@ -1,4 +1,5 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
+import type { FormEvent } from 'react';
 
 import type { SharedPageProps } from '../Types/page';
 
@@ -9,7 +10,13 @@ type FoundationProps = SharedPageProps & {
 
 export default function Foundation({ status, database }: FoundationProps) {
   const { props } = usePage<FoundationProps>();
+  const { post, processing } = useForm({});
   const isReady = database === 'ok';
+
+  function logout(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    post('/logout');
+  }
 
   return (
     <>
@@ -23,9 +30,20 @@ export default function Foundation({ status, database }: FoundationProps) {
               </p>
               <h1 className="m-0 text-xl font-bold">Mini ERP</h1>
             </div>
-            <span className="rounded-sm border border-[var(--border)] px-3 py-1 text-sm text-[var(--text-secondary)]">
-              {props.direction.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-3">
+              {props.auth.user ? (
+                <span className="text-sm text-[var(--text-secondary)]">{props.auth.user.email}</span>
+              ) : null}
+              <form onSubmit={logout}>
+                <button
+                  type="submit"
+                  disabled={processing}
+                  className="h-9 rounded-sm border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Logout
+                </button>
+              </form>
+            </div>
           </header>
 
           <section className="grid flex-1 content-center gap-5 py-10">
@@ -34,7 +52,7 @@ export default function Foundation({ status, database }: FoundationProps) {
                 <div>
                   <h2 className="m-0 text-lg font-semibold">Migration foundation</h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
-                    Parallel Laravel application is booted beside the existing Next.js reference app. No ERP module
+                    Laravel session authentication is active beside the existing Next.js reference app. No ERP module
                     data is mocked here.
                   </p>
                 </div>
