@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slice 1 master data foundation is implemented and verified.
+Status: corrected planning contract; Slices 1-2 are implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -412,6 +412,8 @@ Status: COMPLETE in Laravel as of 2026-08-21.
 - customer/supplier opening balances
 - accounting posting through existing engine
 - no generic manual adjustments without owner approval
+
+Status: COMPLETE in Laravel as of 2026-08-21.
 
 ### Slice 3 - Receipt/Payment Posting
 

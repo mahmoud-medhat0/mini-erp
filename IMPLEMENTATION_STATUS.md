@@ -1,12 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 3 Slice 1 Master Data Foundation complete; next recommended product slice is Phase 3 Slice 2.
-- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 3 Slice 1 Master Data pass.
-- **Tests passing:** Laravel PHPUnit 159/159, 1243 assertions; Concurrency suite 7/7, 16 assertions; Phase 3 Master Data suite 14/14, 58 assertions.
+- **Current phase:** Phase 3 Slice 2 Customer & Supplier Opening Balances + AR/AP Subledgers complete; next recommended product slice is Phase 3 Slice 3 (Receipt/Payment Posting).
+- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 3 Slice 2 AR/AP Subledger hardening pass.
+- **Tests passing:** Laravel PHPUnit 173/173, 1304 assertions; Concurrency suite 7/7, 16 assertions; Phase 3 AR/AP Opening Balance suite 14/14, 61 assertions.
 - **Stress passing:** `concurrency:stress --workers=100` and `accounting:concurrency-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` and `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 3 Slice 1 worktree.
+- **Latest verified code commit:** pending for Phase 3 Slice 2 worktree.
 - **Handoff:** start with `CONTINUE_HERE.md`, then this file, then `NEXT_TASKS.md`.
 
 ## Legend
@@ -28,6 +28,7 @@
 | M9 attachments + notifications | COMPLETE | Attachment upload/download/list/delete service/routes, explicit allowlisted entity authorization, MIME/extension/size checks, storage cleanup compensation, UI panels, and user-targeted notification service with dedupe/list/mark-read behavior. |
 | M10 audit + jobs/scheduler | COMPLETE | Spatie Activitylog is the active audit backend, legacy `audit_log` is retained as archive, activity/audit tables are append-only, `/audit-log` viewer exists, `tokens:gc --batch=100` is scheduled hourly, and jobs/failed_jobs baseline is verified. |
 | Phase 3 Slice 1 Master Data | COMPLETE | Customer, Supplier, CashAccount, BankAccount models, migrations, domain services, optimistic locking, RBAC permissions, Spatie Activitylog audit entries, and attachment entity registrations. |
+| Phase 3 Slice 2 AR/AP Subledgers | COMPLETE | Customer & Supplier Opening Balances, `receivable_entry`, `payable_entry`, `accounting_account_mapping` (`ar_control`, `ap_control`, `opening_balance_offset`), PostingEngine integration, subledger-to-GL control account reconciliation, idempotency lock safety, mapping/currency validation, and DB integrity hardening. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -62,10 +63,10 @@ npm run build
 
 Result summary:
 
-- `php artisan migrate --force`: nothing to migrate.
-- `php artisan migrate:status`: 25 migrations Ran.
+- `php artisan migrate --force`: applied `2026_08_21_210000_harden_phase3_slice2_ar_ap_integrity`.
+- `php artisan migrate:status`: 27 migrations Ran.
 - `vendor/bin/pint --test`: passed.
-- `php artisan test`: 159 tests / 1243 assertions passed.
+- `php artisan test`: 173 tests / 1304 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
@@ -85,7 +86,7 @@ Result summary:
 | Sales | SCAFFOLD ONLY | Not started. |
 | Purchasing | SCAFFOLD ONLY | Not started. |
 | Inventory | SCAFFOLD ONLY | Not started. |
-| AR/AP + Cash/Bank/Cheques | IN PROGRESS | Phase 3 Slice 1 master data is complete; Slice 2 AR/AP subledger and opening balances is next. |
+| AR/AP + Cash/Bank/Cheques | IN PROGRESS | Phase 3 Slices 1-2 are complete; Slice 3 receipt/payment posting is next. |
 | Payroll, Rentals, Fixed Assets, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
 | Full financial statements | NOT IMPLEMENTED | General Journal, General Ledger, and Trial Balance exist; Balance Sheet/Income Statement/Cash Flow are later work. |
 
@@ -99,4 +100,4 @@ Result summary:
 
 ## Next Milestone
 
-Recommended: Phase 3 Slice 2 - AR/AP Subledger + Customer/Supplier Opening Balances. See `NEXT_TASKS.md` and `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`.
+Recommended: Phase 3 Slice 3 - Receipt/Payment Posting. See `NEXT_TASKS.md` and `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`.

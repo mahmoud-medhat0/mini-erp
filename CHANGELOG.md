@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 2 AR/AP subledgers and opening balances
+- Added Customer and Supplier opening-balance services that post through the existing Accounting PostingEngine and create durable `receivable_entry` / `payable_entry` subledger rows.
+- Added global accounting account mappings for `ar_control`, `ap_control`, and `opening_balance_offset`, with account classification, active-account, and currency validation.
+- Added PostgreSQL integrity hardening for active opening-balance uniqueness, source uniqueness, statuses, and positive/non-negative accounting amounts.
+- Hardened Slice 2 validation so financial periods must belong to the selected fiscal year, duplicate active opening balances are rejected, non-unit FX is blocked until exact FX posting exists, and mapped account currencies must match the opening balance currency.
+- Verified with `php artisan test` 173 tests / 1304 assertions, Phase 3 Slice 2 suite 14/14, Concurrency suite 7/7, PostgreSQL stress commands, TypeScript typecheck, and Vite build.
+
 ### Added — Phase 3 Slice 1 master data foundation
 - Added Customer and Supplier master-data tables, models, and application services with globally unique codes, multilingual names, statuses, provenance fields, optimistic locking, and Spatie Activitylog audit writes through `AuditLogger`.
 - Added CashAccount and BankAccount tables, models, and services linked to active GL accounts and system currencies, with optimistic locking and attachment entity registry entries.

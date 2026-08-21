@@ -60,7 +60,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 and Phase 3 Slice 1 master data is complete and locally verified on PostgreSQL.
+The Laravel migration through M10 and Phase 3 Slices 1-2 is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -93,6 +93,11 @@ Implemented:
   - CashAccount and BankAccount models/services.
   - GL account and currency relationships.
   - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
+- Phase 3 Slice 2 AR/AP subledger and opening balances:
+  - Customer/Supplier opening balances.
+  - `receivable_entry` and `payable_entry` subledgers.
+  - global accounting mappings for AR control, AP control, and opening-balance offset accounts.
+  - PostingEngine integration, idempotent posting, subledger-to-GL reconciliation, and DB integrity hardening.
 
 Latest verified commands:
 
@@ -113,8 +118,8 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: 25 migrations Ran.
-- `php artisan test`: 159 tests / 1243 assertions passed.
+- `php artisan migrate:status`: 27 migrations Ran.
+- `php artisan test`: 173 tests / 1304 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
@@ -195,13 +200,13 @@ failed_jobs: 0
 
 ## Next Work
 
-Recommended next product slice: Phase 3 Slice 2 - AR/AP Subledger + Customer/Supplier Opening Balances.
+Recommended next product slice: Phase 3 Slice 3 - Receipt/Payment Posting.
 
 Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 `PHASE_3_SLICE_1_GEMINI_PROMPT.md` has already been used for the first bounded Phase 3 slice and is now historical reference for what Slice 1 delivered.
 
-Use `PHASE_3_SLICE_2_GEMINI_PROMPT.md` when asking Gemini to implement the next bounded Phase 3 slice.
+`PHASE_3_SLICE_2_GEMINI_PROMPT.md` has already been used for the second bounded Phase 3 slice and is now historical reference for what Slice 2 delivered.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 

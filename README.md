@@ -52,11 +52,16 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - Customer and Supplier models/services.
   - CashAccount and BankAccount models/services linked to GL accounts and currencies.
   - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
+- Phase 3 Slice 2 AR/AP subledger and opening balance foundation:
+  - Customer/Supplier opening balances through the existing PostingEngine.
+  - `receivable_entry` and `payable_entry` subledgers.
+  - global accounting mappings for AR control, AP control, and opening-balance offset accounts.
+  - subledger-to-GL reconciliation and DB integrity hardening.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- AR/AP operational subledgers beyond the accounting ledger spine.
+- Receipts, payments, allocations, and AR/AP operational flows beyond opening balances.
 - Cash/Bank operational posting, statements, reconciliation, and Cheques lifecycle.
 - Sales and Purchasing workflows.
 - Inventory.
@@ -111,8 +116,8 @@ npm run build
 
 Latest verified result:
 
-- 25 migrations Ran.
-- 159 PHPUnit tests / 1243 assertions passed.
+- 27 migrations Ran.
+- 173 PHPUnit tests / 1304 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
 - PostgreSQL concurrency and accounting stress commands passed.
 - TypeScript typecheck and Vite build passed.

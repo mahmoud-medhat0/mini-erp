@@ -98,5 +98,23 @@ return [
                 'delete' => ['banks.edit'],
             ],
         ],
+        'customer_opening_balance' => [
+            'table' => 'customer_opening_balance',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['customers.opening_balances'],
+                'attach' => ['customers.opening_balances'],
+                'delete' => ['customers.opening_balances'],
+            ],
+        ],
+        'supplier_opening_balance' => [
+            'table' => 'supplier_opening_balance',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['suppliers.opening_balances'],
+                'attach' => ['suppliers.opening_balances'],
+                'delete' => ['suppliers.opening_balances'],
+            ],
+        ],
     ],
 ];

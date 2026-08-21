@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slice 1 master data is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-2 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -20,13 +20,19 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - CashAccount and BankAccount models/services.
   - GL account and currency relationships.
   - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
+- Phase 3 Slice 2 AR/AP subledger and opening balances:
+  - Customer/Supplier opening balances.
+  - `receivable_entry` and `payable_entry` subledger tables.
+  - global accounting mappings for `ar_control`, `ap_control`, and `opening_balance_offset`.
+  - PostingEngine integration, idempotent posting, subledger-to-GL reconciliation, and DB integrity hardening.
 
 Latest verified:
 
 ```text
-php artisan test: 159 tests / 1243 assertions passed
+php artisan test: 173 tests / 1304 assertions passed
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
+Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
 PostgreSQL stress: concurrency + accounting stress passed
 TypeScript typecheck: passed
 Vite build: passed
@@ -34,10 +40,10 @@ Vite build: passed
 
 ## Next Recommended Phase
 
-Phase 3 Slice 2:
+Phase 3 Slice 3:
 
 ```text
-AR/AP Subledger + Customer/Supplier Opening Balances
+Receipt/Payment Posting
 ```
 
 The corrected Phase 3 contract is:
@@ -48,9 +54,9 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 2.
+Use the Phase 3 contract and current code as the source of truth for Slice 3.
 
-The Slice 2 execution prompt for Gemini is:
+The Slice 2 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
 

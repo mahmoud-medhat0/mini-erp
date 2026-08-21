@@ -5,14 +5,14 @@ return [
 
     'modules' => [
         'dashboard' => ['view'],
-        'accounting' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'reverse', 'override_control', 'export', 'print', 'currencies', 'fx_rates', 'periods', 'opening_balances', 'account_types', 'account_categories'],
+        'accounting' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'reverse', 'override_control', 'export', 'print', 'currencies', 'fx_rates', 'periods', 'opening_balances', 'account_types', 'account_categories', 'mappings'],
         'sales' => ['view', 'create', 'edit', 'delete', 'submit', 'approve', 'post', 'cancel', 'reverse', 'export', 'print'],
         'purchasing' => ['view', 'create', 'edit', 'delete', 'submit', 'approve', 'post', 'cancel', 'reverse', 'export', 'print'],
         'inventory' => ['view', 'create', 'edit', 'delete', 'approve', 'post', 'export', 'print'],
         'equipment' => ['view', 'create', 'edit', 'delete', 'export'],
         'rentals' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'cancel', 'export', 'print'],
-        'customers' => ['view', 'create', 'edit', 'delete', 'export'],
-        'suppliers' => ['view', 'create', 'edit', 'delete', 'export'],
+        'customers' => ['view', 'create', 'edit', 'delete', 'export', 'opening_balances'],
+        'suppliers' => ['view', 'create', 'edit', 'delete', 'export', 'opening_balances'],
         'cash' => ['view', 'create', 'edit', 'post', 'reverse', 'export', 'print'],
         'banks' => ['view', 'create', 'edit', 'post', 'reverse', 'export', 'print'],
         'cheques' => ['view', 'create', 'edit', 'post', 'reverse', 'export'],
