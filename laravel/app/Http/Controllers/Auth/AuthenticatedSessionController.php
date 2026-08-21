@@ -28,7 +28,7 @@ class AuthenticatedSessionController extends Controller
             $request->session()->put('theme', $user->theme);
         }
 
-        return redirect()->intended(route('foundation'));
+        return redirect()->intended(route('dashboard'));
     }
 
     public function destroy(Request $request): RedirectResponse

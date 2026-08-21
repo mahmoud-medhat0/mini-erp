@@ -2,10 +2,10 @@
 
 - **Current phase:** Phase 1 — Laravel migration foundation (in progress)
 - **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL)
-- **Tests passing:** Laravel PHPUnit 26/26, including Concurrency 7/7. PostgreSQL `concurrency:stress --workers=100` passed.
+- **Tests passing:** Laravel PHPUnit 29/29, including migrated page coverage and Concurrency 7/7. PostgreSQL `concurrency:stress --workers=100` remains the required manual stress check.
 - **Latest verified code commit:** local `develop` worktree; see `git log` after commit.
 - **Remote/CI:** No GitHub Actions pipeline is connected for this Laravel migration track.
-- **Verification:** `php artisan migrate --force` clean · `php artisan test` clean · `php artisan test --testsuite=Concurrency` clean · `php artisan concurrency:stress --workers=100` clean · `php artisan tokens:gc --batch=100` clean.
+- **Verification:** `php artisan migrate --force` clean · `php artisan test` clean · `vendor\bin\pint --test` clean · `npm run typecheck` clean · `npm run build` clean · `composer validate --strict` clean · `php artisan concurrency:stress --workers=100` clean.
 - **Handoff:** see `DOMAIN_MODEL_REVIEW.md` first for the Laravel architecture correction, then `CONTINUE_HERE.md` and `NEXT_TASKS.md` as historical Next.js reference material.
 
 ## Legend
@@ -18,6 +18,7 @@
 | Domain model review | COMPLETE | `DOMAIN_MODEL_REVIEW.md` classifies Company/Branch as business scopes, not SaaS tenants |
 | M3 database foundation | PARTIAL | Native `users` plus company/branch business tables and non-team Spatie RBAC seeders; domain relationships beyond the spec review must not be assumed |
 | M5 session auth backend | COMPLETE | Login/logout, Argon2id, throttling, active users, bootstrap admin, protected foundation route |
+| M6 migrated Inertia pages | COMPLETE | Dashboard, settings hub, companies, branches, numbering, users/roles, notifications, app shell, and notification read action backed by real Laravel data |
 | Removed tenant assumptions | COMPLETE | Laravel tenant context/middleware/onboarding and Spatie `company_id` teams removed |
 | Concurrency hardening | COMPLETE | `idempotency_keys`, optimistic locks, PostgreSQL number allocation, bounded auth token GC, notification dedupe, audit doc, and stress/test coverage |
 

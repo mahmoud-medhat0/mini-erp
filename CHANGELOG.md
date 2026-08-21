@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Laravel migration M6 app pages
+- Migrated the authenticated Laravel Inertia app shell and pages for dashboard, settings hub, companies, branches, numbering, users/roles, and notifications.
+- Changed post-login flow to land on `/dashboard`; kept `/foundation` as the migration diagnostic page.
+- Wired page props to real Laravel/PostgreSQL data only: company/branch records, number sequences, native users, Spatie roles/permissions, and user notifications.
+- Added notification mark-read handling scoped to the signed-in user and shared unread notification counts.
+- Added feature coverage for every migrated page and notification mark-read behavior.
+
 ### Added — Laravel concurrency hardening
 - Added a Laravel concurrency audit at `docs/CONCURRENCY_AUDIT.md` covering current mutation surfaces, lock ordering, idempotency, retries, token cleanup, and future posting/job risks without reintroducing SaaS tenant assumptions.
 - Added an `idempotency_keys` table, operation/key/scope uniqueness, status checks on PostgreSQL, and a database-backed idempotency store that never logs raw keys.

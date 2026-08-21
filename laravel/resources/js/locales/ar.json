@@ -1,7 +1,7 @@
 {
   "auth": {
     "login": {
-      "title": "تسجيل الدخول — ميني ERP",
+      "title": "تسجيل الدخول - ميني ERP",
       "heading": "تسجيل الدخول إلى حسابك",
       "subtitle": "أهلاً بعودتك! يرجى إدخال بيانات حسابك أدناه.",
       "emailLabel": "البريد الإلكتروني",
@@ -33,6 +33,102 @@
     "language": {
       "en": "EN",
       "ar": "العربية"
+    }
+  },
+  "app": {
+    "actions": {
+      "logout": "تسجيل الخروج"
+    },
+    "nav": {
+      "dashboard": "لوحة التحكم",
+      "settings": "الإعدادات",
+      "notifications": "الإشعارات"
+    },
+    "dashboard": {
+      "description": "بيانات الأساس الحقيقية من قاعدة Laravel.",
+      "noKpisTitle": "مؤشرات المحاسبة غير متاحة بعد",
+      "noKpisDescription": "ستظهر المؤشرات المالية من القيود المحاسبية المرحلة بعد نقل نواة المحاسبة.",
+      "counts": {
+        "companies": "الشركات",
+        "branches": "الفروع",
+        "users": "المستخدمون",
+        "roles": "الأدوار",
+        "permissions": "الصلاحيات",
+        "numberSequences": "تسلسلات الترقيم",
+        "unreadNotifications": "إشعارات غير مقروءة"
+      }
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "description": "سجلات الأساس المتاحة حاليًا في مسار ترحيل Laravel.",
+      "sections": {
+        "company": {
+          "title": "الشركات",
+          "description": "سجلات الشركات وعملات الأساس."
+        },
+        "branches": {
+          "title": "الفروع",
+          "description": "فروع الشركات وحالة التشغيل."
+        },
+        "numbering": {
+          "title": "الترقيم",
+          "description": "إعدادات تسلسل المستندات المدعومة بـ PostgreSQL."
+        },
+        "users": {
+          "title": "المستخدمون والأدوار",
+          "description": "مستخدمو Laravel وأدوار Spatie والصلاحيات."
+        }
+      },
+      "company": {
+        "description": "الشركة هنا نطاق أعمال داخل ERP وليست tenant SaaS.",
+        "empty": "لا توجد شركات بعد"
+      },
+      "branches": {
+        "description": "الفروع معروضة من مخطط الأساس الخاص بالـ ERP.",
+        "empty": "لا توجد فروع بعد"
+      },
+      "numbering": {
+        "description": "قيم التسلسل تصدر من الخادم فقط؛ الواجهة تقرأ الإعدادات.",
+        "empty": "لا توجد تسلسلات ترقيم بعد"
+      },
+      "users": {
+        "description": "تعيينات الأدوار معروضة من Spatie Permission بدون teams tenancy.",
+        "emptyUsers": "لا يوجد مستخدمون بعد",
+        "emptyRoles": "لم يتم زرع الأدوار بعد"
+      }
+    },
+    "notifications": {
+      "description": "الإشعارات الموجهة للمستخدم الحالي.",
+      "empty": "لا توجد إشعارات بعد",
+      "read": "مقروء",
+      "unread": "غير مقروء",
+      "markRead": "تعليم كمقروء"
+    },
+    "fields": {
+      "company": "الشركة",
+      "baseCurrency": "عملة الأساس",
+      "branches": "الفروع",
+      "createdAt": "تاريخ الإنشاء",
+      "code": "الكود",
+      "branch": "الفرع",
+      "status": "الحالة",
+      "docType": "نوع المستند",
+      "resetPolicy": "سياسة إعادة الضبط",
+      "nextValue": "القيمة التالية",
+      "preview": "معاينة",
+      "user": "المستخدم",
+      "roles": "الأدوار",
+      "permissions": "الصلاحيات",
+      "notification": "الإشعار",
+      "target": "الهدف"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "template": "قالب"
+    },
+    "state": {
+      "none": "لا يوجد"
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "auth": {
     "login": {
-      "title": "Sign In — Mini ERP",
+      "title": "Sign In - Mini ERP",
       "heading": "Sign in to your account",
       "subtitle": "Welcome back! Please enter your details below.",
       "emailLabel": "Email Address",
@@ -18,9 +18,9 @@
       "heroDesc": "Unified financial kernel with double-entry balancing, scoped business access, and Argon2id security.",
       "footerText": "Need help accessing your workspace? Contact your system administrator.",
       "features": [
-        { "title": "Balanced Double-Entry Kernel", "desc": "Guaranteed Σ Dr = Σ Cr ledger integrity" },
+        { "title": "Balanced Double-Entry Kernel", "desc": "Guaranteed Sigma Dr = Sigma Cr ledger integrity" },
         { "title": "Scoped Authorization", "desc": "Server-side RBAC for business actions and scopes" },
-        { "title": "Granular Spatie RBAC", "desc": "Role templates & custom permission assignments" }
+        { "title": "Granular Spatie RBAC", "desc": "Role templates and custom permission assignments" }
       ]
     }
   },
@@ -32,7 +32,103 @@
     },
     "language": {
       "en": "EN",
-      "ar": "العربية"
+      "ar": "Arabic"
+    }
+  },
+  "app": {
+    "actions": {
+      "logout": "Logout"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "settings": "Settings",
+      "notifications": "Notifications"
+    },
+    "dashboard": {
+      "description": "Live foundation data from the Laravel database.",
+      "noKpisTitle": "Accounting KPIs are not available yet",
+      "noKpisDescription": "Financial KPIs will come from posted accounting entries after the accounting core is migrated.",
+      "counts": {
+        "companies": "Companies",
+        "branches": "Branches",
+        "users": "Users",
+        "roles": "Roles",
+        "permissions": "Permissions",
+        "numberSequences": "Number sequences",
+        "unreadNotifications": "Unread notifications"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Foundation records currently available in the Laravel migration.",
+      "sections": {
+        "company": {
+          "title": "Companies",
+          "description": "Business company records and base currencies."
+        },
+        "branches": {
+          "title": "Branches",
+          "description": "Company branches and operational status."
+        },
+        "numbering": {
+          "title": "Numbering",
+          "description": "Document sequence configuration backed by PostgreSQL."
+        },
+        "users": {
+          "title": "Users and roles",
+          "description": "Native Laravel users, Spatie roles, and permissions."
+        }
+      },
+      "company": {
+        "description": "Company is a business scope in this ERP migration, not a SaaS tenant.",
+        "empty": "No companies have been created yet"
+      },
+      "branches": {
+        "description": "Branch records are shown from the ERP foundation schema.",
+        "empty": "No branches have been created yet"
+      },
+      "numbering": {
+        "description": "Sequence values are allocated server-side; the UI only reads configuration.",
+        "empty": "No numbering sequences have been configured yet"
+      },
+      "users": {
+        "description": "Role assignments are displayed from Spatie Permission without team tenancy.",
+        "emptyUsers": "No users have been created yet",
+        "emptyRoles": "No roles have been seeded yet"
+      }
+    },
+    "notifications": {
+      "description": "Notifications addressed to the signed-in user.",
+      "empty": "No notifications yet",
+      "read": "Read",
+      "unread": "Unread",
+      "markRead": "Mark read"
+    },
+    "fields": {
+      "company": "Company",
+      "baseCurrency": "Base currency",
+      "branches": "Branches",
+      "createdAt": "Created",
+      "code": "Code",
+      "branch": "Branch",
+      "status": "Status",
+      "docType": "Document type",
+      "resetPolicy": "Reset policy",
+      "nextValue": "Next value",
+      "preview": "Preview",
+      "user": "User",
+      "roles": "Roles",
+      "permissions": "Permissions",
+      "notification": "Notification",
+      "target": "Target"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "template": "Template"
+    },
+    "state": {
+      "none": "None"
     }
   }
 }

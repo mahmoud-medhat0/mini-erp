@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -47,7 +49,12 @@ class HandleInertiaRequests extends Middleware
             'direction' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
             'theme' => $request->user()?->theme ?? $request->session()->get('theme', 'system'),
             'notifications' => [
-                'unreadCount' => 0,
+                'unreadCount' => fn () => $request->user() && Schema::hasTable('notification')
+                    ? DB::table('notification')
+                        ->where('user_id', $request->user()->id)
+                        ->where('read', false)
+                        ->count()
+                    : 0,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

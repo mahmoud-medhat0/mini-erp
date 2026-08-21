@@ -11,7 +11,16 @@ class InertiaFoundationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_foundation_page_renders_through_inertia(): void
+    public function test_root_redirects_authenticated_users_to_the_migrated_dashboard(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/')
+            ->assertRedirect('/dashboard');
+    }
+
+    public function test_foundation_diagnostic_page_renders_through_inertia(): void
     {
         $this->withoutVite();
 
@@ -19,11 +28,11 @@ class InertiaFoundationTest extends TestCase
 
         $this->actingAs($user);
 
-        $this->get('/')
+        $this->get('/foundation')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Foundation')
-                ->where('status', 'M5 auth foundation')
+                ->where('status', 'M6 page migration')
                 ->where('database', 'not_checked')
                 ->where('auth.user.email', $user->email)
                 ->has('notifications')

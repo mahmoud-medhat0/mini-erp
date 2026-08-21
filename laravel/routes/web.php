@@ -1,10 +1,10 @@
 <?php
 
+use App\Http\Controllers\AppPageController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HealthCheckController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
@@ -16,12 +16,16 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('/', function () {
-        return Inertia::render('Foundation', [
-            'status' => 'M5 auth foundation',
-            'database' => 'not_checked',
-        ]);
-    })->name('foundation');
+    Route::redirect('/', '/dashboard')->name('foundation');
+    Route::get('/foundation', [AppPageController::class, 'foundation'])->name('foundation.diagnostics');
+    Route::get('/dashboard', [AppPageController::class, 'dashboard'])->name('dashboard');
+    Route::get('/settings', [AppPageController::class, 'settings'])->name('settings');
+    Route::get('/settings/company', [AppPageController::class, 'companies'])->name('settings.company');
+    Route::get('/settings/branches', [AppPageController::class, 'branches'])->name('settings.branches');
+    Route::get('/settings/numbering', [AppPageController::class, 'numbering'])->name('settings.numbering');
+    Route::get('/settings/users', [AppPageController::class, 'users'])->name('settings.users');
+    Route::get('/notifications', [AppPageController::class, 'notifications'])->name('notifications');
+    Route::post('/notifications/{id}/read', [AppPageController::class, 'markNotificationRead'])->name('notifications.read');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');
