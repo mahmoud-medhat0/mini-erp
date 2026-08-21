@@ -54,8 +54,23 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - **Branches settings screen** (list + add) and **Numbering settings screen** (list configs + add/update sequence with reset policy + next-number preview), wired to the tested services, EN/AR, server-derived tenant context.
 - Verified: lint clean; `tsc` clean except Prisma-client generation (CI); `vitest` **62 passed / 1 skipped**.
 
+### Added — onboarding, users, attachments, notifications, and E2E smoke
+- **First-run onboarding**: `/[locale]/onboarding` plus `PrismaCompanyRepository` that atomically creates company + first branch + global permissions + 9 company role templates + owner membership + `COMPANY_ADMIN`.
+- **Users & Roles settings**: `PrismaUserAdminRepository`, `UserAdminService`, and `/settings/users` for listing users/roles and assigning/revoking roles with server-side RBAC permission-denied state.
+- **Attachments end-to-end foundation**: attachment schema now stores `mime` + `size`; added Prisma metadata repository and scoped upload/download route handlers backed by the local storage adapter.
+- **Notifications UI**: `PrismaNotificationRepository`, header notifications link/count, `/notifications` center, and mark-read action.
+- **Playwright smoke E2E**: config + smoke suite for locale direction, unauthenticated redirect, DB-backed login, dashboard/settings navigation, and permission-denied path; CI job provisions Postgres and installs Chromium.
+
+### Fixed — runtime/build blockers
+- Converted next-intl locale messages from flat dotted keys to nested objects, fixing `INVALID_KEY` / `MISSING_MESSAGE` runtime errors.
+- Added PostCSS config for Tailwind directives and converted `design/tailwind.tokens.js` to ESM, fixing Next/Turbopack build failures.
+- Fixed Prisma JSON typing in settings persistence.
+
+### Verification — 2026-08-21
+- `prisma generate` ✓ · `eslint --max-warnings=0` ✓ · `tsc --noEmit` ✓ · `vitest` **64 passed / 2 skipped** ✓ · `next build` ✓ · `playwright` smoke **2 passed / 3 DB-gated skipped** locally.
+
 ### Tests
-- 62 passing + 1 DB-gated integration (skips without DATABASE_URL, runs in CI). Invariant suite intact.
+- 64 passing + 2 DB-gated integrations (skip without DATABASE_URL, run in CI). Invariant suite intact. Playwright smoke is configured; credential/permission tests run with Postgres.
 
 ### Notes
 - GitHub remote not yet connected — session token is repo-bound and no repo is enabled for this session (see IMPLEMENTATION_STATUS → Remote).

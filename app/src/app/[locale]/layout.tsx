@@ -22,7 +22,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={isRtl(locale) ? 'rtl' : 'ltr'} data-theme="light" suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
       </body>
     </html>

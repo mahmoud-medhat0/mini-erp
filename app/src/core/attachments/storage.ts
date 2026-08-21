@@ -64,6 +64,7 @@ export class AttachmentService {
     ctx: TenantContext,
     input: { entityType: string; entityId: string; name: string; mime: string; bytes: Buffer },
   ): Promise<AttachmentMeta> {
+    if (!input.entityType?.trim() || !input.entityId?.trim()) throw new ValidationError('Attachment target is required');
     validateUpload({ name: input.name, mime: input.mime, size: input.bytes.length });
     const { key } = await this.storage.put({
       companyId: ctx.companyId,

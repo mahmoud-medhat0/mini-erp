@@ -2,6 +2,8 @@
 
 Ordered. Each task: what to build · key files · acceptance. Follow the verification gate (lint → typecheck → tests → invariants → secret scan) and commit in small conventional commits. Keep `IMPLEMENTATION_STATUS.md` honest.
 
+**2026-08-21 update:** T1–T5 have implementation in place: onboarding, users/roles, attachment routes, notifications UI, and Playwright smoke/CI job. Route-level attachment coverage was added with mocked auth/storage. Remaining work before Phase-1 tag is DB-backed CI/E2E verification, then adding `next build` to CI after the first green run and flipping DoD honestly.
+
 ## Phase 1 — remaining (finish before tagging v0.1.0)
 
 ### T1. Company/branch onboarding (first-run)

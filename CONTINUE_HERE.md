@@ -30,15 +30,16 @@ app/
   src/
     app/[locale]/            # routes: login/, (app)/ protected group (layout=requireAuth), dashboard, settings/*
     app/api/auth/[...nextauth]/route.ts
+    app/api/attachments/*      # scoped upload/download route handlers
     core/                    # money, currency, numbering, rbac, audit, tenant, auth, jobs, attachments,
                              # notifications, errors, accounting-kernel, db/(prisma + repositories)
-    modules/company/application/  # companyService, settingsService, branchService
+    modules/company/application/  # companyService, settingsService, branchService, userAdminService
     ui/                      # Button, Input, StatusBadge, primitives (Card/PageHeader/EmptyState/PermissionDenied), AppShell
     i18n/  locales/{en,ar}/  # next-intl
     worker.ts                # pg-boss worker entrypoint
   prisma/schema.prisma  prisma/seed.ts
-  tests/{invariants,unit,integration}/
-  .github/workflows/ci.yml   # Postgres service, blocking invariant suite
+  tests/{invariants,unit,integration,e2e}/
+  .github/workflows/ci.yml   # Postgres service, blocking invariant suite, E2E smoke
 spec/  docs/  foundation/  style-guide.html
 CONTINUE_HERE.md  NEXT_TASKS.md  IMPLEMENTATION_STATUS.md  ROADMAP.md  CHANGELOG.md
 ```
@@ -46,9 +47,9 @@ CONTINUE_HERE.md  NEXT_TASKS.md  IMPLEMENTATION_STATUS.md  ROADMAP.md  CHANGELOG
 ## 5. What is DONE (Phase 1) — verified
 **Core kernel (unit-tested):** money (exact minor units + exact allocation), accounting-kernel (`assertBalanced`), numbering (format + atomic allocate), RBAC (catalog + 9 role templates + seed plan + scope/tenant checks), tenant isolation, append-only audit service (+ redaction/diff), currency registry, typed errors, auth (credentials service + Argon2 adapter + rate limiter + session guard), attachments (storage abstraction + local adapter + validation), notifications service, jobs (idempotent runner + backoff + pg-boss adapter + worker).
 
-**Integration + app (built, typechecked/linted locally; DB parts run in CI):** Prisma client singleton + repositories (user, append-only audit, atomic numbering, settings, branch); NextAuth v5 credentials config + route handler; login screen; protected route group (`requireAuth`); app shell (sidebar+topbar); reusable UI library; Company/Branches/Numbering **Settings** screens (EN/AR, server-derived tenant, real persistence via services); dashboard shell (EmptyState, no mock KPIs).
+**Integration + app (built, typechecked/linted locally; DB parts run in CI):** Prisma client singleton + repositories (user, append-only audit, atomic numbering, settings, branch, company onboarding, user admin, attachment metadata, notifications); NextAuth v5 credentials config + route handler; login screen; protected route group (`requireAuth`) that redirects signed-in/no-company users to onboarding; app shell (sidebar+topbar+notification count); reusable UI library; Company/Branches/Numbering/Users **Settings** screens (EN/AR, server-derived tenant, real persistence via services); dashboard shell (EmptyState, no mock KPIs); onboarding, notifications center, attachment upload/download route handlers.
 
-**Tooling/CI:** `package-lock.json`, TS-aware ESLint (clean at `--max-warnings=0`), CI with Postgres service + `prisma db push` + **blocking accounting-invariant suite** + DB-gated numbering integration test. **63 tests (62 + 1 skipped locally).**
+**Tooling/CI:** `package-lock.json`, TS-aware ESLint (clean at `--max-warnings=0`), PostCSS/Tailwind build config, CI with Postgres service + `prisma db push` + **blocking accounting-invariant suite** + DB-gated numbering/company-onboarding integration tests + Playwright smoke E2E job. **66 Vitest cases (64 + 2 skipped locally without DB).** Local Playwright: 2 pass + 3 DB-gated skipped.
 
 **Status legend + full table:** `IMPLEMENTATION_STATUS.md` (COMPLETE / PARTIAL / SCAFFOLD ONLY). No module is marked COMPLETE yet — Phase 1 is not finished (see §8).
 
@@ -57,30 +58,30 @@ CONTINUE_HERE.md  NEXT_TASKS.md  IMPLEMENTATION_STATUS.md  ROADMAP.md  CHANGELOG
 cd app
 cp .env.example .env         # set DATABASE_URL, AUTH_SECRET
 npm ci
-npm run prisma:generate      # works normally; in THIS sandbox it was blocked (see §7)
+npm run prisma:generate
 npm run prisma:migrate       # or: npx prisma db push
 npm run prisma:seed          # currencies + permission catalog
 npm run test                 # vitest: invariants + unit (+ integration if DATABASE_URL set)
 npm run lint                 # eslint --max-warnings=0  (must be clean)
 npm run typecheck            # tsc --noEmit (must be 0 after prisma generate)
+npm run build                # Next production build
+npm run e2e                  # Playwright; credential tests need DATABASE_URL
 npm run dev                  # app
 npm run worker               # pg-boss worker (separate process)
 ```
 **Verification gate before every commit:** format → lint → typecheck → tests → (invariant suite must pass) → secret scan → commit.
 
 ## 7. Environmental gotchas (important for the next session)
-- **This sandbox blocked `binaries.prisma.sh`,** so `prisma generate` could not run here → `tsc` shows exactly **5 errors**, all "Module '@prisma/client' has no exported member 'PrismaClient'" / "property does not exist on type 'never'" style. **These are expected locally and disappear once `prisma generate` runs (normal env / CI).** They are NOT code bugs.
-- The DB integration test (`tests/integration/numbering.pg.test.ts`) **skips** unless `DATABASE_URL` is set; CI provides Postgres so it runs there.
+- `prisma generate` now runs cleanly in this environment. If TypeScript reports missing Prisma fields after schema edits, regenerate the client.
+- DB integration tests (`tests/integration/*.pg.test.ts`) **skip** unless `DATABASE_URL` is set; CI provides Postgres so they run there.
+- Playwright browser binaries must be installed locally with `npx playwright install chromium`; CI does this automatically. Credential/permission E2E tests need `DATABASE_URL`.
 - pg-boss is **v10** (batch `Job[]` work handler). Argon2 is native (built at full install; unit tests use a fake hasher so they don't need it).
 
 ## 8. Remaining Phase 1 (to reach tag `v0.1.0-phase1-foundation`)
 See `NEXT_TASKS.md` for the actionable checklist. Headlines:
-1. **Company/branch first-run onboarding UI** + full `PrismaCompanyRepository` (create company → seed the 9 role templates + permission links per company → owner COMPANY_ADMIN). `CompanyService` already exists + tested with an in-memory repo.
-2. **Users & Roles settings screen** (list roles/permissions; assign roles). RBAC catalog/roles/seed already done.
-3. **Attachments** Prisma repo + upload/download route; **Notifications** Prisma repo + in-app center + bell.
-4. **Playwright smoke E2E** (config + CI job): login → protected redirect → dashboard → settings → permission-denied, in EN/AR × light/dark. Assert real rendered state.
-5. **Wire `next build` into CI** once the first green Actions run is confirmed.
-6. Flip DoD items in `IMPLEMENTATION_STATUS.md`; only then tag `v0.1.0-phase1-foundation`.
+1. **DB-backed verification pass:** run CI/Postgres to execute onboarding integration, numbering integration, and full credential/permission Playwright smoke.
+2. **Wire `next build` into CI** once the first green Actions run is confirmed.
+3. Flip DoD items in `IMPLEMENTATION_STATUS.md`; only then tag `v0.1.0-phase1-foundation`.
 
 ## 9. Phase 2 kickoff (Accounting core) — do NOT start until Phase 1 DoD is met
 Build on `src/core/accounting-kernel`. Deliver: Chart of Accounts, Journal/Lines, Ledger, Trial Balance, Fiscal years/Periods, opening balances, FX rates, and the **posting engine** (atomic: JE + ledger + subledger, idempotent, period-locked, reversible). Rules & events already specified: `spec/ACCOUNTING_EVENT_MAP.md`, `spec/BUSINESS_RULES.md`, `spec/WORKFLOW_CATALOG.md`. Add invariant tests (subledger=GL, immutability, closed-period rejection) to the blocking CI suite.
@@ -93,7 +94,7 @@ Build on `src/core/accounting-kernel`. Deliver: Chart of Accounts, Journal/Lines
   Claude-Session: https://claude.ai/code/session_01ErpWJ1PAKfi3VzsZuQRxD9
   ```
 - **Remote:** `github.com/mahmoud-medhat0/mini-erp`. Local `develop` was ahead of `origin/develop` (`ffc6bc4`) by ~11 commits when handed off. If continuing in an environment WITH write access: `git push origin develop`. Do NOT edit git http.proxy / sslCAInfo in a sandboxed session — it breaks egress.
-- **CI** (`app/.github/workflows/ci.yml`): on push to main/develop → `npm ci` → `prisma generate` → typecheck → lint → **blocking invariant tests** → unit + DB integration (Postgres service). The accounting-invariant suite must never be made informational.
+- **CI** (`app/.github/workflows/ci.yml`): on push to main/develop → `npm ci` → `prisma generate` → typecheck → lint → **blocking invariant tests** → unit + DB integration (Postgres service) → Playwright smoke E2E (Postgres + Chromium). The accounting-invariant suite must never be made informational.
 
 ## 11. Golden rules for whoever continues
 Accounting correctness > UI speed. Never mutate posted data. Never compute authoritative balances in the UI. Never bypass the posting engine (Phase 2). Keep company/branch isolation. Keep numbering concurrency-safe. Audit privileged actions. Mark honestly: COMPLETE only when actually done + tested. Keep `IMPLEMENTATION_STATUS.md`, `CHANGELOG.md`, `ROADMAP.md` in sync with reality.

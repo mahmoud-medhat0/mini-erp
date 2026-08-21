@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { requireAuth } from '@/core/auth/server';
+import { PrismaNotificationRepository } from '@/core/db/repositories/notificationRepo';
+import { tenantFromSession } from '@/core/tenant/context';
+import { NotificationService } from '@/core/notifications/service';
 import { AppShell } from '@/ui/AppShell';
 import { Button } from '@/ui/Button';
 import { signOutAction } from './actions';
@@ -19,6 +22,10 @@ export default async function AppLayout({
   const { locale } = await params;
   const session = await requireAuth(locale);
   const t = await getTranslations();
+  const notifications = await new NotificationService(new PrismaNotificationRepository()).list(
+    tenantFromSession(session),
+    { unreadOnly: true },
+  );
 
   const signOut = (
     <form action={signOutAction.bind(null, locale)}>
@@ -29,7 +36,7 @@ export default async function AppLayout({
   );
 
   return (
-    <AppShell locale={locale} active="dashboard" userEmail={session.email} signOut={signOut}>
+    <AppShell locale={locale} active="dashboard" userEmail={session.email} signOut={signOut} notificationCount={notifications.length}>
       {children}
     </AppShell>
   );

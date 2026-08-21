@@ -22,12 +22,14 @@ export function AppShell({
   active,
   userEmail,
   signOut,
+  notificationCount = 0,
   children,
 }: {
   locale: string;
   active: string;
   userEmail: string;
   signOut: ReactNode;
+  notificationCount?: number;
   children: ReactNode;
 }) {
   const t = useTranslations();
@@ -92,6 +94,34 @@ export function AppShell({
         }}
       >
         <div style={{ flex: 1 }} />
+        <a
+          href={`/${locale}/notifications`}
+          style={{
+            textDecoration: 'none',
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--text-sm)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '6px 10px',
+          }}
+        >
+          {t('notifications.title')}
+          {notificationCount > 0 && (
+            <span
+              className="num"
+              style={{
+                marginInlineStart: 6,
+                color: 'var(--on-primary)',
+                background: 'var(--primary)',
+                borderRadius: 'var(--radius-full)',
+                padding: '1px 6px',
+                fontSize: 'var(--text-xs)',
+              }}
+            >
+              {notificationCount}
+            </span>
+          )}
+        </a>
         <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{userEmail}</span>
         {signOut}
       </header>

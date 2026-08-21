@@ -3,6 +3,7 @@
  * row and keeps baseCurrency mirrored for cheap queries.
  */
 import { prisma } from '../prisma';
+import type { Prisma } from '@prisma/client';
 import type { SettingsRepository } from '../../../modules/company/application/settingsService';
 import { CompanySettings, DEFAULT_SETTINGS } from '../../../modules/company/application/companyService';
 
@@ -17,7 +18,7 @@ export class PrismaSettingsRepository implements SettingsRepository {
   async updateSettings(companyId: string, settings: CompanySettings): Promise<CompanySettings> {
     await prisma.company.update({
       where: { id: companyId },
-      data: { settingsJson: settings, baseCurrency: settings.baseCurrency },
+      data: { settingsJson: settings as unknown as Prisma.InputJsonValue, baseCurrency: settings.baseCurrency },
     });
     return settings;
   }

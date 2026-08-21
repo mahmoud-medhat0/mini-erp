@@ -40,7 +40,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) token.companyId = (user as { companyId?: string }).companyId;
-      if (token.sub && token.companyId && !token.grants) {
+      if (token.sub && !token.companyId) {
+        token.companyId = await resolveActiveCompany(token.sub);
+      }
+      if (token.sub && token.companyId) {
         token.grants = (await loadGrants(token.sub, token.companyId as string)) as unknown as Grant[];
       }
       return token;
