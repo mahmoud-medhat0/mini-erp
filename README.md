@@ -61,12 +61,16 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - Customer Receipt and Supplier Payment draft/post services.
   - global receipt/payment numbering, PostingEngine GL effects, AR/AP subledger effects, and unapplied balances.
   - idempotent posting, linked GL currency validation, and DB integrity hardening.
+- Phase 3 Slice 4 allocation engine:
+  - Receivable and Payable allocation records.
+  - CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry settlement.
+  - allocation reversal, unapplied balance updates, idempotency, deterministic locking, and over-allocation prevention.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Allocations and AR/AP settlement workflows beyond unapplied receipt/payment tracking.
-- Cash/Bank statements, reconciliation, and Cheques lifecycle.
+- Cheques lifecycle.
+- Cash/Bank statements and bank reconciliation.
 - Sales and Purchasing workflows.
 - Inventory.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -113,6 +117,7 @@ php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
+php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -120,10 +125,10 @@ npm run build
 
 Latest verified result:
 
-- 29 migrations Ran.
-- 187 PHPUnit tests total / 185 passed / 2 PostgreSQL-specific skipped, 1377 assertions.
+- 30 migrations Ran.
+- 194 PHPUnit tests total / 192 passed / 2 PostgreSQL-specific skipped, 1413 assertions.
 - 7 Concurrency suite tests / 16 assertions passed.
-- PostgreSQL concurrency and accounting stress commands passed.
+- PostgreSQL concurrency, accounting, and allocation stress commands passed.
 - TypeScript typecheck and Vite build passed.
 
 ## Documentation Entry Points
@@ -137,6 +142,7 @@ Use these first:
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`

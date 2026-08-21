@@ -167,8 +167,6 @@ class Phase3Slice3ReceiptPaymentTest extends TestCase
     {
         $this->assertFalse(Schema::hasTable('customer_receipt_allocation'));
         $this->assertFalse(Schema::hasTable('supplier_payment_allocation'));
-        $this->assertFalse(Schema::hasTable('receivable_allocation'));
-        $this->assertFalse(Schema::hasTable('payable_allocation'));
     }
 
     public function test_receipt_requires_exactly_one_of_cash_or_bank_account(): void

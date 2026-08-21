@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-3 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-4 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -31,26 +31,33 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - PostingEngine integration for Cash/Bank GL vs AR/AP control effects.
   - AR/AP subledger effects and unapplied balance tracking.
   - idempotency, linked GL currency validation, FK delete restriction, and DB integrity checks.
+- Phase 3 Slice 4 allocation engine:
+  - `receivable_allocation` and `payable_allocation` settlement metadata.
+  - CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry allocation services.
+  - unapplied/allocated balance updates without creating GL/journal/ledger rows.
+  - deterministic row locking, active allocation row locking, idempotent allocation/reversal, and over-allocation prevention.
+  - true concurrent AR/AP allocation stress command.
 
 Latest verified:
 
 ```text
-php artisan test: 187 total / 185 passed / 2 PostgreSQL-specific skipped, 1377 assertions
+php artisan test: 194 total / 192 passed / 2 PostgreSQL-specific skipped, 1413 assertions
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
 Phase 3 Slice 3 suite: 14 total / 12 passed / 2 PostgreSQL-specific skipped, 73 assertions
-PostgreSQL stress: concurrency + accounting stress passed
+Phase 3 Slice 4 suite: 7 tests / 38 assertions passed
+PostgreSQL stress: concurrency + accounting + allocation stress passed
 TypeScript typecheck: passed
 Vite build: passed
 ```
 
 ## Next Recommended Phase
 
-Phase 3 Slice 4:
+Phase 3 Slice 5:
 
 ```text
-Allocation Engine
+Cheque Lifecycle
 ```
 
 The corrected Phase 3 contract is:
@@ -61,7 +68,7 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 4.
+Use the Phase 3 contract and current code as the source of truth for Slice 5.
 
 The Slice 2 execution prompt for Gemini has already been used:
 
@@ -71,7 +78,11 @@ The Slice 3 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
 
-Prepare a bounded Slice 4 prompt before implementation. Slice 4 must cover allocation records, unapplied receipt/payment settlement, deterministic row locking, over-allocation prevention, idempotency, and PostgreSQL stress coverage only.
+The Slice 4 execution prompt for Gemini has already been used:
+
+- `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
+
+Prepare a bounded Slice 5 prompt before implementation. Slice 5 must cover cheque lifecycle only: incoming/outgoing cheque records, explicit state machine, clear/bounce/cancel/return rules where owner-approved, accounting effects through the existing PostingEngine, idempotency, audit, and PostgreSQL transition stress coverage.
 
 ## Phase 3 Must Include
 
@@ -140,6 +151,7 @@ php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
+php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build

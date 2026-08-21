@@ -3,6 +3,14 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 4 allocation engine
+- Added `receivable_allocation` and `payable_allocation` settlement records with restrict foreign keys and PostgreSQL row checks.
+- Added CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry allocation/reversal services without creating GL, journal, ledger, receivable, or payable posting rows.
+- Preserved `allocated_minor + unapplied_minor = amount_minor` on receipts/payments while preventing AR/AP over-allocation.
+- Hardened allocation concurrency with deterministic parent/target/allocation lock order, active allocation row locking before remaining-balance calculation, and idempotent create/reversal commands.
+- Reworked `accounting:allocation-concurrency-stress --workers=50` to use true concurrent workers for AR and AP allocation pressure plus shared idempotency replay checks.
+- Verified with `php artisan test` 194 total / 192 passed / 2 PostgreSQL-specific skipped, 1413 assertions; Phase 3 Slice 4 suite 7/7; Concurrency suite 7/7; PostgreSQL concurrency/accounting/allocation stress commands; TypeScript typecheck; and Vite build.
+
 ### Added — Phase 3 Slice 3 customer receipts and supplier payments
 - Added Customer Receipt and Supplier Payment draft/post services using the existing Accounting PostingEngine only.
 - Added global receipt/payment numbering with `REC-YYYY-XXXXX` and `PAY-YYYY-XXXXX`.

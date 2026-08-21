@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CustomerReceipt extends Model
 {
@@ -89,6 +90,11 @@ class CustomerReceipt extends Model
     public function receivableEntry(): BelongsTo
     {
         return $this->belongsTo(ReceivableEntry::class, 'receivable_entry_id');
+    }
+
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(ReceivableAllocation::class, 'customer_receipt_id');
     }
 
     public function creator(): BelongsTo
