@@ -5,7 +5,7 @@ return [
 
     'modules' => [
         'dashboard' => ['view'],
-        'accounting' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'reverse', 'export', 'print'],
+        'accounting' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'reverse', 'override_control', 'export', 'print', 'currencies', 'fx_rates', 'periods', 'opening_balances'],
         'sales' => ['view', 'create', 'edit', 'delete', 'submit', 'approve', 'post', 'cancel', 'reverse', 'export', 'print'],
         'purchasing' => ['view', 'create', 'edit', 'delete', 'submit', 'approve', 'post', 'cancel', 'reverse', 'export', 'print'],
         'inventory' => ['view', 'create', 'edit', 'delete', 'approve', 'post', 'export', 'print'],
@@ -27,7 +27,7 @@ return [
         'recurring' => ['view', 'create', 'edit', 'export'],
         'reports' => ['view', 'export', 'print'],
         'audit' => ['view', 'export'],
-        'settings' => ['view', 'configure'],
+        'settings' => ['view', 'configure', 'company', 'branches', 'numbering'],
         'users' => ['view', 'create', 'edit', 'delete', 'configure'],
     ],
 
@@ -38,6 +38,8 @@ return [
         'override_negative_stock',
         'close_period',
         'reopen_period',
+        'manage_currencies',
+        'manage_fx_rates',
     ],
 
     'role_templates' => [

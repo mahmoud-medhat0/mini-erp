@@ -22,4 +22,9 @@ class Company extends Model
             'settings_json' => 'array',
         ];
     }
+
+    public function baseCurrencyRef(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'base_currency', 'code');
+    }
 }

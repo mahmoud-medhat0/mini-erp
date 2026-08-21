@@ -108,11 +108,13 @@ class FoundationSchemaTest extends TestCase
 
     public function test_foundation_names_are_translatable(): void
     {
-        $currency = Currency::query()->create([
-            'code' => 'EGP',
-            'name' => ['en' => 'Egyptian Pound', 'ar' => 'الجنيه المصري'],
-            'symbol' => 'E£',
-        ]);
+        $currency = Currency::query()->firstOrCreate(
+            ['code' => 'EGP'],
+            [
+                'name' => ['en' => 'Egyptian Pound', 'ar' => 'الجنيه المصري'],
+                'symbol' => 'E£',
+            ]
+        );
 
         $company = Company::query()->create([
             'id' => (string) Str::uuid(),

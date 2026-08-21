@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AppPageController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -45,6 +46,37 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/notifications/{id}/read', [AppPageController::class, 'markNotificationRead'])->name('notifications.read');
     Route::post('/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::get('/attachments/{id}', [AttachmentController::class, 'show'])->name('attachments.show');
+
+    // Phase 2 Accounting Core Routes
+    Route::prefix('accounting')->group(function (): void {
+        Route::get('/', [AccountingController::class, 'index'])->name('accounting.index');
+        Route::get('/coa', [AccountingController::class, 'coa'])->name('accounting.coa');
+        Route::post('/coa/groups', [AccountingController::class, 'storeGroup'])->name('accounting.coa.groups.store');
+        Route::post('/coa/accounts', [AccountingController::class, 'storeAccount'])->name('accounting.coa.accounts.store');
+        Route::get('/journal', [AccountingController::class, 'journal'])->name('accounting.journal');
+        Route::get('/journal/create', [AccountingController::class, 'createJournal'])->name('accounting.journal.create');
+        Route::post('/journal', [AccountingController::class, 'storeJournal'])->name('accounting.journal.store');
+        Route::get('/journal/{journalEntry}', [AccountingController::class, 'showJournal'])->name('accounting.journal.show');
+        Route::post('/journal/{journalEntry}/submit', [AccountingController::class, 'submitJournal'])->name('accounting.journal.submit');
+        Route::post('/journal/{journalEntry}/approve', [AccountingController::class, 'approveJournal'])->name('accounting.journal.approve');
+        Route::post('/journal/{journalEntry}/post', [AccountingController::class, 'postJournal'])->name('accounting.journal.post');
+        Route::post('/journal/{journalEntry}/reverse', [AccountingController::class, 'reverseJournal'])->name('accounting.journal.reverse');
+        Route::get('/ledger', [AccountingController::class, 'ledger'])->name('accounting.ledger');
+        Route::get('/trial-balance', [AccountingController::class, 'trialBalance'])->name('accounting.trial_balance');
+        Route::get('/periods', [AccountingController::class, 'periods'])->name('accounting.periods');
+        Route::post('/periods/fiscal-years', [AccountingController::class, 'storeFiscalYear'])->name('accounting.periods.fiscal_years.store');
+        Route::post('/periods/{period}/close', [AccountingController::class, 'closePeriod'])->name('accounting.periods.close');
+        Route::post('/periods/{period}/reopen', [AccountingController::class, 'reopenPeriod'])->name('accounting.periods.reopen');
+        Route::get('/opening-balances', [AccountingController::class, 'openingBalances'])->name('accounting.opening_balances');
+        Route::post('/opening-balances', [AccountingController::class, 'saveOpeningBalances'])->name('accounting.opening_balances.save');
+        Route::post('/opening-balances/post', [AccountingController::class, 'postOpeningBalances'])->name('accounting.opening_balances.post');
+        Route::get('/fx-rates', [AccountingController::class, 'fxRates'])->name('accounting.fx_rates');
+        Route::post('/fx-rates', [AccountingController::class, 'storeFxRate'])->name('accounting.fx_rates.store');
+        Route::get('/currencies', [AccountingController::class, 'currencies'])->name('accounting.currencies');
+        Route::post('/currencies', [AccountingController::class, 'storeCurrency'])->name('accounting.currencies.store');
+        Route::patch('/currencies/{currency}', [AccountingController::class, 'updateCurrency'])->name('accounting.currencies.update');
+        Route::delete('/currencies/{currency}', [AccountingController::class, 'destroyCurrency'])->name('accounting.currencies.destroy');
+    });
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

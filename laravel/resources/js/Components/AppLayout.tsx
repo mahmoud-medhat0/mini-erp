@@ -12,7 +12,16 @@ export type NavKey =
   | 'settings.numbering'
   | 'settings.users'
   | 'notifications'
-  | 'foundation';
+  | 'foundation'
+  | 'accounting.index'
+  | 'accounting.coa'
+  | 'accounting.journal'
+  | 'accounting.ledger'
+  | 'accounting.trial_balance'
+  | 'accounting.periods'
+  | 'accounting.opening_balances'
+  | 'accounting.fx_rates'
+  | 'accounting.currencies';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -26,12 +35,14 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [adminExpanded, setAdminExpanded] = useState(() => active.startsWith('settings'));
+  const [accountingExpanded, setAccountingExpanded] = useState(() => active.startsWith('accounting'));
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
   const locale = props.locale === 'ar' ? 'ar' : 'en';
   const isRtl = locale === 'ar';
   const dict = getDictionary(locale);
+  const accDict = (dict.app as any).accounting || {};
   const { post, processing } = useForm({});
 
   // Real live health check pinging backend /health endpoint
@@ -247,6 +258,101 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     {!sidebarCollapsed ? <span>{dict.app.nav.dashboard}</span> : null}
                   </div>
                 </Link>
+
+                {/* Accounting Core Link & Sub-menu */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('accounting')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/accounting"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (accDict.title || 'Accounting Core') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg
+                        className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
+                          active.startsWith('accounting') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{accDict.title || 'Accounting Core'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button
+                        type="button"
+                        onClick={() => setAccountingExpanded(!accountingExpanded)}
+                        className="p-1 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <svg
+                          className={`size-3 transition-transform duration-200 ${accountingExpanded ? 'rotate-180' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(accountingExpanded || sidebarCollapsed) ? (
+                    <div className="space-y-1 pt-0.5">
+                      {[
+                        { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa || 'Chart of Accounts', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+                        { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal || 'General Journal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                        { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger || 'General Ledger', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                        { key: 'accounting.trial_balance' as NavKey, href: '/accounting/trial-balance', label: accDict.trialBalance || 'Trial Balance', icon: 'M3 6l9-4 9 4v14l-9 4-9-4V6z' },
+                        { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods || 'Fiscal Periods', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                        { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances || 'Opening Balances', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates || 'Exchange Rates', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                      ].map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-3 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 ps-6'
+                            } ${
+                              isSubActive
+                                ? 'bg-[var(--primary)] text-white shadow-xs font-bold'
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg
+                              className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
+                                isSubActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d={subItem.icon} />
+                            </svg>
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
 
                 {/* Notifications Link */}
                 <Link

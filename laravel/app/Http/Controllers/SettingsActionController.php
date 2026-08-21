@@ -27,7 +27,7 @@ class SettingsActionController extends Controller
         $validated = $request->validate([
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['required', 'string', 'max:255'],
-            'base_currency' => ['required', 'string', Rule::in(array_keys(config('erp_currencies.supported')))],
+            'base_currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
         ]);
 
         $id = (string) Str::uuid();
@@ -53,7 +53,7 @@ class SettingsActionController extends Controller
         $validated = $request->validate([
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['required', 'string', 'max:255'],
-            'base_currency' => ['required', 'string', Rule::in(array_keys(config('erp_currencies.supported')))],
+            'base_currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'lock_version' => ['required', 'integer', 'min:0'],
         ]);
 

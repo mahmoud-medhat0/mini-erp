@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             RbacSeeder::class,
             BootstrapUserSeeder::class,
             FirstUserSuperAdminSeeder::class,
+            AccountingCoreSeeder::class,
         ]);
     }
 }

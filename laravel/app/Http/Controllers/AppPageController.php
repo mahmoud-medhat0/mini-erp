@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Application\Notifications\NotificationService;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Currency;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,10 +69,13 @@ class AppPageController extends Controller
         $locale = $this->locale($request);
 
         return Inertia::render('Settings/Company', [
-            'currencies' => collect(config('erp_currencies.supported'))
-                ->map(fn (array $currency): array => [
-                    'code' => $currency['code'],
-                    'name' => $currency['name'][$locale] ?? $currency['name']['en'] ?? $currency['code'],
+            'currencies' => Currency::query()
+                ->orderBy('code')
+                ->get()
+                ->map(fn (Currency $currency): array => [
+                    'code' => $currency->code,
+                    'name' => $this->modelTranslation($currency, 'name', $locale),
+                    'symbol' => $currency->symbol,
                 ])
                 ->values(),
             'companies' => Company::query()
