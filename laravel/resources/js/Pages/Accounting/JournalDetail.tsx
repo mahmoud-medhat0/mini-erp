@@ -53,13 +53,25 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
     label: formatPeriodLabel(p, locale),
   }));
 
+  const getStatusLabel = (status: string) => {
+    const s = status.toLowerCase();
+    const map: Record<string, string> = {
+      draft: accDict.statusDraft || (locale === 'ar' ? 'مسودة' : 'DRAFT'),
+      submitted: accDict.statusSubmitted || (locale === 'ar' ? 'مقدم للمراجعة' : 'SUBMITTED'),
+      approved: accDict.statusApproved || (locale === 'ar' ? 'معتمد' : 'APPROVED'),
+      posted: accDict.statusPosted || (locale === 'ar' ? 'مرحّل' : 'POSTED'),
+      reversed: accDict.statusReversed || (locale === 'ar' ? 'معكوس' : 'REVERSED'),
+    };
+    return map[s] || status.toUpperCase();
+  };
+
   return (
     <AppLayout active="accounting.journal">
-      <Head title={`Journal ${journal.number || 'Draft'}`} />
+      <Head title={`${accDict.journalVoucherPrefix || 'Journal Voucher: '}${journal.number || (accDict.draftBadge || 'DRAFT')}`} />
 
       <PageHeader
-        title={`Journal Voucher: ${journal.number || 'DRAFT'}`}
-        description={`${locale === 'ar' ? 'تم الإنشاء في' : 'Created on'} ${formatDate(journal.entry_date)} - ${dict.app.fields.status}: ${journal.status}`}
+        title={`${accDict.journalVoucherPrefix || 'Journal Voucher: '}${journal.number || (accDict.draftBadge || 'DRAFT')}`}
+        description={`${accDict.createdOn || 'Created on'} ${formatDate(journal.entry_date)} - ${dict.app.fields.status}: ${getStatusLabel(journal.status)}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {journal.status === 'draft' ? (
@@ -69,7 +81,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 disabled={submitForm.processing}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:border-[var(--primary)] transition-colors"
               >
-                Submit for Approval
+                {accDict.submitForApproval || 'Submit for Approval'}
               </button>
             ) : null}
 
@@ -80,7 +92,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 disabled={approveForm.processing}
                 className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
               >
-                Approve
+                {accDict.approve || 'Approve'}
               </button>
             ) : null}
 
@@ -124,7 +136,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                     {dict.app.actions.numberDetails}
                   </h3>
                   <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {journal.number || 'UNASSIGNED DRAFT'}
+                    {journal.number || (accDict.unassignedDraft || 'UNASSIGNED DRAFT')}
                   </span>
                 </div>
               </div>
@@ -141,22 +153,22 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
             <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Sequence Key</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.sequenceKey || 'Sequence Key'}</span>
                 <span className="font-mono font-bold text-[var(--text-primary)]">journal.entry</span>
               </div>
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Document Status</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.documentStatus || 'Document Status'}</span>
                 <StatusBadge tone={journal.status === 'posted' ? 'ok' : journal.status === 'reversed' ? 'danger' : 'warning'}>
-                  {journal.status.toUpperCase()}
+                  {getStatusLabel(journal.status)}
                 </StatusBadge>
               </div>
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Entry Date</span>
-                <span className="font-mono text-[var(--text-primary)]">{journal.entry_date}</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.entryDate || 'Entry Date'}</span>
+                <span className="font-mono text-[var(--text-primary)]">{formatDate(journal.entry_date)}</span>
               </div>
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Total Lines</span>
-                <span className="font-mono font-bold text-[var(--text-primary)]">{journal.lines.length} lines</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.totalLines || 'Total Lines'}</span>
+                <span className="font-mono font-bold text-[var(--text-primary)]">{journal.lines.length}</span>
               </div>
             </div>
 
@@ -178,7 +190,9 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
         <Card className="p-6 mb-6 border-red-500/30 shadow-xl">
           <h3 className="m-0 text-sm font-bold text-[var(--text-primary)] mb-3">{accDict.reverseEntry || 'Reverse Journal Entry'}</h3>
           <p className="text-xs text-[var(--text-muted)] mb-4">
-            Reversing this posted entry will create an automatic mirror journal entry (swapping debit and credit lines) in the selected open period.
+            {locale === 'ar'
+              ? 'سيؤدي عكس هذا القيد المرحّل إلى إنشاء قيد يومية عكسي تلقائي (عكس البنود المدنية والدائنة) في الفترة المالية المفتوحة المحددة.'
+              : 'Reversing this posted entry will create an automatic mirror journal entry (swapping debit and credit lines) in the selected open period.'}
           </p>
 
           <form
@@ -205,7 +219,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               disabled={reverseForm.processing}
               className="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 transition-colors"
             >
-              Confirm Reversal
+              {accDict.reverseEntry || 'Reverse Entry'}
             </button>
           </form>
         </Card>
@@ -215,10 +229,10 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
         <Card className="p-5 lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div>
-              <span className="text-xs text-[var(--text-muted)] block uppercase font-bold">Voucher Number</span>
+              <span className="text-xs text-[var(--text-muted)] block uppercase font-bold">{accDict.voucherNumber || 'Voucher Number'}</span>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-base font-extrabold text-[var(--text-primary)] font-mono">
-                  {journal.number || 'UNASSIGNED DRAFT'}
+                  {journal.number || (accDict.unassignedDraft || 'UNASSIGNED DRAFT')}
                 </span>
                 <button
                   type="button"
@@ -234,32 +248,32 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </div>
             </div>
             <StatusBadge tone={journal.status === 'posted' ? 'ok' : journal.status === 'reversed' ? 'danger' : 'warning'}>
-              {journal.status.toUpperCase()}
+              {getStatusLabel(journal.status)}
             </StatusBadge>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <span className="text-[var(--text-muted)] block font-bold uppercase">Entry Date</span>
-              <span className="font-mono text-[var(--text-primary)]">{journal.entry_date}</span>
+              <span className="text-[var(--text-muted)] block font-bold uppercase">{accDict.entryDate || 'Entry Date'}</span>
+              <span className="font-mono text-[var(--text-primary)]">{formatDate(journal.entry_date)}</span>
             </div>
             <div>
-              <span className="text-[var(--text-muted)] block font-bold uppercase">Currency</span>
+              <span className="text-[var(--text-muted)] block font-bold uppercase">{accDict.currency || 'Currency'}</span>
               <span className="font-mono text-[var(--text-primary)]">{journal.currency}</span>
             </div>
             <div>
-              <span className="text-[var(--text-muted)] block font-bold uppercase">Reference</span>
+              <span className="text-[var(--text-muted)] block font-bold uppercase">{accDict.reference || 'Reference'}</span>
               <span className="font-mono text-[var(--text-primary)]">{journal.reference || '-'}</span>
             </div>
             <div>
-              <span className="text-[var(--text-muted)] block font-bold uppercase">Created By</span>
-              <span className="text-[var(--text-primary)]">{journal.createdBy?.name || 'System'}</span>
+              <span className="text-[var(--text-muted)] block font-bold uppercase">{accDict.createdBy || 'Created By'}</span>
+              <span className="text-[var(--text-primary)]">{journal.createdBy?.name || (locale === 'ar' ? 'النظام' : 'System')}</span>
             </div>
           </div>
 
           {journal.description ? (
             <div className="pt-2 border-t border-[var(--border)] text-xs">
-              <span className="text-[var(--text-muted)] block font-bold uppercase mb-0.5">Description</span>
+              <span className="text-[var(--text-muted)] block font-bold uppercase mb-0.5">{accDict.descriptionMemo || 'Description'}</span>
               <p className="m-0 text-[var(--text-primary)]">{journal.description}</p>
             </div>
           ) : null}
@@ -267,24 +281,24 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
         <Card className="p-5 space-y-3">
           <h4 className="m-0 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)] pb-2">
-            Audit Trail
+            {accDict.auditTrail || 'Audit Trail'}
           </h4>
           <div className="space-y-2 text-xs">
             {journal.posted_at ? (
               <div className="flex items-center justify-between">
-                <span className="text-[var(--text-muted)]">Posted Date:</span>
-                <span className="font-mono text-[var(--text-primary)]">{journal.posted_at}</span>
+                <span className="text-[var(--text-muted)]">{accDict.postedDate || 'Posted Date'}:</span>
+                <span className="font-mono text-[var(--text-primary)]">{formatDate(journal.posted_at)}</span>
               </div>
             ) : null}
             {journal.reversesEntry ? (
               <div className="flex items-center justify-between">
-                <span className="text-[var(--text-muted)]">Reverses Entry:</span>
+                <span className="text-[var(--text-muted)]">{accDict.reversesEntry || 'Reverses Entry'}:</span>
                 <span className="font-mono font-bold text-blue-500">{journal.reversesEntry.number}</span>
               </div>
             ) : null}
             {journal.reversalEntry ? (
               <div className="flex items-center justify-between">
-                <span className="text-[var(--text-muted)]">Reversal Entry:</span>
+                <span className="text-[var(--text-muted)]">{accDict.reversalEntry || 'Reversal Entry'}:</span>
                 <span className="font-mono font-bold text-red-500">{journal.reversalEntry.number}</span>
               </div>
             ) : null}
@@ -298,11 +312,11 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           <thead>
             <tr>
               <th className={tableClasses.th}>#</th>
-              <th className={tableClasses.th}>Account Code</th>
-              <th className={tableClasses.th}>Account Name</th>
-              <th className={tableClasses.th}>Memo</th>
-              <th className={`${tableClasses.th} text-right`}>Debit (Minor)</th>
-              <th className={`${tableClasses.th} text-right`}>Credit (Minor)</th>
+              <th className={tableClasses.th}>{accDict.accountCode || 'Account Code'}</th>
+              <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
+              <th className={tableClasses.th}>{accDict.lineMemo || 'Memo'}</th>
+              <th className={`${tableClasses.th} text-right`}>{accDict.debitMinor || 'Debit (Minor)'}</th>
+              <th className={`${tableClasses.th} text-right`}>{accDict.creditMinor || 'Credit (Minor)'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -335,7 +349,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           </tbody>
           <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
             <tr>
-              <td colSpan={4} className="p-3 text-right">TOTAL:</td>
+              <td colSpan={4} className="p-3 text-right">{accDict.totalLabel || 'TOTAL:'}</td>
               <td className="p-3 text-right font-mono text-blue-600 dark:text-blue-400">{totalDebit}</td>
               <td className="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{totalCredit}</td>
             </tr>

@@ -36,6 +36,7 @@ Classification meanings:
 | `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-2 are complete and remaining slices include receipts/payments, allocations, cheques, reconciliation, and reports. |
 | `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 1; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 2; keep as traceability for what was requested. |
+| `PHASE_3_SLICE_3_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt for Gemini to implement Phase 3 Slice 3 only: receipt/payment posting without allocations. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

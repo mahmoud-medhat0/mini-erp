@@ -9,6 +9,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Added PostgreSQL integrity hardening for active opening-balance uniqueness, source uniqueness, statuses, and positive/non-negative accounting amounts.
 - Hardened Slice 2 validation so financial periods must belong to the selected fiscal year, duplicate active opening balances are rejected, non-unit FX is blocked until exact FX posting exists, and mapped account currencies must match the opening balance currency.
 - Verified with `php artisan test` 173 tests / 1304 assertions, Phase 3 Slice 2 suite 14/14, Concurrency suite 7/7, PostgreSQL stress commands, TypeScript typecheck, and Vite build.
+- Added `PHASE_3_SLICE_3_GEMINI_PROMPT.md` for the next bounded implementation slice: receipt/payment posting without allocations.
 
 ### Added — Phase 3 Slice 1 master data foundation
 - Added Customer and Supplier master-data tables, models, and application services with globally unique codes, multilingual names, statuses, provenance fields, optimistic locking, and Spatie Activitylog audit writes through `AuditLogger`.
