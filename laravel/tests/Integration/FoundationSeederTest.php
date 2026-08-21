@@ -39,7 +39,7 @@ class FoundationSeederTest extends TestCase
             'action' => 'view_financials',
         ]);
 
-        $this->assertSame(9, DB::table('roles')->where('is_template', true)->whereNull('company_id')->count());
+        $this->assertSame(9, DB::table('roles')->where('is_template', true)->count());
 
         $superAdmin = DB::table('roles')->where('name', 'SUPER_ADMIN')->first();
         $companyAdmin = DB::table('roles')->where('name', 'COMPANY_ADMIN')->first();

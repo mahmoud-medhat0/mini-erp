@@ -9,10 +9,6 @@ export type SharedPageProps = {
     };
     permissions: string[];
   };
-  tenant: {
-    company: null;
-    branch: null;
-  };
   locale: 'en' | 'ar' | string;
   direction: 'ltr' | 'rtl';
   theme: 'light' | 'dark' | string;

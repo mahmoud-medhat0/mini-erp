@@ -32,7 +32,7 @@ class RbacSeeder extends Seeder
 
         foreach (config('erp_rbac.role_templates') as $roleName => $definition) {
             $role = Role::query()->updateOrCreate(
-                ['name' => $roleName, 'guard_name' => $guard, 'company_id' => null],
+                ['name' => $roleName, 'guard_name' => $guard],
                 ['is_template' => true],
             );
 

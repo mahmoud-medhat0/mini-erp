@@ -33,17 +33,17 @@ This repository is migrating in parallel from the verified Next.js foundation to
 
 ## Schema Decision
 
-M2 does not port the Prisma schema. M3 maps the Phase 1 foundation schema to Laravel migrations while keeping Laravel's native `users` table for authentication. ERP tenancy uses `company`, `branch`, and `company_user`; multilingual names use Spatie Translatable JSON columns; RBAC uses Spatie Permission tables with `company_id` team scope instead of duplicating the old Prisma `role`, `permission`, `role_permission`, and `user_role` tables. Constraints, indexes, tenant boundaries, and PostgreSQL semantics must be preserved unless a later migration explicitly documents a rename.
+M2 does not port the Prisma schema. The Laravel target must not copy the old company-as-tenant assumption. `company` and `branch` are ERP business entities and accounting/reporting scopes where the specification requires them, not SaaS tenants. Multilingual names may use Spatie Translatable JSON columns. RBAC uses Spatie Permission without teams; role/permission scope is represented by explicit domain authorization rules and `scope_json`, not by `company_id` on Spatie role tables.
 
 ## Authentication Migration
 
-M2 only boots Laravel. M5 replaces Auth.js with Laravel session authentication, Argon2id hashing, CSRF, login throttling, session regeneration, logout invalidation, generic credential errors, and tenant-aware session context.
+M2 only boots Laravel. M5 replaces Auth.js with Laravel session authentication, Argon2id hashing, CSRF, login throttling, session regeneration, logout invalidation, and generic credential errors.
 
-M5 auth backend now includes Laravel's native `users` profile fields (`locale`, `theme`, `is_active`, `mfa_enabled`), Argon2id hashing, session login/logout, CSRF, active-account checks, throttling, session regeneration, logout invalidation, tenant-aware session context, Spatie Permission team scope activation, and first-run company/branch onboarding backend. The route renders `Onboarding/Create`, but the React page implementation remains part of the UI migration work.
+M5 auth backend includes Laravel's native `users` profile fields (`locale`, `theme`, `is_active`, `mfa_enabled`), Argon2id hashing, session login/logout, CSRF, active-account checks, throttling, session regeneration, logout invalidation, and a protected Inertia foundation route. Authentication must not establish a current tenant/current company/current branch unless a later domain review explicitly defines that workflow.
 
 ## RBAC Migration
 
-M2 installs Spatie Permission and prepares the `User` model with `HasRoles`. M3 turns on Spatie teams using `company_id`, extends permissions with `module`/`action`, extends role and assignment pivots with `scope_json`, and seeds the existing module/action catalog, sensitive capabilities, and 9 role templates. M5 will wire these seeded roles and permissions into gates, policies, and tenant-scoped services.
+M2 installs Spatie Permission and prepares the `User` model with `HasRoles`. Laravel RBAC must not use Spatie teams for company tenancy. Permissions carry `module`/`action`; role and assignment pivots may carry `scope_json` for explicit business authorization scopes; seeders create global role templates and the module/action catalog. M5+ will wire these into gates, policies, and domain authorization services.
 
 ## Translation Migration
 

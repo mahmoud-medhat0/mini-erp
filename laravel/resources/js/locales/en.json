@@ -15,11 +15,11 @@
       "heroTag": "Real-Time Accounting & Operations Engine",
       "heroHeadingPrefix": "Enterprise Resource Planning, ",
       "heroHeadingHighlight": "Streamlined.",
-      "heroDesc": "Unified financial kernel with double-entry balancing, tenant-isolated branches, and Argon2id security.",
+      "heroDesc": "Unified financial kernel with double-entry balancing, scoped business access, and Argon2id security.",
       "footerText": "Need help accessing your workspace? Contact your system administrator.",
       "features": [
         { "title": "Balanced Double-Entry Kernel", "desc": "Guaranteed Σ Dr = Σ Cr ledger integrity" },
-        { "title": "Tenant & Branch Isolation", "desc": "Strict data scoping per company and branch" },
+        { "title": "Scoped Authorization", "desc": "Server-side RBAC for business actions and scopes" },
         { "title": "Granular Spatie RBAC", "desc": "Role templates & custom permission assignments" }
       ]
     }

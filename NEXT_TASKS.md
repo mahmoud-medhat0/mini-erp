@@ -1,5 +1,7 @@
 # NEXT TASKS — actionable checklist
 
+> Laravel correction: do not port the old company-as-tenant or first-run owner onboarding assumptions into Laravel. Read `DOMAIN_MODEL_REVIEW.md` before using this historical Next.js checklist as implementation guidance.
+
 Ordered. Each task: what to build · key files · acceptance. Follow the verification gate (lint → typecheck → tests → invariants → secret scan) and commit in small conventional commits. Keep `IMPLEMENTATION_STATUS.md` honest.
 
 **2026-08-21 update:** T1–T6 are complete for Phase 1 foundation. DB-backed PostgreSQL verification passed locally, `next build` is wired into root GitHub Actions CI, and CI run `32440676342` completed `success` on `develop`.

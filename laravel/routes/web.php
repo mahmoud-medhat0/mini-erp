@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HealthCheckController;
-use App\Http\Controllers\OnboardingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,12 +16,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('/onboarding', [OnboardingController::class, 'create'])->name('onboarding.create');
-    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
-
     Route::get('/', function () {
         return Inertia::render('Foundation', [
-            'status' => 'M5 tenant auth foundation',
+            'status' => 'M5 auth foundation',
             'database' => 'not_checked',
         ]);
     })->name('foundation');

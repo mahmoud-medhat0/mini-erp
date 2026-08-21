@@ -3,11 +3,11 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
-### Added — Laravel migration M5 tenant onboarding backend
-- Added Laravel tenant context resolution from the authenticated user's `company_user` memberships, with session-backed active company/branch selection and Spatie Permission team scope via `company_id`.
-- Added first-run onboarding backend routes/controllers/validation to create a company and first branch, seed the 9 company-scoped role templates, attach the owner, and assign `COMPANY_ADMIN`.
-- Shared tenant and effective permissions through Inertia props, while leaving the `Onboarding/Create` React page implementation to the UI migration work.
-- Added feature coverage for no-company redirect, onboarding persistence, tenant session correction, and tenant-scoped shared permissions.
+### Corrected — Laravel architecture review
+- Added `DOMAIN_MODEL_REVIEW.md` to classify confirmed ERP relationships versus old multi-tenant implementation artifacts.
+- Removed the Laravel tenant context, tenant middleware, first-run onboarding assumption, Inertia `tenant` shared prop, and Spatie Permission company/team scope.
+- Corrected Laravel RBAC so role templates are global and authorization scope remains explicit `scope_json`, not company-owned Spatie roles.
+- Historical Next.js entries below may mention tenant wording because they describe the existing reference app, not the corrected Laravel target.
 
 ### Added — Laravel migration M5 authentication schema
 - Extended Laravel's native `users` table with locale, theme, active-account, and MFA status fields while preserving the existing session and password-reset tables.
@@ -19,7 +19,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 ### Added — Laravel migration M3 database foundation
 - Added Laravel migrations for the ERP foundation tables around the native `users` table: company, branch, company membership, currency, exchange rates, fiscal years/periods, number sequences, audit log, attachments, and notifications.
 - Added Spatie Translatable-backed Company, Branch, and Currency models with JSON multilingual `name` columns.
-- Enabled Spatie Permission team scope via `company_id`, added permission module/action metadata, assignment scope JSON, and seeded the module/action catalog plus 9 global role templates.
+- Added permission module/action metadata, assignment scope JSON, and seeded the module/action catalog plus 9 global role templates without Spatie teams.
 - Added Laravel integration tests for schema constraints, native `users` membership, currency seeding, and RBAC template seeding; verified migrations/seeds against a temporary PostgreSQL database.
 
 ### Added

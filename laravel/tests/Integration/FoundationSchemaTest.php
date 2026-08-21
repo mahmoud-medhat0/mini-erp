@@ -40,7 +40,7 @@ class FoundationSchemaTest extends TestCase
 
         $this->assertFalse(Schema::hasTable('app_user'));
         $this->assertTrue(Schema::hasColumn('users', 'password'));
-        $this->assertTrue(Schema::hasColumn('roles', 'company_id'));
+        $this->assertFalse(Schema::hasColumn('roles', 'company_id'));
         $this->assertTrue(Schema::hasColumn('permissions', 'module'));
         $this->assertTrue(Schema::hasColumn('role_has_permissions', 'scope_json'));
     }
@@ -78,7 +78,7 @@ class FoundationSchemaTest extends TestCase
 
         Company::query()->create([
             'id' => $companyId,
-            'name' => ['en' => 'Tenant Company', 'ar' => 'شركة مستأجرة'],
+            'name' => ['en' => 'Business Company', 'ar' => 'شركة أعمال'],
         ]);
 
         DB::table('company_user')->insert([
