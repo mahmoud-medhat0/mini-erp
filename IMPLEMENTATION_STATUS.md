@@ -1,13 +1,13 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 4 Slice 1 complete (Product/Service Catalog Foundation). Phase 4 Slice 2 Sales Order Backend is prompt-ready in `PHASE_4_SLICE_2_GEMINI_PROMPT.md`.
-- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 4 Slice 1 catalog implementation.
-- **Tests passing:** Laravel PHPUnit 254 passing tests (2 skipped for PostgreSQL row locking on SQLite); Phase 4 Slice 1 suite 12/12 (66 assertions).
+- **Current phase:** Phase 4 Slice 2 implemented but needs integer-total correction before Slice 3. See `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`.
+- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 2 report; follow-up review found authoritative `round(... / 1000000)` line-total math that must be corrected.
+- **Tests passing:** Laravel PHPUnit 266 passing tests (2 skipped for PostgreSQL row locking on SQLite); Phase 4 Slice 2 suite 12/12 (52 assertions).
 - **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 TS errors), `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 4 Slice 1 worktree.
-- **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`, then `PHASE_4_SLICE_2_GEMINI_PROMPT.md`.
+- **Latest verified code commit:** pending for Phase 4 Slice 2 worktree.
+- **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 
 ## Legend
 
@@ -29,7 +29,7 @@
 | M10 audit + jobs/scheduler | COMPLETE | Spatie Activitylog is the active audit backend, legacy `audit_log` is retained as archive, activity/audit tables are append-only, `/audit-log` viewer exists, `tokens:gc --batch=100` is scheduled hourly, and jobs/failed_jobs baseline is verified. |
 | Phase 3 Slices 1-10 Foundation | COMPLETE | Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress/Integrity, Close-Out Report. |
 | Phase 4 Slice 1 Catalog Foundation | COMPLETE | UnitOfMeasure, ProductCategory, Product models/migrations/services/controllers, Spatie Activitylog audit, attachment entity registry for product, Inertia catalog management pages, 12/12 passing feature tests. |
-| Phase 4 Slice 2 Sales Order Backend | PLANNED | `PHASE_4_SLICE_2_GEMINI_PROMPT.md` is ready. No Sales Order implementation has started yet. |
+| Phase 4 Slice 2 Sales Order Backend | NEEDS CORRECTION | Implemented and reported verified, but local review found authoritative line-total calculation using `round(... / 1000000)`. Execute `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md` before Slice 3. |
 | Phase 4 Slices 3-10 Operations | PLANNED | Purchase Orders, Goods Receipts, Delivery Notes, Invoicing & Bills, Inventory Costing/Subledger after owner decision, Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
@@ -56,6 +56,7 @@ php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
 php artisan test --filter=Phase4Slice1CatalogTest
+php artisan test --filter=Phase4Slice2SalesOrderTest
 php artisan test --filter=Phase3Slice9StressIntegrityTest
 php artisan test --filter=Phase3Slice8ReportsTest
 php artisan test --testsuite=Concurrency
@@ -73,10 +74,11 @@ npm run build
 
 Result summary:
 
-- `php artisan migrate --force`: nothing pending; applied through Phase 3 Slice 6 bank reconciliation tables and reconciliation immutability triggers; Slice 7 added UI/actions only.
-- `php artisan migrate:status`: 34 migration files exist after Phase 4 Slice 1; latest detailed status output should be re-run in Slice 2 verification.
-- `vendor/bin/pint --test`: passed after Phase 4 Slice 1.
-- `php artisan test`: 254 passing tests / 2145 assertions reported after Phase 4 Slice 1.
+- `php artisan migrate --force`: not included in the attached Slice 2 summary; must be re-run in the correction pass.
+- `php artisan migrate:status`: not included in the attached Slice 2 summary; must be re-run in the correction pass.
+- `vendor/bin/pint --test`: passed after Phase 4 Slice 2 report.
+- `php artisan test`: 266 passing tests / 2207 assertions reported after Phase 4 Slice 2.
+- `php artisan test --filter=Phase4Slice2SalesOrderTest`: 12 tests / 52 assertions passed.
 - `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
@@ -100,7 +102,7 @@ Result summary:
 | Notifications | COMPLETE FOUNDATION | User-targeted notifications and read actions exist; future modules must add their own event triggers. |
 | Attachments | COMPLETE FOUNDATION | Entity registry + service exists; future entities must register authorization rules. |
 | Audit | COMPLETE FOUNDATION | Spatie Activitylog active with read-only viewer and append-only enforcement. |
-| Sales | PLANNED | Phase 4 Slice 2 prompt is ready for Sales Orders. Sales Orders/Invoicing are not implemented yet. |
+| Sales | PARTIAL | Sales Orders are implemented but need integer-total correction before they are accepted as complete. Customer Invoices are not implemented yet. |
 | Purchasing | PLANNED | Phase 4 contract exists, but Purchase Orders/Supplier Bills are not implemented. Slice 1 starts only catalog foundation. |
 | Inventory | PLANNED | Inventory valuation/stock movement requires later owner decisions; Slice 1 must not implement valuation, COGS, or stock ledgers. |
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
@@ -117,9 +119,9 @@ Result summary:
 
 ## Next Milestone
 
-Phase 3 is 100% complete for the agreed scope, and Phase 4 Slice 1 is complete. The next prepared execution step is:
+Phase 3 is 100% complete for the agreed scope, Phase 4 Slice 1 is complete, and Phase 4 Slice 2 needs a correction before continuing. The next prepared execution step is:
 
-- Phase 4 Slice 2: Sales Order Backend & UX using `PHASE_4_SLICE_2_GEMINI_PROMPT.md`.
+- Phase 4 Slice 2 Correction: Sales Order integer totals using `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`.
 
 Other owner options:
 

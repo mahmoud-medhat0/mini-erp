@@ -92,12 +92,16 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - catalog services/controllers/Inertia pages.
   - product attachment registry, RBAC, Spatie Activitylog audit, optimistic locking, and EN/AR translatable fields.
   - reported verification: 254 passing tests, 0 TS errors, clean Pint, and successful Vite build.
+- Phase 4 Slice 2 Sales Order Backend & UX:
+  - Sales Order header/lines, lifecycle, `SO-YYYY-XXXXX` numbering, attachment registry, audit, and Inertia UX.
+  - correction pending: authoritative line-total math must remove `round(... / 1000000)` and use exact integer arithmetic before Slice 3.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
 - Sales and Purchasing workflows.
-- Sales Orders. The execution prompt is prepared in `PHASE_4_SLICE_2_GEMINI_PROMPT.md`.
+- Purchase Orders. Do not start them before `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md` is completed.
+- Customer Invoices and Supplier Bills.
 - Inventory valuation, COGS, stock movement, and warehouse semantics.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
 - Full financial statements such as Balance Sheet, Income Statement, Cash Flow, and Equity Statement.
@@ -155,8 +159,8 @@ npm run build
 
 Latest verified result:
 
-- 34 migration files exist after Phase 4 Slice 1.
-- 254 PHPUnit tests passing / 2145 assertions reported after Phase 4 Slice 1.
+- 266 PHPUnit tests passing / 2207 assertions reported after Phase 4 Slice 2.
+- Phase 4 Slice 2 still requires integer-total correction before Slice 3 because authoritative Sales Order line-total math currently uses `round(... / 1000000)`.
 - Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
@@ -174,6 +178,7 @@ Use these first:
 - `PHASE_4_SALES_PURCHASING_OPERATIONS.md`
 - `PHASE_4_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `NEXT_TASKS.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`

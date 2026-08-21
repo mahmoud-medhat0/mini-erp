@@ -30,6 +30,7 @@ use App\Http\Controllers\Reports\ChequeRegisterReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
 use App\Http\Controllers\Reports\ReportsHubController;
 use App\Http\Controllers\Reports\SupplierStatementController;
+use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SettingsActionController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
@@ -224,6 +225,14 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/catalog/products', [ProductController::class, 'store'])->name('products.store');
     Route::put('/catalog/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/catalog/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // Phase 4 Slice 2 Sales Order Routes
+    Route::get('/sales/orders', [SalesOrderController::class, 'index'])->name('sales-orders.index');
+    Route::post('/sales/orders', [SalesOrderController::class, 'store'])->name('sales-orders.store');
+    Route::put('/sales/orders/{salesOrder}', [SalesOrderController::class, 'update'])->name('sales-orders.update');
+    Route::post('/sales/orders/{salesOrder}/submit', [SalesOrderController::class, 'submit'])->name('sales-orders.submit');
+    Route::post('/sales/orders/{salesOrder}/confirm', [SalesOrderController::class, 'confirm'])->name('sales-orders.confirm');
+    Route::post('/sales/orders/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->name('sales-orders.cancel');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

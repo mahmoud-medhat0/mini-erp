@@ -3,9 +3,18 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
-### Added - Phase 4 Slice 2 Sales Order prompt
-- Added `PHASE_4_SLICE_2_GEMINI_PROMPT.md` as the bounded execution contract for Sales Order Backend & UX.
-- Updated handoff/status documentation so the next prepared execution step is Phase 4 Slice 2, while keeping Sales Orders, invoices, delivery, inventory, AR/GL posting, COGS, VAT, and company/branch/tenant scope out of the current implementation.
+### Added - Phase 4 Slice 2 integer-total correction prompt
+- Added `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md` after local review found authoritative Sales Order line-total math using `round(... / 1000000)`.
+- Updated handoff/status docs to require exact integer Sales Order totals before starting Phase 4 Slice 3.
+
+### Added — Phase 4 Slice 2 Sales Order Backend & UX
+- Created migration `2026_08_22_030000_create_phase4_slice2_sales_order_tables.php` defining `sales_order` and `sales_order_line` tables with optimistic locking (`lock_version`), integer currency columns, `quantity_e6` scaling, foreign keys, and zero prohibited tenancy/company columns.
+- Created Eloquent models `SalesOrder` and `SalesOrderLine` with relationships to Customer, Currency, Product, UnitOfMeasure, and User.
+- Implemented `SalesOrderService` domain service supporting full document lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`), server-side line & header total recomputations, global number sequence allocation (`SO-YYYY-XXXXX`) via `NumberSequenceAllocator`, idempotent confirmation replay, and Spatie Activitylog auditing via `AuditLogger`. Follow-up correction is required to remove authoritative `round(... / 1000000)` total math.
+- Registered `sales_order` entity definition in `config/erp_attachments.php` mapping permissions `sales.view`, `sales.create`, `sales.edit`, `sales.delete`.
+- Created `SalesOrderController` and web routes under `/sales/orders/*`.
+- Created Inertia React page `SalesOrders.tsx` with customer selector, product/UOM selector, dynamic line items, real-time total preview, status badges, and action controls. Added Sales Orders link to `AppLayout.tsx` navigation.
+- Created `Phase4Slice2SalesOrderTest.php` feature test suite (12/12 passing, 52 assertions). Verified full suite (266 passing tests, 0 TS errors, clean Pint formatting, successful Vite build).
 
 ### Added — Phase 4 Slice 1 Product/Service Catalog Foundation
 - Created migration `2026_08_22_020000_create_phase4_slice1_catalog_tables.php` defining `unit_of_measure`, `product_category`, and `product` tables with optimistic locking, Spatie Translatable JSON columns, foreign keys, and zero prohibited tenancy/company columns.

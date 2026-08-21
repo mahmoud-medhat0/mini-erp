@@ -42,6 +42,7 @@ export type NavKey =
   | 'products.index'
   | 'product-categories.index'
   | 'uoms.index'
+  | 'sales-orders.index'
   | 'reports.index'
   | 'reports.customer-statement'
   | 'reports.supplier-statement'
@@ -678,6 +679,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: locale === 'ar' ? 'المنتجات والخدمات' : 'Products & Services' },
+                        { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: locale === 'ar' ? 'أوامر البيع' : 'Sales Orders' },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: locale === 'ar' ? 'تصنيفات المنتجات' : 'Product Categories' },
                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: locale === 'ar' ? 'وحدات القياس' : 'Units of Measure' },
                       ].map((subItem) => (

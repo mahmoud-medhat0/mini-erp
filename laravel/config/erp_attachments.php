@@ -170,5 +170,14 @@ return [
                 'delete' => ['products.delete', 'products.edit'],
             ],
         ],
+        'sales_order' => [
+            'table' => 'sales_order',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['sales.view'],
+                'attach' => ['sales.edit', 'sales.create'],
+                'delete' => ['sales.delete', 'sales.edit'],
+            ],
+        ],
     ],
 ];
