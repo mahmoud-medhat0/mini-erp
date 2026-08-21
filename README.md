@@ -87,12 +87,18 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - `PHASE_3_FINAL_VERIFICATION_REPORT.md` final close-out report.
   - repository-wide documentation audit and status alignment.
   - 100% passing verification gate (242 tests, 0 TS errors, clean Pint, Vite build).
+- Phase 4 Slice 1 Product/Service Catalog Foundation:
+  - Unit of Measure, Product Category, and Product catalog.
+  - catalog services/controllers/Inertia pages.
+  - product attachment registry, RBAC, Spatie Activitylog audit, optimistic locking, and EN/AR translatable fields.
+  - reported verification: 254 passing tests, 0 TS errors, clean Pint, and successful Vite build.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
 - Sales and Purchasing workflows.
-- Inventory.
+- Sales Orders. The execution prompt is prepared in `PHASE_4_SLICE_2_GEMINI_PROMPT.md`.
+- Inventory valuation, COGS, stock movement, and warehouse semantics.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
 - Full financial statements such as Balance Sheet, Income Statement, Cash Flow, and Equity Statement.
 - Laravel browser E2E parity with the old Next.js Playwright suite.
@@ -149,8 +155,8 @@ npm run build
 
 Latest verified result:
 
-- 33 migrations Ran.
-- 242 PHPUnit tests passing / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 10 close-out.
+- 34 migration files exist after Phase 4 Slice 1.
+- 254 PHPUnit tests passing / 2145 assertions reported after Phase 4 Slice 1.
 - Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
@@ -165,6 +171,9 @@ Use these first:
 - `CONTINUE_HERE.md`
 - `IMPLEMENTATION_STATUS.md`
 - `PHASE_3_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_4_SALES_PURCHASING_OPERATIONS.md`
+- `PHASE_4_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `NEXT_TASKS.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`

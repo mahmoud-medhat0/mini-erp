@@ -8,6 +8,9 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BankReconciliationController;
 use App\Http\Controllers\CashAccountController;
+use App\Http\Controllers\Catalog\ProductCategoryController;
+use App\Http\Controllers\Catalog\ProductController;
+use App\Http\Controllers\Catalog\UnitOfMeasureController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
@@ -205,6 +208,22 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/ap-gl-reconciliation', [ApToGlReconciliationController::class, 'index'])->name('reports.ap-gl-reconciliation');
         Route::get('/ap-gl-reconciliation/export', [ApToGlReconciliationController::class, 'exportCsv'])->name('reports.ap-gl-reconciliation.export');
     });
+
+    // Phase 4 Slice 1 Catalog Routes
+    Route::get('/catalog/uoms', [UnitOfMeasureController::class, 'index'])->name('uoms.index');
+    Route::post('/catalog/uoms', [UnitOfMeasureController::class, 'store'])->name('uoms.store');
+    Route::put('/catalog/uoms/{uom}', [UnitOfMeasureController::class, 'update'])->name('uoms.update');
+    Route::delete('/catalog/uoms/{uom}', [UnitOfMeasureController::class, 'destroy'])->name('uoms.destroy');
+
+    Route::get('/catalog/categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+    Route::post('/catalog/categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+    Route::put('/catalog/categories/{category}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+    Route::delete('/catalog/categories/{category}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+
+    Route::get('/catalog/products', [ProductController::class, 'index'])->name('products.index');
+    Route::post('/catalog/products', [ProductController::class, 'store'])->name('products.store');
+    Route::put('/catalog/products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/catalog/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

@@ -27,6 +27,8 @@ return [
         'recurring' => ['view', 'create', 'edit', 'export'],
         'reports' => ['view', 'export', 'print'],
         'audit' => ['view', 'export'],
+        'products' => ['view', 'create', 'edit', 'delete', 'export'],
+        'uom' => ['view', 'create', 'edit', 'delete'],
         'settings' => ['view', 'configure', 'company', 'branches', 'numbering'],
         'users' => ['view', 'create', 'edit', 'delete', 'configure'],
     ],

@@ -39,6 +39,9 @@ export type NavKey =
   | 'outgoing-cheques.index'
   | 'bank-reconciliations.index'
   | 'bank-reconciliations.show'
+  | 'products.index'
+  | 'product-categories.index'
+  | 'uoms.index'
   | 'reports.index'
   | 'reports.customer-statement'
   | 'reports.supplier-statement'
@@ -67,6 +70,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const [arExpanded, setArExpanded] = useState(() => active.startsWith('customer') || active.startsWith('receivable'));
   const [apExpanded, setApExpanded] = useState(() => active.startsWith('supplier') || active.startsWith('payable'));
   const [cashBankExpanded, setCashBankExpanded] = useState(() => active.includes('cash') || active.includes('bank') || active.includes('cheque'));
+  const [catalogExpanded, setCatalogExpanded] = useState(() => active.startsWith('catalog') || active.includes('product') || active.includes('uom'));
   const [reportsExpanded, setReportsExpanded] = useState(() => active.startsWith('reports'));
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
@@ -639,7 +643,61 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   ) : null}
                 </div>
 
-                {/* 5. Reports & Subledgers Dropdown Group */}
+                {/* 5. Catalog Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.includes('product') || active.includes('uom') || active.startsWith('catalog')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/catalog/products"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (locale === 'ar' ? 'كتالوج المنتجات والخدمات' : 'Catalog') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('product') || active.includes('uom') || active.startsWith('catalog') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'الكتالوج' : 'Catalog'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setCatalogExpanded(!catalogExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${catalogExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(catalogExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'products.index' as NavKey, href: '/catalog/products', label: locale === 'ar' ? 'المنتجات والخدمات' : 'Products & Services' },
+                        { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: locale === 'ar' ? 'تصنيفات المنتجات' : 'Product Categories' },
+                        { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: locale === 'ar' ? 'وحدات القياس' : 'Units of Measure' },
+                      ].map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 6. Reports & Subledgers Dropdown Group */}
                 <div className="space-y-1">
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${

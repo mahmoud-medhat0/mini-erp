@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: current docs have since been updated through M10 and Phase 3 Slices 1-10. Phase 2 Accounting Core, Phase 3 master data for Customer/Supplier/CashAccount/BankAccount, Phase 3 AR/AP opening-balance subledgers, Phase 3 customer receipt/supplier payment posting, Phase 3 AR/AP allocation settlement, Phase 3 cheque lifecycle, Phase 3 bank reconciliation foundation, Phase 3 Inertia pages/actions, Phase 3 operational/subledger reports, Phase 3 PostgreSQL stress/integrity hardening, and Phase 3 close-out documentation audit are complete in Laravel. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: current docs have since been updated through M10, Phase 3 Slices 1-10, and Phase 4 Slice 1 (Product/Service Catalog Foundation). All Phase 3 subledger/banking/reconciliation workflows and Phase 4 Slice 1 catalog tables, models, services, controllers, seeders, RBAC, attachment registry, and Inertia React pages are complete and verified in Laravel with 254 passing tests, 0 TS errors, clean Pint formatting, and successful Vite build. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -20,7 +20,7 @@ Classification meanings:
 1. Several docs still describe a tenant/company/branch-scoped ERP. This directly contradicts the latest Company / Branch / User correction.
 2. Several docs describe the old Next.js implementation or Phase 1 foundation state. They are historical references, not Laravel implementation proof.
 3. Generated specification files contain useful module/business ideas but must not be treated as original owner requirements.
-4. The current Laravel implementation includes the foundation plus Phase 2 accounting ledger spine. Docs claiming later operational modules or complete ERP behavior remain stale unless explicitly scoped to current Laravel code.
+4. The current Laravel implementation includes the foundation, Phase 2 accounting ledger spine, Phase 3 AR/AP + Cash/Bank/Cheques, and Phase 4 Slice 1 catalog foundation. Docs claiming broader Sales/Purchasing/Inventory behavior remain stale unless explicitly scoped to current Laravel code.
 
 ## File Classification
 
@@ -32,7 +32,7 @@ Classification meanings:
 | `DOMAIN_MODEL_REVIEW.md` | CURRENT | Aligned with the latest correction direction; still should be treated as review output, not original requirements. |
 | `IMPLEMENTATION_STATUS.md` | CURRENT | Current Laravel status and verification numbers. |
 | `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
-| `NEXT_TASKS.md` | CURRENT | Current post-Phase 3 next-choice handoff after Slice 10 close-out. |
+| `NEXT_TASKS.md` | CURRENT | Current handoff after Phase 4 Slice 1; points to Phase 4 Slice 2 prompt. |
 | `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-10 are complete for the agreed scope. |
 | `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 1; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 2; keep as traceability for what was requested. |
@@ -45,6 +45,9 @@ Classification meanings:
 | `PHASE_3_SLICE_9_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 9: PostgreSQL stress/integrity hardening for existing Phase 3 workflows and reports only. |
 | `PHASE_3_SLICE_10_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 10: docs/status/final verification gate close-out. |
 | `PHASE_3_FINAL_VERIFICATION_REPORT.md` | CURRENT | Formal Phase 3 close-out and final verification report. |
+| `PHASE_4_SALES_PURCHASING_OPERATIONS.md` | CURRENT | Phase 4 planning contract and slice plan; not proof of implementation. |
+| `PHASE_4_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 1 Product/Service Catalog Foundation. |
+| `PHASE_4_SLICE_2_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt prepared for Phase 4 Slice 2 Sales Order Backend & UX; not yet executed. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

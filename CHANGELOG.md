@@ -3,6 +3,21 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added - Phase 4 Slice 2 Sales Order prompt
+- Added `PHASE_4_SLICE_2_GEMINI_PROMPT.md` as the bounded execution contract for Sales Order Backend & UX.
+- Updated handoff/status documentation so the next prepared execution step is Phase 4 Slice 2, while keeping Sales Orders, invoices, delivery, inventory, AR/GL posting, COGS, VAT, and company/branch/tenant scope out of the current implementation.
+
+### Added — Phase 4 Slice 1 Product/Service Catalog Foundation
+- Created migration `2026_08_22_020000_create_phase4_slice1_catalog_tables.php` defining `unit_of_measure`, `product_category`, and `product` tables with optimistic locking, Spatie Translatable JSON columns, foreign keys, and zero prohibited tenancy/company columns.
+- Created Eloquent models `UnitOfMeasure`, `ProductCategory`, `Product` with `HasTranslations`, `HasUuids`, and relationship definitions.
+- Implemented domain services `UnitOfMeasureService`, `ProductCategoryService`, and `ProductService` with code normalization/uniqueness checks, optimistic locking, in-use delete prevention, and Spatie Activitylog auditing via `AuditLogger`.
+- Registered `products` (`view`, `create`, `edit`, `delete`, `export`) and `uom` (`view`, `create`, `edit`, `delete`) in `config/erp_rbac.php` and `PermissionSeeder`.
+- Registered `product` entity definition in `config/erp_attachments.php` mapping permissions `products.view`, `products.create`, `products.edit`, `products.delete`.
+- Created catalog seeders `UnitOfMeasureSeeder` and `ProductCategorySeeder` and registered them in `DatabaseSeeder.php`.
+- Created Inertia controllers `UnitOfMeasureController`, `ProductCategoryController`, and `ProductController`, web routes under `/catalog/*`, and Inertia React pages (`UnitsOfMeasure.tsx`, `ProductCategories.tsx`, `Products.tsx`).
+- Updated `AppLayout.tsx` sidebar navigation with expandable "Catalog" dropdown group (no emojis, clean SVG icons).
+- Created `Phase4Slice1CatalogTest.php` feature test suite (12/12 passing, 66 assertions). Verified full suite (254 passing tests, 0 TS errors, clean Pint formatting, successful Vite build).
+
 ### Added — Phase 3 Slice 10 close-out & final verification gate
 - Performed repository-wide documentation audit and status synchronization across all Markdown files (`README.md`, `CONTINUE_HERE.md`, `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, `MD_DOCUMENTATION_AUDIT.md`, `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`).
 - Executed 100% passing final verification gate: `php artisan migrate:status` (33/33 ran), `vendor/bin/pint --test`, `php artisan test` (242 passed, 2 skipped, 2064 assertions), `php artisan accounting:phase3-integrity-check`, `php artisan accounting:phase3-stress --workers=50`, `npm run typecheck` (0 TS errors), and `npm run build` (compiled in 998ms).

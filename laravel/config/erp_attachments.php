@@ -161,5 +161,14 @@ return [
                 'delete' => ['banks.reconcile'],
             ],
         ],
+        'product' => [
+            'table' => 'product',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['products.view'],
+                'attach' => ['products.edit', 'products.create'],
+                'delete' => ['products.delete', 'products.edit'],
+            ],
+        ],
     ],
 ];

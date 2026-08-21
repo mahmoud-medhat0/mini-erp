@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-10 is complete and verified locally on PostgreSQL. Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for the agreed scope. See `PHASE_3_FINAL_VERIFICATION_REPORT.md`.
+Current status: Phase 4 Slice 1 (Product/Service Catalog Foundation) is complete and reported verified locally on PostgreSQL. Phase 4 Slice 2 is prompt-ready in `PHASE_4_SLICE_2_GEMINI_PROMPT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -15,167 +15,105 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - M8 actions for migrated settings/users pages.
 - M9 attachments and notifications services.
 - M10 audit, scheduler, and jobs baseline.
-- Phase 3 Slice 1 master data:
-  - Customer and Supplier models/services.
-  - CashAccount and BankAccount models/services.
-  - GL account and currency relationships.
-  - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
-- Phase 3 Slice 2 AR/AP subledger and opening balances:
-  - Customer/Supplier opening balances.
-  - `receivable_entry` and `payable_entry` subledger tables.
-  - global accounting mappings for `ar_control`, `ap_control`, and `opening_balance_offset`.
-  - PostingEngine integration, idempotent posting, subledger-to-GL reconciliation, and DB integrity hardening.
-- Phase 3 Slice 3 receipt/payment posting:
-  - `customer_receipt` and `supplier_payment` draft/post flows.
-  - global numbering through `REC-YYYY-XXXXX` and `PAY-YYYY-XXXXX`.
-  - PostingEngine GL entries and subledger entries.
-  - unapplied amount tracking (`allocated_minor = 0`, `unapplied_minor = amount_minor`).
-- Phase 3 Slice 4 allocation engine:
-  - `receivable_allocation` and `payable_allocation` models/migrations.
-  - CustomerReceipt-to-ReceivableEntry allocations and SupplierPayment-to-PayableEntry allocations.
-  - unapplied and allocated balance tracking, over-allocation prevention, and reversal support.
-  - `accounting:allocation-concurrency-stress` command.
-- Phase 3 Slice 5 cheque lifecycle:
-  - `incoming_cheque` and `outgoing_cheque` models/migrations.
-  - pre-clear lifecycle states (`receive`, `deposit`, `clear`, `bounce`, `return`, `issue`, `cancel`).
-  - configurable mappings (`cheques_under_collection`, `cheques_payable`), number allocation (`ICHQ-YYYY-XXXXX`, `OCHQ-YYYY-XXXXX`).
-  - `accounting:cheque-concurrency-stress` command.
-- Phase 3 Slice 6 bank reconciliation:
-- Phase 3 Slice 7 Inertia pages and UX actions:
-  - Customer, Supplier, CashAccount, BankAccount, opening balance, receipt/payment, allocation, cheque, and bank reconciliation controllers/routes.
-  - Inertia pages for the implemented Phase 3 workflows.
-  - expandable sidebar navigation groups and full English/Arabic translations.
-  - custom RTL-aware `DatePicker.tsx`.
-  - permission-aware actions, validation feedback, empty states, and UI feature tests.
-- Phase 3 Slice 8 operational/subledger reports:
-  - `reports.view` permission and protected report routes.
-  - report hub plus customer/supplier statements, AR/AP aging, cash book, bank book, cheque register, bank reconciliation status/detail, and AR/AP to GL reconciliation reports.
-  - dedicated report query services under `App\Application\Reports`.
-  - streaming CSV exports for report downloads.
-  - read-only reporting over existing durable Phase 2/Phase 3 data only.
-- Phase 3 Slice 9 PostgreSQL stress and integrity hardening:
-  - `accounting:phase3-integrity-check` non-mutating audit command.
-  - `accounting:phase3-stress` orchestrator command.
-  - stress coverage across Phase 3 posting, allocation, cheque, bank reconciliation, period-close, subledger-to-GL, and report read-only invariants.
-  - `Phase3Slice9StressIntegrityTest` feature suite.
-- Phase 3 Slice 10 Close-Out & Final Verification Gate:
-  - `PHASE_3_FINAL_VERIFICATION_REPORT.md` final close-out report.
-  - repository-wide documentation audit and status synchronization.
-  - 100% passing verification gate (242 tests, 0 TS errors, clean Pint, Vite build).
+- Phase 3 Slices 1-10:
+  - master data
+  - AR/AP subledgers
+  - receipts/payments
+  - allocation engine
+  - cheques
+  - bank reconciliation
+  - Inertia pages/UX
+  - operational reports
+  - PostgreSQL stress/integrity hardening
+  - close-out report
+- Phase 4 Slice 1 Product/Service Catalog Foundation:
+  - `unit_of_measure`, `product_category`, and `product` tables.
+  - `UnitOfMeasure`, `ProductCategory`, and `Product` models.
+  - catalog services/controllers/pages.
+  - Spatie Translatable EN/AR fields.
+  - optimistic locking with `lock_version`.
+  - product attachment registry entry.
+  - `products.*` and `uom.*` RBAC.
+  - catalog seeders registered in `DatabaseSeeder.php`.
+  - `Phase4Slice1CatalogTest` reported 12/12 passing with 66 assertions.
 
-Latest verified:
+Latest reported after Phase 4 Slice 1:
 
 ```text
-php artisan test: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 10 close-out
-Concurrency suite: 7 tests / 16 assertions passed
-Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
-Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
-Phase 3 Slice 3 suite: 14 total / 12 passed / 2 PostgreSQL-specific skipped, 73 assertions
-Phase 3 Slice 4 suite: 7 tests / 38 assertions passed
-Phase 3 Slice 5 suite: 8 tests / 51 assertions passed
-Phase 3 Slice 6 suite: 11 tests / 46 assertions passed
-Phase 3 Slice 7 UI suite: 13 tests passed
-Phase 3 Slice 8 reports suite: 12 tests / 180 assertions passed
-Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed
-PostgreSQL stress: concurrency + accounting + allocation + cheque + bank reconciliation + phase3-stress passed
-Phase 3 integrity check: passed
-Pint: passed
-TypeScript typecheck: passed
-Vite build: passed
+php artisan test: 254 passing tests / 2145 assertions
+Phase4Slice1CatalogTest: 12 passing tests / 66 assertions
+vendor/bin/pint --test: passed
+npm run typecheck: passed with 0 errors
+npm run build: passed
+Anti-tenancy rules: no company_id, branch_id, or tenant_id introduced by Slice 1
 ```
 
-## Next Recommended Choices After Phase 3
+## Immediate Priority
 
-Phase 3 is 100% complete for the agreed contract. The owner may choose one of the following next steps:
+Execute:
 
-1. **Phase 4: Sales & Purchasing Operations**
-   - Implement Customer Sales Orders, Invoices, Delivery Notes, Supplier Purchase Orders, Bills, Goods Receipts, and Inventory Subledger integration.
-2. **Optional: E2E Browser Test Hardening**
-   - Add Playwright / Laravel Dusk end-to-end smoke tests for complete user journey validation.
-3. **Optional: Production Deployment Hardening**
-   - Configure Nginx, Supervisor daemon for queue workers, Redis caching/session storage, and automated database backup strategy.
+- `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 
-The corrected Phase 3 contract is complete:
+Scope:
 
-- `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
+- Sales Order backend and Inertia UX.
+- `sales_order` and `sales_order_line`.
+- Customer relation.
+- Product relation using Phase 4 Slice 1 catalog.
+- Currency relation.
+- draft -> submitted -> confirmed / cancelled lifecycle.
+- `SO-YYYY-XXXXX` global numbering with key `sales.order`.
+- server-computed integer totals.
+- Spatie Activitylog via `AuditLogger`.
+- `sales_order` attachment entity registration.
 
-All Phase 3 execution prompts have already been used and are now historical traceability references:
+Explicitly out of scope for Slice 2:
 
-- `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_8_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_9_GEMINI_PROMPT.md`
-- `PHASE_3_SLICE_10_GEMINI_PROMPT.md`
+- separate sales quotation module
+- purchase orders
+- delivery notes
+- customer invoices
+- supplier bills
+- AR posting
+- GL posting
+- PostingEngine integration
+- inventory stock movement
+- inventory valuation
+- COGS
+- VAT/tax
+- discounts/price lists
+- company/branch/tenant scope
 
-Final close-out report:
+## Upcoming Phase 4 Slices
 
-- `PHASE_3_FINAL_VERIFICATION_REPORT.md`
+- **Slice 3:** Purchase Order Backend.
+- **Slice 4:** Delivery Note and Goods Receipt operational foundation.
+- **Slice 5:** Customer Invoice posting to AR/GL through the existing PostingEngine.
+- **Slice 6:** Supplier Bill posting to AP/GL through the existing PostingEngine.
+- **Slice 7:** Inventory costing/subledger only after owner decision on costing method.
+- **Slice 8:** Returns, Credit Notes, and Debit Notes only after owner decision.
+- **Slice 9:** Phase 4 Inertia pages/actions polish for workflows that are already stable.
+- **Slice 10:** Phase 4 reports, PostgreSQL stress/integrity hardening, documentation close-out, and final verification.
 
-Do not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic adjustment posting, or tenant/company/branch scope unless explicitly requested.
+## Owner Decisions Still Needed
 
-## Phase 3 Must Include
+Do not implement these without explicit owner approval:
 
-- Customer and Supplier master data.
-- CashAccount and BankAccount master data linked to GL accounts.
-- AR/AP subledger foundation.
-- Customer/Supplier opening balances through the existing Accounting Engine.
-- Receipt and Payment posting through the existing Accounting Engine.
-- Allocation Engine with PostgreSQL row locking, deterministic lock ordering, and IdempotencyStore.
-- Unapplied receipt/payment balances.
-- Cheque lifecycle and accounting effects.
-- Bank Reconciliation.
-- Statements, aging where supported by available sources, Cash Book, Bank Book, Cheque Register, reconciliation reports.
-- PostgreSQL concurrency and reconciliation/integrity tests.
-
-## Phase 3 Must Not Include
-
-- Sales Invoice.
-- Purchase Invoice.
-- Inventory movement.
-- COGS.
-- VAT workflow.
-- Sales Returns.
-- Purchase Returns.
-- Payroll.
-- Rentals.
-- Fixed Assets.
-- Full Financial Statements.
-- Dashboard expansion.
-- Company scope.
-- Branch scope.
-- Tenant scope.
-
-## Phase 3 Audit Rule
-
-For Phase 3 planning, the owner-approved audit decision is:
-
-- use Spatie Activitylog as the active audit backend
-- write through the existing `AuditLogger` API
-- keep legacy `audit_log` as archive only
-- do not create a second audit system
-- do not add Company/Branch/Tenant audit scope
-
-If another planning note says Phase 3 should write new rows to legacy `audit_log`, treat that wording as stale.
-
-## Owner Decisions Needed Before/During Phase 3
-
-Do not implement these without owner approval:
-
-- generic manual AR/AP adjustments
-- receipt/payment reversal behavior when active allocations exist
-- post-clear cheque bounce/return workflow
-- exact accounting mappings for AR/AP control, cheques under collection, cheques payable/outstanding, cash, and bank
-- bank statement import
-- aging basis when Sales/Purchasing invoices do not exist
+- VAT/tax workflow.
+- inventory costing method: weighted average, FIFO, standard cost, or non-valued/manual tracking.
+- COGS posting.
+- warehouse/location semantics.
+- warehouse-to-branch relationship.
+- post-confirmation sales order cancellation behavior once delivery/invoice exists.
+- price lists, discounts, and contract pricing.
+- separate quotation module.
+- approval workflow engine beyond bounded status transitions.
+- credit limit blocking.
+- returns/credit notes/debit notes exact rules.
 
 ## Verification Gate
 
-Run from `laravel/`:
+Run from `laravel/` for every Phase 4 slice:
 
 ```powershell
 php artisan migrate --force
@@ -188,9 +126,11 @@ php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
+php artisan accounting:phase3-integrity-check
+php artisan accounting:phase3-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
 ```
 
-Add Phase 3-specific PostgreSQL stress coverage before marking Phase 3 complete.
+Add slice-specific stress tests when a slice introduces concurrency-sensitive transitions or posting.

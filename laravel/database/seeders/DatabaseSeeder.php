@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
             AccountCategorySeeder::class,
             AccountTypeSeeder::class,
             AccountingCoreSeeder::class,
+            UnitOfMeasureSeeder::class,
+            ProductCategorySeeder::class,
         ]);
 
         if (app()->environment('local', 'testing', 'development')) {

@@ -16,6 +16,9 @@ Use the current Laravel code and these documents first:
 - `SCHEMA_ASSUMPTION_AUDIT.md`
 - `PROJECT_LOGIC_AUDIT.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
+- `PHASE_4_SALES_PURCHASING_OPERATIONS.md`
+- `PHASE_4_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -61,7 +64,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 and Phase 3 Slices 1-10 is complete and locally verified on PostgreSQL.
+The Laravel migration through M10, Phase 3 Slices 1-10, and Phase 4 Slice 1 (Product/Service Catalog Foundation) is complete and reported locally verified on PostgreSQL. Phase 4 Slice 2 Sales Order Backend is prompt-ready only; no Sales Order implementation has started yet.
 
 Implemented:
 
@@ -70,7 +73,21 @@ Implemented:
 - M5 Laravel session authentication.
 - M6 migrated Inertia shell/pages.
 - M7 Laravel core kernel parity.
-- Phase 2 accounting core ledger spine:
+- Phase 2 accounting core ledger spine.
+- M8 page actions.
+- M9 attachments and notifications services.
+- M10 Spatie Activitylog migration, audit viewer, scheduler, and jobs baseline.
+- Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
+- Phase 4 Slice 1 Product & Service Catalog Foundation:
+  - `unit_of_measure`, `product_category`, `product` models and migrations.
+  - Spatie Translatable fields (en/ar name/description), optimistic locking (`lock_version`), zero prohibited company/branch/tenant columns.
+  - `UnitOfMeasureService`, `ProductCategoryService`, `ProductService` domain services with validation, uppercase code normalization, optimistic locking, and Spatie Activitylog auditing.
+  - Attachment registry entity definition for `product`.
+  - RBAC permissions (`products.*`, `uom.*`).
+  - Catalog seeders (`UnitOfMeasureSeeder`, `ProductCategorySeeder`) registered in `DatabaseSeeder.php`.
+  - Inertia controllers (`UnitOfMeasureController`, `ProductCategoryController`, `ProductController`), web routes under `/catalog/*`, and Inertia React pages (`UnitsOfMeasure.tsx`, `ProductCategories.tsx`, `Products.tsx`).
+  - Updated `AppLayout.tsx` sidebar navigation with expandable "Catalog" dropdown group.
+  - `Phase4Slice1CatalogTest` feature test suite (12/12 passing, 66 assertions).
   - currencies and FX rates
   - fiscal years and periods
   - account categories and account types
@@ -141,6 +158,7 @@ php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
+php artisan test --filter=Phase4Slice1CatalogTest
 php artisan test --filter=Phase3Slice9StressIntegrityTest
 php artisan test --filter=Phase3Slice8ReportsTest
 php artisan test --filter=Phase3Slice6BankReconciliationTest
@@ -159,8 +177,8 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: 33 migrations Ran.
-- `php artisan test`: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 10 close-out.
+- `php artisan migrate:status`: latest detailed migration status should be re-run in Slice 2 verification; 34 migration files exist after Phase 4 Slice 1.
+- `php artisan test`: 254 passing tests / 2145 assertions reported after Phase 4 Slice 1.
 - `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
@@ -172,7 +190,7 @@ Latest results:
 - `php artisan accounting:phase3-integrity-check`: passed.
 - `php artisan accounting:phase3-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
-- `vendor/bin/pint --test`: passed.
+- `vendor/bin/pint --test`: passed after Phase 4 Slice 1.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
 
@@ -252,19 +270,30 @@ ledger_entry: 156
 
 `activity_log` can vary because stress commands create real audit records outside PHPUnit transactions.
 
-## Phase 3 Completion & Next Choices
+## Phase 3 Completion & Phase 4 Start
 
 **Phase 3 Slices 1–10 are 100% complete.** Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for the agreed scope. See `PHASE_3_FINAL_VERIFICATION_REPORT.md`.
 
 All 10 bounded prompt files (`PHASE_3_SLICE_1_GEMINI_PROMPT.md` through `PHASE_3_SLICE_10_GEMINI_PROMPT.md`) have been executed and remain as historical traceability reference.
 
-Recommended next choices for the owner:
+Phase 4 planning is prepared:
 
-1. **Phase 4: Sales & Purchasing Operations** (Customer Sales Orders, Invoices, Delivery Notes, Supplier Purchase Orders, Bills, Goods Receipts, Inventory Subledger).
-2. **Optional: E2E Browser Testing** (Playwright / Dusk smoke testing).
-3. **Optional: Production Deployment Readiness** (Nginx, Supervisor, Redis, Backup strategies).
+- `PHASE_4_SALES_PURCHASING_OPERATIONS.md`
+- `PHASE_4_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 
-Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
+Next prepared execution step:
+
+1. **Phase 4 Slice 2: Sales Order Backend & UX**
+   - Sales Order header/lines, Customer/Product/Currency relationships, integer totals, lifecycle, `SO-YYYY-XXXXX` numbering, audit, attachments, and Inertia UX.
+   - No Purchase Orders, Delivery Notes, Goods Receipts, Customer Invoices, Supplier Bills, AR/GL posting, Inventory Valuation, COGS, VAT, Returns, Reports, E2E hardening, or deployment work.
+
+Other possible owner choices:
+
+- **Optional: E2E Browser Testing** (Playwright / Dusk smoke testing).
+- **Optional: Production Deployment Readiness** (Nginx, Supervisor, Redis, Backup strategies).
+
+Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested through a bounded prompt.
 
 Going forward, keep these invariants:
 
