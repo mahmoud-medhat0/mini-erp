@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Notifications\NotificationService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\User;
 use App\Support\Concurrency\OptimisticLock;
@@ -18,6 +19,7 @@ class SettingsActionController extends Controller
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly OptimisticLock $optimisticLock,
+        private readonly NotificationService $notificationService,
     ) {}
 
     public function storeCompany(Request $request): RedirectResponse
@@ -303,6 +305,8 @@ class SettingsActionController extends Controller
         $role = Role::query()->findOrFail($validated['role_id']);
         $user->assignRole($role);
 
+        $this->notificationService->create($user->id, 'role.assigned', "role:{$role->name}");
+
         $this->auditLogger->record($request->user()->id, 'user.role.assigned', 'user', (string) $user->id, after: ['role' => $role->name]);
 
         return back()->with('success', __('Role assigned.'));
@@ -333,6 +337,8 @@ class SettingsActionController extends Controller
         }
 
         $user->removeRole($role);
+
+        $this->notificationService->create($user->id, 'role.revoked', "role:{$role->name}");
 
         $this->auditLogger->record($request->user()->id, 'user.role.revoked', 'user', (string) $user->id, after: ['role' => $role->name]);
 

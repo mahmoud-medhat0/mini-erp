@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
+import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -169,6 +170,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
   const dict = getDictionary(locale);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companies[0]?.id ?? '');
 
   return (
     <AppLayout active="settings.company">
@@ -184,7 +186,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
               setEditingCompanyId(null);
               setShowAddForm(!showAddForm);
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -221,6 +223,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
               <tbody className="divide-y divide-[var(--border)]">
                 {companies.map((company) => {
                   const isEditing = editingCompanyId === company.id;
+                  const isSelectedForAttachments = selectedCompanyId === company.id;
 
                   return (
                     <tr key={company.id} className="group hover:bg-[var(--background)]/50 transition-colors">
@@ -245,23 +248,39 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                         </span>
                       </td>
                       <td className={`${tableClasses.td} text-end`}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAddForm(false);
-                            setEditingCompanyId(isEditing ? null : company.id);
-                          }}
-                          className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
-                            isEditing
-                              ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
-                              : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)]'
-                          }`}
-                        >
-                          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>{dict.app.actions.edit}</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCompanyId(company.id)}
+                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                              isSelectedForAttachments
+                                ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)]'
+                            }`}
+                          >
+                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            <span>{locale === 'ar' ? 'المرفقات' : 'Attachments'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddForm(false);
+                              setEditingCompanyId(isEditing ? null : company.id);
+                            }}
+                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                              isEditing
+                                ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+                                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>{dict.app.actions.edit}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -278,6 +297,36 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                 currencies={currencies}
                 dict={dict}
                 onClose={() => setEditingCompanyId(null)}
+              />
+            </div>
+          ) : null}
+
+          {/* Dynamic Company Attachments Section */}
+          {companies.length > 0 && selectedCompanyId ? (
+            <div className="mt-6 space-y-3">
+              {companies.length > 1 ? (
+                <div className="flex items-center justify-between bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
+                  <label className="text-xs font-bold text-[var(--text-primary)]">
+                    {locale === 'ar' ? 'اختر الشركة لنتائج المرفقات:' : 'Select Company for Attachments:'}
+                  </label>
+                  <select
+                    value={selectedCompanyId}
+                    onChange={(e) => setSelectedCompanyId(e.target.value)}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
+                  >
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.baseCurrency})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              <AttachmentPanel
+                key={selectedCompanyId}
+                entityType="company"
+                entityId={selectedCompanyId}
+                locale={locale === 'ar' ? 'ar' : 'en'}
               />
             </div>
           ) : null}

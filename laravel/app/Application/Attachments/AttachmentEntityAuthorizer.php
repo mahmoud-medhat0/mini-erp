@@ -13,10 +13,16 @@ class AttachmentEntityAuthorizer
 
         abort_if($definition === null, 403);
 
-        $permission = $definition['permissions'][$ability] ?? null;
+        $permissions = $definition['permissions'][$ability] ?? null;
 
-        abort_if($permission === null, 403);
-        abort_unless($user->can($permission), 403);
+        abort_if($permissions === null, 403);
+
+        $permissions = is_array($permissions) ? $permissions : [$permissions];
+        $hasAccess = collect($permissions)
+            ->filter(fn (mixed $permission): bool => is_string($permission) && $permission !== '')
+            ->contains(fn (string $permission): bool => $user->can($permission));
+
+        abort_unless($hasAccess, 403);
         abort_unless($this->entityExists($definition, $entityId), 404);
     }
 
@@ -29,7 +35,7 @@ class AttachmentEntityAuthorizer
     }
 
     /**
-     * @return array{table: string, key: string, permissions: array<string, string>}|null
+     * @return array{table: string, key: string, permissions: array<string, string|list<string>>}|null
      */
     private function definition(string $entityType): ?array
     {
@@ -51,7 +57,7 @@ class AttachmentEntityAuthorizer
             return null;
         }
 
-        /** @var array<string, string> $permissions */
+        /** @var array<string, string|list<string>> $permissions */
         return [
             'table' => $table,
             'key' => $key,

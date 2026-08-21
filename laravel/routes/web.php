@@ -45,8 +45,10 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/notifications', [AppPageController::class, 'notifications'])->name('notifications');
     Route::post('/notifications/read-all', [AppPageController::class, 'markAllNotificationsRead'])->name('notifications.read_all');
     Route::post('/notifications/{id}/read', [AppPageController::class, 'markNotificationRead'])->name('notifications.read');
+    Route::get('/attachments', [AttachmentController::class, 'index'])->name('attachments.index');
     Route::post('/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::get('/attachments/{id}', [AttachmentController::class, 'show'])->name('attachments.show');
+    Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
 
     // Phase 2 Accounting Core Routes
     Route::prefix('accounting')->group(function (): void {

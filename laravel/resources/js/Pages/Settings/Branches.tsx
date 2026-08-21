@@ -2,6 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
+import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -175,6 +176,7 @@ export default function Branches({ branches, locale }: BranchesProps) {
   const dict = getDictionary(locale);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(branches[0]?.id ?? '');
 
   return (
     <AppLayout active="settings.branches">
@@ -190,7 +192,7 @@ export default function Branches({ branches, locale }: BranchesProps) {
               setEditingBranchId(null);
               setShowAddForm(!showAddForm);
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -226,6 +228,7 @@ export default function Branches({ branches, locale }: BranchesProps) {
               <tbody className="divide-y divide-[var(--border)]">
                 {branches.map((branch) => {
                   const isEditing = editingBranchId === branch.id;
+                  const isSelectedForAttachments = selectedBranchId === branch.id;
 
                   return (
                     <tr key={branch.id} className="group hover:bg-[var(--background)]/50 transition-colors">
@@ -253,11 +256,25 @@ export default function Branches({ branches, locale }: BranchesProps) {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
+                            onClick={() => setSelectedBranchId(branch.id)}
+                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                              isSelectedForAttachments
+                                ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)]'
+                            }`}
+                          >
+                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            <span>{locale === 'ar' ? 'المرفقات' : 'Attachments'}</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               setShowAddForm(false);
                               setEditingBranchId(isEditing ? null : branch.id);
                             }}
-                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
+                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                               isEditing
                                 ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
                                 : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)]'
@@ -298,6 +315,36 @@ export default function Branches({ branches, locale }: BranchesProps) {
                 branch={branches.find((b) => b.id === editingBranchId)}
                 dict={dict}
                 onClose={() => setEditingBranchId(null)}
+              />
+            </div>
+          ) : null}
+
+          {/* Dynamic Branch Attachments Section */}
+          {branches.length > 0 && selectedBranchId ? (
+            <div className="mt-6 space-y-3">
+              {branches.length > 1 ? (
+                <div className="flex items-center justify-between bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
+                  <label className="text-xs font-bold text-[var(--text-primary)]">
+                    {locale === 'ar' ? 'اختر الفرع لنتائج المرفقات:' : 'Select Branch for Attachments:'}
+                  </label>
+                  <select
+                    value={selectedBranchId}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              <AttachmentPanel
+                key={selectedBranchId}
+                entityType="branch"
+                entityId={selectedBranchId}
+                locale={locale === 'ar' ? 'ar' : 'en'}
               />
             </div>
           ) : null}

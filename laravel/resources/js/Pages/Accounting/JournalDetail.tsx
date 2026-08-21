@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -270,6 +271,15 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             </tr>
           </tfoot>
         </table>
+      </div>
+
+      {/* Journal Entry Attachments Panel */}
+      <div className="mt-6">
+        <AttachmentPanel
+          entityType="journal_entry"
+          entityId={journal.id}
+          locale={locale === 'ar' ? 'ar' : 'en'}
+        />
       </div>
     </AppLayout>
   );

@@ -19,28 +19,26 @@ class NotificationService
         ?string $dedupeKey = null,
     ): array {
         $id = (string) Str::uuid();
+        $key = $dedupeKey ?: md5("{$userId}:{$type}:{$targetRef}");
+
         $payload = [
             'id' => $id,
             'user_id' => (int) $userId,
             'type' => $type,
             'target_ref' => $targetRef,
-            'dedupe_key' => $dedupeKey,
+            'dedupe_key' => $key,
             'read' => false,
             'at' => now(),
         ];
 
-        if ($dedupeKey !== null) {
-            DB::table('notification')->insertOrIgnore($payload);
+        DB::table('notification')->insertOrIgnore($payload);
 
-            return (array) DB::table('notification')
-                ->where('user_id', (int) $userId)
-                ->where('dedupe_key', $dedupeKey)
-                ->first();
-        }
+        $record = DB::table('notification')
+            ->where('user_id', (int) $userId)
+            ->where('dedupe_key', $key)
+            ->first();
 
-        DB::table('notification')->insert($payload);
-
-        return $payload;
+        return (array) $record;
     }
 
     public function queryForUser(int|string $userId, bool $unreadOnly = false): Builder
@@ -58,6 +56,11 @@ class NotificationService
         return $this->queryForUser($userId, $unreadOnly)
             ->orderByDesc('at')
             ->get();
+    }
+
+    public function unreadCount(int|string $userId): int
+    {
+        return $this->queryForUser($userId, true)->count();
     }
 
     public function markRead(int|string $userId, string $id): bool
