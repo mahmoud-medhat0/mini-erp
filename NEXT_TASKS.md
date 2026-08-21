@@ -76,13 +76,13 @@ Use that document as the source of truth before implementation.
 
 For Phase 3 planning, the owner-approved audit decision is:
 
-- use existing `audit_log`
-- use existing Audit service
-- do not rename audit
-- do not replace audit
-- do not introduce `activity_log` as a Phase 3 requirement
+- use Spatie Activitylog as the active audit backend
+- write through the existing `AuditLogger` API
+- keep legacy `audit_log` as archive only
+- do not create a second audit system
+- do not add Company/Branch/Tenant audit scope
 
-If another planning note suggests `activity_log` for Phase 3, treat that Phase 3 wording as stale until the owner explicitly changes the audit decision.
+If another planning note says Phase 3 should write new rows to legacy `audit_log`, treat that wording as stale.
 
 ## Owner Decisions Needed Before/During Phase 3
 

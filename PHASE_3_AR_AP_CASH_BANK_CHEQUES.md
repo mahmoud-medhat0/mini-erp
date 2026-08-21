@@ -44,23 +44,20 @@ Every financial effect must reuse the existing Accounting Posting Engine. Do not
 
 ## 2. Audit Decision - Owner Approved
 
-Do not change this decision in Phase 3.
+Owner decision: use Spatie Activitylog as the active audit backend.
 
-Use the existing:
+Phase 3 must use the existing application `AuditLogger` API, which is currently backed by Spatie Activitylog and writes to `activity_log`.
 
-- `audit_log`
-- existing Audit service
-
-for Phase 3 entities and actions.
+Legacy `audit_log` remains an archive only.
 
 Do not:
 
-- rename `audit_log`
-- replace `audit_log`
-- create `activity_log`
-- introduce another audit backend
+- restore legacy `audit_log` as the active write target
+- create a second audit system
+- bypass `AuditLogger` by scattering raw audit writes across services
+- add Company/Branch/Tenant audit scope
 
-If another planning document says Phase 3 should write to `activity_log`, treat that Phase 3 wording as stale. This contract preserves the owner-approved `audit_log` decision and does not modify Laravel code or schema by itself.
+If another planning document says Phase 3 should write new audit rows to legacy `audit_log`, treat that Phase 3 wording as stale. This contract preserves the owner-approved Spatie Activitylog decision.
 
 Required Phase 3 audit coverage:
 
@@ -503,7 +500,7 @@ Required coverage:
 - AR subledger reconciles to AR control GL account
 - AP subledger reconciles to AP control GL account
 - attachments authorize Phase 3 entities through registry
-- audit writes through existing `audit_log`/Audit service
+- audit writes through existing `AuditLogger` backed by Spatie Activitylog
 - no `company_id`, `branch_id`, or tenant semantics introduced
 
 Required PostgreSQL concurrency tests:
@@ -560,8 +557,9 @@ Owner decision required before implementation where relevant:
 ## 21. Explicit Confirmations
 
 ```text
-audit_log decision changed: NO
-activity_log introduced: NO
+Spatie Activitylog audit decision retained: YES
+legacy audit_log restored as active backend: NO
+new audit system introduced: NO
 company_id introduced: NO
 branch_id introduced: NO
 tenant semantics introduced: NO

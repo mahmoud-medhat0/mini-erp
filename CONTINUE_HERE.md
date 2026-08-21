@@ -204,6 +204,6 @@ Before Phase 3, keep these invariants:
 - corrections by reversal
 - numbering atomic
 - posting idempotent
-- Phase 3 audit uses the owner-approved existing `audit_log` / existing Audit service decision
+- Phase 3 audit uses the owner-approved Spatie Activitylog decision through the existing `AuditLogger` API
 - attachment authorization through entity registry
 - notifications targeted to users
