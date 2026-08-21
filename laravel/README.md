@@ -1,3 +1,37 @@
+# Mini ERP Laravel Foundation
+
+This is the parallel Laravel + Inertia + React migration app. The existing Next.js app in `../app` remains the reference until verified parity.
+
+## Local Development
+
+On the current Windows/WAMP PHP setup, Xdebug makes the PHP development server exit after the first request. Use the no-Xdebug serve script:
+
+```powershell
+composer run serve:no-xdebug
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8000
+```
+
+Database health remains separate:
+
+```text
+http://127.0.0.1:8000/health
+```
+
+For Vite during frontend development, run in another terminal:
+
+```powershell
+npm run dev
+```
+
+Do not run `php artisan serve` directly on this machine unless Xdebug is disabled first.
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

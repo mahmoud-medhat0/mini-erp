@@ -46,6 +46,10 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan dev"
         ],
+        "serve:no-xdebug": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php scripts/serve-no-xdebug.php"
+        ],
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
