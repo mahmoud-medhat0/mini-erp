@@ -3,6 +3,15 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 7 Inertia pages & UX actions
+- Created 13 Http Controllers (`CustomerController`, `SupplierController`, `CashAccountController`, `BankAccountController`, `CustomerOpeningBalanceController`, `SupplierOpeningBalanceController`, `CustomerReceiptController`, `SupplierPaymentController`, `ReceivableAllocationController`, `PayableAllocationController`, `IncomingChequeController`, `OutgoingChequeController`, `BankReconciliationController`).
+- Registered 13 web route endpoints in `routes/web.php` covering index, store, update, post, reverse, lifecycle state transitions, and bank reconciliation line matching/finalization.
+- Created 14 Inertia pages under `resources/js/Pages/` with rich aesthetics, zero emojis, full English/Arabic (RTL) support, accessible form modals, and real-time status badges.
+- Implemented custom React `DatePicker.tsx` component supporting English and Arabic locales, 3x4 month/decade grid views, preset ranges, min/max bounds, and SVG navigation icons.
+- Updated `AppLayout.tsx` sidebar navigation with expandable groups for AR/Customers, AP/Suppliers, and Cash/Bank/Cheques.
+- Created `Phase3Slice7UiTest.php` feature test suite with 13/13 passing tests.
+- Verified zero TypeScript errors with `npm run typecheck`, 0 fontaine warnings with `npm run build`, and `php artisan test` 226 total / 224 passed / 2 skipped, 1622 assertions.
+
 ### Added — Phase 3 Slice 6 bank reconciliation
 - Implemented `bank_reconciliation` header and `bank_reconciliation_line` statement matching models and migration (`2026_08_22_000000_create_phase3_slice6_bank_reconciliation_tables.php`).
 - Created `CashBookQueryService` and `BankBookQueryService` derived strictly from immutable posted `ledger_entry` rows.

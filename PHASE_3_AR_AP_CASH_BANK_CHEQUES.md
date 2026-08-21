@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slices 1-6 are implemented and verified.
+Status: corrected planning contract; Slices 1-7 are implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -461,6 +461,8 @@ Status: COMPLETE in Laravel as of 2026-08-21, including ledger-backed bank recon
 - allocation UX
 - cheque register/actions
 - bank reconciliation page
+
+Status: COMPLETE in Laravel as of 2026-08-21, including Inertia pages/actions for Customer, Supplier, CashAccount, BankAccount, customer/supplier opening balances, receipts/payments, AR/AP allocations, incoming/outgoing cheque registers, bank reconciliation workspace, expandable navigation groups, English/Arabic translations, RTL-aware DatePicker, validation feedback, permission-aware actions, and 13/13 UI feature tests.
 
 ### Slice 8 - Reports
 

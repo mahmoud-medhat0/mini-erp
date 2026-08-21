@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-6 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-7 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -48,11 +48,17 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - CashBook & BankBook query services derived from immutable posted `ledger_entry` rows.
   - manual statement line matching, lifecycle and summary rules, attachment registry integration, and DB-enforced immutability after finalization.
   - true PostgreSQL reconciliation concurrency stress command.
+- Phase 3 Slice 7 Inertia pages and UX actions:
+  - Customer, Supplier, CashAccount, BankAccount, opening balance, receipt/payment, allocation, cheque, and bank reconciliation controllers/routes.
+  - Inertia pages for the implemented Phase 3 workflows.
+  - expandable sidebar navigation groups and full English/Arabic translations.
+  - custom RTL-aware `DatePicker.tsx`.
+  - permission-aware actions, validation feedback, empty states, and UI feature tests.
 
 Latest verified:
 
 ```text
-php artisan test: 213 total / 211 passed / 2 PostgreSQL-specific skipped, 1510 assertions
+php artisan test: 226 total / 224 passed / 2 PostgreSQL-specific skipped, 1622 assertions
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
@@ -60,17 +66,18 @@ Phase 3 Slice 3 suite: 14 total / 12 passed / 2 PostgreSQL-specific skipped, 73 
 Phase 3 Slice 4 suite: 7 tests / 38 assertions passed
 Phase 3 Slice 5 suite: 8 tests / 51 assertions passed
 Phase 3 Slice 6 suite: 11 tests / 46 assertions passed
+Phase 3 Slice 7 UI suite: 13 tests passed
 PostgreSQL stress: concurrency + accounting + allocation + cheque + bank reconciliation stress passed
 TypeScript typecheck: passed
-Vite build: passed
+Vite build: passed with 0 fontaine warnings
 ```
 
 ## Next Recommended Phase
 
-Phase 3 Slice 7:
+Phase 3 Slice 8:
 
 ```text
-Inertia Pages for Phase 3 Workflows
+Phase 3 Operational Reports and Subledger Reports
 ```
 
 The corrected Phase 3 contract is:
@@ -81,7 +88,7 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 7.
+Use the Phase 3 contract and current code as the source of truth for Slice 8.
 
 The Slice 2 execution prompt for Gemini has already been used:
 
@@ -103,9 +110,13 @@ The Slice 6 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
 
-Prepare a new bounded Slice 7 prompt before implementation.
+The Slice 7 execution prompt for Gemini has already been used:
 
-Slice 7 should cover Inertia pages/actions for the Phase 3 workflows already implemented: customer/supplier pages, cash/bank pages, receipt/payment pages, allocation UX, cheque register/actions, and bank reconciliation page. It must not start reports, sales, purchasing, inventory, full financial statements, bank import, or automatic adjustment posting.
+- `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
+
+Prepare a new bounded Slice 8 prompt before implementation.
+
+Slice 8 should cover standalone Phase 3 operational reports only: customer/supplier statements, AR/AP aging, cash book, bank book, cheque register, bank reconciliation report/status, and AR/AP to GL reconciliation reports. It must not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic bank adjustment posting, or tenant/company/branch scope.
 
 ## Phase 3 Must Include
 

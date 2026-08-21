@@ -73,11 +73,14 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Phase 3 Slice 6 bank reconciliation:
   - BankReconciliation and BankReconciliationLine records/services.
   - manual ledger-backed statement matching, CashBook and BankBook query services, zero-difference finalization, immutable finalized records, and bank reconciliation stress coverage.
+- Phase 3 Slice 7 Inertia pages and UX actions:
+  - customer/supplier, cash/bank, opening balance, receipt/payment, allocation, cheque, and bank reconciliation pages/actions.
+  - expandable navigation groups, full English/Arabic translations, RTL-aware DatePicker, validation feedback, permission-aware actions, and UI feature tests.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Broad Inertia pages and reports for Phase 3 workflows.
+- Standalone reports for Phase 3 workflows, including customer/supplier statements, aging, cash book, bank book, cheque register, bank reconciliation status, and AR/AP to GL reconciliation.
 - Sales and Purchasing workflows.
 - Inventory.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -135,10 +138,10 @@ npm run build
 Latest verified result:
 
 - 33 migrations Ran.
-- 213 PHPUnit tests total / 211 passed / 2 PostgreSQL-specific skipped, 1510 assertions.
+- 226 PHPUnit tests total / 224 passed / 2 PostgreSQL-specific skipped, 1622 assertions.
 - 7 Concurrency suite tests / 16 assertions passed.
 - PostgreSQL concurrency, accounting, allocation, cheque, and bank reconciliation stress commands passed.
-- TypeScript typecheck and Vite build passed.
+- TypeScript typecheck passed and Vite build passed with 0 fontaine warnings.
 
 ## Documentation Entry Points
 
@@ -154,6 +157,7 @@ Use these first:
 - `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`

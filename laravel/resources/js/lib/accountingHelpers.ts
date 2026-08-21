@@ -77,3 +77,12 @@ export function formatPeriodLabel(
 
   return `${yearPrefix}${monthText}`;
 }
+
+export function formatMoney(amountMinor: number, currency: string = 'EGP'): string {
+  const major = (amountMinor || 0) / 100;
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(major) + ' ' + currency;
+}
+

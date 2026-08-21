@@ -24,7 +24,21 @@ export type NavKey =
   | 'accounting.fx_rates'
   | 'accounting.currencies'
   | 'accounting.account_types'
-  | 'accounting.account_categories';
+  | 'accounting.account_categories'
+  | 'customers.index'
+  | 'suppliers.index'
+  | 'cash-accounts.index'
+  | 'bank-accounts.index'
+  | 'customer-opening-balances.index'
+  | 'supplier-opening-balances.index'
+  | 'customer-receipts.index'
+  | 'supplier-payments.index'
+  | 'receivable-allocations.index'
+  | 'payable-allocations.index'
+  | 'incoming-cheques.index'
+  | 'outgoing-cheques.index'
+  | 'bank-reconciliations.index'
+  | 'bank-reconciliations.show';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -39,6 +53,9 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [adminExpanded, setAdminExpanded] = useState(() => active.startsWith('settings'));
   const [accountingExpanded, setAccountingExpanded] = useState(() => active.startsWith('accounting'));
+  const [arExpanded, setArExpanded] = useState(() => active.startsWith('customer') || active.startsWith('receivable'));
+  const [apExpanded, setApExpanded] = useState(() => active.startsWith('supplier') || active.startsWith('payable'));
+  const [cashBankExpanded, setCashBankExpanded] = useState(() => active.includes('cash') || active.includes('bank') || active.includes('cheque'));
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
@@ -440,6 +457,172 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                           </Link>
                         );
                       })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 2. AR / Customers Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('customer') || active.startsWith('receivable')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/customers"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (locale === 'ar' ? 'العملاء والقبض' : 'Customers & AR') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('customer') || active.startsWith('receivable') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'العملاء والقبض' : 'Customers & AR'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setArExpanded(!arExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${arExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(arExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'customers.index' as NavKey, href: '/customers', label: locale === 'ar' ? 'العملاء' : 'Customers' },
+                        { key: 'customer-opening-balances.index' as NavKey, href: '/customer-opening-balances', label: locale === 'ar' ? 'أرصدة افتتاحية عملاء' : 'Customer Opening Balances' },
+                        { key: 'customer-receipts.index' as NavKey, href: '/customer-receipts', label: locale === 'ar' ? 'سندات القبض' : 'Customer Receipts' },
+                        { key: 'receivable-allocations.index' as NavKey, href: '/receivable-allocations', label: locale === 'ar' ? 'تسوية المستحقات' : 'AR Allocations' },
+                      ].map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 3. AP / Suppliers Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('supplier') || active.startsWith('payable')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/suppliers"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (locale === 'ar' ? 'الموردين والصرف' : 'Suppliers & AP') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('supplier') || active.startsWith('payable') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'الموردين والصرف' : 'Suppliers & AP'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setApExpanded(!apExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${apExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(apExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'suppliers.index' as NavKey, href: '/suppliers', label: locale === 'ar' ? 'الموردين' : 'Suppliers' },
+                        { key: 'supplier-opening-balances.index' as NavKey, href: '/supplier-opening-balances', label: locale === 'ar' ? 'أرصدة افتتاحية موردين' : 'Supplier Opening Balances' },
+                        { key: 'supplier-payments.index' as NavKey, href: '/supplier-payments', label: locale === 'ar' ? 'سندات الصرف' : 'Supplier Payments' },
+                        { key: 'payable-allocations.index' as NavKey, href: '/payable-allocations', label: locale === 'ar' ? 'تسوية المستحقات' : 'AP Allocations' },
+                      ].map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 4. Cash, Bank & Cheques Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.includes('cash') || active.includes('bank') || active.includes('cheque')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/cash-accounts"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (locale === 'ar' ? 'النقدية والبنوك بالشيكات' : 'Cash, Bank & Cheques') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('cash') || active.includes('bank') || active.includes('cheque') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'النقدية والبنوك' : 'Cash, Bank & Cheques'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setCashBankExpanded(!cashBankExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${cashBankExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(cashBankExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: locale === 'ar' ? 'حسابات الخزينة' : 'Cash Accounts' },
+                        { key: 'bank-accounts.index' as NavKey, href: '/bank-accounts', label: locale === 'ar' ? 'حسابات البنوك' : 'Bank Accounts' },
+                        { key: 'incoming-cheques.index' as NavKey, href: '/incoming-cheques', label: locale === 'ar' ? 'الشيكات الواردة' : 'Incoming Cheques' },
+                        { key: 'outgoing-cheques.index' as NavKey, href: '/outgoing-cheques', label: locale === 'ar' ? 'الشيكات الصادرة' : 'Outgoing Cheques' },
+                        { key: 'bank-reconciliations.index' as NavKey, href: '/bank-reconciliations', label: locale === 'ar' ? 'تسوية البنك' : 'Bank Reconciliations' },
+                      ].map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key || (subItem.key === 'bank-reconciliations.index' && active === 'bank-reconciliations.show') ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
                     </div>
                   ) : null}
                 </div>

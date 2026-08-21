@@ -5,8 +5,21 @@ use App\Http\Controllers\AppPageController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\BankAccountController;
+use App\Http\Controllers\BankReconciliationController;
+use App\Http\Controllers\CashAccountController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerOpeningBalanceController;
+use App\Http\Controllers\CustomerReceiptController;
 use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\IncomingChequeController;
+use App\Http\Controllers\OutgoingChequeController;
+use App\Http\Controllers\PayableAllocationController;
+use App\Http\Controllers\ReceivableAllocationController;
 use App\Http\Controllers\SettingsActionController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierOpeningBalanceController;
+use App\Http\Controllers\SupplierPaymentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -90,6 +103,72 @@ Route::middleware('auth')->group(function (): void {
         Route::patch('/account-categories/{accountCategory}', [AccountingController::class, 'updateAccountCategory'])->name('accounting.account_categories.update');
         Route::delete('/account-categories/{accountCategory}', [AccountingController::class, 'destroyAccountCategory'])->name('accounting.account_categories.destroy');
     });
+
+    // Phase 3 Operational Master Data & Accounting Routes
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::patch('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
+
+    Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
+    Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    Route::patch('/suppliers/{id}', [SupplierController::class, 'update'])->name('suppliers.update');
+
+    Route::get('/cash-accounts', [CashAccountController::class, 'index'])->name('cash-accounts.index');
+    Route::post('/cash-accounts', [CashAccountController::class, 'store'])->name('cash-accounts.store');
+    Route::patch('/cash-accounts/{id}', [CashAccountController::class, 'update'])->name('cash-accounts.update');
+
+    Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts.index');
+    Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
+    Route::patch('/bank-accounts/{id}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
+
+    Route::get('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'index'])->name('customer-opening-balances.index');
+    Route::post('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'store'])->name('customer-opening-balances.store');
+    Route::post('/customer-opening-balances/{id}/post', [CustomerOpeningBalanceController::class, 'post'])->name('customer-opening-balances.post');
+
+    Route::get('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'index'])->name('supplier-opening-balances.index');
+    Route::post('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'store'])->name('supplier-opening-balances.store');
+    Route::post('/supplier-opening-balances/{id}/post', [SupplierOpeningBalanceController::class, 'post'])->name('supplier-opening-balances.post');
+
+    Route::get('/customer-receipts', [CustomerReceiptController::class, 'index'])->name('customer-receipts.index');
+    Route::post('/customer-receipts', [CustomerReceiptController::class, 'store'])->name('customer-receipts.store');
+    Route::post('/customer-receipts/{id}/post', [CustomerReceiptController::class, 'post'])->name('customer-receipts.post');
+
+    Route::get('/supplier-payments', [SupplierPaymentController::class, 'index'])->name('supplier-payments.index');
+    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->name('supplier-payments.store');
+    Route::post('/supplier-payments/{id}/post', [SupplierPaymentController::class, 'post'])->name('supplier-payments.post');
+
+    Route::get('/receivable-allocations', [ReceivableAllocationController::class, 'index'])->name('receivable-allocations.index');
+    Route::post('/receivable-allocations', [ReceivableAllocationController::class, 'store'])->name('receivable-allocations.store');
+    Route::post('/receivable-allocations/{id}/reverse', [ReceivableAllocationController::class, 'reverse'])->name('receivable-allocations.reverse');
+
+    Route::get('/payable-allocations', [PayableAllocationController::class, 'index'])->name('payable-allocations.index');
+    Route::post('/payable-allocations', [PayableAllocationController::class, 'store'])->name('payable-allocations.store');
+    Route::post('/payable-allocations/{id}/reverse', [PayableAllocationController::class, 'reverse'])->name('payable-allocations.reverse');
+
+    Route::get('/incoming-cheques', [IncomingChequeController::class, 'index'])->name('incoming-cheques.index');
+    Route::post('/incoming-cheques', [IncomingChequeController::class, 'store'])->name('incoming-cheques.store');
+    Route::post('/incoming-cheques/{id}/receive', [IncomingChequeController::class, 'receive'])->name('incoming-cheques.receive');
+    Route::post('/incoming-cheques/{id}/deposit', [IncomingChequeController::class, 'deposit'])->name('incoming-cheques.deposit');
+    Route::post('/incoming-cheques/{id}/clear', [IncomingChequeController::class, 'clear'])->name('incoming-cheques.clear');
+    Route::post('/incoming-cheques/{id}/bounce', [IncomingChequeController::class, 'bounce'])->name('incoming-cheques.bounce');
+    Route::post('/incoming-cheques/{id}/return', [IncomingChequeController::class, 'return'])->name('incoming-cheques.return');
+
+    Route::get('/outgoing-cheques', [OutgoingChequeController::class, 'index'])->name('outgoing-cheques.index');
+    Route::post('/outgoing-cheques', [OutgoingChequeController::class, 'store'])->name('outgoing-cheques.store');
+    Route::post('/outgoing-cheques/{id}/issue', [OutgoingChequeController::class, 'issue'])->name('outgoing-cheques.issue');
+    Route::post('/outgoing-cheques/{id}/clear', [OutgoingChequeController::class, 'clear'])->name('outgoing-cheques.clear');
+    Route::post('/outgoing-cheques/{id}/return', [OutgoingChequeController::class, 'return'])->name('outgoing-cheques.return');
+    Route::post('/outgoing-cheques/{id}/cancel', [OutgoingChequeController::class, 'cancel'])->name('outgoing-cheques.cancel');
+
+    Route::get('/bank-reconciliations', [BankReconciliationController::class, 'index'])->name('bank-reconciliations.index');
+    Route::post('/bank-reconciliations', [BankReconciliationController::class, 'store'])->name('bank-reconciliations.store');
+    Route::get('/bank-reconciliations/{id}', [BankReconciliationController::class, 'show'])->name('bank-reconciliations.show');
+    Route::post('/bank-reconciliations/{id}/lines', [BankReconciliationController::class, 'addLine'])->name('bank-reconciliations.lines.store');
+    Route::patch('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'updateLine'])->name('bank-reconciliations.lines.update');
+    Route::delete('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'deleteLine'])->name('bank-reconciliations.lines.delete');
+    Route::post('/bank-reconciliations/{id}/lines/{lineId}/match', [BankReconciliationController::class, 'matchLine'])->name('bank-reconciliations.lines.match');
+    Route::post('/bank-reconciliations/{id}/lines/{lineId}/unmatch', [BankReconciliationController::class, 'unmatchLine'])->name('bank-reconciliations.lines.unmatch');
+    Route::post('/bank-reconciliations/{id}/finalize', [BankReconciliationController::class, 'finalize'])->name('bank-reconciliations.finalize');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');
