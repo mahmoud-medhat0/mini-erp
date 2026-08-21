@@ -129,7 +129,6 @@ class PostingEngine
                             'fx_rate_e6' => $line->fx_rate_e6,
                             'debit_txn_minor' => $line->debit_txn_minor ?? $line->debit_minor,
                             'credit_txn_minor' => $line->credit_txn_minor ?? $line->credit_minor,
-                            'posted_at' => $now,
                             'created_at' => $now,
                         ]);
                     }

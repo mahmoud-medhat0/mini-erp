@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -93,62 +93,69 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
         </div>
       </Card>
 
-      <div className={tableClasses.wrap}>
-        <table className={tableClasses.table}>
-          <thead>
-            <tr>
-              <th className={tableClasses.th}>{accDict.voucherNumber || 'Voucher #'}</th>
-              <th className={tableClasses.th}>{accDict.entryDate || 'Entry Date'}</th>
-              <th className={tableClasses.th}>{accDict.description || 'Description'}</th>
-              <th className={tableClasses.th}>{accDict.reference || 'Reference'}</th>
-              <th className={tableClasses.th}>{dict.app.fields.status}</th>
-              <th className={tableClasses.th}>{accDict.createdBy || 'Created By'}</th>
-              <th className={tableClasses.th} />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {journals.data.map((j) => (
-              <tr key={j.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                <td className={tableClasses.td}>
-                  <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
-                    {j.number ? j.number : (accDict.draftBadge || 'DRAFT')}
-                  </span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(j.entry_date)}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="font-bold text-xs text-[var(--text-primary)]">
-                    {j.description || (accDict.manualJournal || 'Manual Journal')}
-                  </span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="font-mono text-xs text-[var(--text-secondary)]">{j.reference || '-'}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
-                    {getStatusLabel(j.status)}
-                  </StatusBadge>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="text-xs text-[var(--text-secondary)]">{j.createdBy?.name || '-'}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  <Link
-                    href={`/accounting/journal/${j.id}`}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-[var(--background)] transition-colors inline-flex items-center gap-1"
-                  >
-                    <span>{accDict.viewDetail || 'View Detail'}</span>
-                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </td>
+      {journals.data.length === 0 ? (
+        <EmptyState
+          title={accDict.noJournals || (locale === 'ar' ? 'لا توجد قيود يومية حالياً.' : 'No journal vouchers yet.')}
+          description={accDict.noJournalsDesc || (locale === 'ar' ? 'يمكنك إنشاء قيد يومية يدوي جديد لبدء تسجيل المعاملات المالية.' : 'Create a new journal voucher to begin recording financial transactions.')}
+        />
+      ) : (
+        <div className={tableClasses.wrap}>
+          <table className={tableClasses.table}>
+            <thead>
+              <tr>
+                <th className={tableClasses.th}>{accDict.voucherNumber || 'Voucher #'}</th>
+                <th className={tableClasses.th}>{accDict.entryDate || 'Entry Date'}</th>
+                <th className={tableClasses.th}>{accDict.description || 'Description'}</th>
+                <th className={tableClasses.th}>{accDict.reference || 'Reference'}</th>
+                <th className={tableClasses.th}>{dict.app.fields.status}</th>
+                <th className={tableClasses.th}>{accDict.createdBy || 'Created By'}</th>
+                <th className={tableClasses.th} />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {journals.data.map((j) => (
+                <tr key={j.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                  <td className={tableClasses.td}>
+                    <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
+                      {j.number ? j.number : (accDict.draftBadge || 'DRAFT')}
+                    </span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(j.entry_date)}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="font-bold text-xs text-[var(--text-primary)]">
+                      {j.description || (accDict.manualJournal || 'Manual Journal')}
+                    </span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="font-mono text-xs text-[var(--text-secondary)]">{j.reference || '-'}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
+                      {getStatusLabel(j.status)}
+                    </StatusBadge>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="text-xs text-[var(--text-secondary)]">{j.createdBy?.name || '-'}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <Link
+                      href={`/accounting/journal/${j.id}`}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-[var(--background)] transition-colors inline-flex items-center gap-1"
+                    >
+                      <span>{accDict.viewDetail || 'View Detail'}</span>
+                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </AppLayout>
   );
 }

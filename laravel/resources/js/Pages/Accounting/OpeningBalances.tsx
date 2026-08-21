@@ -1,7 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getAccountNatureLabel, getAccountTypeLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -208,75 +208,82 @@ export default function OpeningBalances({
         </div>
       </Card>
 
-      <form onSubmit={submitDraft}>
-        <div className={tableClasses.wrap + ' mb-6'}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{accDict.accountCode || (locale === 'ar' ? 'رمز الحساب' : 'Code')}</th>
-                <th className={tableClasses.th}>{accDict.accountName || (locale === 'ar' ? 'اسم الحساب' : 'Account Name')}</th>
-                <th className={tableClasses.th}>{accDict.typeAndNature || (locale === 'ar' ? 'النوع / الطبيعة' : 'Type / Nature')}</th>
-                <th className={`${tableClasses.th} text-right`}>
-                  {accDict.openingDebitMinor || (locale === 'ar' ? 'مدين افتتاحي (أصغر)' : 'Opening Debit (Minor)')}
-                </th>
-                <th className={`${tableClasses.th} text-right`}>
-                  {accDict.openingCreditMinor || (locale === 'ar' ? 'دائن افتتاحي (أصغر)' : 'Opening Credit (Minor)')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {accounts.map((acc) => {
-                const bal = balancesState[acc.id] || { debit_minor: 0, credit_minor: 0 };
-                return (
-                  <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                    <td className={tableClasses.td}>
-                      <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{acc.code}</span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(acc.name, locale)}</span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border)]">
-                        {getAccountTypeLabel(acc.type, locale)} ({getAccountNatureLabel(acc.nature, locale)})
-                      </span>
-                    </td>
-                    <td className={`${tableClasses.td} text-right`}>
-                      <input
-                        type="number"
-                        min="0"
-                        disabled={isAlreadyPosted}
-                        value={bal.debit_minor}
-                        onChange={(e) => updateBalance(acc.id, 'debit_minor', parseInt(e.target.value) || 0)}
-                        className="w-36 text-right rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
-                      />
-                    </td>
-                    <td className={`${tableClasses.td} text-right`}>
-                      <input
-                        type="number"
-                        min="0"
-                        disabled={isAlreadyPosted}
-                        value={bal.credit_minor}
-                        onChange={(e) => updateBalance(acc.id, 'credit_minor', parseInt(e.target.value) || 0)}
-                        className="w-36 text-right rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {accounts.length === 0 ? (
+        <EmptyState
+          title={accDict.noOpeningBalancesConfigured || (locale === 'ar' ? 'لم يتم إعداد الأرصدة الافتتاحية بعد.' : 'No opening balances have been configured yet.')}
+          description={accDict.noOpeningBalancesConfiguredDesc || (locale === 'ar' ? 'يرجى إعداد الحسابات والسنة المالية لتخصيص الأرصدة الافتتاحية.' : 'Configure accounts and fiscal year to set initial opening balances.')}
+        />
+      ) : (
+        <form onSubmit={submitDraft}>
+          <div className={tableClasses.wrap + ' mb-6'}>
+            <table className={tableClasses.table}>
+              <thead>
+                <tr>
+                  <th className={tableClasses.th}>{accDict.accountCode || (locale === 'ar' ? 'رمز الحساب' : 'Code')}</th>
+                  <th className={tableClasses.th}>{accDict.accountName || (locale === 'ar' ? 'اسم الحساب' : 'Account Name')}</th>
+                  <th className={tableClasses.th}>{accDict.typeAndNature || (locale === 'ar' ? 'النوع / الطبيعة' : 'Type / Nature')}</th>
+                  <th className={`${tableClasses.th} text-right`}>
+                    {accDict.openingDebitMinor || (locale === 'ar' ? 'مدين افتتاحي (أصغر)' : 'Opening Debit (Minor)')}
+                  </th>
+                  <th className={`${tableClasses.th} text-right`}>
+                    {accDict.openingCreditMinor || (locale === 'ar' ? 'دائن افتتاحي (أصغر)' : 'Opening Credit (Minor)')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {accounts.map((acc) => {
+                  const bal = balancesState[acc.id] || { debit_minor: 0, credit_minor: 0 };
+                  return (
+                    <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                      <td className={tableClasses.td}>
+                        <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{acc.code}</span>
+                      </td>
+                      <td className={tableClasses.td}>
+                        <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(acc.name, locale)}</span>
+                      </td>
+                      <td className={tableClasses.td}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border)]">
+                          {getAccountTypeLabel(acc.type, locale)} ({getAccountNatureLabel(acc.nature, locale)})
+                        </span>
+                      </td>
+                      <td className={`${tableClasses.td} text-right`}>
+                        <input
+                          type="number"
+                          min="0"
+                          disabled={isAlreadyPosted}
+                          value={bal.debit_minor}
+                          onChange={(e) => updateBalance(acc.id, 'debit_minor', parseInt(e.target.value) || 0)}
+                          className="w-36 text-right rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
+                        />
+                      </td>
+                      <td className={`${tableClasses.td} text-right`}>
+                        <input
+                          type="number"
+                          min="0"
+                          disabled={isAlreadyPosted}
+                          value={bal.credit_minor}
+                          onChange={(e) => updateBalance(acc.id, 'credit_minor', parseInt(e.target.value) || 0)}
+                          className="w-36 text-right rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saveForm.processing || isAlreadyPosted}
-            className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-40 transition-colors cursor-pointer"
-          >
-            {accDict.saveDraft || (locale === 'ar' ? 'حفظ مسودة الأرصدة' : 'Save Draft Balances')}
-          </button>
-        </div>
-      </form>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saveForm.processing || isAlreadyPosted}
+              className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-40 transition-colors cursor-pointer"
+            >
+              {accDict.saveDraft || (locale === 'ar' ? 'حفظ مسودة الأرصدة' : 'Save Draft Balances')}
+            </button>
+          </div>
+        </form>
+      )}
     </AppLayout>
   );
 }

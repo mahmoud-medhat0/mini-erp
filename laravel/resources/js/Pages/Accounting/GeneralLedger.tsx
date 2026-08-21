@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -127,55 +127,62 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
         </Card>
       </div>
 
-      <div className={tableClasses.wrap}>
-        <table className={tableClasses.table}>
-          <thead>
-            <tr>
-              <th className={tableClasses.th}>{accDict.postingDate || 'Posting Date'}</th>
-              <th className={tableClasses.th}>{accDict.accountCode || 'Account Code'}</th>
-              <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
-              <th className={tableClasses.th}>{accDict.voucherNumber || 'Voucher #'}</th>
-              <th className={`${tableClasses.th} text-right`}>{accDict.debitMinor || 'Debit (Minor)'}</th>
-              <th className={`${tableClasses.th} text-right`}>{accDict.creditMinor || 'Credit (Minor)'}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {ledger.data.map((l) => (
-              <tr key={l.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                <td className={tableClasses.td}>
-                  <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(l.entry_date)}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
-                    {l.account?.code}
-                  </span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="font-bold text-xs text-[var(--text-primary)]">{getName(l.account?.name)}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  {l.journalEntry ? (
-                    <Link
-                      href={`/accounting/journal/${l.journalEntry.id}`}
-                      className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {l.journalEntry.number || 'JV'}
-                    </Link>
-                  ) : (
-                    '-'
-                  )}
-                </td>
-                <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
-                  {l.debit_minor > 0 ? l.debit_minor : '-'}
-                </td>
-                <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-purple-600 dark:text-purple-400`}>
-                  {l.credit_minor > 0 ? l.credit_minor : '-'}
-                </td>
+      {ledger.data.length === 0 ? (
+        <EmptyState
+          title={accDict.noLedgerEntries || (locale === 'ar' ? 'لا توجد قيود مرحلة في دفتر الاستاد حالياً.' : 'No posted ledger entries yet.')}
+          description={accDict.noLedgerEntriesDesc || (locale === 'ar' ? 'تظهر قيود دفتر الاستاد تلقائياً بمجرد ترحيل قيود اليومية المعتمدة.' : 'General Ledger entries stream automatically when journal vouchers are approved and posted.')}
+        />
+      ) : (
+        <div className={tableClasses.wrap}>
+          <table className={tableClasses.table}>
+            <thead>
+              <tr>
+                <th className={tableClasses.th}>{accDict.postingDate || 'Posting Date'}</th>
+                <th className={tableClasses.th}>{accDict.accountCode || 'Account Code'}</th>
+                <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
+                <th className={tableClasses.th}>{accDict.voucherNumber || 'Voucher #'}</th>
+                <th className={`${tableClasses.th} text-right`}>{accDict.debitMinor || 'Debit (Minor)'}</th>
+                <th className={`${tableClasses.th} text-right`}>{accDict.creditMinor || 'Credit (Minor)'}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {ledger.data.map((l) => (
+                <tr key={l.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                  <td className={tableClasses.td}>
+                    <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(l.entry_date)}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
+                      {l.account?.code}
+                    </span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="font-bold text-xs text-[var(--text-primary)]">{getName(l.account?.name)}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    {l.journalEntry ? (
+                      <Link
+                        href={`/accounting/journal/${l.journalEntry.id}`}
+                        className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {l.journalEntry.number || 'JV'}
+                      </Link>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
+                    {l.debit_minor > 0 ? l.debit_minor : '-'}
+                  </td>
+                  <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-purple-600 dark:text-purple-400`}>
+                    {l.credit_minor > 0 ? l.credit_minor : '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </AppLayout>
   );
 }

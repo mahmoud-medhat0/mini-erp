@@ -275,12 +275,12 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{fieldsDict.code || 'Code'}</th>
-              <th className={tableClasses.th}>{fieldsDict.name || 'Name'}</th>
-              <th className={tableClasses.th}>{accDict.normalBalance || 'Normal Balance'}</th>
-              <th className={tableClasses.th}>{accDict.statementType || 'Statement'}</th>
+              <th className={tableClasses.th}>{fieldsDict.code || (locale === 'ar' ? 'الكود' : 'Code')}</th>
+              <th className={tableClasses.th}>{fieldsDict.name || (locale === 'ar' ? 'الاسم' : 'Name')}</th>
+              <th className={tableClasses.th}>{accDict.normalBalance || (locale === 'ar' ? 'الرصيد الطبيعي' : 'Normal Balance')}</th>
+              <th className={tableClasses.th}>{accDict.statementType || (locale === 'ar' ? 'القائمة' : 'Statement')}</th>
               <th className={tableClasses.th}>{accDict.accountTypesCount || (locale === 'ar' ? 'عدد الأنواع' : 'Account Types')}</th>
-              <th className={tableClasses.th}>{fieldsDict.status || 'Status'}</th>
+              <th className={tableClasses.th}>{fieldsDict.status || (locale === 'ar' ? 'الحالة' : 'Status')}</th>
               <th className={`${tableClasses.th} text-right`}>
                 {actionsDict.actionsTitle || actionsDict.actions || (locale === 'ar' ? 'الإجراءات' : 'Actions')}
               </th>

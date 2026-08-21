@@ -1,7 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getAccountTypeLabel, getLocalizedName, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -101,49 +101,56 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
         </StatusBadge>
       </Card>
 
-      <div className={tableClasses.wrap}>
-        <table className={tableClasses.table}>
-          <thead>
-            <tr>
-              <th className={tableClasses.th}>{accDict.accountCode || 'Code'}</th>
-              <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
-              <th className={tableClasses.th}>{accDict.accountType || 'Type'}</th>
-              <th className={`${tableClasses.th} text-right`}>{accDict.endingDebit || 'Ending Debit (Minor)'}</th>
-              <th className={`${tableClasses.th} text-right`}>{accDict.endingCredit || 'Ending Credit (Minor)'}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {rows.map((r) => (
-              <tr key={r.account_id} className="hover:bg-[var(--background)]/50 transition-colors">
-                <td className={tableClasses.td}>
-                  <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{r.account_code}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(r.account_name, locale)}</span>
-                </td>
-                <td className={tableClasses.td}>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    {getAccountTypeLabel(r.type, locale)}
-                  </span>
-                </td>
-                <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
-                  {r.debit_balance > 0 ? r.debit_balance : '-'}
-                </td>
-                <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-purple-600 dark:text-purple-400`}>
-                  {r.credit_balance > 0 ? r.credit_balance : '-'}
-                </td>
+      {rows.length === 0 ? (
+        <EmptyState
+          title={accDict.noTrialBalanceRows || (locale === 'ar' ? 'لا توجد حركة حركات تطابق الفلاتر المحددة.' : 'No posted movements match the selected filters.')}
+          description={accDict.noTrialBalanceRowsDesc || (locale === 'ar' ? 'يتكون ميزان المراجعة من الأرصدة التراكمية الناتجة عن قيود دفتر الاستاد المرحّلة.' : 'The trial balance calculates cumulative debit and credit totals directly from posted ledger entries.')}
+        />
+      ) : (
+        <div className={tableClasses.wrap}>
+          <table className={tableClasses.table}>
+            <thead>
+              <tr>
+                <th className={tableClasses.th}>{accDict.accountCode || 'Code'}</th>
+                <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
+                <th className={tableClasses.th}>{accDict.accountType || 'Type'}</th>
+                <th className={`${tableClasses.th} text-right`}>{accDict.endingDebit || 'Ending Debit (Minor)'}</th>
+                <th className={`${tableClasses.th} text-right`}>{accDict.endingCredit || 'Ending Credit (Minor)'}</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
-            <tr>
-              <td colSpan={3} className="p-3.5 text-right">{accDict.totalTrialBalance || 'TOTAL TRIAL BALANCE:'}</td>
-              <td className="p-3.5 text-right font-mono text-blue-600 dark:text-blue-400">{totals.debit}</td>
-              <td className="p-3.5 text-right font-mono text-purple-600 dark:text-purple-400">{totals.credit}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {rows.map((r) => (
+                <tr key={r.account_id} className="hover:bg-[var(--background)]/50 transition-colors">
+                  <td className={tableClasses.td}>
+                    <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{r.account_code}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(r.account_name, locale)}</span>
+                  </td>
+                  <td className={tableClasses.td}>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                      {getAccountTypeLabel(r.type, locale)}
+                    </span>
+                  </td>
+                  <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
+                    {r.debit_balance > 0 ? r.debit_balance : '-'}
+                  </td>
+                  <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-purple-600 dark:text-purple-400`}>
+                    {r.credit_balance > 0 ? r.credit_balance : '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
+              <tr>
+                <td colSpan={3} className="p-3.5 text-right">{accDict.totalTrialBalance || 'TOTAL TRIAL BALANCE:'}</td>
+                <td className="p-3.5 text-right font-mono text-blue-600 dark:text-blue-400">{totals.debit}</td>
+                <td className="p-3.5 text-right font-mono text-purple-600 dark:text-purple-400">{totals.credit}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </AppLayout>
   );
 }

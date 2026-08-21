@@ -395,14 +395,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{dict.app.fields.code}</th>
-              <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
-              <th className={tableClasses.th}>{accDict.accountGroup || 'Group'}</th>
-              <th className={tableClasses.th}>{accDict.accountType || 'Type'}</th>
-              <th className={tableClasses.th}>{accDict.currency || 'Currency'}</th>
-              <th className={tableClasses.th}>{accDict.accountNature || 'Nature'}</th>
-              <th className={tableClasses.th}>{accDict.controlAccountHeader || 'Control Account'}</th>
-              <th className={tableClasses.th}>{dict.app.fields.status}</th>
+              <th className={tableClasses.th}>{dict.app.fields.code || (locale === 'ar' ? 'الكود' : 'Code')}</th>
+              <th className={tableClasses.th}>{accDict.accountName || (locale === 'ar' ? 'اسم الحساب' : 'Account Name')}</th>
+              <th className={tableClasses.th}>{accDict.accountGroup || (locale === 'ar' ? 'المجموعة' : 'Group')}</th>
+              <th className={tableClasses.th}>{accDict.accountType || (locale === 'ar' ? 'النوع' : 'Type')}</th>
+              <th className={tableClasses.th}>{accDict.currency || (locale === 'ar' ? 'العملة' : 'Currency')}</th>
+              <th className={tableClasses.th}>{accDict.accountNature || (locale === 'ar' ? 'الطبيعة' : 'Nature')}</th>
+              <th className={tableClasses.th}>{accDict.controlAccountHeader || (locale === 'ar' ? 'حساب مراقبة' : 'Control Account')}</th>
+              <th className={tableClasses.th}>{dict.app.fields.status || (locale === 'ar' ? 'الحالة' : 'Status')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -438,9 +438,9 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 </td>
                 <td className={tableClasses.td}>
                   {acc.is_control ? (
-                    <StatusBadge tone="warning">{accDict.controlBadge || 'CONTROL'}</StatusBadge>
+                    <StatusBadge tone="warning">{accDict.controlBadge || (locale === 'ar' ? 'حساب مراقبة' : 'Control Account')}</StatusBadge>
                   ) : (
-                    <span className="text-xs text-[var(--text-muted)]">{accDict.standardBadge || 'Standard'}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{accDict.standardBadge || (locale === 'ar' ? 'عادي' : 'Standard')}</span>
                   )}
                 </td>
                 <td className={tableClasses.td}>

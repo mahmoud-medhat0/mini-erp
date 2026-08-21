@@ -342,14 +342,14 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{fieldsDict.code || 'Code'}</th>
-              <th className={tableClasses.th}>{fieldsDict.name || 'Name'}</th>
-              <th className={tableClasses.th}>{accDict.category || 'Category'}</th>
-              <th className={tableClasses.th}>{accDict.normalBalance || 'Normal Balance'}</th>
-              <th className={tableClasses.th}>{accDict.statementType || 'Statement'}</th>
+              <th className={tableClasses.th}>{fieldsDict.code || (locale === 'ar' ? 'الكود' : 'Code')}</th>
+              <th className={tableClasses.th}>{fieldsDict.name || (locale === 'ar' ? 'الاسم' : 'Name')}</th>
+              <th className={tableClasses.th}>{accDict.category || (locale === 'ar' ? 'التصنيف' : 'Category')}</th>
+              <th className={tableClasses.th}>{accDict.normalBalance || (locale === 'ar' ? 'الرصيد الطبيعي' : 'Normal Balance')}</th>
+              <th className={tableClasses.th}>{accDict.statementType || (locale === 'ar' ? 'القائمة' : 'Statement')}</th>
               <th className={tableClasses.th}>{accDict.accountGroups || (locale === 'ar' ? 'المجموعات' : 'Groups')}</th>
               <th className={tableClasses.th}>{accDict.accounts || (locale === 'ar' ? 'الحسابات' : 'Accounts')}</th>
-              <th className={tableClasses.th}>{fieldsDict.status || 'Status'}</th>
+              <th className={tableClasses.th}>{fieldsDict.status || (locale === 'ar' ? 'الحالة' : 'Status')}</th>
               <th className={`${tableClasses.th} text-right`}>{actionsDict.actionsTitle || actionsDict.actions || (locale === 'ar' ? 'الإجراءات' : 'Actions')}</th>
             </tr>
           </thead>
@@ -374,7 +374,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                   </td>
                   <td className={tableClasses.td}>
                     <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                      {at.accountCategory ? getLocalizedName(at.accountCategory.name, locale) : getCategoryLabel(at.category)}
+                      {at.accountCategory ? getLocalizedName(at.accountCategory.name, locale) : getCategoryLabel(at.category, locale)}
                     </span>
                   </td>
                   <td className={tableClasses.td}>

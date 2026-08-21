@@ -24,5 +24,9 @@ class DatabaseSeeder extends Seeder
             AccountTypeSeeder::class,
             AccountingCoreSeeder::class,
         ]);
+
+        if (app()->environment('local', 'testing', 'development')) {
+            $this->call(AccountingDemoSeeder::class);
+        }
     }
 }

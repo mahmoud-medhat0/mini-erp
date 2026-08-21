@@ -516,13 +516,13 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                         </td>
                         <td className={tableClasses.td}>
                           <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                            {getAccountTypeLabel(acc.type)}
+                            {getAccountTypeLabel(acc.type, locale)}
                           </span>
                         </td>
                         <td className={tableClasses.td}>
                           {acc.nature.toLowerCase() === 'debit' ? (
                             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                              {getAccountNatureLabel(acc.nature)}
+                              {getAccountNatureLabel(acc.nature, locale)}
                             </span>
                           ) : (
                             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
