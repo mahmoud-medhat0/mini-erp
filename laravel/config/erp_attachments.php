@@ -62,5 +62,41 @@ return [
                 'delete' => ['users.configure'],
             ],
         ],
+        'customer' => [
+            'table' => 'customer',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['customers.view'],
+                'attach' => ['customers.edit', 'customers.create'],
+                'delete' => ['customers.edit', 'customers.delete'],
+            ],
+        ],
+        'supplier' => [
+            'table' => 'supplier',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['suppliers.view'],
+                'attach' => ['suppliers.edit', 'suppliers.create'],
+                'delete' => ['suppliers.edit', 'suppliers.delete'],
+            ],
+        ],
+        'cash_account' => [
+            'table' => 'cash_account',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['cash.view'],
+                'attach' => ['cash.edit', 'cash.create'],
+                'delete' => ['cash.edit'],
+            ],
+        ],
+        'bank_account' => [
+            'table' => 'bank_account',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['banks.view'],
+                'attach' => ['banks.edit', 'banks.create'],
+                'delete' => ['banks.edit'],
+            ],
+        ],
     ],
 ];

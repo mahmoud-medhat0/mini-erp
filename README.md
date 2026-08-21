@@ -48,12 +48,16 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - M8 settings/user actions for company, branch, numbering, and role assign/revoke.
 - M9 attachment and notification services.
 - M10 Spatie Activitylog active audit backend, read-only audit viewer, scheduler, and queue/jobs baseline.
+- Phase 3 Slice 1 master data foundation:
+  - Customer and Supplier models/services.
+  - CashAccount and BankAccount models/services linked to GL accounts and currencies.
+  - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
 - AR/AP operational subledgers beyond the accounting ledger spine.
-- Cash, Bank, and Cheques modules.
+- Cash/Bank operational posting, statements, reconciliation, and Cheques lifecycle.
 - Sales and Purchasing workflows.
 - Inventory.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -107,8 +111,8 @@ npm run build
 
 Latest verified result:
 
-- 24 migrations Ran.
-- 145 PHPUnit tests / 1185 assertions passed.
+- 25 migrations Ran.
+- 159 PHPUnit tests / 1243 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
 - PostgreSQL concurrency and accounting stress commands passed.
 - TypeScript typecheck and Vite build passed.

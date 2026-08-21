@@ -60,7 +60,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 is complete and locally verified on PostgreSQL.
+The Laravel migration through M10 and Phase 3 Slice 1 master data is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -88,6 +88,11 @@ Implemented:
   - role assign/revoke
 - M9 attachments and notifications services.
 - M10 Spatie Activitylog migration, audit viewer, scheduler, and jobs baseline.
+- Phase 3 Slice 1 master data:
+  - Customer and Supplier models/services.
+  - CashAccount and BankAccount models/services.
+  - GL account and currency relationships.
+  - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
 
 Latest verified commands:
 
@@ -108,8 +113,8 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: 24 migrations Ran.
-- `php artisan test`: 145 tests / 1185 assertions passed.
+- `php artisan migrate:status`: 25 migrations Ran.
+- `php artisan test`: 159 tests / 1243 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
@@ -190,11 +195,11 @@ failed_jobs: 0
 
 ## Next Work
 
-Recommended next product phase: Phase 3 - AR/AP + Cash/Bank/Cheques Foundation.
+Recommended next product slice: Phase 3 Slice 2 - AR/AP Subledger + Customer/Supplier Opening Balances.
 
 Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
-Use `PHASE_3_SLICE_1_GEMINI_PROMPT.md` when asking Gemini to implement the first bounded Phase 3 slice.
+`PHASE_3_SLICE_1_GEMINI_PROMPT.md` has already been used for the first bounded Phase 3 slice and is now historical reference for what Slice 1 delivered.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 

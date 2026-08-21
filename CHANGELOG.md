@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 1 master data foundation
+- Added Customer and Supplier master-data tables, models, and application services with globally unique codes, multilingual names, statuses, provenance fields, optimistic locking, and Spatie Activitylog audit writes through `AuditLogger`.
+- Added CashAccount and BankAccount tables, models, and services linked to active GL accounts and system currencies, with optimistic locking and attachment entity registry entries.
+- Hardened Slice 1 updates so nullable contact/bank fields can be cleared intentionally and `is_active=false` updates are preserved.
+- Verified no `company_id`, `branch_id`, `tenant_id`, current-company/current-branch context, or Spatie Teams behavior was introduced.
+- Verified with `php artisan test` 159 tests / 1243 assertions, Phase 3 Slice 1 suite 14/14, Concurrency suite 7/7, PostgreSQL stress commands, TypeScript typecheck, and Vite build.
+
 ### Corrected — Phase 3 planning contract
 - Added `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 scope/contract proposal.
 - Added Bank Reconciliation to Phase 3 scope.

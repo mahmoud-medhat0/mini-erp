@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slice 1 master data is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -15,12 +15,18 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - M8 actions for migrated settings/users pages.
 - M9 attachments and notifications services.
 - M10 audit, scheduler, and jobs baseline.
+- Phase 3 Slice 1 master data:
+  - Customer and Supplier models/services.
+  - CashAccount and BankAccount models/services.
+  - GL account and currency relationships.
+  - optimistic locking, RBAC permissions, Spatie Activitylog audit, and attachment registry entries.
 
 Latest verified:
 
 ```text
-php artisan test: 145 tests / 1185 assertions passed
+php artisan test: 159 tests / 1243 assertions passed
 Concurrency suite: 7 tests / 16 assertions passed
+Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 PostgreSQL stress: concurrency + accounting stress passed
 TypeScript typecheck: passed
 Vite build: passed
@@ -28,21 +34,21 @@ Vite build: passed
 
 ## Next Recommended Phase
 
-Phase 3:
+Phase 3 Slice 2:
 
 ```text
-AR/AP + Cash + Banks + Cheques Foundation
+AR/AP Subledger + Customer/Supplier Opening Balances
 ```
 
 The corrected Phase 3 contract is:
 
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 
-The Slice 1 execution prompt for Gemini is:
+The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use that document as the source of truth before implementation.
+Use the Phase 3 contract and current code as the source of truth for Slice 2.
 
 ## Phase 3 Must Include
 
