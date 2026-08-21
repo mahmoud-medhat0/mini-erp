@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Tenant\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,16 +36,17 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $tenantContext = app(TenantContext::class);
+
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => fn () => $request->user()?->only('id', 'name', 'email', 'locale', 'theme'),
-                'permissions' => [],
+                'permissions' => fn () => $request->user()
+                    ? $request->user()->getAllPermissions()->pluck('name')->sort()->values()->all()
+                    : [],
             ],
-            'tenant' => [
-                'company' => null,
-                'branch' => null,
-            ],
+            'tenant' => fn () => $tenantContext->toSharedArray(),
             'locale' => app()->getLocale(),
             'direction' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
             'theme' => $request->user()?->theme ?? $request->session()->get('theme', 'system'),

@@ -39,7 +39,7 @@ M2 does not port the Prisma schema. M3 maps the Phase 1 foundation schema to Lar
 
 M2 only boots Laravel. M5 replaces Auth.js with Laravel session authentication, Argon2id hashing, CSRF, login throttling, session regeneration, logout invalidation, generic credential errors, and tenant-aware session context.
 
-M5 auth work has started: Laravel's native `users` table now carries `locale`, `theme`, `is_active`, and `mfa_enabled`; PostgreSQL constrains supported locale/theme values and indexes active accounts. Argon2id is the Laravel hashing default with the same parameters as the reference implementation. Laravel session login/logout is active with CSRF, active-account checks, throttling, session regeneration, logout invalidation, and a protected Inertia foundation route. Tenant-aware session context and authorization middleware remain pending and must be completed before M5 is marked complete.
+M5 auth backend now includes Laravel's native `users` profile fields (`locale`, `theme`, `is_active`, `mfa_enabled`), Argon2id hashing, session login/logout, CSRF, active-account checks, throttling, session regeneration, logout invalidation, tenant-aware session context, Spatie Permission team scope activation, and first-run company/branch onboarding backend. The route renders `Onboarding/Create`, but the React page implementation remains part of the UI migration work.
 
 ## RBAC Migration
 

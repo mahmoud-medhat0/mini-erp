@@ -11,6 +11,14 @@
 ## Legend
 `COMPLETE` fully implemented + tested · `PARTIAL` partially implemented · `SCAFFOLD ONLY` structure without logic.
 
+## Laravel migration track
+| Item | Status | Notes |
+|---|---|---|
+| M2 Inertia foundation | COMPLETE | Laravel app boots with Inertia/Vite and health route |
+| M3 database foundation | COMPLETE | Native `users` plus company/branch, foundation tables, Spatie teams/RBAC seeders |
+| M5 session auth backend | COMPLETE | Login/logout, Argon2id, throttling, active users, bootstrap admin, protected foundation route |
+| M5 tenant/onboarding backend | PARTIAL | Tenant context, active company/branch session, Inertia tenant/permissions props, and company onboarding transaction are tested; `Onboarding/Create` React page remains UI work |
+
 ## Core kernel
 | Item | Status | Notes |
 |---|---|---|

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\OnboardingController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -14,16 +16,21 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::get('/', function () {
-    return Inertia::render('Foundation', [
-        'status' => 'M4 auth foundation',
-        'database' => 'not_checked',
-    ]);
-})->middleware('auth')->name('foundation');
+Route::middleware('auth')->group(function (): void {
+    Route::get('/onboarding', [OnboardingController::class, 'create'])->name('onboarding.create');
+    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
+
+    Route::get('/', function () {
+        return Inertia::render('Foundation', [
+            'status' => 'M5 tenant auth foundation',
+            'database' => 'not_checked',
+        ]);
+    })->name('foundation');
+});
 
 Route::get('/health', HealthCheckController::class)->name('health');
 
-Route::post('/locale', function (Illuminate\Http\Request $request) {
+Route::post('/locale', function (Request $request) {
     $validated = $request->validate([
         'locale' => ['required', 'string', 'in:en,ar'],
     ]);

@@ -3,6 +3,12 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Laravel migration M5 tenant onboarding backend
+- Added Laravel tenant context resolution from the authenticated user's `company_user` memberships, with session-backed active company/branch selection and Spatie Permission team scope via `company_id`.
+- Added first-run onboarding backend routes/controllers/validation to create a company and first branch, seed the 9 company-scoped role templates, attach the owner, and assign `COMPANY_ADMIN`.
+- Shared tenant and effective permissions through Inertia props, while leaving the `Onboarding/Create` React page implementation to the UI migration work.
+- Added feature coverage for no-company redirect, onboarding persistence, tenant session correction, and tenant-scoped shared permissions.
+
 ### Added — Laravel migration M5 authentication schema
 - Extended Laravel's native `users` table with locale, theme, active-account, and MFA status fields while preserving the existing session and password-reset tables.
 - Added PostgreSQL constraints for the supported locales/themes and an index for active-user filtering.
