@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 2 (Sales Order Backend & UX) is implemented, but local review found authoritative Sales Order line-total calculation using `round(... / 1000000)`. Execute `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md` before starting Phase 4 Slice 3. See `PHASE_4_SALES_PURCHASING_OPERATIONS.md`.
+Current status: Phase 4 Slice 2 (Sales Order Backend & UX with exact integer totals) is complete and verified locally on PostgreSQL. Phase 4 Slice 3 (Purchase Order Backend & UX) is prompt-ready in `PHASE_4_SLICE_3_GEMINI_PROMPT.md`. See `PHASE_4_SALES_PURCHASING_OPERATIONS.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -10,9 +10,9 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - M3 foundation schema, global RBAC, and no-team Spatie Permission.
 - M5 Laravel session auth.
 - M6 migrated app shell/pages.
-- M7 core kernel parity.
+- M7 Laravel core kernel parity.
 - Phase 2 accounting core ledger spine.
-- M8 actions for migrated settings/users pages.
+- M8 page actions for migrated settings/users pages.
 - M9 attachments and notifications services.
 - M10 audit, scheduler, and jobs baseline.
 - Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
@@ -20,41 +20,37 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - Phase 4 Slice 2 Sales Order Backend & UX:
   - `sales_order` and `sales_order_line` tables and Eloquent models.
   - `SalesOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
-  - Integer minor currency math & exact quantity scaling (`quantity_e6`).
+  - Exact integer math calculation helper (`calculateLineTotalMinor` using `intdiv` & `% 1000000`), 0 float/rounding usage.
+  - Overflow checks and fractional-minor rejection validation.
   - Number sequence allocation `SO-YYYY-XXXXX` with idempotent confirmation replay.
   - Spatie Activitylog audit via `AuditLogger`.
   - Attachment entity registry registration for `sales_order`.
   - `SalesOrderController` endpoints under `/sales/orders/*`.
   - `SalesOrders.tsx` Inertia page with customer selector, product/UOM selector, dynamic line items, real-time line total preview, status badges, and action buttons.
-  - `Phase4Slice2SalesOrderTest` 12/12 passing tests (52 assertions) reported by Gemini.
-  - Needs correction: authoritative server-side line-total calculation must remove `round()` and floating division.
+  - `Phase4Slice2SalesOrderTest` 15/15 passing tests; local recheck after source-scan cleanup: 72 assertions.
 
 Latest verified test suite baseline:
 
 ```text
-php artisan test: 266 passing tests / 2207 assertions
-Phase4Slice2SalesOrderTest: 12 passing tests / 52 assertions
+php artisan test: 269 passing tests / 2221 assertions
+Phase4Slice2SalesOrderTest: 15 passing tests / 72 assertions locally after source-scan cleanup
 vendor/bin/pint --test: passed
 npm run typecheck: passed (0 TS errors)
 npm run build: passed
+Source scan check: 0 forbidden float/rounding patterns in authoritative Sales Order backend code
 ```
 
-## Immediate Priority - Phase 4 Slice 2 Correction
+## Immediate Priority - Phase 4 Slice 3 (Purchase Order Backend & Operations)
 
-Execute:
-
-- `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
-
-Required correction:
-
-- Remove authoritative `round(($quantityE6 * $unitPriceMinor) / 1000000)` style calculation from `SalesOrderService`.
-- Use exact integer arithmetic with overflow checks, modulo, and `intdiv`.
-- Reject fractional-minor results until an owner-approved rounding policy exists.
-- Verify no Sales Order service/model/test authoritative path contains `round(`, `(float)`, `float`, `double`, `/ 1000000`, or `/1000000`.
-
-After this correction passes, the next implementation slice is:
-
-- `PHASE_4_SLICE_3_GEMINI_PROMPT.md` to be created for Purchase Order Backend & UX.
+1. Execute `PHASE_4_SLICE_3_GEMINI_PROMPT.md`:
+   - Create `purchase_order` and `purchase_order_line` tables.
+   - Implement `PurchaseOrderService` (create, update, submit, confirm, cancel).
+   - Exact integer math for line totals and header totals.
+   - Document sequence allocation `PO-YYYY-XXXXX`.
+   - RBAC permissions (`purchasing.*`).
+   - Attachment registry entry for `purchase_order`.
+   - Inertia controllers and React pages for Purchase Orders.
+   - Feature test suite for Purchase Orders.
 
 ## Next Steps - Phase 4 Slices 4-10
 

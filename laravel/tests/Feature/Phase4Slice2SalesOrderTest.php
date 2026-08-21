@@ -356,4 +356,75 @@ class Phase4Slice2SalesOrderTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page->component('Sales/SalesOrders'));
     }
+
+    public function test_fractional_minor_unit_rejected(): void
+    {
+        /** @var SalesOrderService $service */
+        $service = app(SalesOrderService::class);
+
+        $this->expectException(ValidationException::class);
+        $service->create([
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'lines' => [
+                [
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => 333333, // fractional minor unit
+                    'unit_price_minor' => 1,
+                ],
+            ],
+        ], $this->adminUser->id);
+    }
+
+    public function test_integer_overflow_rejected(): void
+    {
+        /** @var SalesOrderService $service */
+        $service = app(SalesOrderService::class);
+
+        $this->expectException(ValidationException::class);
+        $service->create([
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'lines' => [
+                [
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => PHP_INT_MAX,
+                    'unit_price_minor' => 2,
+                ],
+            ],
+        ], $this->adminUser->id);
+    }
+
+    public function test_sales_order_service_contains_no_binary_or_rounding_math(): void
+    {
+        $filesToScan = [
+            app_path('Application/Sales/SalesOrderService.php'),
+            app_path('Models/SalesOrder.php'),
+            app_path('Models/SalesOrderLine.php'),
+        ];
+
+        $forbiddenPatterns = [
+            'rou'.'nd(',
+            '(flo'.'at)',
+            'flo'.'at',
+            'dou'.'ble',
+            '/ '.'1000000',
+            '/'.'1000000',
+        ];
+
+        foreach ($filesToScan as $file) {
+            $content = file_get_contents($file);
+            foreach ($forbiddenPatterns as $pattern) {
+                $this->assertStringNotContainsString(
+                    $pattern,
+                    $content,
+                    "Forbidden pattern [{$pattern}] was found in [{$file}]."
+                );
+            }
+        }
+    }
 }

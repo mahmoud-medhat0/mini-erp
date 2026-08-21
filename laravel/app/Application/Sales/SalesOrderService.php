@@ -363,16 +363,9 @@ class SalesOrderService
             }
 
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
-            if ($quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
-            }
-
             $unitPriceMinor = (int) ($line['unit_price_minor'] ?? 0);
-            if ($unitPriceMinor <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_price_minor" => ["Unit price on line {$lineIndex} must be greater than zero."]]);
-            }
 
-            $lineTotalMinor = (int) round(($quantityE6 * $unitPriceMinor) / 1000000);
+            $lineTotalMinor = $this->calculateLineTotalMinor($quantityE6, $unitPriceMinor, $index);
 
             $validatedLines[] = [
                 'product_id' => $productId,
@@ -385,5 +378,28 @@ class SalesOrderService
         }
 
         return $validatedLines;
+    }
+
+    private function calculateLineTotalMinor(int $quantityE6, int $unitPriceMinor, int $lineIndex): int
+    {
+        if ($quantityE6 <= 0) {
+            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => ['Quantity on line '.($lineIndex + 1).' must be greater than zero.']]);
+        }
+
+        if ($unitPriceMinor <= 0) {
+            throw ValidationException::withMessages(["lines.{$lineIndex}.unit_price_minor" => ['Unit price on line '.($lineIndex + 1).' must be greater than zero.']]);
+        }
+
+        if ($quantityE6 > intdiv(PHP_INT_MAX, $unitPriceMinor)) {
+            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => ['Quantity and unit price product exceeds maximum integer capacity on line '.($lineIndex + 1).'.']]);
+        }
+
+        $product = $quantityE6 * $unitPriceMinor;
+
+        if ($product % 1000000 !== 0) {
+            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => ['Line total produces a fractional minor unit and must be an exact integer minor amount.']]);
+        }
+
+        return intdiv($product, 1000000);
     }
 }

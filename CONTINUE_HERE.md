@@ -20,6 +20,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_4_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -65,7 +66,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, and Phase 4 Slice 1 (Catalog Foundation) is complete. Phase 4 Slice 2 (Sales Order Backend & UX) is implemented and reported verified, but local review found authoritative `round(... / 1000000)` Sales Order line-total math that must be corrected before Slice 3.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), and Phase 4 Slice 2 (Sales Order Backend & UX with exact integer totals) is complete and locally verified on PostgreSQL. Phase 4 Slice 3 Purchase Order Backend & UX is prompt-ready.
 
 Implemented:
 
@@ -83,14 +84,14 @@ Implemented:
 - Phase 4 Slice 2 Sales Order Backend & UX:
   - `sales_order` and `sales_order_line` models and migrations.
   - `SalesOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
-  - Integer minor currency math & exact quantity scaling (`quantity_e6`).
+  - Exact integer math calculation helper (`calculateLineTotalMinor` using `intdiv` & `% 1000000`), 0 float/rounding usage.
+  - Overflow checks and fractional-minor rejection validation.
   - Number sequence allocation `SO-YYYY-XXXXX` with idempotent confirmation replay.
   - Spatie Activitylog audit via `AuditLogger`.
   - Attachment entity registry registration for `sales_order`.
   - `SalesOrderController` endpoints under `/sales/orders/*`.
   - `SalesOrders.tsx` Inertia page with customer selector, product/UOM selector, dynamic line items, real-time line total preview, status badges, and action buttons.
-  - `Phase4Slice2SalesOrderTest` 12/12 passing tests (52 assertions) reported by Gemini.
-  - Needs correction before acceptance: replace authoritative `round(... / 1000000)` line-total calculation with exact integer arithmetic.
+  - `Phase4Slice2SalesOrderTest` 15/15 passing tests; local recheck after source-scan cleanup: 72 assertions.
   - currencies and FX rates
   - fiscal years and periods
   - account categories and account types
@@ -182,8 +183,8 @@ npm run build
 Latest results:
 
 - `php artisan migrate:status`: not included in the attached Slice 2 summary; must be re-run in the correction pass.
-- `php artisan test`: 266 passing tests / 2207 assertions reported after Phase 4 Slice 2.
-- `php artisan test --filter=Phase4Slice2SalesOrderTest`: 12 tests / 52 assertions passed.
+- `php artisan test`: 269 passing tests / 2221 assertions reported after Phase 4 Slice 2 correction.
+- `php artisan test --filter=Phase4Slice2SalesOrderTest`: 15 tests / 72 assertions passed locally after source-scan cleanup.
 - `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
@@ -287,13 +288,13 @@ Phase 4 planning is prepared:
 - `PHASE_4_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 
 Next prepared execution step:
 
-1. **Phase 4 Slice 2 Correction: Sales Order Integer Totals**
-   - Remove authoritative `round(... / 1000000)` and floating division from Sales Order total calculation.
-   - Use exact integer arithmetic with overflow checks, modulo, and `intdiv`.
-   - No Purchase Orders, Delivery Notes, Goods Receipts, Customer Invoices, Supplier Bills, AR/GL posting, Inventory Valuation, COGS, VAT, Returns, Reports, E2E hardening, or deployment work.
+1. **Phase 4 Slice 3: Purchase Order Backend & UX**
+   - Purchase Order header/lines, Supplier/Product/Currency relationships, exact integer totals, lifecycle, `PO-YYYY-XXXXX` numbering, audit, attachments, and Inertia UX.
+   - No Delivery Notes, Goods Receipts, Supplier Bills, AP/GL posting, Inventory Valuation, COGS, VAT, Returns, Reports, E2E hardening, or deployment work.
 
 Other possible owner choices:
 

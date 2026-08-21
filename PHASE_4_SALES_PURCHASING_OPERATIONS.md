@@ -1,6 +1,6 @@
 # PHASE 4 - SALES & PURCHASING OPERATIONS
 
-Status: IN PROGRESS - Slice 1 complete, Slice 2 needs integer-total correction before Slice 3
+Status: IN PROGRESS - Slices 1-2 complete, Slice 3 prompt-ready
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -197,13 +197,7 @@ Execution file:
 
 ### Slice 2 - Sales Order Backend
 
-Create customer-facing sales order draft lifecycle only.
-
-Status: NEEDS CORRECTION
-
-Correction file:
-
-- `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
+Status: COMPLETE (with exact integer totals)
 
 Expected scope:
 
@@ -226,6 +220,8 @@ Original execution file:
 
 Create supplier-facing purchase order draft lifecycle only.
 
+Status: PROMPT READY
+
 Expected scope:
 
 - purchase order header/lines
@@ -238,6 +234,10 @@ Expected scope:
 - no AP/GL posting
 - no stock movement
 - no tax unless owner approves
+
+Execution file:
+
+- `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 
 ### Slice 4 - Delivery & Goods Receipt Operational Foundation
 
