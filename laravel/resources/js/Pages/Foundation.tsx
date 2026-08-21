@@ -4,7 +4,7 @@ import type { SharedPageProps } from '../Types/page';
 
 type FoundationProps = SharedPageProps & {
   status: string;
-  database: 'ok' | 'unavailable' | 'unknown';
+  database: 'ok' | 'unavailable' | 'unknown' | 'not_checked';
 };
 
 export default function Foundation({ status, database }: FoundationProps) {
@@ -43,10 +43,10 @@ export default function Foundation({ status, database }: FoundationProps) {
                     'rounded-sm px-3 py-1 text-sm font-semibold',
                     isReady
                       ? 'bg-[var(--success-subtle)] text-[var(--success)]'
-                      : 'bg-[var(--danger-subtle)] text-[var(--danger)]',
+                      : 'border border-[var(--border)] text-[var(--text-secondary)]',
                   ].join(' ')}
                 >
-                  {database === 'ok' ? 'PostgreSQL OK' : 'PostgreSQL unavailable'}
+                  {database === 'ok' ? 'PostgreSQL OK' : 'DB health at /health'}
                 </span>
               </div>
 

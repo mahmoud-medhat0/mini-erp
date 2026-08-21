@@ -16,7 +16,7 @@ class InertiaFoundationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Foundation')
                 ->where('status', 'M2 foundation')
-                ->where('database', 'ok')
+                ->where('database', 'not_checked')
                 ->has('auth')
                 ->has('tenant')
                 ->has('notifications')
