@@ -29,11 +29,11 @@ This repository is migrating in parallel from the verified Next.js foundation to
 - `inertiajs/inertia-laravel`: required for Laravel-controlled page responses with React pages.
 - `@inertiajs/react`, `react`, `react-dom`: required frontend runtime.
 - `spatie/laravel-permission`: required RBAC foundation for M5.
-- `spatie/laravel-translatable`: deferred until database/domain entities with multilingual stored values are ported.
+- `spatie/laravel-translatable`: used from M3 for database-backed multilingual master data names, starting with company, branch, and currency.
 
 ## Schema Decision
 
-M2 does not port the Prisma schema. M3 will map `app/prisma/schema.prisma` to Laravel migrations. Existing column names, constraints, indexes, tenant boundaries, and PostgreSQL semantics must be preserved unless a later migration explicitly documents a rename.
+M2 does not port the Prisma schema. M3 maps the Phase 1 foundation schema to Laravel migrations while keeping Laravel's native `users` table for authentication. ERP tenancy uses `company`, `branch`, and `company_user`; multilingual names use Spatie Translatable JSON columns; RBAC uses Spatie Permission tables with `company_id` team scope instead of duplicating the old Prisma `role`, `permission`, `role_permission`, and `user_role` tables. Constraints, indexes, tenant boundaries, and PostgreSQL semantics must be preserved unless a later migration explicitly documents a rename.
 
 ## Authentication Migration
 
@@ -41,11 +41,11 @@ M2 only boots Laravel. M5 will replace Auth.js with Laravel session authenticati
 
 ## RBAC Migration
 
-M2 installs Spatie Permission and prepares the `User` model with `HasRoles`. M5 will map the existing 24 module/action catalog, sensitive capabilities, scopes, and 9 role templates into Spatie roles, permissions, gates, policies, and tenant-scoped services.
+M2 installs Spatie Permission and prepares the `User` model with `HasRoles`. M3 turns on Spatie teams using `company_id`, extends permissions with `module`/`action`, extends role and assignment pivots with `scope_json`, and seeds the existing module/action catalog, sensitive capabilities, and 9 role templates. M5 will wire these seeded roles and permissions into gates, policies, and tenant-scoped services.
 
 ## Translation Migration
 
-Static UI translations remain frontend resources. Database-backed multilingual domain content will use Spatie Translatable only where the domain model requires stored EN/AR values.
+Static UI translations remain frontend resources. Database-backed multilingual domain content uses Spatie Translatable where the domain model requires stored EN/AR values.
 
 ## Frontend Migration
 

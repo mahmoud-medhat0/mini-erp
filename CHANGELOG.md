@@ -3,6 +3,12 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Laravel migration M3 database foundation
+- Added Laravel migrations for the ERP foundation tables around the native `users` table: company, branch, company membership, currency, exchange rates, fiscal years/periods, number sequences, audit log, attachments, and notifications.
+- Added Spatie Translatable-backed Company, Branch, and Currency models with JSON multilingual `name` columns.
+- Enabled Spatie Permission team scope via `company_id`, added permission module/action metadata, assignment scope JSON, and seeded the module/action catalog plus 9 global role templates.
+- Added Laravel integration tests for schema constraints, native `users` membership, currency seeding, and RBAC template seeding; verified migrations/seeds against a temporary PostgreSQL database.
+
 ### Added
 - Project scaffold: Next.js (App Router) + TypeScript + Prisma + Zod + Tailwind, modular-monolith structure (24 modules + core kernel).
 - Core kernel (tested): exact **Money** value object (BigInt minor units, exact allocation), **accounting-kernel** (`assertBalanced` Σdr=Σcr), concurrency-safe **numbering**, server-side **RBAC** with scope + tenant isolation, typed **errors**, **audit** types, **currency** registry (EGP seed, multi-currency).

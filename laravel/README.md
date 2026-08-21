@@ -4,6 +4,20 @@ This is the parallel Laravel + Inertia + React migration app. The existing Next.
 
 ## Local Development
 
+Apply the Laravel database foundation:
+
+```powershell
+php artisan migrate --seed
+```
+
+Run the verification suite:
+
+```powershell
+php artisan test
+npm run typecheck
+npm run build
+```
+
 On the current Windows/WAMP PHP setup, Xdebug makes the PHP development server exit after the first request. Use the no-Xdebug serve script:
 
 ```powershell
