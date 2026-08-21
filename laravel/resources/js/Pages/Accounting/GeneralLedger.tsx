@@ -153,9 +153,14 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
                     {l.journalEntry ? (
                       <Link
                         href={`/accounting/journal/${l.journalEntry.id}`}
-                        className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        className="inline-flex items-center gap-1 font-mono font-bold text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg hover:bg-blue-500/20 transition-colors"
+                        title={dict.app.actions.numberDetails}
                       >
-                        {l.journalEntry.number || 'JV'}
+                        <svg className="size-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span>{l.journalEntry.number || 'JV'}</span>
                       </Link>
                     ) : (
                       '-'

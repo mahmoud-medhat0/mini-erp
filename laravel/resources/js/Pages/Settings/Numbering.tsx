@@ -222,10 +222,98 @@ function NumberingFormModal({
   );
 }
 
+function SequenceDetailModal({
+  sequence,
+  dict,
+  onClose,
+}: {
+  sequence: SequenceRow;
+  dict: ReturnType<typeof getDictionary>;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+      <Card className="w-full max-w-lg border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
+                {sequence.docType}
+              </h3>
+              <p className="m-0 font-mono text-xs text-[var(--text-muted)]">{sequence.key}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Formatted Live Preview Badge */}
+        <div className="mb-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
+          <span className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
+            {dict.app.fields.preview}
+          </span>
+          <span className="font-mono text-xl font-extrabold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-xl border border-blue-500/20 inline-block">
+            {sequence.preview}
+          </span>
+        </div>
+
+        {/* Detailed Grid Breakdown */}
+        <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
+          <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+            <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.prefix}</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">{sequence.prefix || '-'}</span>
+          </div>
+          <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+            <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.nextValue}</span>
+            <span className="font-mono font-bold text-blue-500">#{sequence.nextValue}</span>
+          </div>
+          <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+            <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.padding}</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">{sequence.padding} digits</span>
+          </div>
+          <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+            <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.resetPolicy}</span>
+            <StatusBadge tone="info">{sequence.resetPolicy ?? 'yearly'}</StatusBadge>
+          </div>
+          <div className="col-span-2 rounded-xl bg-[var(--background)] p-3 border border-[var(--border)] flex items-center justify-between">
+            <span className="text-xs text-[var(--text-muted)] font-semibold">{dict.app.fields.includeYear}</span>
+            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${sequence.includeYear ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-gray-500/10 text-gray-500'}`}>
+              {sequence.includeYear ? 'Yes (YYYY-)' : 'No'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
+          >
+            {dict.app.actions.close}
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export default function Numbering({ sequences, locale }: NumberingProps) {
   const dict = getDictionary(locale);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSequenceId, setEditingSequenceId] = useState<string | null>(null);
+  const [viewingSequence, setViewingSequence] = useState<SequenceRow | null>(null);
 
   return (
     <AppLayout active="settings.numbering">
@@ -259,6 +347,15 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
         />
       ) : null}
 
+      {/* Sequence Detail Modal */}
+      {viewingSequence ? (
+        <SequenceDetailModal
+          sequence={viewingSequence}
+          dict={dict}
+          onClose={() => setViewingSequence(null)}
+        />
+      ) : null}
+
       {/* Main Sequences Table Card */}
       {sequences.length === 0 ? (
         <EmptyState title={dict.app.settings.numbering.empty} />
@@ -272,7 +369,7 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                   <th className={tableClasses.th}>{dict.app.fields.preview}</th>
                   <th className={tableClasses.th}>{dict.app.fields.resetPolicy}</th>
                   <th className={tableClasses.th}>{dict.app.fields.nextValue}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.actions.edit}</th>
+                  <th className={`${tableClasses.th} text-end`}>{dict.app.actions.actionsTitle}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -288,12 +385,16 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                         </div>
                       </td>
                       <td className={tableClasses.td}>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-1 font-mono text-xs font-extrabold text-blue-600 dark:text-blue-400">
+                        <button
+                          type="button"
+                          onClick={() => setViewingSequence(sequence)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-1 font-mono text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
+                        >
                           <svg className="size-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                           </svg>
                           <span>{sequence.preview}</span>
-                        </span>
+                        </button>
                       </td>
                       <td className={tableClasses.td}>
                         <StatusBadge tone="info">
@@ -306,23 +407,36 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                         </span>
                       </td>
                       <td className={`${tableClasses.td} text-end`}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowAddForm(false);
-                            setEditingSequenceId(isEditing ? null : sequence.id);
-                          }}
-                          className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
-                            isEditing
-                              ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
-                              : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)]'
-                          }`}
-                        >
-                          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>{dict.app.actions.edit}</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setViewingSequence(sequence)}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all"
+                          >
+                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>{dict.app.actions.viewDetails}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddForm(false);
+                              setEditingSequenceId(isEditing ? null : sequence.id);
+                            }}
+                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
+                              isEditing
+                                ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
+                                : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>{dict.app.actions.edit}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

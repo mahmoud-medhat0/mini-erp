@@ -79,10 +79,13 @@
       "showLess": "إخفاء التفاصيل",
       "showMore": "إظهار المزيد",
       "reset": "إعادة ضبط",
-      "filter": "تصفية النتائج",
+      "filter": "تصفية السجلات",
       "close": "إغلاق",
       "previous": "السابق",
-      "next": "التالي"
+      "next": "التالي",
+      "viewDetails": "عرض التفاصيل",
+      "numberDetails": "تفاصيل الرقم",
+      "sequenceDetails": "تفاصيل التسلسل"
     },
     "nav": {
       "dashboard": "لوحة التحكم",

@@ -201,6 +201,8 @@ Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 `PHASE_3_SLICE_1_GEMINI_PROMPT.md` has already been used for the first bounded Phase 3 slice and is now historical reference for what Slice 1 delivered.
 
+Use `PHASE_3_SLICE_2_GEMINI_PROMPT.md` when asking Gemini to implement the next bounded Phase 3 slice.
+
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 
 Before Phase 3, keep these invariants:

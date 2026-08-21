@@ -31,6 +31,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
   const dict = getDictionary(locale);
   const accDict = (dict.app as any).accounting || {};
   const [showReverseModal, setShowReverseModal] = useState(false);
+  const [showNumberModal, setShowNumberModal] = useState(false);
   const [reversalPeriodId, setReversalPeriodId] = useState(openPeriods[0]?.id ?? '');
 
   const submitForm = useForm({});
@@ -107,6 +108,71 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
         }
       />
 
+      {/* Number Details Modal */}
+      {showNumberModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <Card className="w-full max-w-lg border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
+                  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
+                    {dict.app.actions.numberDetails}
+                  </h3>
+                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                    {journal.number || 'UNASSIGNED DRAFT'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNumberModal(false)}
+                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
+              <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Sequence Key</span>
+                <span className="font-mono font-bold text-[var(--text-primary)]">journal.entry</span>
+              </div>
+              <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Document Status</span>
+                <StatusBadge tone={journal.status === 'posted' ? 'ok' : journal.status === 'reversed' ? 'danger' : 'warning'}>
+                  {journal.status.toUpperCase()}
+                </StatusBadge>
+              </div>
+              <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Entry Date</span>
+                <span className="font-mono text-[var(--text-primary)]">{journal.entry_date}</span>
+              </div>
+              <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">Total Lines</span>
+                <span className="font-mono font-bold text-[var(--text-primary)]">{journal.lines.length} lines</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setShowNumberModal(false)}
+                className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
+              >
+                {dict.app.actions.close}
+              </button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
       {/* Reverse Modal */}
       {showReverseModal ? (
         <Card className="p-6 mb-6 border-red-500/30 shadow-xl">
@@ -150,9 +216,22 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div>
               <span className="text-xs text-[var(--text-muted)] block uppercase font-bold">Voucher Number</span>
-              <span className="text-base font-extrabold text-[var(--text-primary)] font-mono">
-                {journal.number || 'UNASSIGNED DRAFT'}
-              </span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-base font-extrabold text-[var(--text-primary)] font-mono">
+                  {journal.number || 'UNASSIGNED DRAFT'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowNumberModal(true)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
+                >
+                  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>{dict.app.actions.numberDetails}</span>
+                </button>
+              </div>
             </div>
             <StatusBadge tone={journal.status === 'posted' ? 'ok' : journal.status === 'reversed' ? 'danger' : 'warning'}>
               {journal.status.toUpperCase()}

@@ -82,7 +82,10 @@
       "filter": "Filter Logs",
       "close": "Close",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "viewDetails": "View Details",
+      "numberDetails": "Number Details",
+      "sequenceDetails": "Sequence Details"
     },
     "nav": {
       "dashboard": "Dashboard",

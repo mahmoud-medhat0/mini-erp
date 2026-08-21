@@ -285,14 +285,24 @@ export default function AuditLogIndex({
                       <span className="text-xs font-semibold text-[var(--text-primary)]">{log.entity_type}</span>
                     </td>
                     <td className={tableClasses.td}>
-                      <span className="font-mono text-xs text-[var(--text-muted)] truncate max-w-[120px] block" title={log.entity_id}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPayload(log)}
+                        className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md text-start max-w-[140px] truncate block"
+                        title={`${log.entity_id} - ${dict.app.actions.viewDetails}`}
+                      >
                         {log.entity_id}
-                      </span>
+                      </button>
                     </td>
                     <td className={tableClasses.td}>
-                      <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPayload(log)}
+                        className="font-mono text-[11px] font-bold text-[var(--text-secondary)] hover:text-blue-500 bg-[var(--background)] border border-[var(--border)] px-2 py-0.5 rounded-md"
+                        title={`${log.request_id || '-'} - ${dict.app.actions.viewDetails}`}
+                      >
                         {log.request_id ? log.request_id.substring(0, 8) : '-'}
-                      </span>
+                      </button>
                     </td>
                     <td className={`${tableClasses.td} text-end`}>
                       {log.before_json || log.after_json ? (

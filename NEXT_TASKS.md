@@ -50,6 +50,10 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 Use the Phase 3 contract and current code as the source of truth for Slice 2.
 
+The Slice 2 execution prompt for Gemini is:
+
+- `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
+
 ## Phase 3 Must Include
 
 - Customer and Supplier master data.
