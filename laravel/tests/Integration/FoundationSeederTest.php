@@ -62,8 +62,9 @@ class FoundationSeederTest extends TestCase
             ->where('email', config('erp_auth.bootstrap_user.email'))
             ->firstOrFail();
 
-        $this->assertTrue($bootstrapUser->hasRole('ERP_ADMIN'));
+        $this->assertTrue($bootstrapUser->hasRole('SUPER_ADMIN'));
         $this->assertTrue($bootstrapUser->can('settings.configure'));
+        $this->assertTrue($bootstrapUser->can('reopen_period'));
         $this->assertDatabaseHas('audit_log', [
             'action' => 'bootstrap_user.seed',
             'entity_type' => 'user',

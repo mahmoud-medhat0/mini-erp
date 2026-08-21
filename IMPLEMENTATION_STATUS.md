@@ -2,11 +2,11 @@
 
 - **Current phase:** Phase 1 — Laravel migration foundation (Company/Branch/User relationship correction complete; migration continues)
 - **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL, through post-audit correction pass)
-- **Tests passing:** Laravel PHPUnit 61/61, 795 assertions; Concurrency suite 7/7, 16 assertions. PostgreSQL `concurrency:stress --workers=100` passed.
+- **Tests passing:** Laravel PHPUnit 62/62, 799 assertions; Concurrency suite 7/7, 16 assertions. PostgreSQL `concurrency:stress --workers=100` passed.
 - **Latest verified code commit:** pending for the current M7-M10 worktree; previous commit `7f1d673` ported Laravel app pages.
 - **Remote/CI:** No GitHub Actions pipeline is connected for this Laravel migration track.
 - **Verification:** `php artisan migrate --force` clean · `php artisan migrate:status` clean · `php artisan test` clean · `php artisan test --testsuite=Concurrency` clean · `php artisan concurrency:stress --workers=100` clean · `php artisan tokens:gc --batch=100` clean · `vendor\bin\pint --test` clean. TypeScript/build were not rerun in this backend pass.
-- **Latest migrated slice:** FiscalYear ownership/context correction: `fiscal_year.company_id` removed, `fiscal_year.year` globally unique, and `financial_period.fiscal_year_id` preserved. Bootstrap admin role seeding and `/settings/users/roles` route ordering also corrected. No company, branch, tenant, or current-company scope was introduced.
+- **Latest migrated slice:** First-user SUPER_ADMIN seeding: `DatabaseSeeder` seeds RBAC, creates/updates the bootstrap user, then assigns `SUPER_ADMIN` to the first user explicitly. No company, branch, tenant, or current-company scope was introduced.
 - **Handoff:** see `DOMAIN_MODEL_REVIEW.md` first for the Laravel architecture correction, then `CONTINUE_HERE.md` and `NEXT_TASKS.md` as historical Next.js reference material.
 
 ## Legend

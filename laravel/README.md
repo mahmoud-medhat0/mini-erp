@@ -15,10 +15,10 @@ The local bootstrap login seeded by default is:
 ```text
 Email: admin@mini-erp.local
 Password: Password123!
-Role: ERP_ADMIN
+Role: SUPER_ADMIN
 ```
 
-The bootstrap user is a local migration/development entrypoint. It is not tied to a company, branch, tenant, or current-company context. Override or disable it with `ERP_SEED_BOOTSTRAP_USER`, `ERP_BOOTSTRAP_USER_EMAIL`, `ERP_BOOTSTRAP_USER_PASSWORD`, `ERP_BOOTSTRAP_USER_ASSIGN_ROLE`, and `ERP_BOOTSTRAP_USER_ROLE`.
+The bootstrap user is a local migration/development entrypoint. It is not tied to a company, branch, tenant, or current-company context. `FirstUserSuperAdminSeeder` also assigns `SUPER_ADMIN` to the first user in the installation. Override or disable the bootstrap login with `ERP_SEED_BOOTSTRAP_USER`, `ERP_BOOTSTRAP_USER_EMAIL`, `ERP_BOOTSTRAP_USER_PASSWORD`, `ERP_BOOTSTRAP_USER_ASSIGN_ROLE`, and `ERP_BOOTSTRAP_USER_ROLE`.
 
 Run the verification suite:
 

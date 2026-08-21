@@ -9,8 +9,9 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Added a migration guard that blocks the correction if existing data contains duplicate fiscal years for the same global year.
 
 ### Corrected — Laravel bootstrap admin seeding
-- Made local bootstrap admin role assignment explicit and config-controlled: `DatabaseSeeder` seeds RBAC before the bootstrap user, then assigns the configured global `ERP_ADMIN` role without company, branch, tenant, or current-company scope.
-- Added coverage for the default bootstrap admin permission path and for disabling bootstrap role assignment.
+- Made local bootstrap admin role assignment explicit and config-controlled: `DatabaseSeeder` seeds RBAC before the bootstrap user, then assigns the configured global `SUPER_ADMIN` role without company, branch, tenant, or current-company scope.
+- Added `FirstUserSuperAdminSeeder` so the first user in the installation receives `SUPER_ADMIN` explicitly.
+- Added coverage for the default bootstrap admin permission path, disabling bootstrap role assignment, and first-user super-admin assignment.
 
 ### Corrected — Laravel post-audit security and documentation pass
 - Removed the implicit settings/user-management authorization fallback: empty RBAC assignments now deny management mutations instead of granting bootstrap privileges.

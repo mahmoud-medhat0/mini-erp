@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Database\Seeders\BootstrapUserSeeder;
+use Database\Seeders\FirstUserSuperAdminSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -132,5 +133,27 @@ class AuthenticationTest extends TestCase
         $user = User::query()->where('email', 'admin@mini-erp.local')->firstOrFail();
 
         $this->assertFalse($user->hasRole('ERP_ADMIN'));
+    }
+
+    public function test_first_user_super_admin_seeder_assigns_super_admin_to_the_first_user_only(): void
+    {
+        $firstUser = User::factory()->create(['email' => 'first@example.com']);
+        $secondUser = User::factory()->create(['email' => 'second@example.com']);
+
+        Role::query()->create([
+            'name' => 'SUPER_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        $this->seed(FirstUserSuperAdminSeeder::class);
+
+        $this->assertTrue($firstUser->fresh()->hasRole('SUPER_ADMIN'));
+        $this->assertFalse($secondUser->fresh()->hasRole('SUPER_ADMIN'));
+        $this->assertDatabaseHas('audit_log', [
+            'action' => 'first_user_super_admin.seed',
+            'entity_type' => 'user',
+            'entity_id' => (string) $firstUser->id,
+        ]);
     }
 }

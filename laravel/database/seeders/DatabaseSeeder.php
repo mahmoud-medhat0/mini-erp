@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CurrencySeeder::class,
             RbacSeeder::class,
             BootstrapUserSeeder::class,
+            FirstUserSuperAdminSeeder::class,
         ]);
     }
 }
