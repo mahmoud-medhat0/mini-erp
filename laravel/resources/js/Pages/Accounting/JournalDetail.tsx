@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { formatDate, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -56,7 +57,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
   const openPeriodOptions = openPeriods.map((p) => ({
     value: p.id,
-    label: `Period ${p.month} (${p.start_date})`,
+    label: formatPeriodLabel(p, locale),
   }));
 
   return (
@@ -65,7 +66,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
       <PageHeader
         title={`Journal Voucher: ${journal.number || 'DRAFT'}`}
-        description={`Created on ${journal.entry_date} - Status: ${journal.status}`}
+        description={`${locale === 'ar' ? 'تم الإنشاء في' : 'Created on'} ${formatDate(journal.entry_date)} - ${dict.app.fields.status}: ${journal.status}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {journal.status === 'draft' ? (

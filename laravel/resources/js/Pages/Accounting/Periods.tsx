@@ -2,6 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader } from '../../Components/Primitives';
+import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -43,11 +44,6 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
   });
 
   const actionForm = useForm({});
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    return dateStr.split('T')[0];
-  };
 
   const handleYearChange = (newYear: number) => {
     yearForm.setData({

@@ -43,7 +43,7 @@ class JournalEntry extends Model
     protected function casts(): array
     {
         return [
-            'entry_date' => 'date',
+            'entry_date' => 'date:Y-m-d',
             'fx_rate_e6' => 'integer',
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',

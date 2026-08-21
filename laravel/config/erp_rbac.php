@@ -5,7 +5,7 @@ return [
 
     'modules' => [
         'dashboard' => ['view'],
-        'accounting' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'reverse', 'override_control', 'export', 'print', 'currencies', 'fx_rates', 'periods', 'opening_balances'],
+        'accounting' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'reverse', 'override_control', 'export', 'print', 'currencies', 'fx_rates', 'periods', 'opening_balances', 'account_types', 'account_categories'],
         'sales' => ['view', 'create', 'edit', 'delete', 'submit', 'approve', 'post', 'cancel', 'reverse', 'export', 'print'],
         'purchasing' => ['view', 'create', 'edit', 'delete', 'submit', 'approve', 'post', 'cancel', 'reverse', 'export', 'print'],
         'inventory' => ['view', 'create', 'edit', 'delete', 'approve', 'post', 'export', 'print'],
@@ -40,6 +40,8 @@ return [
         'reopen_period',
         'manage_currencies',
         'manage_fx_rates',
+        'manage_account_types',
+        'manage_account_categories',
     ],
 
     'role_templates' => [

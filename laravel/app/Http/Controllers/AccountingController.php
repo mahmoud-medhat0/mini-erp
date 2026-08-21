@@ -10,7 +10,9 @@ use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Accounting\ReversalService;
 use App\Models\Account;
+use App\Models\AccountCategory;
 use App\Models\AccountGroup;
+use App\Models\AccountType;
 use App\Models\Currency;
 use App\Models\ExchangeRate;
 use App\Models\FinancialPeriod;
@@ -20,6 +22,7 @@ use App\Models\OpeningBalance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,13 +69,19 @@ class AccountingController extends Controller
         $this->authorizePermission($request, 'accounting.view');
 
         $groups = AccountGroup::query()
-            ->with(['children', 'accounts'])
+            ->with(['accountType', 'children', 'accounts'])
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
 
         $allAccounts = Account::query()
-            ->with(['group', 'currencyRef'])
+            ->with(['accountType', 'group', 'currencyRef'])
+            ->orderBy('code')
+            ->get();
+
+        $accountTypes = AccountType::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
             ->orderBy('code')
             ->get();
 
@@ -81,6 +90,7 @@ class AccountingController extends Controller
         return Inertia::render('Accounting/ChartOfAccounts', [
             'groups' => $groups,
             'accounts' => $allAccounts,
+            'accountTypes' => $accountTypes,
             'currencies' => $currencies,
         ]);
     }
@@ -93,11 +103,20 @@ class AccountingController extends Controller
             'code' => ['required', 'string', 'max:50', 'unique:account_group,code'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'in:asset,liability,equity,revenue,expense'],
+            'account_type_id' => ['required', 'uuid', 'exists:account_type,id'],
             'statement_section' => ['nullable', 'string', 'max:50'],
             'parent_id' => ['nullable', 'uuid', 'exists:account_group,id'],
             'sort_order' => ['nullable', 'integer'],
         ]);
+
+        $accountType = AccountType::findOrFail($validated['account_type_id']);
+
+        if (! empty($validated['parent_id'])) {
+            $parentGroup = AccountGroup::findOrFail($validated['parent_id']);
+            if ($parentGroup->account_type_id && $parentGroup->account_type_id !== $accountType->id) {
+                return redirect()->back()->withErrors(['account_type_id' => __('Parent group must share the same account type.')]);
+            }
+        }
 
         AccountGroup::create([
             'id' => (string) Str::uuid(),
@@ -106,7 +125,8 @@ class AccountingController extends Controller
                 'en' => $validated['name_en'],
                 'ar' => $validated['name_ar'],
             ],
-            'type' => $validated['type'],
+            'account_type_id' => $accountType->id,
+            'type' => $accountType->category,
             'statement_section' => $validated['statement_section'] ?? null,
             'parent_id' => $validated['parent_id'] ?? null,
             'sort_order' => $validated['sort_order'] ?? 0,
@@ -123,14 +143,23 @@ class AccountingController extends Controller
             'code' => ['required', 'string', 'max:50', 'unique:account,code'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'in:asset,liability,equity,revenue,expense,contra_asset,contra_liability,contra_revenue'],
-            'nature' => ['required', 'string', 'in:debit,credit'],
+            'account_type_id' => ['required', 'uuid', 'exists:account_type,id'],
+            'nature' => ['nullable', 'string', 'in:debit,credit'],
             'account_group_id' => ['nullable', 'uuid', 'exists:account_group,id'],
             'parent_id' => ['nullable', 'uuid', 'exists:account,id'],
             'currency' => ['nullable', 'string', 'size:3', 'exists:currency,code'],
             'is_control' => ['nullable', 'boolean'],
             'allow_manual_posting' => ['nullable', 'boolean'],
         ]);
+
+        $accountType = AccountType::findOrFail($validated['account_type_id']);
+
+        if (! empty($validated['account_group_id'])) {
+            $group = AccountGroup::findOrFail($validated['account_group_id']);
+            if ($group->account_type_id && $group->account_type_id !== $accountType->id) {
+                return redirect()->back()->withErrors(['account_group_id' => __('Selected account group does not match the account type.')]);
+            }
+        }
 
         Account::create([
             'id' => (string) Str::uuid(),
@@ -139,8 +168,9 @@ class AccountingController extends Controller
                 'en' => $validated['name_en'],
                 'ar' => $validated['name_ar'],
             ],
-            'type' => $validated['type'],
-            'nature' => $validated['nature'],
+            'account_type_id' => $accountType->id,
+            'type' => $accountType->category,
+            'nature' => $validated['nature'] ?? $accountType->normal_balance,
             'account_group_id' => $validated['account_group_id'] ?? null,
             'parent_id' => $validated['parent_id'] ?? null,
             'currency' => $validated['currency'] ?? 'EGP',
@@ -516,6 +546,217 @@ class AccountingController extends Controller
         $currency->delete();
 
         return redirect()->back()->with('success', __('Currency deleted successfully.'));
+    }
+
+    public function accountTypes(Request $request): Response
+    {
+        $this->authorizePermission($request, 'accounting.account_types');
+
+        $accountTypes = AccountType::query()
+            ->with(['accountCategory', 'groups', 'accounts'])
+            ->withCount(['groups', 'accounts'])
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get();
+
+        $accountCategories = AccountCategory::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get();
+
+        return Inertia::render('Accounting/AccountTypes', [
+            'accountTypes' => $accountTypes,
+            'accountCategories' => $accountCategories,
+        ]);
+    }
+
+    public function storeAccountType(Request $request): RedirectResponse
+    {
+        $this->authorizePermission($request, 'accounting.account_types');
+
+        $validated = $request->validate([
+            'account_category_id' => ['required', 'uuid', 'exists:account_category,id'],
+            'code' => ['required', 'string', 'max:50', 'unique:account_type,code'],
+            'name_en' => ['required', 'string', 'max:255'],
+            'name_ar' => ['required', 'string', 'max:255'],
+            'normal_balance' => ['nullable', 'string', Rule::in(['debit', 'credit'])],
+            'statement_type' => ['nullable', 'string', Rule::in(['balance_sheet', 'income_statement'])],
+            'is_contra' => ['nullable', 'boolean'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $accountCategory = AccountCategory::findOrFail($validated['account_category_id']);
+
+        AccountType::create([
+            'id' => (string) Str::uuid(),
+            'account_category_id' => $accountCategory->id,
+            'code' => strtoupper($validated['code']),
+            'name' => [
+                'en' => $validated['name_en'],
+                'ar' => $validated['name_ar'],
+            ],
+            'normal_balance' => $validated['normal_balance'] ?? $accountCategory->normal_balance,
+            'statement_type' => $validated['statement_type'] ?? $accountCategory->statement_type,
+            'category' => strtolower($accountCategory->code),
+            'is_contra' => $validated['is_contra'] ?? $accountCategory->is_contra,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_system' => false,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        return redirect()->back()->with('success', __('Account Type created successfully.'));
+    }
+
+    public function updateAccountType(Request $request, AccountType $accountType): RedirectResponse
+    {
+        $this->authorizePermission($request, 'accounting.account_types');
+
+        $validated = $request->validate([
+            'account_category_id' => ['required', 'uuid', 'exists:account_category,id'],
+            'code' => ['required', 'string', 'max:50', Rule::unique('account_type', 'code')->ignore($accountType->id)],
+            'name_en' => ['required', 'string', 'max:255'],
+            'name_ar' => ['required', 'string', 'max:255'],
+            'normal_balance' => ['nullable', 'string', Rule::in(['debit', 'credit'])],
+            'statement_type' => ['nullable', 'string', Rule::in(['balance_sheet', 'income_statement'])],
+            'is_contra' => ['nullable', 'boolean'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $accountCategory = AccountCategory::findOrFail($validated['account_category_id']);
+
+        $accountType->update([
+            'account_category_id' => $accountCategory->id,
+            'code' => strtoupper($validated['code']),
+            'name' => [
+                'en' => $validated['name_en'],
+                'ar' => $validated['name_ar'],
+            ],
+            'normal_balance' => $validated['normal_balance'] ?? $accountCategory->normal_balance,
+            'statement_type' => $validated['statement_type'] ?? $accountCategory->statement_type,
+            'category' => strtolower($accountCategory->code),
+            'is_contra' => $validated['is_contra'] ?? $accountCategory->is_contra,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        return redirect()->back()->with('success', __('Account Type updated successfully.'));
+    }
+
+    public function destroyAccountType(Request $request, AccountType $accountType): RedirectResponse
+    {
+        $this->authorizePermission($request, 'accounting.account_types');
+
+        if ($accountType->is_system) {
+            return redirect()->back()->withErrors(['account_type' => __('System account types cannot be deleted.')]);
+        }
+
+        if ($accountType->groups()->exists() || $accountType->accounts()->exists()) {
+            return redirect()->back()->withErrors(['account_type' => __('Cannot delete account type in use by account groups or accounts.')]);
+        }
+
+        $accountType->delete();
+
+        return redirect()->back()->with('success', __('Account Type deleted successfully.'));
+    }
+
+    public function accountCategories(Request $request): Response
+    {
+        $this->authorizePermission($request, 'accounting.account_categories');
+
+        $accountCategories = AccountCategory::query()
+            ->with(['accountTypes'])
+            ->withCount('accountTypes')
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get();
+
+        return Inertia::render('Accounting/AccountCategories', [
+            'accountCategories' => $accountCategories,
+        ]);
+    }
+
+    public function storeAccountCategory(Request $request): RedirectResponse
+    {
+        $this->authorizePermission($request, 'accounting.account_categories');
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:50', 'unique:account_category,code'],
+            'name_en' => ['required', 'string', 'max:255'],
+            'name_ar' => ['required', 'string', 'max:255'],
+            'normal_balance' => ['required', 'string', Rule::in(['debit', 'credit'])],
+            'statement_type' => ['required', 'string', Rule::in(['balance_sheet', 'income_statement'])],
+            'is_contra' => ['nullable', 'boolean'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        AccountCategory::create([
+            'id' => (string) Str::uuid(),
+            'code' => strtoupper($validated['code']),
+            'name' => [
+                'en' => $validated['name_en'],
+                'ar' => $validated['name_ar'],
+            ],
+            'normal_balance' => $validated['normal_balance'],
+            'statement_type' => $validated['statement_type'],
+            'is_contra' => $validated['is_contra'] ?? false,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_system' => false,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        return redirect()->back()->with('success', __('Account Category created successfully.'));
+    }
+
+    public function updateAccountCategory(Request $request, AccountCategory $accountCategory): RedirectResponse
+    {
+        $this->authorizePermission($request, 'accounting.account_categories');
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:50', Rule::unique('account_category', 'code')->ignore($accountCategory->id)],
+            'name_en' => ['required', 'string', 'max:255'],
+            'name_ar' => ['required', 'string', 'max:255'],
+            'normal_balance' => ['required', 'string', Rule::in(['debit', 'credit'])],
+            'statement_type' => ['required', 'string', Rule::in(['balance_sheet', 'income_statement'])],
+            'is_contra' => ['nullable', 'boolean'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $accountCategory->update([
+            'code' => strtoupper($validated['code']),
+            'name' => [
+                'en' => $validated['name_en'],
+                'ar' => $validated['name_ar'],
+            ],
+            'normal_balance' => $validated['normal_balance'],
+            'statement_type' => $validated['statement_type'],
+            'is_contra' => $validated['is_contra'] ?? false,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        return redirect()->back()->with('success', __('Account Category updated successfully.'));
+    }
+
+    public function destroyAccountCategory(Request $request, AccountCategory $accountCategory): RedirectResponse
+    {
+        $this->authorizePermission($request, 'accounting.account_categories');
+
+        if ($accountCategory->is_system) {
+            return redirect()->back()->withErrors(['account_category' => __('System account categories cannot be deleted.')]);
+        }
+
+        if ($accountCategory->accountTypes()->exists()) {
+            return redirect()->back()->withErrors(['account_category' => __('Cannot delete account category in use by account types.')]);
+        }
+
+        $accountCategory->delete();
+
+        return redirect()->back()->with('success', __('Account Category deleted successfully.'));
     }
 
     private function authorizePermission(Request $request, string $permission): void

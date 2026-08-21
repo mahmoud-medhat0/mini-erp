@@ -21,7 +21,9 @@ export type NavKey =
   | 'accounting.periods'
   | 'accounting.opening_balances'
   | 'accounting.fx_rates'
-  | 'accounting.currencies';
+  | 'accounting.currencies'
+  | 'accounting.account_types'
+  | 'accounting.account_categories';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -312,6 +314,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <div className="space-y-1 pt-0.5">
                       {[
                         { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa || 'Chart of Accounts', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories || (locale === 'ar' ? 'تصنيفات الحسابات' : 'Account Categories'), icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+                        { key: 'accounting.account_types' as NavKey, href: '/accounting/account-types', label: accDict.accountTypes || 'Account Types', icon: 'M7 7h10M7 12h10M7 17h10' },
                         { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal || 'General Journal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
                         { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger || 'General Ledger', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
                         { key: 'accounting.trial_balance' as NavKey, href: '/accounting/trial-balance', label: accDict.trialBalance || 'Trial Balance', icon: 'M3 6l9-4 9 4v14l-9 4-9-4V6z' },

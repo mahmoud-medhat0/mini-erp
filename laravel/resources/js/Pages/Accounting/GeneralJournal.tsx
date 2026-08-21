@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -114,7 +115,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                   </span>
                 </td>
                 <td className={tableClasses.td}>
-                  <span className="font-mono text-xs text-[var(--text-primary)]">{j.entry_date.split('T')[0]}</span>
+                  <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(j.entry_date)}</span>
                 </td>
                 <td className={tableClasses.td}>
                   <span className="font-bold text-xs text-[var(--text-primary)]">

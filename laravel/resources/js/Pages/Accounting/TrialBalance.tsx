@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getAccountTypeLabel, getLocalizedName, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -33,31 +34,11 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
   const accDict = (dict.app as any).accounting || {};
   const [periodId, setPeriodId] = useState(filters.period_id ?? '');
 
-  const getName = (nameObj?: Record<string, string> | string | null) => {
-    if (!nameObj) return '';
-    if (typeof nameObj === 'string') return nameObj;
-    return locale === 'ar' ? nameObj.ar || nameObj.en : nameObj.en || nameObj.ar;
-  };
-
-  const getAccountTypeLabel = (type: string) => {
-    const types: Record<string, { en: string; ar: string }> = {
-      asset: { en: 'Asset', ar: 'أصول' },
-      liability: { en: 'Liability', ar: 'التزامات' },
-      equity: { en: 'Equity', ar: 'حقوق ملكية' },
-      revenue: { en: 'Revenue', ar: 'إيرادات' },
-      expense: { en: 'Expense', ar: 'مصروفات' },
-      contra_asset: { en: 'Contra Asset', ar: 'أصول مقابلة' },
-    };
-    const key = type.toLowerCase();
-    if (!types[key]) return type.toUpperCase();
-    return locale === 'ar' ? types[key].ar : types[key].en;
-  };
-
   const periodSelectOptions = [
     { value: '', label: accDict.allPeriodsCumulative || 'All Periods (Cumulative)' },
     ...periods.map((p) => ({
       value: p.id,
-      label: p.fiscal_year ? `${p.fiscal_year.year} - ${accDict.month || 'Month'} ${p.month}` : `${accDict.financialPeriod || 'Period'} ${p.month}`,
+      label: formatPeriodLabel(p, locale),
     })),
   ];
 
@@ -78,7 +59,7 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
 
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-64">
+          <div className="w-full sm:w-80 lg:w-[420px]">
             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
               {accDict.financialPeriod || 'Financial Period'}
             </label>
@@ -138,11 +119,11 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
                   <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{r.account_code}</span>
                 </td>
                 <td className={tableClasses.td}>
-                  <span className="font-bold text-xs text-[var(--text-primary)]">{getName(r.account_name)}</span>
+                  <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(r.account_name, locale)}</span>
                 </td>
                 <td className={tableClasses.td}>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    {getAccountTypeLabel(r.type)}
+                    {getAccountTypeLabel(r.type, locale)}
                   </span>
                 </td>
                 <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>

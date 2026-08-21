@@ -18,6 +18,7 @@ class Account extends Model
     protected $fillable = [
         'code',
         'name',
+        'account_type_id',
         'type',
         'nature',
         'account_group_id',
@@ -41,6 +42,11 @@ class Account extends Model
         ];
     }
 
+    public function accountType(): BelongsTo
+    {
+        return $this->belongsTo(AccountType::class, 'account_type_id');
+    }
+
     public function group(): BelongsTo
     {
         return $this->belongsTo(AccountGroup::class, 'account_group_id');
@@ -56,6 +62,11 @@ class Account extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    public function currencyRef(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency', 'code');
+    }
+
     public function journalLines(): HasMany
     {
         return $this->hasMany(JournalLine::class, 'account_id');
@@ -64,10 +75,5 @@ class Account extends Model
     public function ledgerEntries(): HasMany
     {
         return $this->hasMany(LedgerEntry::class, 'account_id');
-    }
-
-    public function currencyRef(): BelongsTo
-    {
-        return $this->belongsTo(Currency::class, 'currency', 'code');
     }
 }

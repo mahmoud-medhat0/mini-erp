@@ -2,6 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, tableClasses } from '../../Components/Primitives';
+import { getAccountTypeLabel, getLocalizedName, getAccountNatureLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -47,6 +48,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
   const [selectedAccountsCurrency, setSelectedAccountsCurrency] = useState<CurrencyItem | null>(null);
   const [selectedFxRatesCurrency, setSelectedFxRatesCurrency] = useState<CurrencyItem | null>(null);
 
+  const getName = (nameObj?: Record<string, string> | string | null) => getLocalizedName(nameObj, locale);
+
   const getNameEn = (nameObj?: Record<string, string> | string | null) => {
     if (!nameObj) return '';
     if (typeof nameObj === 'string') return nameObj;
@@ -57,35 +60,6 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
     if (!nameObj) return '';
     if (typeof nameObj === 'string') return nameObj;
     return nameObj.ar || '';
-  };
-
-  const getName = (nameObj?: Record<string, string> | string | null) => {
-    if (!nameObj) return '';
-    if (typeof nameObj === 'string') return nameObj;
-    return locale === 'ar' ? nameObj.ar || nameObj.en : nameObj.en || nameObj.ar;
-  };
-
-  const getAccountTypeLabel = (type: string) => {
-    const types: Record<string, { en: string; ar: string }> = {
-      asset: { en: 'Asset', ar: 'أصول' },
-      liability: { en: 'Liability', ar: 'التزامات' },
-      equity: { en: 'Equity', ar: 'حقوق ملكية' },
-      revenue: { en: 'Revenue', ar: 'إيرادات' },
-      expense: { en: 'Expense', ar: 'مصروفات' },
-    };
-    const key = type.toLowerCase();
-    if (!types[key]) return type.toUpperCase();
-    return locale === 'ar' ? types[key].ar : types[key].en;
-  };
-
-  const getAccountNatureLabel = (nature: string) => {
-    const natures: Record<string, { en: string; ar: string }> = {
-      debit: { en: 'Debit', ar: 'مدين' },
-      credit: { en: 'Credit', ar: 'دائن' },
-    };
-    const key = nature.toLowerCase();
-    if (!natures[key]) return nature.toUpperCase();
-    return locale === 'ar' ? natures[key].ar : natures[key].en;
   };
 
   const createForm = useForm({

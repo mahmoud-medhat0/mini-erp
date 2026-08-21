@@ -17,8 +17,11 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CurrencySeeder::class,
             RbacSeeder::class,
+            PermissionSeeder::class,
             BootstrapUserSeeder::class,
             FirstUserSuperAdminSeeder::class,
+            AccountCategorySeeder::class,
+            AccountTypeSeeder::class,
             AccountingCoreSeeder::class,
         ]);
     }

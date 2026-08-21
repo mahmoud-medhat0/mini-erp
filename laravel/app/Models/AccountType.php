@@ -9,20 +9,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
-class AccountGroup extends Model
+class AccountType extends Model
 {
     use HasFactory, HasTranslations, HasUuids;
 
-    protected $table = 'account_group';
+    protected $table = 'account_type';
 
     protected $fillable = [
+        'account_category_id',
         'code',
         'name',
-        'account_type_id',
-        'type',
-        'statement_section',
-        'parent_id',
+        'normal_balance',
+        'statement_type',
+        'category',
+        'is_contra',
         'sort_order',
+        'is_system',
         'is_active',
     ];
 
@@ -31,28 +33,25 @@ class AccountGroup extends Model
     protected function casts(): array
     {
         return [
+            'is_contra' => 'boolean',
             'sort_order' => 'integer',
+            'is_system' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
 
-    public function accountType(): BelongsTo
+    public function accountCategory(): BelongsTo
     {
-        return $this->belongsTo(AccountType::class, 'account_type_id');
+        return $this->belongsTo(AccountCategory::class, 'account_category_id');
     }
 
-    public function parent(): BelongsTo
+    public function groups(): HasMany
     {
-        return $this->belongsTo(self::class, 'parent_id');
-    }
-
-    public function children(): HasMany
-    {
-        return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order');
+        return $this->hasMany(AccountGroup::class, 'account_type_id');
     }
 
     public function accounts(): HasMany
     {
-        return $this->hasMany(Account::class, 'account_group_id');
+        return $this->hasMany(Account::class, 'account_type_id');
     }
 }

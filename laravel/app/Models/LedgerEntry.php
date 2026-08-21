@@ -33,7 +33,7 @@ class LedgerEntry extends Model
     protected function casts(): array
     {
         return [
-            'entry_date' => 'date',
+            'entry_date' => 'date:Y-m-d',
             'debit_minor' => 'integer',
             'credit_minor' => 'integer',
             'fx_rate_e6' => 'integer',

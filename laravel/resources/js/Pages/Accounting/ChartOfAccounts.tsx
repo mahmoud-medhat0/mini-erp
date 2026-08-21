@@ -2,13 +2,24 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { getAccountTypeLabel, getLocalizedName, getAccountNatureLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
+
+type AccountTypeItem = {
+  id: string;
+  code: string;
+  name: Record<string, string> | string;
+  normal_balance: 'debit' | 'credit';
+  category: string;
+};
 
 type AccountGroupRow = {
   id: string;
   code: string;
   name: Record<string, string> | string;
+  account_type_id?: string | null;
+  accountType?: AccountTypeItem | null;
   type: string;
   statement_section?: string | null;
   parent_id?: string | null;
@@ -22,6 +33,8 @@ type AccountRow = {
   id: string;
   code: string;
   name: Record<string, string> | string;
+  account_type_id?: string | null;
+  accountType?: AccountTypeItem | null;
   type: string;
   nature: string;
   account_group_id?: string | null;
@@ -41,10 +54,11 @@ type CurrencyRow = {
 type CoaProps = SharedPageProps & {
   groups: AccountGroupRow[];
   accounts: AccountRow[];
+  accountTypes?: AccountTypeItem[];
   currencies?: CurrencyRow[];
 };
 
-export default function ChartOfAccounts({ locale, groups = [], accounts = [], currencies = [] }: CoaProps) {
+export default function ChartOfAccounts({ locale, groups = [], accounts = [], accountTypes = [], currencies = [] }: CoaProps) {
   const dict = getDictionary(locale);
   const accDict = (dict.app as any).accounting || {};
   const actionsDict = dict.app.actions || {};
@@ -52,11 +66,13 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
 
+  const defaultTypeId = accountTypes[0]?.id || '';
+
   const groupForm = useForm({
     code: '',
     name_en: '',
     name_ar: '',
-    type: 'asset',
+    account_type_id: defaultTypeId,
     statement_section: 'balance_sheet',
     parent_id: '',
     sort_order: 0,
@@ -66,8 +82,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
     code: '',
     name_en: '',
     name_ar: '',
-    type: 'asset',
-    nature: 'debit',
+    account_type_id: defaultTypeId,
+    nature: accountTypes[0]?.normal_balance || 'debit',
     account_group_id: '',
     currency: 'EGP',
     is_control: false,
@@ -94,48 +110,40 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
     });
   }
 
-  const getName = (nameObj: Record<string, string> | string) => {
-    if (typeof nameObj === 'string') return nameObj;
-    return locale === 'ar' ? nameObj.ar || nameObj.en : nameObj.en || nameObj.ar;
-  };
-
-  const getAccountTypeLabel = (type: string) => {
-    const types: Record<string, { en: string; ar: string }> = {
-      asset: { en: 'Asset', ar: 'أصول' },
-      liability: { en: 'Liability', ar: 'التزامات' },
-      equity: { en: 'Equity', ar: 'حقوق ملكية' },
-      revenue: { en: 'Revenue', ar: 'إيرادات' },
-      expense: { en: 'Expense', ar: 'مصروفات' },
-      contra_asset: { en: 'Contra Asset', ar: 'أصول مقابلة' },
-    };
-    const key = type.toLowerCase();
-    if (!types[key]) return type.toUpperCase();
-    return locale === 'ar' ? types[key].ar : types[key].en;
-  };
-
-  const accountTypeOptions = [
-    { value: 'asset', label: accDict.assetOption || 'Asset' },
-    { value: 'liability', label: accDict.liabilityOption || 'Liability' },
-    { value: 'equity', label: accDict.equityOption || 'Equity' },
-    { value: 'revenue', label: accDict.revenueOption || 'Revenue' },
-    { value: 'expense', label: accDict.expenseOption || 'Expense' },
-    { value: 'contra_asset', label: accDict.contraAssetOption || 'Contra Asset' },
-  ];
+  const accountTypeSelectOptions = accountTypes.map((at) => ({
+    value: at.id,
+    label: `${at.code} - ${getLocalizedName(at.name, locale)}`,
+  }));
 
   const natureOptions = [
     { value: 'debit', label: accDict.debitOption || 'Debit (مدين)' },
     { value: 'credit', label: accDict.creditOption || 'Credit (دائن)' },
   ];
 
-  const groupOptions = groups.map((g) => ({
+  // Filter groups by account_type_id if selected in accountForm
+  const filteredGroups = accountForm.data.account_type_id
+    ? groups.filter((g) => !g.account_type_id || g.account_type_id === accountForm.data.account_type_id)
+    : groups;
+
+  const groupOptions = filteredGroups.map((g) => ({
     value: g.id,
-    label: `${g.code} - ${getName(g.name)}`,
+    label: `${g.code} - ${getLocalizedName(g.name, locale)}`,
   }));
 
   const currencyOptions = currencies.map((c) => ({
     value: c.code,
-    label: `${c.code} - ${getName(c.name)} (${c.symbol})`,
+    label: `${c.code} - ${getLocalizedName(c.name, locale)} (${c.symbol})`,
   }));
+
+  const handleAccountTypeChange = (typeId: string) => {
+    const selectedAt = accountTypes.find((at) => at.id === typeId);
+    accountForm.setData((prev) => ({
+      ...prev,
+      account_type_id: typeId,
+      nature: (selectedAt ? selectedAt.normal_balance : prev.nature) as 'debit' | 'credit',
+      account_group_id: '', // reset group if incompatible
+    }));
+  };
 
   return (
     <AppLayout active="accounting.coa">
@@ -230,12 +238,12 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.accountType || 'Type'}
+                {accDict.accountTypes || 'Account Type'}
               </label>
               <SearchableSelect
-                options={accountTypeOptions.slice(0, 5)}
-                value={groupForm.data.type}
-                onChange={(val) => groupForm.setData('type', val || 'asset')}
+                options={accountTypeSelectOptions}
+                value={groupForm.data.account_type_id}
+                onChange={(val) => groupForm.setData('account_type_id', val || '')}
                 isClearable={false}
               />
             </div>
@@ -312,6 +320,17 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                {accDict.accountTypes || 'Account Type'}
+              </label>
+              <SearchableSelect
+                options={accountTypeSelectOptions}
+                value={accountForm.data.account_type_id}
+                onChange={(val) => handleAccountTypeChange(val || '')}
+                isClearable={false}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                 {accDict.accountGroup || 'Account Group'}
               </label>
               <SearchableSelect
@@ -328,18 +347,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
               <SearchableSelect
                 options={natureOptions}
                 value={accountForm.data.nature}
-                onChange={(val) => accountForm.setData('nature', val || 'debit')}
-                isClearable={false}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.accountType || 'Type'}
-              </label>
-              <SearchableSelect
-                options={accountTypeOptions}
-                value={accountForm.data.type}
-                onChange={(val) => accountForm.setData('type', val || 'asset')}
+                onChange={(val) => accountForm.setData('nature', (val as 'debit' | 'credit') || 'debit')}
                 isClearable={false}
               />
             </div>
@@ -391,6 +399,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
               <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
               <th className={tableClasses.th}>{accDict.accountGroup || 'Group'}</th>
               <th className={tableClasses.th}>{accDict.accountType || 'Type'}</th>
+              <th className={tableClasses.th}>{accDict.currency || 'Currency'}</th>
               <th className={tableClasses.th}>{accDict.accountNature || 'Nature'}</th>
               <th className={tableClasses.th}>{accDict.controlAccountHeader || 'Control Account'}</th>
               <th className={tableClasses.th}>{dict.app.fields.status}</th>
@@ -403,15 +412,18 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], cu
                   <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{acc.code}</span>
                 </td>
                 <td className={tableClasses.td}>
-                  <span className="font-bold text-xs text-[var(--text-primary)]">{getName(acc.name)}</span>
+                  <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(acc.name, locale)}</span>
                 </td>
                 <td className={tableClasses.td}>
-                  <span className="text-xs text-[var(--text-secondary)]">{acc.group ? getName(acc.group.name) : '-'}</span>
+                  <span className="text-xs text-[var(--text-secondary)]">{acc.group ? getLocalizedName(acc.group.name, locale) : '-'}</span>
                 </td>
                 <td className={tableClasses.td}>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    {getAccountTypeLabel(acc.type)}
+                    {acc.accountType ? getLocalizedName(acc.accountType.name, locale) : getAccountTypeLabel(acc.type, locale)}
                   </span>
+                </td>
+                <td className={tableClasses.td}>
+                  <span className="font-mono font-bold text-xs text-[var(--text-secondary)]">{acc.currency || 'EGP'}</span>
                 </td>
                 <td className={tableClasses.td}>
                   {acc.nature.toLowerCase() === 'debit' ? (

@@ -76,6 +76,14 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/currencies', [AccountingController::class, 'storeCurrency'])->name('accounting.currencies.store');
         Route::patch('/currencies/{currency}', [AccountingController::class, 'updateCurrency'])->name('accounting.currencies.update');
         Route::delete('/currencies/{currency}', [AccountingController::class, 'destroyCurrency'])->name('accounting.currencies.destroy');
+        Route::get('/account-types', [AccountingController::class, 'accountTypes'])->name('accounting.account_types');
+        Route::post('/account-types', [AccountingController::class, 'storeAccountType'])->name('accounting.account_types.store');
+        Route::patch('/account-types/{accountType}', [AccountingController::class, 'updateAccountType'])->name('accounting.account_types.update');
+        Route::delete('/account-types/{accountType}', [AccountingController::class, 'destroyAccountType'])->name('accounting.account_types.destroy');
+        Route::get('/account-categories', [AccountingController::class, 'accountCategories'])->name('accounting.account_categories');
+        Route::post('/account-categories', [AccountingController::class, 'storeAccountCategory'])->name('accounting.account_categories.store');
+        Route::patch('/account-categories/{accountCategory}', [AccountingController::class, 'updateAccountCategory'])->name('accounting.account_categories.update');
+        Route::delete('/account-categories/{accountCategory}', [AccountingController::class, 'destroyAccountCategory'])->name('accounting.account_categories.destroy');
     });
 });
 

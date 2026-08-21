@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { formatDate, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -51,10 +52,10 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
   ];
 
   const periodSelectOptions = [
-    { value: '', label: accDict.allPeriods || 'All Periods' },
+    { value: '', label: accDict.allPeriods || (locale === 'ar' ? 'جميع الفترات' : 'All Periods') },
     ...periods.map((p) => ({
       value: p.id,
-      label: p.fiscal_year ? `${p.fiscal_year.year} - ${accDict.month || 'Month'} ${p.month}` : `${accDict.financialPeriod || 'Period'} ${p.month}`,
+      label: formatPeriodLabel(p, locale),
     })),
   ];
 
@@ -75,8 +76,8 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
       />
 
       <Card className="p-4 mb-6">
-        <div className="grid gap-4 sm:grid-cols-3 items-end">
-          <div>
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-7 items-end">
+          <div className="lg:col-span-3">
             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
               {accDict.filterAccount || 'Filter Account'}
             </label>
@@ -87,7 +88,7 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
             />
           </div>
 
-          <div>
+          <div className="lg:col-span-3">
             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
               {accDict.financialPeriod || 'Financial Period'}
             </label>
@@ -98,7 +99,7 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
             />
           </div>
 
-          <div className="flex items-end">
+          <div className="lg:col-span-1 flex items-end">
             <button
               type="button"
               onClick={applyFilter}
@@ -142,7 +143,7 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
             {ledger.data.map((l) => (
               <tr key={l.id} className="hover:bg-[var(--background)]/50 transition-colors">
                 <td className={tableClasses.td}>
-                  <span className="font-mono text-xs text-[var(--text-primary)]">{l.entry_date.split('T')[0]}</span>
+                  <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(l.entry_date)}</span>
                 </td>
                 <td className={tableClasses.td}>
                   <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">

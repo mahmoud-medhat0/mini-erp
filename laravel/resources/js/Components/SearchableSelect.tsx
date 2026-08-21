@@ -133,9 +133,11 @@ export default function SearchableSelect<T extends string | number = string>({
               : 'border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--primary)]'
         } ${disabled ? 'cursor-not-allowed opacity-60 bg-[var(--surface)]' : 'cursor-pointer'}`}
       >
-        <div className="flex flex-1 items-center gap-2 truncate">
+        <div className="flex flex-1 items-center gap-2 min-w-0">
           {selectedOption ? (
-            <span className="font-semibold text-[var(--text-primary)] truncate">{selectedOption.label}</span>
+            <span className="font-semibold text-[var(--text-primary)] truncate" title={selectedOption.label}>
+              {selectedOption.label}
+            </span>
           ) : (
             <span className="text-[var(--text-muted)]">{activePlaceholder}</span>
           )}
@@ -167,7 +169,7 @@ export default function SearchableSelect<T extends string | number = string>({
 
       {/* Popover Dropdown Panel */}
       {isOpen && !disabled ? (
-        <div className="absolute start-0 top-full mt-1.5 z-50 w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl shadow-slate-900/30 backdrop-blur-xl animate-in fade-in duration-150">
+        <div className="absolute start-0 top-full mt-1.5 z-50 min-w-full w-max max-w-xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl shadow-slate-900/30 backdrop-blur-xl animate-in fade-in duration-150">
           {/* Search Input Filter */}
           {isSearchable ? (
             <div className="relative mb-2">
@@ -197,7 +199,7 @@ export default function SearchableSelect<T extends string | number = string>({
           ) : null}
 
           {/* Options List */}
-          <div className="max-h-56 overflow-y-auto space-y-1 pe-1">
+          <div className="max-h-64 overflow-y-auto space-y-1 pe-1">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => {
                 const isSelected = option.value === value;
@@ -208,16 +210,16 @@ export default function SearchableSelect<T extends string | number = string>({
                     type="button"
                     disabled={option.disabled}
                     onClick={() => handleSelect(option.value)}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-start text-xs font-semibold transition-all ${
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-start text-xs font-semibold transition-all ${
                       isSelected
                         ? 'bg-[var(--primary)] text-white shadow-xs'
                         : 'text-[var(--text-primary)] hover:bg-[var(--background)]'
                     } ${option.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    <div className="flex flex-col truncate me-2">
-                      <span className="truncate">{option.label}</span>
+                    <div className="flex flex-col me-2 text-start">
+                      <span className="whitespace-normal leading-relaxed">{option.label}</span>
                       {option.sublabel ? (
-                        <span className={`text-[10px] truncate ${isSelected ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
+                        <span className={`text-[10px] whitespace-normal leading-tight ${isSelected ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
                           {option.sublabel}
                         </span>
                       ) : null}
