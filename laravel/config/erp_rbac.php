@@ -15,7 +15,7 @@ return [
         'suppliers' => ['view', 'create', 'edit', 'delete', 'export', 'opening_balances', 'payments', 'allocations'],
         'cash' => ['view', 'create', 'edit', 'post', 'reverse', 'export', 'print'],
         'banks' => ['view', 'create', 'edit', 'post', 'reverse', 'export', 'print'],
-        'cheques' => ['view', 'create', 'edit', 'post', 'reverse', 'export'],
+        'cheques' => ['view', 'create', 'edit', 'delete', 'receive', 'issue', 'deposit', 'clear', 'bounce', 'return', 'cancel', 'post', 'reverse', 'export'],
         'expenses' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'export', 'print'],
         'fixedAssets' => ['view', 'create', 'edit', 'post', 'reverse', 'export'],
         'payroll' => ['view', 'create', 'edit', 'submit', 'approve', 'post', 'export', 'print'],

@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-4 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-5 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -37,27 +37,34 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - unapplied/allocated balance updates without creating GL/journal/ledger rows.
   - deterministic row locking, active allocation row locking, idempotent allocation/reversal, and over-allocation prevention.
   - true concurrent AR/AP allocation stress command.
+- Phase 3 Slice 5 cheque lifecycle:
+  - `incoming_cheque` and `outgoing_cheque` records.
+  - pre-clear state machines for incoming receive/deposit/clear/bounce/return and outgoing issue/clear/return/cancel.
+  - configurable mappings for `cheques_under_collection` and `cheques_payable`.
+  - PostingEngine journals/ledger effects, AR/AP subledger restoration entries, Spatie Activitylog audit, attachment registry entries, and idempotent transition commands.
+  - true PostgreSQL cheque transition stress command.
 
 Latest verified:
 
 ```text
-php artisan test: 194 total / 192 passed / 2 PostgreSQL-specific skipped, 1413 assertions
+php artisan test: 202 total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
 Phase 3 Slice 3 suite: 14 total / 12 passed / 2 PostgreSQL-specific skipped, 73 assertions
 Phase 3 Slice 4 suite: 7 tests / 38 assertions passed
-PostgreSQL stress: concurrency + accounting + allocation stress passed
+Phase 3 Slice 5 suite: 8 tests / 51 assertions passed
+PostgreSQL stress: concurrency + accounting + allocation + cheque stress passed
 TypeScript typecheck: passed
 Vite build: passed
 ```
 
 ## Next Recommended Phase
 
-Phase 3 Slice 5:
+Phase 3 Slice 6:
 
 ```text
-Cheque Lifecycle
+Bank Reconciliation & Cash/Bank Statements
 ```
 
 The corrected Phase 3 contract is:
@@ -68,7 +75,7 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 5.
+Use the Phase 3 contract and current code as the source of truth for Slice 6.
 
 The Slice 2 execution prompt for Gemini has already been used:
 
@@ -82,7 +89,13 @@ The Slice 4 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
 
-Prepare a bounded Slice 5 prompt before implementation. Slice 5 must cover cheque lifecycle only: incoming/outgoing cheque records, explicit state machine, clear/bounce/cancel/return rules where owner-approved, accounting effects through the existing PostingEngine, idempotency, audit, and PostgreSQL transition stress coverage.
+The Slice 5 execution prompt for Gemini has already been used:
+
+- `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
+
+Prepare a new bounded Slice 6 prompt before implementation.
+
+Slice 6 should cover bank reconciliation and cash/bank statement foundations only: reconciliation headers/lines, matched/unmatched posted bank movements, reconciliation difference, draft/in-progress/reconciled lifecycle, permissions, audit through Spatie-backed `AuditLogger`, idempotency, and PostgreSQL duplicate-match/finalize stress coverage.
 
 ## Phase 3 Must Include
 
@@ -152,6 +165,7 @@ php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
+php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build

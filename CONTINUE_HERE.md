@@ -61,7 +61,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 and Phase 3 Slices 1-4 is complete and locally verified on PostgreSQL.
+The Laravel migration through M10 and Phase 3 Slices 1-5 is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -109,6 +109,11 @@ Implemented:
   - CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry settlement.
   - allocation reversal without mutating journals/ledgers.
   - deterministic locks, active allocation row locking, idempotency, and true concurrent allocation stress coverage.
+- Phase 3 Slice 5 cheque lifecycle:
+  - IncomingCheque and OutgoingCheque models/services.
+  - incoming receive/deposit/clear/bounce/return and outgoing issue/clear/return/cancel pre-clear workflows.
+  - Cheques Under Collection and Cheques Payable mappings.
+  - PostingEngine GL effects, AR/AP subledger effects, idempotency, Spatie Activitylog audit, attachment registry entries, and PostgreSQL cheque transition stress coverage.
 
 Latest verified commands:
 
@@ -122,6 +127,8 @@ php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
+php artisan accounting:allocation-concurrency-stress --workers=50
+php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -129,12 +136,13 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: 30 migrations Ran.
-- `php artisan test`: 194 total / 192 passed / 2 PostgreSQL-specific skipped, 1413 assertions.
+- `php artisan migrate:status`: 31 migrations Ran.
+- `php artisan test`: 202 total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
 - `php artisan accounting:allocation-concurrency-stress --workers=50`: passed.
+- `php artisan accounting:cheque-concurrency-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed with optional `laravel:fonts`/`fontaine` warning only.
@@ -203,17 +211,21 @@ On this Windows/WAMP setup, direct `php artisan serve` may exit when Xdebug is e
 
 ```text
 audit_log: 17
-activity_log: 0
+activity_log: 257
 users: 2
 jobs: 0
 failed_jobs: 0
+incoming_cheque: 6
+outgoing_cheque: 4
+journal_entry: 51
+ledger_entry: 102
 ```
 
-`activity_log` can be zero immediately after verification because test writes are rolled back and legacy seed records remain in `audit_log`.
+`activity_log` can vary because stress commands create real audit records outside PHPUnit transactions.
 
 ## Next Work
 
-Recommended next product slice: Phase 3 Slice 5 - Cheque Lifecycle.
+Recommended next product slice: Phase 3 Slice 6 - Bank Reconciliation & Cash/Bank Statements.
 
 Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
@@ -225,7 +237,9 @@ Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 `PHASE_3_SLICE_4_GEMINI_PROMPT.md` has already been used for the fourth bounded Phase 3 slice and is now historical reference for what Slice 4 delivered.
 
-Prepare a new bounded Slice 5 prompt before asking Gemini to implement cheque lifecycle behavior.
+`PHASE_3_SLICE_5_GEMINI_PROMPT.md` has already been used for the fifth bounded Phase 3 slice and is now historical reference for what Slice 5 delivered.
+
+Prepare a new bounded Slice 6 prompt before asking Gemini to implement Bank Reconciliation.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 

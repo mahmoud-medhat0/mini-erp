@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slices 1-4 are implemented and verified.
+Status: corrected planning contract; Slices 1-5 are implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -441,6 +441,8 @@ Status: COMPLETE in Laravel as of 2026-08-21, including receivable/payable alloc
 - state machine
 - clear/bounce/cancel accounting effects
 
+Status: COMPLETE in Laravel as of 2026-08-21, including incoming/outgoing cheque tables, pre-clear state machines, PostingEngine journals/ledger effects, AR/AP subledger restoration effects, configurable cheque account mappings, idempotency, attachment registry entries, Spatie Activitylog audit, and PostgreSQL cheque transition stress coverage.
+
 ### Slice 6 - Bank Reconciliation
 
 - reconciliation header
@@ -536,6 +538,8 @@ php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
+php artisan accounting:allocation-concurrency-stress --workers=50
+php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build

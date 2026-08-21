@@ -13,6 +13,8 @@ class AccountingAccountMappingService
         'ar_control',
         'ap_control',
         'opening_balance_offset',
+        'cheques_under_collection',
+        'cheques_payable',
     ];
 
     public function __construct(
@@ -113,8 +115,8 @@ class AccountingAccountMappingService
     private function assertAccountMatchesKey(string $key, Account $account): void
     {
         $expectedTypes = match ($key) {
-            'ar_control' => ['asset'],
-            'ap_control' => ['liability'],
+            'ar_control', 'cheques_under_collection' => ['asset'],
+            'ap_control', 'cheques_payable' => ['liability'],
             'opening_balance_offset' => ['equity'],
         };
 
@@ -125,8 +127,8 @@ class AccountingAccountMappingService
         }
 
         $expectedNature = match ($key) {
-            'ar_control' => 'debit',
-            'ap_control' => 'credit',
+            'ar_control', 'cheques_under_collection' => 'debit',
+            'ap_control', 'cheques_payable' => 'credit',
             'opening_balance_offset' => null,
         };
 

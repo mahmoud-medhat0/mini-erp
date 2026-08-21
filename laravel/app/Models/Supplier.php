@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
 class Supplier extends Model
@@ -34,6 +35,16 @@ class Supplier extends Model
         return [
             'lock_version' => 'integer',
         ];
+    }
+
+    public function payableAllocations(): HasMany
+    {
+        return $this->hasMany(PayableAllocation::class, 'supplier_id');
+    }
+
+    public function outgoingCheques(): HasMany
+    {
+        return $this->hasMany(OutgoingCheque::class, 'supplier_id');
     }
 
     public function creator(): BelongsTo

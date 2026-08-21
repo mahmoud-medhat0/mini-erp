@@ -134,5 +134,23 @@ return [
                 'delete' => ['suppliers.payments'],
             ],
         ],
+        'incoming_cheque' => [
+            'table' => 'incoming_cheque',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['cheques.view'],
+                'attach' => ['cheques.edit', 'cheques.create'],
+                'delete' => ['cheques.delete', 'cheques.edit'],
+            ],
+        ],
+        'outgoing_cheque' => [
+            'table' => 'outgoing_cheque',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['cheques.view'],
+                'attach' => ['cheques.edit', 'cheques.create'],
+                'delete' => ['cheques.delete', 'cheques.edit'],
+            ],
+        ],
     ],
 ];

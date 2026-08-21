@@ -12,7 +12,7 @@ class OptimisticLock
      */
     public function update(string $table, array $key, int $expectedVersion, array $values): int
     {
-        if (! in_array($table, ['company', 'branch', 'customer', 'supplier', 'cash_account', 'bank_account', 'customer_opening_balance', 'supplier_opening_balance', 'customer_receipt', 'supplier_payment'], true)) {
+        if (! in_array($table, ['company', 'branch', 'customer', 'supplier', 'cash_account', 'bank_account', 'customer_opening_balance', 'supplier_opening_balance', 'customer_receipt', 'supplier_payment', 'incoming_cheque', 'outgoing_cheque'], true)) {
             throw new \InvalidArgumentException("Optimistic locking is not enabled for [{$table}].");
         }
 

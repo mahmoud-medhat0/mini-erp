@@ -65,11 +65,15 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - Receivable and Payable allocation records.
   - CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry settlement.
   - allocation reversal, unapplied balance updates, idempotency, deterministic locking, and over-allocation prevention.
+- Phase 3 Slice 5 cheque lifecycle:
+  - IncomingCheque and OutgoingCheque records/services.
+  - pre-clear receive/deposit/clear/bounce/return and issue/clear/return/cancel workflows.
+  - configurable Cheques Under Collection and Cheques Payable mappings.
+  - PostingEngine GL effects, AR/AP subledger effects, idempotency, Spatie Activitylog audit, attachment registry entries, and cheque concurrency stress coverage.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Cheques lifecycle.
 - Cash/Bank statements and bank reconciliation.
 - Sales and Purchasing workflows.
 - Inventory.
@@ -118,6 +122,7 @@ php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
+php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -125,10 +130,10 @@ npm run build
 
 Latest verified result:
 
-- 30 migrations Ran.
-- 194 PHPUnit tests total / 192 passed / 2 PostgreSQL-specific skipped, 1413 assertions.
+- 31 migrations Ran.
+- 202 PHPUnit tests total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions.
 - 7 Concurrency suite tests / 16 assertions passed.
-- PostgreSQL concurrency, accounting, and allocation stress commands passed.
+- PostgreSQL concurrency, accounting, allocation, and cheque stress commands passed.
 - TypeScript typecheck and Vite build passed.
 
 ## Documentation Entry Points
@@ -143,6 +148,7 @@ Use these first:
 - `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`

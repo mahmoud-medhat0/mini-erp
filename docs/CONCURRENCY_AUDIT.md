@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 ## Scope
 
-Current Laravel + Inertia + React migration state after M10. The Laravel target is not a multi-tenant SaaS and does not infer Company/Branch/User ownership without explicit owner decisions.
+Current Laravel + Inertia + React migration state after M10 and Phase 3 Slices 1-5. The Laravel target is not a multi-tenant SaaS and does not infer Company/Branch/User ownership without explicit owner decisions.
 
 ## Current State
 
@@ -13,6 +13,7 @@ Current Laravel + Inertia + React migration state after M10. The Laravel target 
 - Spatie Activitylog is the active audit backend.
 - Settings mutations exist for company profile, standalone branch references, document numbering, and role assign/revoke.
 - Phase 2 accounting posting, ledger, reversal, opening balances, and reports exist.
+- Phase 3 master data, AR/AP subledgers, receipt/payment posting, allocation settlement, and cheque lifecycle foundations exist.
 - Attachments and notifications have Laravel service layers.
 - PostgreSQL is the production authority. PHPUnit defaults to SQLite in-memory for fast tests, with PostgreSQL stress commands for concurrency paths.
 
@@ -35,6 +36,9 @@ Current Laravel + Inertia + React migration state after M10. The Laravel target 
 | Ledger posting | Critical | Short DB transaction with period/journal locks and idempotency envelope | journal/ledger constraints; immutable ledger trigger | Same journal posts once; ledger derived from posted journal lines only | `AccountingCoreTest`, `accounting:concurrency-stress` |
 | Reversal | Critical | Locks original journal and target period; idempotent reversal key | reversal links and duplicate guards | One reversal entry per original journal | `AccountingCoreTest`, `accounting:concurrency-stress` |
 | Period close/reopen | High against posting | Period row locking | status checks and audit | Closed periods reject posting; race serializes on period row | `AccountingCoreTest`, accounting stress |
+| Receipt/payment posting | Critical | Locks source receipt/payment and period; uses PostingEngine and IdempotencyStore | posted source links and status checks | Same receipt/payment posts once and preserves `allocated + unapplied = amount` | `Phase3Slice3ReceiptPaymentTest`, accounting stress |
+| AR/AP allocation | Critical | Locks parent receipt/payment, target subledger rows, and active allocation rows in deterministic order | allocation amount checks and idempotency keys | Concurrent allocations cannot over-allocate AR/AP or make unapplied negative | `Phase3Slice4AllocationTest`, `accounting:allocation-concurrency-stress` |
+| Cheque transitions | Critical | Locks cheque row, period, mapped accounts, and bank GL rows in service-defined order | idempotent transition keys and source journal links | Clear replay does not duplicate posting; clear vs bounce/return produces one terminal accounting effect | `Phase3Slice5ChequeTest`, `accounting:cheque-concurrency-stress` |
 
 ## Lock Ordering
 
@@ -88,10 +92,12 @@ Do not lock Company or Branch rows for accounting posting.
 - Spatie Activitylog and legacy audit immutability triggers.
 - `concurrency:stress` command.
 - `accounting:concurrency-stress` command.
+- `accounting:allocation-concurrency-stress` command.
+- `accounting:cheque-concurrency-stress` command.
 
 ## Known Gaps
 
 - Laravel queue business jobs beyond baseline are not implemented yet; all future jobs must be idempotent and at-least-once safe.
 - Future business modules must register attachment authorization before exposing attachments for new records.
-- Phase 3 AR/AP/Cash/Bank/Cheques will need its own PostgreSQL concurrency stress coverage.
+- Bank Reconciliation still needs PostgreSQL duplicate-match/finalize stress coverage when Slice 6 is implemented.
 - CI is not configured in this local Laravel migration track. Run the verification commands manually until CI is introduced.

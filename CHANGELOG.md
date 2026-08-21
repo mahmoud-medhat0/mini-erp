@@ -3,6 +3,15 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 5 cheque lifecycle
+- Added `incoming_cheque` and `outgoing_cheque` records with pre-clear state machines for incoming receive/deposit/clear/bounce/return and outgoing issue/clear/return/cancel.
+- Added configurable `cheques_under_collection` and `cheques_payable` accounting mappings without company, branch, or tenant dimensions.
+- Routed cheque accounting effects through the existing PostingEngine and preserved AR/AP subledger effects for received/issued and bounced/returned/cancelled pre-clear cheques.
+- Added idempotent cheque transition services, attachment entity registry entries, Spatie Activitylog audit writes through `AuditLogger`, and owner-decision guards for post-clear bounce/return workflows.
+- Hardened cheque concurrency with `accounting:cheque-concurrency-stress --workers=50`, covering concurrent clear replay, incoming clear-vs-bounce races, and outgoing duplicate clear prevention.
+- Verified with `php artisan test` 202 total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions; Phase 3 Slice 5 suite 8/8; Concurrency suite 7/7; PostgreSQL concurrency/accounting/allocation/cheque stress commands; TypeScript typecheck; and Vite build.
+- Added `PHASE_3_SLICE_5_GEMINI_PROMPT.md` as the historical bounded execution contract; bank reconciliation, reports, broad cheque register UI, Sales/Purchasing/Inventory, and post-clear cheque bounce/return semantics remain outside Slice 5.
+
 ### Added — Phase 3 Slice 4 allocation engine
 - Added `receivable_allocation` and `payable_allocation` settlement records with restrict foreign keys and PostgreSQL row checks.
 - Added CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry allocation/reversal services without creating GL, journal, ledger, receivable, or payable posting rows.
