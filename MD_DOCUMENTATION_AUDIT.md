@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: current docs have since been updated through M10 and Phase 3 Slices 1-9. Phase 2 Accounting Core, Phase 3 master data for Customer/Supplier/CashAccount/BankAccount, Phase 3 AR/AP opening-balance subledgers, Phase 3 customer receipt/supplier payment posting, Phase 3 AR/AP allocation settlement, Phase 3 cheque lifecycle, Phase 3 bank reconciliation foundation, Phase 3 Inertia pages/actions, Phase 3 operational/subledger reports, and Phase 3 PostgreSQL stress/integrity hardening are implemented in Laravel. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: current docs have since been updated through M10 and Phase 3 Slices 1-10. Phase 2 Accounting Core, Phase 3 master data for Customer/Supplier/CashAccount/BankAccount, Phase 3 AR/AP opening-balance subledgers, Phase 3 customer receipt/supplier payment posting, Phase 3 AR/AP allocation settlement, Phase 3 cheque lifecycle, Phase 3 bank reconciliation foundation, Phase 3 Inertia pages/actions, Phase 3 operational/subledger reports, Phase 3 PostgreSQL stress/integrity hardening, and Phase 3 close-out documentation audit are complete in Laravel. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -32,8 +32,8 @@ Classification meanings:
 | `DOMAIN_MODEL_REVIEW.md` | CURRENT | Aligned with the latest correction direction; still should be treated as review output, not original requirements. |
 | `IMPLEMENTATION_STATUS.md` | CURRENT | Current Laravel status and verification numbers. |
 | `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
-| `NEXT_TASKS.md` | CURRENT | Current Phase 3 Slice 10 recommendation after Slice 9 stress/integrity completion. |
-| `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-9 are complete and remaining slice is docs/final verification. |
+| `NEXT_TASKS.md` | CURRENT | Current post-Phase 3 next-choice handoff after Slice 10 close-out. |
+| `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-10 are complete for the agreed scope. |
 | `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 1; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 2; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_3_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 3: receipt/payment posting without allocations. |
@@ -43,6 +43,8 @@ Classification meanings:
 | `PHASE_3_SLICE_7_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 7: Inertia pages/actions and UI/UX for existing Phase 3 workflows only, excluding reports and new modules. |
 | `PHASE_3_SLICE_8_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 8: read-only operational/subledger reports over existing Phase 3 data only, excluding full financial statements and new modules. |
 | `PHASE_3_SLICE_9_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 9: PostgreSQL stress/integrity hardening for existing Phase 3 workflows and reports only. |
+| `PHASE_3_SLICE_10_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 10: docs/status/final verification gate close-out. |
+| `PHASE_3_FINAL_VERIFICATION_REPORT.md` | CURRENT | Formal Phase 3 close-out and final verification report. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

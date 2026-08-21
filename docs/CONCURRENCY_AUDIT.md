@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 ## Scope
 
-Current Laravel + Inertia + React migration state after M10 and Phase 3 Slices 1-6. The Laravel target is not a multi-tenant SaaS and does not infer Company/Branch/User ownership without explicit owner decisions.
+Current Laravel + Inertia + React migration state after M10 and Phase 3 Slices 1-10. The Laravel target is not a multi-tenant SaaS and does not infer Company/Branch/User ownership without explicit owner decisions.
 
 ## Current State
 

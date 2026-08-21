@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-9 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-10 is complete and verified locally on PostgreSQL. Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for the agreed scope. See `PHASE_3_FINAL_VERIFICATION_REPORT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -58,11 +58,15 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - `accounting:phase3-stress` orchestrator command.
   - stress coverage across Phase 3 posting, allocation, cheque, bank reconciliation, period-close, subledger-to-GL, and report read-only invariants.
   - `Phase3Slice9StressIntegrityTest` feature suite.
+- Phase 3 Slice 10 Close-Out & Final Verification Gate:
+  - `PHASE_3_FINAL_VERIFICATION_REPORT.md` final close-out report.
+  - repository-wide documentation audit and status synchronization.
+  - 100% passing verification gate (242 tests, 0 TS errors, clean Pint, Vite build).
 
 Latest verified:
 
 ```text
-php artisan test: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 9 implementation
+php artisan test: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 10 close-out
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
@@ -80,59 +84,39 @@ TypeScript typecheck: passed
 Vite build: passed
 ```
 
-## Next Recommended Phase
+## Next Recommended Choices After Phase 3
 
-Phase 3 Slice 10:
+Phase 3 is 100% complete for the agreed contract. The owner may choose one of the following next steps:
 
-```text
-Docs / Status / Final Verification
-```
+1. **Phase 4: Sales & Purchasing Operations**
+   - Implement Customer Sales Orders, Invoices, Delivery Notes, Supplier Purchase Orders, Bills, Goods Receipts, and Inventory Subledger integration.
+2. **Optional: E2E Browser Test Hardening**
+   - Add Playwright / Laravel Dusk end-to-end smoke tests for complete user journey validation.
+3. **Optional: Production Deployment Hardening**
+   - Configure Nginx, Supervisor daemon for queue workers, Redis caching/session storage, and automated database backup strategy.
 
-The corrected Phase 3 contract is:
+The corrected Phase 3 contract is complete:
 
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 
-The Slice 1 execution prompt for Gemini has already been used:
+All Phase 3 execution prompts have already been used and are now historical traceability references:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
-
-Use the Phase 3 contract and current code as the source of truth for Slice 10.
-
-The Slice 2 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
-
-The Slice 3 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
-
-The Slice 4 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
-
-The Slice 5 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
-
-The Slice 6 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
-
-The Slice 7 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
-
-The Slice 8 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_8_GEMINI_PROMPT.md`
-
-The Slice 9 execution prompt for Gemini has already been used:
-
 - `PHASE_3_SLICE_9_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_10_GEMINI_PROMPT.md`
 
-Prepare a new bounded Slice 10 prompt before implementation.
+Final close-out report:
 
-Slice 10 should perform final Phase 3 documentation/status cleanup and a final verification gate only. It must not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic adjustment posting, or tenant/company/branch scope.
+- `PHASE_3_FINAL_VERIFICATION_REPORT.md`
+
+Do not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic adjustment posting, or tenant/company/branch scope unless explicitly requested.
 
 ## Phase 3 Must Include
 
