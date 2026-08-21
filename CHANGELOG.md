@@ -3,6 +3,34 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Corrected — Laravel bootstrap admin seeding
+- Made local bootstrap admin role assignment explicit and config-controlled: `DatabaseSeeder` seeds RBAC before the bootstrap user, then assigns the configured global `ERP_ADMIN` role without company, branch, tenant, or current-company scope.
+- Added coverage for the default bootstrap admin permission path and for disabling bootstrap role assignment.
+
+### Corrected — Laravel post-audit security and documentation pass
+- Removed the implicit settings/user-management authorization fallback: empty RBAC assignments now deny management mutations instead of granting bootstrap privileges.
+- Added explicit allowlisted attachment entity authorization; unknown entity types and missing/unauthorized entities deny by default.
+- Added attachment storage failure compensation so a metadata/audit persistence failure deletes the newly stored file.
+- Renamed the misleading global `COMPANY_ADMIN` role template to `ERP_ADMIN` and added a migration path for existing development data.
+- Reclassified `fiscal_year.company_id` as OWNER DECISION REQUIRED; no schema change was made for that unresolved relationship.
+- Corrected current documentation to prevent reintroducing Company/Branch tenancy, company-scoped RBAC, or company/branch numbering dimensions.
+
+### Corrected — Laravel Company/Branch/User relationship assumptions
+- Removed unsupported Company/User membership (`company_user`) from the Laravel target.
+- Removed unsupported `branch.company_id`, Company-to-Branch Eloquent relationships, and per-company branch-code uniqueness.
+- Removed Company and Branch dimensions from document numbering; numbering remains atomic and unique by sequence key.
+- Removed unsupported `company_id`/`branch_id` scope columns from audit logs while preserving actor, entity, action, before/after, redaction, and append-only behavior.
+- Removed unsupported `company_id` scope columns from attachments and notifications; attachments remain entity-linked and notifications remain user-targeted with per-user dedupe.
+- Updated Laravel tests and documentation so future work treats undefined relationships as `UNDEFINED - DO NOT ASSUME`.
+
+### Added — Laravel migration M7-M10 backend parity
+- Ported Laravel core-kernel primitives for exact integer-minor-unit Money, currency exponents, double-entry accounting invariants, typed domain errors, and document number formatting/config.
+- Added Laravel `tests/Invariants` coverage for money exactness/allocation, accounting balance/well-formed lines, and deterministic numbering.
+- Added working settings actions for company create/update, branch create/update, numbering create/update, and role assign/revoke with explicit IDs and no current-company or tenant session.
+- Added notification and attachment application services, attachment upload/download routes, notification dedupe/list/mark-read behavior, and service/feature tests.
+- Added append-only audit logging with sensitive-field redaction and wired audit records to company/branch/numbering/attachment mutations without inventing organizational scope.
+- Added an idempotent job runner/backoff primitive and scheduled `tokens:gc --batch=500` hourly with overlap protection.
+
 ### Added — Laravel migration M6 app pages
 - Migrated the authenticated Laravel Inertia app shell and pages for dashboard, settings hub, companies, branches, numbering, users/roles, and notifications.
 - Changed post-login flow to land on `/dashboard`; kept `/foundation` as the migration diagnostic page.
@@ -33,10 +61,10 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Added Laravel session login/logout with CSRF, active-account checks, login throttling, session regeneration, logout invalidation, a protected Inertia foundation route, and a local bootstrap admin seeder.
 
 ### Added — Laravel migration M3 database foundation
-- Added Laravel migrations for the ERP foundation tables around the native `users` table: company, branch, company membership, currency, exchange rates, fiscal years/periods, number sequences, audit log, attachments, and notifications.
+- Added Laravel migrations for the ERP foundation tables around the native `users` table: company, branch, currency, exchange rates, fiscal years/periods, number sequences, audit log, attachments, and notifications.
 - Added Spatie Translatable-backed Company, Branch, and Currency models with JSON multilingual `name` columns.
 - Added permission module/action metadata, assignment scope JSON, and seeded the module/action catalog plus 9 global role templates without Spatie teams.
-- Added Laravel integration tests for schema constraints, native `users` membership, currency seeding, and RBAC template seeding; verified migrations/seeds against a temporary PostgreSQL database.
+- Added Laravel integration tests for schema constraints, currency seeding, and RBAC template seeding; verified migrations/seeds against a temporary PostgreSQL database.
 
 ### Added
 - Project scaffold: Next.js (App Router) + TypeScript + Prisma + Zod + Tailwind, modular-monolith structure (24 modules + core kernel).

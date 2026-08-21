@@ -31,19 +31,16 @@ class MigratedPagesTest extends TestCase
 
         Branch::query()->create([
             'id' => (string) Str::uuid(),
-            'company_id' => $company->id,
             'code' => 'MAIN',
             'name' => ['en' => 'Main Branch', 'ar' => 'الفرع الرئيسي'],
         ]);
 
         DB::table('number_sequence')->insert([
             'id' => (string) Str::uuid(),
-            'company_id' => $company->id,
             'key' => 'sales.invoice',
             'doc_type' => 'SalesInvoice',
             'prefix' => 'INV',
             'include_year' => true,
-            'include_branch' => false,
             'padding' => 5,
             'reset_policy' => 'yearly',
             'next_value' => 1,
@@ -51,7 +48,6 @@ class MigratedPagesTest extends TestCase
 
         DB::table('notification')->insert([
             'id' => (string) Str::uuid(),
-            'company_id' => $company->id,
             'user_id' => $user->id,
             'type' => 'test_event',
             'target_ref' => 'demo:1',
@@ -123,7 +119,6 @@ class MigratedPagesTest extends TestCase
 
         DB::table('notification')->insert([
             'id' => $notificationId,
-            'company_id' => $company->id,
             'user_id' => $user->id,
             'type' => 'test_event',
             'target_ref' => 'demo:1',

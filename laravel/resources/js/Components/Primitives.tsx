@@ -49,23 +49,56 @@ export function SettingsLink({ href, title, description }: { href: string; title
   );
 }
 
-export function StatusBadge({ tone, children }: { tone: 'ok' | 'muted' | 'danger'; children: ReactNode }) {
-  const classes = {
-    ok: 'border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-300',
-    muted: 'border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)]',
-    danger: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300',
+export function StatusBadge({
+  tone,
+  children,
+  className = '',
+}: {
+  tone: 'ok' | 'muted' | 'danger' | 'warning' | 'info';
+  children: ReactNode;
+  className?: string;
+}) {
+  const tones = {
+    ok: {
+      badge: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      dot: 'bg-emerald-500 animate-pulse',
+    },
+    muted: {
+      badge: 'border-[var(--border)] bg-[var(--background)] text-[var(--text-secondary)]',
+      dot: 'bg-slate-400 dark:bg-slate-500',
+    },
+    danger: {
+      badge: 'border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400',
+      dot: 'bg-red-500',
+    },
+    warning: {
+      badge: 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      dot: 'bg-amber-500 animate-pulse',
+    },
+    info: {
+      badge: 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      dot: 'bg-blue-500',
+    },
   };
 
+  const currentTone = tones[tone] || tones.muted;
+
   return (
-    <span className={`inline-flex items-center rounded-sm border px-2 py-1 text-xs font-semibold ${classes[tone]}`}>
-      {children}
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-2xs transition-colors ${currentTone.badge} ${className}`}
+    >
+      <span className={`size-1.5 rounded-full ${currentTone.dot}`} />
+      <span>{children}</span>
     </span>
   );
 }
 
 export const tableClasses = {
-  wrap: 'overflow-x-auto rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm',
+  wrap: 'overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-md',
   table: 'min-w-full border-collapse text-sm',
-  th: 'border-b border-[var(--border)] px-4 py-3 text-start text-xs font-bold uppercase text-[var(--text-muted)]',
-  td: 'border-b border-[var(--border)] px-4 py-3 align-top text-[var(--text-primary)]',
+  th: 'border-b border-[var(--border)] px-5 py-3.5 text-start text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] bg-[var(--background)]/60',
+  td: 'border-b border-[var(--border)] px-5 py-4 align-middle text-[var(--text-primary)]',
 };
+
+export { default as SearchableSelect } from './SearchableSelect';
+export { default as ToggleSwitch } from './ToggleSwitch';

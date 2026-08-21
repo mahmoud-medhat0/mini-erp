@@ -1,42 +1,53 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 1 — Laravel migration foundation (M6 pages complete; migration continues)
-- **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL, through M6 migrated Inertia pages)
-- **Tests passing:** Laravel PHPUnit 29/29, including migrated page coverage and Concurrency 7/7. PostgreSQL `concurrency:stress --workers=100` remains the required manual stress check.
-- **Latest verified code commit:** `7f1d673` (`feat(migration): port laravel app pages`) on local `develop`.
+- **Current phase:** Phase 1 — Laravel migration foundation (Company/Branch/User relationship correction complete; migration continues)
+- **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL, through post-audit correction pass)
+- **Tests passing:** Laravel PHPUnit 60/60, 792 assertions; Concurrency suite 7/7, 16 assertions. PostgreSQL `concurrency:stress --workers=100` passed.
+- **Latest verified code commit:** pending for the current M7-M10 worktree; previous commit `7f1d673` ported Laravel app pages.
 - **Remote/CI:** No GitHub Actions pipeline is connected for this Laravel migration track.
-- **Verification:** `php artisan migrate --force` clean · `php artisan test` clean · `vendor\bin\pint --test` clean · `npm run typecheck` clean · `npm run build` clean · `composer validate --strict` clean · `php artisan concurrency:stress --workers=100` clean.
-- **Latest migrated slice:** M6 authenticated Inertia pages: dashboard, settings hub, companies, branches, numbering, users/roles, notifications, app shell, and notification read action.
+- **Verification:** `php artisan migrate --force` clean · `php artisan migrate:status` clean · `php artisan test` clean · `php artisan test --testsuite=Concurrency` clean · `php artisan concurrency:stress --workers=100` clean · `php artisan tokens:gc --batch=100` clean · `vendor\bin\pint --test` clean. TypeScript/build were not rerun in this backend pass.
+- **Latest migrated slice:** Bootstrap admin seeding correction: `DatabaseSeeder` seeds RBAC before the bootstrap user, assigns the configured global `ERP_ADMIN` role explicitly, and fixes the `/settings/users/roles` route ordering conflict. No company, branch, tenant, or current-company scope was introduced.
 - **Handoff:** see `DOMAIN_MODEL_REVIEW.md` first for the Laravel architecture correction, then `CONTINUE_HERE.md` and `NEXT_TASKS.md` as historical Next.js reference material.
 
 ## Legend
 `COMPLETE` fully implemented + tested · `PARTIAL` partially implemented · `SCAFFOLD ONLY` structure without logic.
 
+Statuses in the Laravel migration table are current. Older Next.js/Prisma status sections are historical reference only and must not be used to restore tenant/company scope or to claim the Laravel ERP modules are complete.
+
 ## Laravel migration track
 | Item | Status | Notes |
 |---|---|---|
 | M2 Inertia foundation | COMPLETE | Laravel app boots with Inertia/Vite and health route |
-| Domain model review | COMPLETE | `DOMAIN_MODEL_REVIEW.md` classifies Company/Branch as business scopes, not SaaS tenants |
-| M3 database foundation | PARTIAL | Native `users` plus company/branch business tables and non-team Spatie RBAC seeders; domain relationships beyond the spec review must not be assumed |
-| M5 session auth backend | COMPLETE | Login/logout, Argon2id, throttling, active users, bootstrap admin, protected foundation route |
+| Domain model review | COMPLETE | `DOMAIN_MODEL_REVIEW.md` now applies the stricter evidence rule: undefined relationships are not assumed |
+| M3 database foundation | PARTIAL | Native `users`, company configuration, standalone branch reference records, and non-team Spatie RBAC seeders; unsupported Company/User and Company/Branch relationships removed |
+| M5 session auth backend | COMPLETE | Login/logout, Argon2id, throttling, active users, explicit bootstrap admin role assignment, protected foundation route |
 | M6 migrated Inertia pages | COMPLETE | Dashboard, settings hub, companies, branches, numbering, users/roles, notifications, app shell, and notification read action backed by real Laravel data |
-| Removed tenant assumptions | COMPLETE | Laravel tenant context/middleware/onboarding and Spatie `company_id` teams removed |
-| Concurrency hardening | COMPLETE | `idempotency_keys`, optimistic locks, PostgreSQL number allocation, bounded auth token GC, notification dedupe, audit doc, and stress/test coverage |
+| M7 Laravel core kernel parity | COMPLETE | Money, currency registry, accounting invariant, domain errors, number formatter/config, and Laravel invariant tests |
+| M8 page actions | COMPLETE | Company/branch/numbering actions and role assign/revoke use explicit IDs, validation, permissions, optimistic locks where available, and no tenant/current-company session |
+| M9 attachments + notifications | COMPLETE | Attachment upload/download service/routes, explicit allowlisted entity authorization, storage cleanup compensation, and notification service with per-user dedupe/list/mark-read behavior, without invented company scope |
+| M10 audit + jobs/scheduler | COMPLETE | Append-only audit logger, idempotent job runner/backoff primitive, and hourly `tokens:gc` schedule |
+| Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed |
+| Removed tenant assumptions | COMPLETE | Laravel tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams removed |
+| Concurrency hardening | COMPLETE | `idempotency_keys`, optimistic locks, PostgreSQL number allocation by sequence key, bounded auth token GC, notification dedupe, attachment failure compensation, audit doc, and stress/test coverage |
 
-## Core kernel
+## Core kernel status
+
+Laravel has the Money, accounting-invariant, numbering, RBAC foundation, error, and currency primitives listed below where they are also referenced in the Laravel migration table. Prisma/Next.js rows are historical reference only.
 | Item | Status | Notes |
 |---|---|---|
 | Money (exact minor units, allocation) | COMPLETE | 9 tests incl. 500-case property |
 | Accounting kernel (Σdr=Σcr guard) | COMPLETE | 5 tests |
 | Numbering (format + atomic allocate) | COMPLETE | 4 tests incl. 1000-parallel uniqueness |
-| RBAC (server-side permission + scope checks) | COMPLETE | 5 tests |
+| RBAC (server-side permission checks) | COMPLETE | global Spatie roles/permissions; `scope_json` reserved/undefined |
 | Errors (typed domain errors) | COMPLETE | used across suite |
 | Currency registry | COMPLETE | EGP seed, multi-currency |
-| Prisma kernel schema | COMPLETE | schema written (+attachment mime/size); generate + db push verified against PostgreSQL |
+| Prisma kernel schema | LEGACY_REFERENCE | old Next.js reference; not current Laravel source of truth |
 | i18n EN/AR + RTL + theming | PARTIAL | nested next-intl messages fixed; Tailwind/PostCSS build verified; full component library pending |
-| CI workflow | COMPLETE | blocking invariant job |
+| CI workflow | LEGACY_REFERENCE | old Next.js workflow; no GitHub Actions pipeline is connected for the Laravel migration track |
 
-## Phase-1 application services (this increment — real + unit-tested)
+## Historical Next.js Phase-1 application services
+
+The section below documents the old Next.js reference/migration history. It is not current Laravel architecture and must not be used to restore tenant/company scope.
 | Item | Status | Notes |
 |---|---|---|
 | Credentials auth service | COMPLETE | anti-enumeration timing, generic errors, no hash leakage; 6 tests |
@@ -52,14 +63,14 @@
 | RBAC seed plan | COMPLETE | pure planner tested; `prisma/seed.ts` verified with DB |
 | Tenant context + isolation | REMOVED | Incorrect SaaS assumption; use explicit business authorization scopes only |
 | Append-only audit service | COMPLETE | redaction + field diff + requestId; append-only by construction; tested |
-| Numbering config + allocation service | COMPLETE | validate/persist/preview/allocate; 1000-parallel uniqueness; per-company business uniqueness |
-| Attachment storage abstraction | COMPLETE | interface + validation + company scope; local adapter written; tested |
+| Numbering config + allocation service | COMPLETE | validate/persist/preview/allocate; 1000-parallel uniqueness; Laravel target uses sequence key without company/branch dimensions |
+| Attachment storage abstraction | COMPLETE | interface + validation + entity metadata; local adapter written; tested |
 | Attachment metadata + routes | PARTIAL | Prisma metadata repo + upload/download route handlers added; route-level mocked auth/storage test passes; DB-backed route test pending |
-| Notification service | COMPLETE | create/list/read + company scope; channel interface; tested |
+| Notification service | COMPLETE | create/list/read + per-user dedupe; channel interface; tested |
 | Notifications persistence + UI | PARTIAL | Prisma repo + header link + `/notifications` center added; full DB/E2E verification runs in CI |
 | Job runner (idempotency + backoff) | COMPLETE | once-only, retry-on-throw, capped backoff; tested |
 | pg-boss adapter + worker entrypoint | PARTIAL | real code (publish/work/graceful shutdown); runs at full install + DB |
-| Company/Branch settings | PARTIAL | company/branch business screens exist in the Next reference; SaaS-style first-run onboarding is not a Laravel target unless revalidated by the spec |
+| Company/Branch settings | PARTIAL | company configuration and standalone branch reference screens exist; Company->Branch remains undefined until explicitly specified |
 | Users & Roles settings | PARTIAL | `/settings/users` lists users/roles and assigns/revokes roles with server-side RBAC; DB/E2E path gated |
 | Playwright smoke E2E | COMPLETE | 5/5 against real Postgres: locale direction, redirect, invalid login, admin dashboard/settings, viewer permission denied |
 

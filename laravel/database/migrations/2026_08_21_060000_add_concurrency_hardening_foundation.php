@@ -54,13 +54,13 @@ return new class extends Migration
 
         if (DB::connection()->getDriverName() === 'pgsql') {
             DB::statement("ALTER TABLE idempotency_keys ADD CONSTRAINT idempotency_keys_status_check CHECK (status IN ('pending', 'completed', 'failed'))");
-            DB::statement('CREATE UNIQUE INDEX notification_dedupe_unique ON notification (company_id, user_id, dedupe_key) WHERE dedupe_key IS NOT NULL');
+            DB::statement('CREATE UNIQUE INDEX notification_user_dedupe_unique ON notification (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL');
 
             return;
         }
 
         Schema::table('notification', function (Blueprint $table): void {
-            $table->unique(['company_id', 'user_id', 'dedupe_key'], 'notification_dedupe_unique');
+            $table->unique(['user_id', 'dedupe_key'], 'notification_user_dedupe_unique');
         });
     }
 
@@ -71,10 +71,10 @@ return new class extends Migration
     {
         if (Schema::hasTable('notification')) {
             if (DB::connection()->getDriverName() === 'pgsql') {
-                DB::statement('DROP INDEX IF EXISTS notification_dedupe_unique');
-            } elseif ($this->hasIndex('notification', 'notification_dedupe_unique')) {
+                DB::statement('DROP INDEX IF EXISTS notification_user_dedupe_unique');
+            } elseif ($this->hasIndex('notification', 'notification_user_dedupe_unique')) {
                 Schema::table('notification', function (Blueprint $table): void {
-                    $table->dropUnique('notification_dedupe_unique');
+                    $table->dropUnique('notification_user_dedupe_unique');
                 });
             }
 

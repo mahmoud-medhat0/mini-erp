@@ -8,42 +8,40 @@ use Illuminate\Support\Str;
 
 class NumberSequenceAllocator
 {
-    public function nextValue(string $companyId, string $key): int
+    public function nextValue(string $key): int
     {
         return match (DB::connection()->getDriverName()) {
-            'pgsql' => $this->nextValuePostgres($companyId, $key),
-            default => $this->nextValuePortable($companyId, $key),
+            'pgsql' => $this->nextValuePostgres($key),
+            default => $this->nextValuePortable($key),
         };
     }
 
-    private function nextValuePostgres(string $companyId, string $key): int
+    private function nextValuePostgres(string $key): int
     {
         $row = DB::selectOne(
             <<<'SQL'
-            INSERT INTO number_sequence (id, company_id, key, doc_type, prefix, include_year, include_branch, padding, reset_policy, next_value)
-            VALUES (?, ?, ?, ?, '', true, false, 5, 'yearly', 1)
-            ON CONFLICT (company_id, key)
+            INSERT INTO number_sequence (id, key, doc_type, prefix, include_year, padding, reset_policy, next_value)
+            VALUES (?, ?, ?, '', true, 5, 'yearly', 1)
+            ON CONFLICT (key)
             DO UPDATE SET next_value = number_sequence.next_value + 1
             RETURNING next_value
             SQL,
-            [(string) Str::uuid(), $companyId, $key, $key],
+            [(string) Str::uuid(), $key, $key],
         );
 
         return (int) $row->next_value;
     }
 
-    private function nextValuePortable(string $companyId, string $key): int
+    private function nextValuePortable(string $key): int
     {
-        return DB::transaction(function () use ($companyId, $key): int {
+        return DB::transaction(function () use ($key): int {
             try {
                 DB::table('number_sequence')->insert([
                     'id' => (string) Str::uuid(),
-                    'company_id' => $companyId,
                     'key' => $key,
                     'doc_type' => $key,
                     'prefix' => '',
                     'include_year' => true,
-                    'include_branch' => false,
                     'padding' => 5,
                     'reset_policy' => 'yearly',
                     'next_value' => 1,
@@ -52,12 +50,10 @@ class NumberSequenceAllocator
                 return 1;
             } catch (QueryException) {
                 DB::table('number_sequence')
-                    ->where('company_id', $companyId)
                     ->where('key', $key)
                     ->increment('next_value');
 
                 return (int) DB::table('number_sequence')
-                    ->where('company_id', $companyId)
                     ->where('key', $key)
                     ->value('next_value');
             }

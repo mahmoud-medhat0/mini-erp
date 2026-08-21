@@ -1,9 +1,64 @@
 # SECURITY
 
-- **AuthN:** Auth.js sessions; passwords hashed with argon2; optional MFA for privileged roles (Admin, Accountant with post/close).
-- **AuthZ:** central `PermissionSet.requirePermission` in every Application Service; deny-by-default; UI hiding is cosmetic only. Actions: view/create/edit/delete/submit/approve/reject/post/cancel/reverse/export/print/configure. Sensitive flags: view_financials, view_payroll, override_credit_limit, override_negative_stock, close_period, reopen_period.
-- **Tenancy:** every query enforces `company_id` (and branch/warehouse/project/cost-center/doc-type scope) server-side; `company_id` is never trusted from the browser. Enforced in `core/rbac` (`can()` cannot widen beyond the request company) — covered by `tests/invariants/rbac.test.ts`.
-- **Data:** TLS in transit; encryption at rest (managed Postgres); secrets via env/vault, never in repo; payroll/financial fields permission-gated.
-- **Integrity:** all money writes transactional; posted rows immutable; period locks; concurrency-safe numbering.
-- **App hardening:** Zod validation at every boundary; CSRF protection on mutations; rate limiting on auth; output encoding; secure headers; least-privilege DB role; audit of privileged actions.
-- **Audit:** append-only `audit_log` with actor/action/entity/before/after/reason/ip; financial audit immutable.
+Current status: Laravel migration security baseline. Older Next.js/Auth.js and tenant-scoping notes are historical only.
+
+## Non-Negotiable Domain Rule
+
+The Mini ERP is not currently a multi-tenant SaaS. Security must not rely on:
+
+- tenant context
+- `company_id` query scope
+- `branch_id` query scope
+- Company-owned users/roles/permissions
+- Branch as a security boundary
+- Spatie Teams
+- `currentCompany` or `currentBranch`
+
+If a relationship is not explicitly established by owner requirements or later owner decisions, classify it as `UNDEFINED - DO NOT ASSUME`.
+
+## Authentication
+
+- Laravel session authentication.
+- CSRF protection on web mutations.
+- Passwords hashed through Laravel hashing configuration.
+- Login throttling by email/IP.
+- Session regeneration after login.
+- Session invalidation after logout.
+- Active-account check on login.
+
+## Authorization
+
+- Server-side authorization is authoritative.
+- Frontend hiding is cosmetic only.
+- Use Spatie Permission plus Laravel Policies/Gates/domain authorization rules where appropriate.
+- Missing permissions default to deny.
+- Empty RBAC assignments do not grant management access.
+- Settings and user-management mutations require explicit permissions such as `settings.configure` or `users.configure`.
+- Attachment access must be authorized through an explicit allowlisted entity registry and the referenced entity's server-side authorization rule.
+
+## RBAC
+
+- Spatie Permission is used with teams disabled.
+- Roles and permissions are global, not company-scoped.
+- `scope_json` on permission pivots is reserved/undefined and must not be interpreted as Company, Branch, or tenant scope until an owner decision defines it.
+
+## Attachments
+
+- `entity_type` values must come from an explicit allowlist.
+- Browser-provided `entity_type` must never dynamically resolve arbitrary PHP classes.
+- Upload and download must authorize against the stored/referenced entity.
+- Unknown entity types and missing entities are rejected.
+- Authentication alone is not authorization.
+
+## Data And Integrity
+
+- Money and accounting writes must remain transactional when implemented.
+- Posted financial history, audit records, numbering history, and journal data must not be garbage-collected merely because of age.
+- Audit records link actor, action, entity type/id, before/after payload, and timestamp without invented Company/Branch scope.
+
+## Current Gaps
+
+- Full accounting posting, period close enforcement, subledger posting, financial statements, and module policies are not implemented yet.
+- FiscalYear ownership/context remains owner-decision-required.
+- Branch exact semantics remain owner-decision-required.
+- Production admin/bootstrap process needs an explicit controlled mechanism; no implicit "first user" or "empty RBAC" privilege escalation is allowed.

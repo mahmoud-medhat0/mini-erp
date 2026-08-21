@@ -33,21 +33,64 @@
     "language": {
       "en": "EN",
       "ar": "العربية"
+    },
+    "select": {
+      "placeholder": "اختر خياراً...",
+      "searchPlaceholder": "بحث...",
+      "noOptions": "لا توجد خيارات متاحة",
+      "clear": "مسح الاختيار"
     }
   },
   "app": {
     "actions": {
-      "logout": "تسجيل الخروج"
+      "logout": "تسجيل الخروج",
+      "create": "إنشاء",
+      "save": "حفظ",
+      "edit": "تعديل",
+      "cancel": "إلغاء",
+      "addCompany": "إضافة شركة جديدة",
+      "addBranch": "إضافة فرع جديد",
+      "addSequence": "إضافة تسلسل ترقيم جديد",
+      "addRole": "إضافة دور جديد",
+      "editRole": "تعديل الدور",
+      "deleteRole": "حذف الدور",
+      "assign": "تعيين",
+      "revoke": "إلغاء",
+      "upload": "رفع",
+      "addUser": "إضافة مستخدم",
+      "editUser": "تعديل مستخدم",
+      "deleteUser": "حذف مستخدم"
     },
     "nav": {
       "dashboard": "لوحة التحكم",
       "settings": "الإعدادات",
-      "notifications": "الإشعارات"
+      "notifications": "الإشعارات",
+      "diagnostics": "تشخيصات النظام",
+      "groups": {
+        "main": "الرئيسية",
+        "administration": "الإدارة والتهيئة",
+        "system": "النظام والصيانة"
+      }
+    },
+    "header": {
+      "workspace": "مساحة عمل ميني ERP الرئيسية",
+      "postgresOnline": "PostgreSQL متصل",
+      "systemOnline": "النظام متصل",
+      "systemOffline": "غير متصل",
+      "expandSidebar": "توسيع القائمة الجانبية",
+      "collapseSidebar": "طي القائمة الجانبية"
     },
     "dashboard": {
       "description": "بيانات الأساس الحقيقية من قاعدة Laravel.",
       "noKpisTitle": "مؤشرات المحاسبة غير متاحة بعد",
       "noKpisDescription": "ستظهر المؤشرات المالية من القيود المحاسبية المرحلة بعد نقل نواة المحاسبة.",
+      "liveDb": "بيانات حية",
+      "migrationReady": "قيد الترحيل",
+      "ledgerState": "حالة الميزان",
+      "ledgerBalanced": "متوازن Σ Dr = Σ Cr",
+      "securityEngine": "نظام الحماية",
+      "databaseEngine": "قاعدة البيانات",
+      "quickActions": "اختصارات الإدارة",
       "counts": {
         "companies": "الشركات",
         "branches": "الفروع",
@@ -68,7 +111,7 @@
         },
         "branches": {
           "title": "الفروع",
-          "description": "فروع الشركات وحالة التشغيل."
+          "description": "سجلات مرجعية للفروع وحالة التشغيل."
         },
         "numbering": {
           "title": "الترقيم",
@@ -80,15 +123,15 @@
         }
       },
       "company": {
-        "description": "الشركة هنا نطاق أعمال داخل ERP وليست tenant SaaS.",
+        "description": "إعدادات الشركة هنا تهيئة أعمال وليست tenancy أو عضوية مستخدمين.",
         "empty": "لا توجد شركات بعد"
       },
       "branches": {
-        "description": "الفروع معروضة من مخطط الأساس الخاص بالـ ERP.",
+        "description": "الفروع سجلات مرجعية مستقلة إلى أن يحدد نموذج أعمال صريح غير ذلك.",
         "empty": "لا توجد فروع بعد"
       },
       "numbering": {
-        "description": "قيم التسلسل تصدر من الخادم فقط؛ الواجهة تقرأ الإعدادات.",
+        "description": "قيم التسلسل تصدر من الخادم حسب مفتاح المستند بدون أبعاد شركة أو فرع.",
         "empty": "لا توجد تسلسلات ترقيم بعد"
       },
       "users": {
@@ -98,11 +141,16 @@
       }
     },
     "notifications": {
-      "description": "الإشعارات الموجهة للمستخدم الحالي.",
+      "description": "التحديثات الفورية، والتنبيهات، وأنشطة النظام الموجهة لحسابك.",
       "empty": "لا توجد إشعارات بعد",
+      "emptyRecent": "لا توجد إشعارات حديثة",
+      "viewAll": "عرض جميع الإشعارات",
+      "system": "إشعار نظام",
       "read": "مقروء",
       "unread": "غير مقروء",
-      "markRead": "تعليم كمقروء"
+      "markRead": "تعليم كمقروء",
+      "markAllRead": "تحديد الكل كمقروء",
+      "all": "الكل"
     },
     "fields": {
       "company": "الشركة",
@@ -120,12 +168,30 @@
       "roles": "الأدوار",
       "permissions": "الصلاحيات",
       "notification": "الإشعار",
-      "target": "الهدف"
+      "target": "الهدف",
+      "nameEn": "الاسم بالإنجليزية",
+      "nameAr": "الاسم بالعربية",
+      "key": "المفتاح",
+      "prefix": "البادئة",
+      "padding": "الخانات",
+      "includeYear": "السنة",
+      "file": "الملف",
+      "entityType": "نوع الكيان",
+      "entityId": "معرف الكيان"
     },
     "status": {
       "active": "نشط",
       "inactive": "غير نشط",
-      "template": "قالب"
+      "template": "قالب قياسي"
+    },
+    "permissionsList": {
+      "settings.configure": "تهيئة إعدادات النظام",
+      "users.configure": "إدارة المستخدمين والأدوار",
+      "diagnostics.view": "عرض تشخيصات النظام",
+      "company.manage": "إدارة الشركات",
+      "branch.manage": "إدارة الفروع",
+      "numbering.manage": "إدارة تسلسلات الترقيم",
+      "reports.view": "عرض التقارير المالية"
     },
     "state": {
       "none": "لا يوجد"

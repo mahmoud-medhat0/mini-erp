@@ -5,10 +5,7 @@ namespace Tests\Integration;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Currency;
-use App\Models\User;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -23,7 +20,6 @@ class FoundationSchemaTest extends TestCase
             'users',
             'company',
             'branch',
-            'company_user',
             'currency',
             'exchange_rate',
             'fiscal_year',
@@ -39,57 +35,35 @@ class FoundationSchemaTest extends TestCase
         }
 
         $this->assertFalse(Schema::hasTable('app_user'));
+        $this->assertFalse(Schema::hasTable('company_user'));
         $this->assertTrue(Schema::hasColumn('users', 'password'));
         $this->assertFalse(Schema::hasColumn('roles', 'company_id'));
         $this->assertTrue(Schema::hasColumn('permissions', 'module'));
         $this->assertTrue(Schema::hasColumn('role_has_permissions', 'scope_json'));
+        $this->assertFalse(Schema::hasColumn('branch', 'company_id'));
+        $this->assertFalse(Schema::hasColumn('number_sequence', 'company_id'));
+        $this->assertFalse(Schema::hasColumn('number_sequence', 'include_branch'));
+        $this->assertFalse(Schema::hasColumn('audit_log', 'company_id'));
+        $this->assertFalse(Schema::hasColumn('audit_log', 'branch_id'));
+        $this->assertFalse(Schema::hasColumn('attachment', 'company_id'));
+        $this->assertFalse(Schema::hasColumn('notification', 'company_id'));
     }
 
-    public function test_branch_codes_are_unique_per_company(): void
+    public function test_branch_records_do_not_assume_company_ownership(): void
     {
-        $companyId = (string) Str::uuid();
-
-        Company::query()->create([
-            'id' => $companyId,
-            'name' => ['en' => 'Demo Company', 'ar' => 'شركة تجريبية'],
-        ]);
-
         Branch::query()->create([
             'id' => (string) Str::uuid(),
-            'company_id' => $companyId,
             'code' => 'MAIN',
             'name' => ['en' => 'Main Branch', 'ar' => 'الفرع الرئيسي'],
         ]);
 
-        $this->expectException(QueryException::class);
-
         Branch::query()->create([
             'id' => (string) Str::uuid(),
-            'company_id' => $companyId,
             'code' => 'MAIN',
             'name' => ['en' => 'Duplicate Branch', 'ar' => 'فرع مكرر'],
         ]);
-    }
 
-    public function test_company_membership_uses_the_native_users_table(): void
-    {
-        $user = User::factory()->create();
-        $companyId = (string) Str::uuid();
-
-        Company::query()->create([
-            'id' => $companyId,
-            'name' => ['en' => 'Business Company', 'ar' => 'شركة أعمال'],
-        ]);
-
-        DB::table('company_user')->insert([
-            'company_id' => $companyId,
-            'user_id' => $user->id,
-        ]);
-
-        $this->assertDatabaseHas('company_user', [
-            'company_id' => $companyId,
-            'user_id' => $user->id,
-        ]);
+        $this->assertSame(2, Branch::query()->where('code', 'MAIN')->count());
     }
 
     public function test_foundation_names_are_translatable(): void
@@ -107,7 +81,6 @@ class FoundationSchemaTest extends TestCase
 
         $branch = Branch::query()->create([
             'id' => (string) Str::uuid(),
-            'company_id' => $company->id,
             'code' => 'MAIN',
             'name' => ['en' => 'Main Branch', 'ar' => 'الفرع الرئيسي'],
         ]);

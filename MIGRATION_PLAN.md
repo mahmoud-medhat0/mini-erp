@@ -33,7 +33,7 @@ This repository is migrating in parallel from the verified Next.js foundation to
 
 ## Schema Decision
 
-M2 does not port the Prisma schema. The Laravel target must not copy the old company-as-tenant assumption. `company` and `branch` are ERP business entities and accounting/reporting scopes where the specification requires them, not SaaS tenants. Multilingual names may use Spatie Translatable JSON columns. RBAC uses Spatie Permission without teams; role/permission scope is represented by explicit domain authorization rules and `scope_json`, not by `company_id` on Spatie role tables.
+M2 does not port the Prisma schema. The Laravel target must not copy the old company-as-tenant assumption. `company` remains business configuration, while `branch` remains a standalone referenced/reporting concept until a precise relationship is explicitly required. Multilingual names may use Spatie Translatable JSON columns. RBAC uses Spatie Permission without teams; role/permission scope is represented by explicit domain authorization rules and `scope_json`, not by `company_id` on Spatie role tables.
 
 ## Authentication Migration
 

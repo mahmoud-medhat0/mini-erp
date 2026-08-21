@@ -30,24 +30,9 @@ return new class extends Migration
 
         Schema::create('branch', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('company_id');
             $table->string('code');
             $this->jsonColumn($table, 'name');
             $table->boolean('is_active')->default(true);
-
-            $table->foreign('company_id')->references('id')->on('company')->restrictOnDelete();
-            $table->unique(['company_id', 'code']);
-            $table->index('company_id');
-        });
-
-        Schema::create('company_user', function (Blueprint $table) {
-            $table->uuid('company_id');
-            $table->foreignId('user_id');
-            $table->timestamp('created_at')->useCurrent();
-
-            $table->foreign('company_id')->references('id')->on('company')->cascadeOnDelete();
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->primary(['company_id', 'user_id']);
         });
 
         Schema::create('exchange_rate', function (Blueprint $table) {
@@ -62,14 +47,12 @@ return new class extends Migration
 
         Schema::create('fiscal_year', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('company_id');
             $table->integer('year');
             $table->date('start_date');
             $table->date('end_date');
             $table->string('status')->default('open');
 
-            $table->foreign('company_id')->references('id')->on('company')->restrictOnDelete();
-            $table->unique(['company_id', 'year']);
+            $table->unique('year');
         });
 
         Schema::create('financial_period', function (Blueprint $table) {
@@ -86,24 +69,19 @@ return new class extends Migration
 
         Schema::create('number_sequence', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('company_id');
             $table->string('key');
             $table->string('doc_type');
             $table->string('prefix');
             $table->boolean('include_year')->default(true);
-            $table->boolean('include_branch')->default(false);
             $table->unsignedTinyInteger('padding')->default(5);
             $table->string('reset_policy')->default('yearly');
             $table->unsignedInteger('next_value')->default(0);
 
-            $table->foreign('company_id')->references('id')->on('company')->restrictOnDelete();
-            $table->unique(['company_id', 'key']);
+            $table->unique('key');
         });
 
         Schema::create('audit_log', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('company_id');
-            $table->uuid('branch_id')->nullable();
             $table->foreignId('actor_id')->nullable();
             $table->string('action');
             $table->string('entity_type');
@@ -116,16 +94,13 @@ return new class extends Migration
             $table->string('device')->nullable();
             $table->timestamp('at')->useCurrent();
 
-            $table->foreign('company_id')->references('id')->on('company')->restrictOnDelete();
-            $table->foreign('branch_id')->references('id')->on('branch')->nullOnDelete();
             $table->foreign('actor_id')->references('id')->on('users')->nullOnDelete();
-            $table->index(['company_id', 'entity_type', 'entity_id']);
-            $table->index(['company_id', 'at']);
+            $table->index(['entity_type', 'entity_id']);
+            $table->index(['actor_id', 'at']);
         });
 
         Schema::create('attachment', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('company_id');
             $table->string('entity_type');
             $table->string('entity_id');
             $table->string('file_ref');
@@ -135,23 +110,20 @@ return new class extends Migration
             $table->foreignId('uploaded_by')->nullable();
             $table->timestamp('at')->useCurrent();
 
-            $table->foreign('company_id')->references('id')->on('company')->restrictOnDelete();
             $table->foreign('uploaded_by')->references('id')->on('users')->nullOnDelete();
-            $table->index(['company_id', 'entity_type', 'entity_id']);
+            $table->index(['entity_type', 'entity_id']);
         });
 
         Schema::create('notification', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('company_id');
             $table->foreignId('user_id');
             $table->string('type');
             $table->string('target_ref');
             $table->boolean('read')->default(false);
             $table->timestamp('at')->useCurrent();
 
-            $table->foreign('company_id')->references('id')->on('company')->cascadeOnDelete();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->index(['company_id', 'user_id', 'read']);
+            $table->index(['user_id', 'read']);
         });
 
         $this->addCheckConstraints();
@@ -169,7 +141,6 @@ return new class extends Migration
         Schema::dropIfExists('financial_period');
         Schema::dropIfExists('fiscal_year');
         Schema::dropIfExists('exchange_rate');
-        Schema::dropIfExists('company_user');
         Schema::dropIfExists('branch');
         Schema::dropIfExists('company');
         Schema::dropIfExists('currency');

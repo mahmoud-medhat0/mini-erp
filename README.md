@@ -1,55 +1,94 @@
-# Mini ERP — Accounting & Business Management System
+# Mini ERP - Laravel Migration Foundation
 
-Production-grade, greenfield **Mini ERP**: a connected system where each business transaction is entered **once** and automatically produces every operational, subledger, inventory, accounting, reporting, and audit consequence.
+Current target: Laravel + Inertia.js + React + TypeScript + Tailwind + PostgreSQL.
 
-## Overview
-One integrated ERP across 26+ modules (Accounting, Sales, Purchasing, Inventory, Rentals, AR/AP, Cash, Banks, Cheques, Expenses, Fixed Assets, Payroll, Taxes, Partners, Projects, Budgeting, Recurring, Reports, Dashboard, RBAC, Audit, Numbering, Settings). Every financial figure is traceable both directions: report ↔ account ↔ ledger ↔ journal ↔ source document.
+This repository is migrating a Mini ERP foundation from the older Next.js reference app into Laravel. The current Laravel target is a foundation, not a complete ERP. It includes authentication, RBAC foundations, settings pages, Money/accounting invariant primitives, atomic numbering, audit, attachments, notifications, idempotency, and token garbage collection.
 
-## Architecture
-Modular monolith. `UI → Application Services → Domain Engines → Repositories → PostgreSQL`. The UI never touches Prisma and holds no accounting logic; ledger/stock rows are written only by domain engines inside DB transactions. Accounting is a shared kernel. Full detail in `spec/ARCHITECTURE.md` and `spec/FINAL_ARCHITECTURE_REVIEW.md`.
+## Current Architecture Rule
 
-## Technology stack
-Next.js (App Router) · React · TypeScript · PostgreSQL · Prisma · Zod · Tailwind · next-intl (AR/EN, RTL/LTR) · Auth.js · pg-boss (durable jobs) · Vitest · Playwright · ESLint/Prettier. Node.js runtime only (never Edge for accounting/DB).
+The Mini ERP must not be treated as a multi-tenant SaaS.
 
-## Repository layout
-```
-app/          Next.js application (modular monolith) — see app/README.md
-spec/         Authoritative specifications + architecture/security/testing/deploy/DR docs
-docs/         PROJECT_MAP, DESIGN_FOUNDATION
-foundation/   design tokens (tokens.css, tailwind.tokens.js)
-style-guide.html   live design-system preview (EN/AR × light/dark)
-ROADMAP.md · CHANGELOG.md · IMPLEMENTATION_STATUS.md
-```
+Do not introduce or restore:
+
+- tenant context or tenant middleware
+- `company_user`
+- `users.company_id`
+- `branch.company_id`
+- Company-owned users, branches, roles, or permissions
+- Spatie Teams
+- `currentCompany` or `currentBranch`
+- company/branch dimensions in document numbering
+
+If a Company, Branch, User, FiscalYear, Warehouse, Project, Department, CostCenter, Customer, Supplier, Employee, or other relationship is not explicitly supported by owner requirements or later owner decisions, classify it as:
+
+`UNDEFINED - DO NOT ASSUME`
+
+## Implemented Laravel Foundation
+
+- Laravel session authentication with throttling and active-user checks.
+- Spatie Permission RBAC with teams disabled.
+- Global role templates and module/action permissions.
+- Inertia React app shell and settings/dashboard/notification pages.
+- Company profile configuration and standalone Branch reference records.
+- Atomic number-sequence allocation by global sequence `key`.
+- Money value object and accounting draft-entry invariant checks.
+- Audit log linked to actor and audited entity/event.
+- Attachment service with allowlisted entity authorization and storage cleanup compensation.
+- Notification service targeted to users with per-user dedupe.
+- Idempotency store and bounded `tokens:gc`.
+
+## Not Implemented Yet
+
+The Laravel target does not yet implement:
+
+- journal posting engine
+- General Ledger persistence
+- reversal workflow
+- period close enforcement
+- subledger posting
+- financial statements
+- Sales, Purchasing, Inventory, Payroll, Rentals, Reports, or other full ERP modules
+
+Future business transactions should eventually be entered once and flow into accounting automatically, but that is not implemented in this correction pass.
 
 ## Setup
-```
-cd app
-cp .env.example .env          # set DATABASE_URL, AUTH_SECRET, etc.
+
+```bash
+cd laravel
+cp .env.example .env
+composer install
 npm install
-npm run prisma:generate && npm run prisma:migrate
+php artisan key:generate
+php artisan migrate --force
+php artisan db:seed
 npm run dev
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-## Environment variables
-See `app/.env.example` — `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `BASE_CURRENCY`, `PGBOSS_DATABASE_URL`. **No secrets are committed**; `.env*` is git-ignored.
+## Verification
 
-## Commands
-`npm run dev | build | typecheck | lint | test | test:invariants | e2e | prisma:generate | prisma:migrate | ci`.
+```bash
+cd laravel
+php artisan migrate:status
+php artisan test
+php artisan test --testsuite=Concurrency
+php artisan concurrency:stress --workers=100
+php artisan tokens:gc --batch=100
+npm run typecheck
+npm run build
+```
 
-## Database
-PostgreSQL via Prisma. Money is **BigInt minor units** (never float). Posted financial rows are immutable; period locks; concurrency-safe numbering; company/branch isolation.
+## Documentation Status
 
-## Testing
-Unit, integration, permission, workflow, E2E — plus a **blocking accounting-invariant suite** (Σdr=Σcr, subledger=GL, immutability, closed-period rejection, unique numbering under concurrency, tenant isolation…). CI fails if any invariant fails. See `spec/TESTING_STRATEGY.md`.
+Some files under `spec/` and the old `app/` directory describe the historical Next.js reference or generated target specifications. They are not authoritative when they conflict with owner corrections or current Laravel implementation.
 
-## Project phases
-10 dependency-ordered phases (see `ROADMAP.md`). Current: **Phase 1 — Foundation**.
+Use these current review/correction documents first:
 
-## Current status
-See `IMPLEMENTATION_STATUS.md` (kept current each milestone).
+- `DOMAIN_MODEL_REVIEW.md`
+- `PROJECT_LOGIC_AUDIT.md`
+- `MD_DOCUMENTATION_AUDIT.md`
+- `DOMAIN_RELATIONSHIP_AUDIT.md`
+- `SCHEMA_ASSUMPTION_AUDIT.md`
+- `docs/CONCURRENCY_AUDIT.md`
 
-## Accounting integrity principles
-Double-entry; every posted entry balances; posted data immutable (correct via reversal); closed periods reject posting; subledgers reconcile to GL; every entry references its source document; drill-down both directions.
-
-## Security principles
-Server-side authorization (UI hiding is not security); company/branch scope enforced on every query; argon2 password hashing; secrets via env; audit of privileged actions; least-privilege DB. See `spec/SECURITY.md`.
+Historical files may mention tenant/company scope. Treat those mentions as legacy unless a later owner decision explicitly confirms the relationship.

@@ -44,7 +44,7 @@ return [
         'SUPER_ADMIN' => [
             'all' => true,
         ],
-        'COMPANY_ADMIN' => [
+        'ERP_ADMIN' => [
             'all' => true,
             'except' => ['reopen_period'],
         ],

@@ -2,6 +2,7 @@
 
 namespace Tests\Integration;
 
+use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -42,11 +43,11 @@ class FoundationSeederTest extends TestCase
         $this->assertSame(9, DB::table('roles')->where('is_template', true)->count());
 
         $superAdmin = DB::table('roles')->where('name', 'SUPER_ADMIN')->first();
-        $companyAdmin = DB::table('roles')->where('name', 'COMPANY_ADMIN')->first();
+        $erpAdmin = DB::table('roles')->where('name', 'ERP_ADMIN')->first();
         $viewer = DB::table('roles')->where('name', 'VIEWER')->first();
 
         $this->assertSame($expectedPermissionCount, DB::table('role_has_permissions')->where('role_id', $superAdmin->id)->count());
-        $this->assertSame($expectedPermissionCount - 1, DB::table('role_has_permissions')->where('role_id', $companyAdmin->id)->count());
+        $this->assertSame($expectedPermissionCount - 1, DB::table('role_has_permissions')->where('role_id', $erpAdmin->id)->count());
 
         $viewerPermissions = DB::table('permissions')
             ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
@@ -56,5 +57,17 @@ class FoundationSeederTest extends TestCase
             ->all();
 
         $this->assertSame(['dashboard.view', 'reports.view'], $viewerPermissions);
+
+        $bootstrapUser = User::query()
+            ->where('email', config('erp_auth.bootstrap_user.email'))
+            ->firstOrFail();
+
+        $this->assertTrue($bootstrapUser->hasRole('ERP_ADMIN'));
+        $this->assertTrue($bootstrapUser->can('settings.configure'));
+        $this->assertDatabaseHas('audit_log', [
+            'action' => 'bootstrap_user.seed',
+            'entity_type' => 'user',
+            'entity_id' => (string) $bootstrapUser->id,
+        ]);
     }
 }

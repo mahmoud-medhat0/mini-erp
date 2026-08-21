@@ -1,3 +1,11 @@
+export type NotificationItem = {
+  id: string;
+  type: string;
+  targetRef: string;
+  read: boolean;
+  at: string;
+};
+
 export type SharedPageProps = {
   auth: {
     user: null | {
@@ -14,6 +22,7 @@ export type SharedPageProps = {
   theme: 'light' | 'dark' | string;
   notifications: {
     unreadCount: number;
+    recent?: NotificationItem[];
   };
   flash: {
     success?: string | null;

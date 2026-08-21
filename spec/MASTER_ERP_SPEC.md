@@ -1,6 +1,10 @@
-# MASTER ERP SPECIFICATION — Final Target System
+# MASTER ERP SPECIFICATION - Final Target System
 
-**Authority:** This document specifies the **complete, final** Mini ERP — every module, workflow, report, rule, and screen from the original brief. The 10-phase plan (`ROADMAP_10_PHASE`, end of this doc) is **implementation order only**; it does not partition scope into "now vs later." Nothing here is optional unless explicitly marked `DECISION REQUIRED`.
+**Current status:** legacy/generated target specification and planning reference. It does not override original owner requirements, explicit later owner decisions, or the corrected Laravel architecture.
+
+**Post-audit correction rule, 2026-08-21:** Company is not a tenant. Do not implement Company/User/Branch ownership, `company_user`, `users.company_id`, `branch.company_id`, company-scoped roles/permissions, Spatie Teams, `currentCompany`, `currentBranch`, or company/branch numbering dimensions unless an explicit owner decision approves that exact relationship.
+
+**Authority limit:** this document describes intended ERP capabilities, many of which are not implemented. It must not be used to claim Sales, Purchasing, Inventory, Accounting Posting, Payroll, Rentals, Reports, GL, period close, or financial statements are complete in the current Laravel target.
 
 **Companion documents (this spec set):**
 `ACCOUNTING_EVENT_MAP.md` · `DATABASE_DESIGN.md` · `BUSINESS_RULES.md` · `PERMISSION_MATRIX.md` · `SCREEN_CATALOG.md` · `WORKFLOW_CATALOG.md` · `REPORT_CATALOG.md` · `INTEGRATION_MAP.md` · `REQUIREMENTS_TRACEABILITY.md`. Foundations already delivered: `PROJECT_MAP.md`, `DESIGN_FOUNDATION.md`, `tokens.css`, `tailwind.tokens.js`, `style-guide.html`.
@@ -16,23 +20,24 @@
 ## A1. Technology architecture (final)
 | Layer | Choice | Notes |
 |---|---|---|
-| Framework | Next.js (App Router) + TypeScript | Route groups per module; RSC for report/query pages; Server Actions guarded by RBAC. |
-| DB | PostgreSQL + Prisma | Referential integrity, DB transactions, unique constraints, partial indexes. |
-| Service layer | Domain services (posting, inventory, numbering, approval, tax, FX) | **UI never writes ledger/stock directly** — only services do, inside DB transactions. |
-| Auth | Auth.js + server-side RBAC middleware | Session → permission set → scope filters. |
-| i18n | next-intl (AR + EN), RTL/LTR first-class | Locale segment; messages in `locales/`. |
-| Money | **BigInt minor units** + `decimal.js` for intermediate math | No IEEE-754 float in any monetary path. |
-| Validation | Zod schemas shared client/server | Same rule enforced both sides; server authoritative. |
+| Framework | Laravel + Inertia.js + React + TypeScript | Current migration target. Older Next.js details are historical reference only. |
+| DB | PostgreSQL + Laravel migrations/query layer | Referential integrity, DB transactions, unique constraints, partial indexes. |
+| ORM/query | Eloquent / Laravel Query Builder where appropriate | PostgreSQL remains the data and concurrency authority. |
+| Service layer | Laravel services/actions/domain objects | **UI never writes ledger/stock directly** - only backend services do, inside DB transactions. |
+| Auth | Laravel session auth + server-side RBAC | Session -> permission set. No tenant/current-company context is inferred. |
+| i18n | AR + EN, RTL/LTR first-class | Inertia props and locale files. |
+| Money | Integer minor units + currency + exact PHP/domain arithmetic | No IEEE-754 float in any monetary path. Decimal/fixed-point intermediates require explicit rounding rules. |
+| Validation | Laravel Form Requests + domain/application validation + DB constraints | Optional React/TypeScript validation is for UX only; backend remains authoritative. |
 | Tables | TanStack Table + server pagination/virtualization | Scales to thousands of rows. |
 | Charts | Recharts, token- & direction-aware | Theming + RTL. |
-| Jobs | Queue/cron worker | Recurring txns, depreciation, prepaid/accrual recognition, aging/notification sweeps, FX revaluation. |
+| Jobs | Laravel Queue / Jobs + Laravel Scheduler | Recurring txns, depreciation, prepaid/accrual recognition, aging/notification sweeps, FX revaluation. |
 | Files | Object storage + `Attachment` polymorphic table | Doc previews. |
 | Print/PDF | Server-rendered print theme (light) | Never prints the dark UI. |
 
 ## A2. Universal UI Contract (applies to EVERY screen/component)
 Every screen and component MUST implement, and is not "done" until it implements, all of:
 - **States:** default, hover, focus, active, disabled, loading (skeleton), empty, error, success, read-only, **permission-denied** (render explicit state, never a dead/hidden-only button), no-search-results, no-filtered-results.
-- **Localization:** all strings from `locales/{ar,en}/…`; zero hardcoded UI text. Business data carries `name_ar` + `name_en` where user-created.
+- **Localization:** static UI strings come from React/Inertia locale dictionaries; zero hardcoded UI text. User-created business data uses multilingual stored fields where required, using Spatie Laravel Translatable JSON where appropriate. Do not make `name_en`/`name_ar` columns a business requirement unless a later schema decision requires them.
 - **Direction:** one component set, logical CSS props (`margin/padding/inset-inline`, `text-align:start/end`); identifiers (doc no., SKU, barcode, IBAN, email, phone, URL) wrapped in direction isolation; directional icons mirror, non-directional do not.
 - **Theme:** light / dark / system, switch with no reload and no loss of page/filters/form/report state; language persisted per user.
 - **Responsive:** desktop (primary), tablet, mobile — tables use priority columns + horizontal scroll + expandable rows + mobile cards/bottom sheets, not naive shrink. Mobile RTL intentionally adapted.
@@ -44,11 +49,11 @@ Every screen and component MUST implement, and is not "done" until it implements
 - **Audit fields:** `created_by/at`, `updated_by/at`, and where the lifecycle applies `submitted_by/at`, `approved_by/at`, `posted_by/at`, `cancelled_by/at`, `reversed_by/at`. Full before/after change log in `AuditLog`.
 - **Numbering:** human document numbers from the central numbering engine (B6); concurrency-safe & unique.
 - **Deletion policy:** operational drafts → soft-delete allowed with permission; **posted financial records are immutable** — corrected only by reversal/credit-note, never edited or hard-deleted.
-- **Scoping:** every business record carries `company_id`, `branch_id`; financial/operational lines optionally carry `project_id`, `cost_center_id`.
+- **Relationship scope:** no default `company_id` or `branch_id`. Add Company, Branch, Project, Department, CostCenter, Warehouse, Customer, Supplier, Employee, or User relationships only when owner requirements explicitly define them. Branch and Department are business/reporting concepts, but their exact data models are OWNER DECISION REQUIRED. Project and CostCenter remain ERP concepts, but no hierarchy such as Project -> Branch, CostCenter -> Company, or Department -> CostCenter is assumed.
 - **Traceability:** every posted event links bidirectionally to its `JournalEntry` (source_type/source_id ↔ journal), enabling drill-down from any figure to its source document.
 
 ## A4. Money, currency & FX
-- Amounts: `bigint` minor units + `currency` (ISO). Presentation formats via central formatter. EGP is base currency; system is **multi-currency**: documents may be in a foreign currency with an `exchange_rate` captured at document date.
+- Amounts: integer minor units + `currency` (ISO). Presentation formats via central formatter. EGP is base currency; system is **multi-currency**: documents may be in a foreign currency with an `exchange_rate` captured at document date.
 - GL stores both **transaction-currency** and **base-currency** amounts on each line. Realized FX gain/loss posted on settlement; unrealized FX gain/loss posted by a period-end revaluation job on open foreign-currency balances. FX accounts configured in Settings→Accounting.
 - Rounding: half-up to currency minor unit; a rounding-difference account absorbs sub-unit residue on allocations.
 
@@ -60,15 +65,15 @@ Numbering · Approval workflow · Recurring transactions · Reporting · RBAC/pe
 # PART B — CORE ENGINES
 
 ## B1. Accounting Engine (spine)
-**Chart of Accounts:** multi-level hierarchy; `Account(code, name_en, name_ar, type, group, parent_id, nature[debit|credit], is_control, currency?, status)`. Types: Asset, Liability, Equity, Revenue, Expense (+ contra). Groups roll up for statements. Control accounts (AR, AP, Inventory, Tax, Fixed Assets, Payroll clearing) are posted **only** by their subledgers, never by manual JV (enforced).
+**Chart of Accounts:** multi-level hierarchy; `Account(code, multilingual name, type, group, parent_id, nature[debit|credit], is_control, currency?, status)`. Types: Asset, Liability, Equity, Revenue, Expense (+ contra). Groups roll up for statements. Control accounts (AR, AP, Inventory, Tax, Fixed Assets, Payroll clearing) are posted **only** by their subledgers, never by manual JV (enforced).
 
-**Journal Entry / Lines:** `JournalEntry(number, date, description, reference, source_type, source_id, currency, fx_rate, status)`; `JournalLine(account_id, debit_base, credit_base, debit_txn, credit_txn, cost_center_id, project_id, branch_id, tax_id, memo)`.
+**Journal Entry / Lines:** `JournalEntry(number, date, description, reference, source_type, source_id, currency, fx_rate, status)`; `JournalLine(account_id, debit_base, credit_base, debit_txn, credit_txn, confirmed accounting dimensions, tax_id, memo)`. Project and CostCenter can be used when their module rules require them. Branch/Department organizational dimensions are OWNER DECISION REQUIRED and must not be specified as confirmed columns such as `branch_id`.
 
-**Posting rules:** a posting service resolves accounts from configurable mappings (per company/branch), builds balanced lines, asserts `Σdebit_base == Σcredit_base`, verifies the target period is **open**, writes JE + lines + `LedgerEntry` rows + subledger row + any stock movement — **atomically** in one DB transaction. Draft/Submitted/Approved may be edited; **Posted is immutable**.
+**Posting rules:** future posting service resolves accounts from explicitly configured mappings, builds balanced lines, asserts debit base equals credit base, verifies the target period is open, writes JE + lines + `LedgerEntry` rows + subledger row + any stock movement atomically in one DB transaction. Draft/Submitted/Approved may be edited; Posted is immutable. Company/Branch mapping scope is not approved unless a later owner decision defines it.
 
 **Reversal / unposting:** posted entries are corrected by an automatic **reversing entry** (mirror Dr/Cr, linked to original). Direct unposting is allowed only in an open period, with the `Reverse`/`Unpost` permission, and always leaves an audit trail; closed-period entries can only be reversed into an open period.
 
-**Fiscal structure:** `FiscalYear` → `FinancialPeriod`(open/closed/reopened). Period close blocks new postings (override needs `Reopen` permission + audit). **Year-end close** rolls net P&L into Retained Earnings and opens the next year with carried balances (opening-balance JV). Opening balances entered via dedicated opening template.
+**Fiscal structure:** `FiscalYear` -> `FinancialPeriod`(open/closed/reopened). FiscalYear ownership/context is OWNER DECISION REQUIRED: do not assume FiscalYear belongs to Company, is global, or uses multi-company fiscal calendars. Period close blocks new postings (override needs `Reopen` permission + audit). **Year-end close** rolls net P&L into Retained Earnings and opens the next year with carried balances (opening-balance JV). Opening balances entered via dedicated opening template.
 
 **Subledgers reconciled to GL control accounts:** AR (customers), AP (suppliers), Cash, Bank, Inventory, Fixed Assets, Payroll, Tax, Equity/Partners. Each subledger balance must equal its GL control account (reconciliation report, B9 + BUSINESS_RULES).
 
@@ -77,11 +82,11 @@ Numbering · Approval workflow · Recurring transactions · Reporting · RBAC/pe
 **Outputs:** General Journal, General Ledger, Trial Balance, Income Statement, Balance Sheet, Cash Flow, Statement of Changes in Equity — all derived **only** from posted data, all drill-down to source.
 
 ## B2. Inventory Engine (quantity + valuation)
-**Master:** `Product(sku, barcode, name_en/ar, category, brand, base_uom, cost_method, standard_cost, sell_price, min_stock, reorder_level, is_stock_tracked)`; `Uom` + `UomConversion(from,to,factor)`; `Warehouse` + `Location`.
+**Master:** `Product(sku, barcode, multilingual name, category, brand, base_uom, cost_method, standard_cost, sell_price, min_stock, reorder_level, is_stock_tracked)`; `Uom` + `UomConversion(from,to,factor)`; `Warehouse` + `Location`.
 **Movements:** `StockMovement(product_id, warehouse_id, location_id?, type, qty_signed, uom, unit_cost_base, source_type, source_id, date)`. Types: opening, purchase, sale, sales_return, purchase_return, transfer_out, transfer_in, adjustment, damage, loss, consumption, count_adjustment.
 **Stock ledger** (per product/warehouse) gives running qty + value; **valuation** per **costing method**.
-**Costing method — `DECISION REQUIRED` (default proposed: Weighted Average, per-product override to FIFO).** Both fully specified: WAVG maintains running average cost; FIFO maintains `StockLayer` cost layers consumed oldest-first. COGS is emitted by the posting engine on each outbound movement using the method's cost.
-**Negative stock policy — `DECISION REQUIRED` (default proposed: block outbound below zero; allow per-warehouse override with warning + later cost correction).**
+**Costing method - `OWNER DECISION REQUIRED` (default proposed: Weighted Average, per-product override to FIFO).** Both fully specified: WAVG maintains running average cost; FIFO maintains `StockLayer` cost layers consumed oldest-first. COGS is emitted by the posting engine on each outbound movement using the method's cost.
+**Negative stock policy - `OWNER DECISION REQUIRED` (default proposed: block outbound below zero; allow per-warehouse override with warning + later cost correction).**
 **Stock counts / reconciliation:** `StockCount` sessions → variance → `count_adjustment` movements + adjustment JV (Inventory vs Inventory Adjustment account).
 **Transfers:** two-legged (out/in) with in-transit option; adjustments/damage/loss/consumption each post the configured expense/variance account.
 
@@ -89,31 +94,31 @@ Numbering · Approval workflow · Recurring transactions · Reporting · RBAC/pe
 Flow: **Quotation → Sales Order → Delivery Note → Sales Invoice → Receipt**, plus **Credit Note / Sales Return**. Supports cash & credit sales, partial payments, customer advances, line/%-discounts, taxes, multi-warehouse, project/cost-center tagging, payment terms & due dates, over/underpayment, **payment allocation** (receipt→invoices), outstanding balances. Invoice posting emits AR + Revenue + Output VAT (+ COGS/Inventory for stock items). Returns/credit notes reverse proportionally. Cancellation (pre-post) vs reversal (post). Delivery drives stock-out; invoice may be from delivery or standalone.
 
 ## B4. Purchasing Engine (end-to-end)
-Flow: **Purchase Request → Purchase Order → Goods Received Note → Purchase Invoice → Payment**, plus **Purchase Return / Debit Note**. Cash & credit purchases, partial payments, supplier advances, discounts, taxes (Input VAT + withholding), landed cost `DECISION REQUIRED` (proposed: supported via cost-allocation on GRN), cancellation/reversal, payment allocation. GRN drives stock-in at cost; invoice posts Inventory/Expense + Input VAT + AP.
+Flow: **Purchase Request -> Purchase Order -> Goods Received Note -> Purchase Invoice -> Payment**, plus **Purchase Return / Debit Note**. Cash & credit purchases, partial payments, supplier advances, discounts, taxes (Input VAT + withholding), landed cost `OWNER DECISION REQUIRED` (proposed: supported via cost-allocation on GRN), cancellation/reversal, payment allocation. GRN drives stock-in at cost; invoice posts Inventory/Expense + Input VAT + AP.
 
 ## B5. Rental Engine
 Lifecycle: **Customer → Contract → Equipment Allocation → Delivery → Rental Period → Extensions → Extra/Late/Damage Charges → Return → Inspection → Damage/Loss → Final Invoice → Payment**. Auto-calc: days/months, rental amount (daily/monthly rate), deposit, extra charges, late fees, discounts, paid, remaining. Deposit posts to Customer Deposit Liability (refunded/applied at close). Rental invoice posts AR + Rental Revenue + Output VAT. Equipment status is driven by rental events (integrates with Tools & Equipment, C6). Alerts: ending-soon, overdue returns, expiring contracts.
 
 ## B6. Document Numbering Engine
-`NumberSequence(doc_type, prefix, include_year, include_branch, padding, next_value, reset_policy[never|yearly|monthly])`. Format e.g. `INV-2026-00001`, `PUR-`, `REC-`, `PAY-`, `JV-`, `RENT-`, `GRN-`, `DN-`, `CN-`, `PO-`, `PR-`, `EXP-`, `FA-`, `DEP-`, `PR-PAY-`. Allocation is **concurrency-safe** (DB row lock / sequence) and gap/reset policy configurable. Uniqueness enforced by DB constraint.
+`NumberSequence(doc_type, prefix, include_year, padding, next_value, reset_policy[never|yearly|monthly])`. Format examples include `INV-2026-00001`, `PUR-2026-00001`, `REC-2026-00001`, `PAY-2026-00001`, `JV-2026-00001`, `RENT-2026-00001`. Current Laravel allocation is concurrency-safe by global sequence `key`. Production sequence identity/reset semantics are OWNER DECISION REQUIRED. Do not add company/branch/tenant dimensions unless explicitly approved.
 
 ## B7. Approval Workflow Engine
-Configurable per document type: `ApprovalFlow(doc_type, steps[])`, `ApprovalStep(order, approver_role/user, condition[amount>x, branch, project])`, `ApprovalAction(entry, actor, decision[approve|reject], reason, at)`. Documents expose current status, current approver, history, rejection reason, comments. Approval permissions are **separate** from operational permissions (PERMISSION_MATRIX). Examples in WORKFLOW_CATALOG.
+Configurable per document type: `ApprovalFlow(doc_type, steps[])`, `ApprovalStep(order, approver_role/user, condition[amount>x, project/cost-center when defined])`, `ApprovalAction(entry, actor, decision[approve|reject], reason, at)`. Branch/Department approval conditions are OWNER DECISION REQUIRED until their exact models exist. Documents expose current status, current approver, history, rejection reason, comments. Approval permissions are **separate** from operational permissions (PERMISSION_MATRIX). Examples in WORKFLOW_CATALOG.
 
 ## B8. Recurring Transaction Engine
 `RecurringTemplate(doc_type, frequency, start, end, next_run, amount/lines, account, tax, cost_center, project, auto_create[bool], approval_required[bool])`. Worker generates the target document on `next_run`, with duplicate-prevention (idempotency key per period), failure handling + retry, and full audit. Applies to recurring expenses, revenue, rent, subscriptions, journal templates.
 
 ## B9. Reporting Engine
-Reusable architecture: a report = definition(source query + parameters + columns + calc + grouping) + a viewer. Universal params where applicable: date range, fiscal period, branch, project, cost center, account, customer, supplier, warehouse, status, currency, comparison period. Universal features: search, sort, group, drill-down to source, export (XLSX/CSV/PDF), print (light print theme, company header/footer/page numbers), full AR/EN + RTL/LTR. All financial reports read posted data only. Full list in REPORT_CATALOG.
+Reusable architecture: a report = definition(source query + parameters + columns + calc + grouping) + a viewer. Universal params where applicable: date range, fiscal period, project, cost center, account, customer, supplier, warehouse, status, currency, comparison period. Branch/Department filters are future capability only after their domain models are approved. Universal features: search, sort, group, drill-down to source, export (XLSX/CSV/PDF), print (light print theme, company header/footer/page numbers), full AR/EN + RTL/LTR. All financial reports read posted data only. Full list in REPORT_CATALOG.
 
 ## B10. RBAC Engine
-Permissions at **Module → Feature → Action**; actions: View, Create, Edit, Delete, Submit, Approve, Reject, Post, Cancel, Reverse, Export, Print, Configure. Scope restrictions: company, branch, warehouse, project, cost center, document type. Role templates: Admin, Accountant, Sales, Purchases, Warehouse, Management + custom roles. Enforced server-side; permission-denied is an explicit UI state. Full grid in PERMISSION_MATRIX.
+Permissions at Module -> Feature -> Action; actions: View, Create, Edit, Delete, Submit, Approve, Reject, Post, Cancel, Reverse, Export, Print, Configure. Role templates are global, not company-owned. `scope_json` is RESERVED / UNDEFINED - DO NOT ASSUME and must not be interpreted as Company/Branch tenancy until owner requirements define scope semantics. Enforced server-side; permission-denied is an explicit UI state. Full grid in PERMISSION_MATRIX.
 
 ## B11. Audit Engine
 `AuditLog(entity_type, entity_id, action, actor, before_json, after_json, at, ip)`. Lifecycle actor/time stamps on records (A3). Financial audit history is immutable/append-only. Every create/modify/approve/post/reverse/cancel/delete recorded; before/after captured for edits.
 
 ## B12. Tax Engine (configurable — nothing hardcoded)
-`Tax(name_en/ar, kind[input_vat|output_vat|withholding], rate, account_id, is_compound, effective_from/to, rounding)`. Documents reference tax codes on lines; engine computes tax amounts, posts to Input/Output VAT / Withholding Payable accounts, and feeds tax periods & reports. Adaptable to Egyptian VAT (currently 14% default, configurable) and withholding; calculations reviewable before filing. Tax periods with a filing/return workspace.
+`Tax(multilingual name, kind[input_vat|output_vat|withholding], rate, account_id, is_compound, effective_from/to, rounding)`. Documents reference tax codes on lines; engine computes tax amounts, posts to Input/Output VAT / Withholding Payable accounts, and feeds tax periods & reports. Adaptable to Egyptian VAT (currently 14% default, configurable) and withholding; calculations reviewable before filing. Tax periods with a filing/return workspace.
 
 ## B13. Notification Engine
 `Notification(type, target_ref, actor, read, at)`. Types: invoice overdue, payment due, low stock, rental ending/overdue, approval pending, reconciliation pending, budget exceeded, tax deadline, recurring due, cheque due/returned. Each links to its record. Generated by jobs + event hooks; surfaced in header bell + notification center; per-user preferences.
@@ -198,7 +203,7 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 ## C8. Customers & Accounts Receivable
 - **Purpose:** customer master + AR subledger.
 - **Users/Roles:** Sales (create/edit), Accountant (view/statement/allocation), Management (view).
-- **Entities:** Customer(profile, contacts, opening_balance, credit_limit, payment_terms, name_ar/en), plus AR views over SalesDocs/Receipts/CreditNotes/Advances.
+- **Entities:** Customer(profile, contacts, opening_balance, credit_limit, payment_terms, multilingual name), plus AR views over SalesDocs/Receipts/CreditNotes/Advances.
 - **Screens/routes:** `/customers` (list + detail: overview balance/overdue/current, invoices, payments, credit notes, returns, advances, **statement**, **aging**), `/customers/statements`, `/customers/aging`.
 - **Business rules:** AR subledger reconciles to AR control GL; aging buckets Current/1-30/31-60/61-90/90+; credit-limit enforcement on sales; advances allocatable.
 - **Impacts:** AR control account; feeds Dashboard receivables + aging.
@@ -206,7 +211,7 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 
 ## C9. Suppliers & Accounts Payable
 - **Purpose:** supplier master + AP subledger (mirror of C8).
-- **Entities:** Supplier(profile, opening_balance, payment_terms, name_ar/en) + AP views over PurchaseDocs/Payments/DebitNotes/Advances.
+- **Entities:** Supplier(profile, opening_balance, payment_terms, multilingual name) + AP views over PurchaseDocs/Payments/DebitNotes/Advances.
 - **Screens/routes:** `/suppliers` (list + detail mirroring customer: invoices, payments, returns, advances, statement, aging), `/suppliers/statements`, `/suppliers/aging`.
 - **Business rules:** AP subledger reconciles to AP control GL; aging buckets identical; advances allocatable.
 - **Reports:** Supplier Statement, AP Aging, Supplier Balances.
@@ -242,7 +247,7 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 ## C13. Expenses
 - **Purpose:** expense capture, approval, payment, accounting; includes recurring expenses.
 - **Users/Roles:** any submitter (create), Management (approve), Accountant (post/pay).
-- **Entities:** Expense(category, account_id, supplier?/employee?, project, cost_center, branch, tax, method, attachment, status), ExpenseCategory.
+- **Entities:** Expense(category, account_id, supplier?/employee?, project, cost_center, tax, method, attachment, status, optional future organizational dimensions after owner decision), ExpenseCategory.
 - **Screens/routes:** `/expenses` (list+detail+create), `/expenses/categories`, recurring via C21.
 - **Workflow/statuses:** Draft→Submitted→(Manager Approval)→(Accounting Approval)→Posted→Paid. (Configurable via B7.)
 - **Business rules:** attachment/approval rules per category/amount; input VAT if applicable; posted immutable.
@@ -294,9 +299,9 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 
 ## C19. Projects & Cost Centers
 - **Purpose:** dimensional analysis + profitability.
-- **Entities:** Project(revenue/cost rollups), CostCenter(type: dept|branch|project|unit), allocation rules.
+- **Entities:** Project(revenue/cost rollups), CostCenter(classification/type if required), allocation rules. Department and Branch are possible reporting concepts, but their exact models and any relationship to CostCenter are OWNER DECISION REQUIRED.
 - **Screens/routes:** `/projects` (+ detail: revenue, direct cost, indirect cost, expenses, **profitability**, drill-down), `/cost-centers` (+ department reporting), allocation config.
-- **Business rules:** transactions optionally/mandatorily tagged with branch/project/cost center (configurable per doc type); indirect cost allocation rules; profitability = revenue − direct − allocated indirect.
+- **Business rules:** transactions may be optionally/mandatorily tagged with project/cost center where the document type requires it; Branch/Department tagging is OWNER DECISION REQUIRED. Indirect cost allocation rules; profitability = revenue - direct - allocated indirect.
 - **Impacts:** every tagged posting rolls into project/cost-center reports; no double counting with GL.
 - **Reports:** Project Profitability, Cost Center Report, Department Spend, Revenue by Project.
 
@@ -329,13 +334,13 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 - **Entities:** none new; KPI definitions map to the same report/statement queries (no independent math).
 - **Screens/routes:** `/dashboard` — Financial KPIs (Revenue, Expenses, Gross/Operating/Net Profit, Cash, Bank, Receivables, Payables, Inventory Value, Fixed Assets), Operational KPIs (Outstanding/Overdue Invoices, Overdue AR/AP, Active Rentals, Rentals Ending Soon, Low Stock, Pending POs/SOs, Pending Approvals), Charts (Revenue/Expense/Gross/Net trend, Cash Flow, AR/AP Aging, Sales by Customer/Product, Revenue by Project, Expense by Category).
 - **Business rules:** every KPI has a defined formula, source tables, filters, period, currency, drill-down destination, and permission (see Dashboard section in REPORT_CATALOG). Clicking a KPI navigates to underlying records; each KPI shows "where the number came from."
-- **Deviations:** period/branch/project global filters; role-scoped KPI visibility; mobile prioritizes KPIs + approvals + notifications.
+- **Deviations:** period/project/cost-center global filters where defined; Branch/Department filters require owner-approved models. Role-scoped KPI visibility; mobile prioritizes KPIs + approvals + notifications.
 
 ## C24. Users & Permissions
 - **Purpose:** identity, roles, granular RBAC, approval config. Engine B10 + B7.
 - **Entities:** User, Role, Permission, RolePermission, Scope, ApprovalFlow/Step.
 - **Screens/routes:** `/settings/users`, `/settings/roles` (role templates + custom), `/settings/permissions` (module→feature→action grid + scope), `/settings/approvals` (per-doc-type flows).
-- **Business rules:** server-side enforcement; approval perms separate from operational; scope by company/branch/warehouse/project/cost-center/doc-type; least privilege defaults.
+- **Business rules:** server-side enforcement; approval perms separate from operational; least privilege defaults. Any permission scope semantics are owner-decision-required and must not infer Company/Branch tenancy.
 - **Reports:** Permission Matrix export, User Activity (with C25).
 
 ## C25. Audit Trail
@@ -346,12 +351,12 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 
 ## C26. Document Numbering
 - **Purpose:** centralized, concurrency-safe numbering. Engine B6.
-- **Screens/routes:** `/settings/numbering` (per doc type: prefix, year, branch, padding, sequence, reset policy, preview).
-- **Business rules:** unique + gapless-per-policy; concurrency-safe allocation; never duplicate.
+- **Screens/routes:** `/settings/numbering` (per doc type/key: prefix, year option, padding, sequence, reset policy, preview).
+- **Business rules:** concurrency-safe allocation; never duplicate for the chosen approved sequence identity. Company/branch/tenant dimensions are not approved.
 
 ## C27. Settings & Configuration *(brief §56 — included to keep scope complete)*
 - **Purpose:** system configuration home.
-- **Screens/routes:** `/settings` hub → Company, Branches, Financial Periods, Currencies & FX, Taxes, Numbering, Accounting mappings (control accounts, FX gain/loss, rounding), Inventory (costing, negative-stock policy), Warehouses, Payment Terms, Users, Roles, Permissions, Approval Workflows, Notifications, Localization, Appearance (theme defaults), Audit settings, Integrations.
+- **Screens/routes:** `/settings` hub -> Company profile, Branch reference settings only after exact Branch model decision, Financial Periods, Currencies & FX, Taxes, Numbering, Accounting mappings (control accounts, FX gain/loss, rounding), Inventory (costing, negative-stock policy), Warehouses, Payment Terms, Users, Roles, Permissions, Approval Workflows, Notifications, Localization, Appearance (theme defaults), Audit settings, Integrations.
 - **Business rules:** config changes are permissioned (`Configure`), audited, and where financial (tax/accounting mapping) require confirmation showing consequences.
 
 ---
@@ -360,7 +365,7 @@ Permissions at **Module → Feature → Action**; actions: View, Create, Edit, D
 
 For every phase: **Scope · Dependencies · DB · Backend · Frontend · Design · Accounting · Reports · Permissions · Tests · Acceptance.**
 
-1. **Foundation** — design system + shell; auth; Users/Roles/Permissions (B10); Company/Branches; Settings shell; numbering engine (B6); audit engine (B11); i18n/theme wiring. *Accept:* a permissioned user logs in, navigates the shell in AR/EN × light/dark, and RBAC blocks unauthorized actions with the permission-denied state.
+1. **Foundation** - design system + shell; auth; Users/Roles/Permissions (B10); Company profile configuration; standalone Branch reference concept; Settings shell; numbering foundation (B6); audit foundation (B11); i18n/theme wiring. *Accept:* a permissioned user logs in, navigates the shell in AR/EN x light/dark, and RBAC blocks unauthorized actions with the permission-denied state. No Company/User/Branch ownership or tenancy is implied.
 2. **Accounting core** — CoA, Journal/Lines, Ledger, Trial Balance, Fiscal years/Periods, opening balances, FX rates, posting engine (B1). *Accept:* a balanced manual JV posts, appears in ledger & trial balance, cannot post to a closed period, and reverses correctly.
 3. **Customers, Suppliers, Cash, Banks, Cheques** — AR/AP subledgers, cash/bank/cheque lifecycles + reconciliation. *Accept:* a receipt/payment posts, updates subledger + GL control, and subledger reconciles to GL.
 4. **Sales & Purchasing** — B3/B4 end-to-end with posting rules, allocation, returns/credit-debit notes, approvals. *Accept:* posting a sales invoice creates AR + Revenue + VAT (+ COGS/Inventory) and every figure drills to source.
@@ -372,4 +377,3 @@ For every phase: **Scope · Dependencies · DB · Backend · Frontend · Design 
 10. **Reports, Dashboard, Analytics, Audit UX, advanced workflows** — full report catalog, KPI dashboard wired to report queries, global audit UX, notification center, bank rec polish, print/PDF. *Accept:* every dashboard KPI drills to source; the end-to-end acceptance scenario (§ below) passes in all 4 QA combos.
 
 **End-to-end acceptance (whole system):** create customer → create & post invoice → AR, revenue, tax, inventory, COGS, journal, ledger, trial balance, financial statements, and dashboard all update automatically, and **every number traces back to the source transaction** — in EN/AR × light/dark, desktop & mobile.
-

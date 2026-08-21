@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Notifications\NotificationService;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\User;
@@ -26,6 +27,8 @@ class AppPageController extends Controller
 
     public function dashboard(): Response
     {
+        $userId = auth()->id();
+
         return Inertia::render('Dashboard', [
             'counts' => [
                 'companies' => Company::query()->count(),
@@ -35,10 +38,23 @@ class AppPageController extends Controller
                 'permissions' => Permission::query()->count(),
                 'numberSequences' => DB::table('number_sequence')->count(),
                 'unreadNotifications' => DB::table('notification')
-                    ->where('user_id', auth()->id())
+                    ->where('user_id', $userId)
                     ->where('read', false)
                     ->count(),
             ],
+            'recentNotifications' => DB::table('notification')
+                ->where('user_id', $userId)
+                ->orderByDesc('at')
+                ->limit(5)
+                ->get()
+                ->map(fn (object $item): array => [
+                    'id' => $item->id,
+                    'type' => $item->type,
+                    'targetRef' => $item->target_ref,
+                    'read' => (bool) $item->read,
+                    'at' => $item->at,
+                ])
+                ->values(),
         ]);
     }
 
@@ -52,15 +68,22 @@ class AppPageController extends Controller
         $locale = $this->locale($request);
 
         return Inertia::render('Settings/Company', [
+            'currencies' => collect(config('erp_currencies.supported'))
+                ->map(fn (array $currency): array => [
+                    'code' => $currency['code'],
+                    'name' => $currency['name'][$locale] ?? $currency['name']['en'] ?? $currency['code'],
+                ])
+                ->values(),
             'companies' => Company::query()
-                ->withCount('branches')
                 ->orderBy('created_at')
                 ->get()
                 ->map(fn (Company $company): array => [
                     'id' => $company->id,
                     'name' => $this->modelTranslation($company, 'name', $locale),
+                    'nameEn' => $this->modelTranslation($company, 'name', 'en'),
+                    'nameAr' => $this->modelTranslation($company, 'name', 'ar'),
                     'baseCurrency' => $company->base_currency,
-                    'branchCount' => $company->branches_count,
+                    'lockVersion' => (int) $company->lock_version,
                     'createdAt' => optional($company->created_at)->toIso8601String(),
                 ])
                 ->values(),
@@ -73,18 +96,16 @@ class AppPageController extends Controller
 
         return Inertia::render('Settings/Branches', [
             'branches' => Branch::query()
-                ->with('company')
-                ->orderBy('company_id')
                 ->orderBy('code')
                 ->get()
                 ->map(fn (Branch $branch): array => [
                     'id' => $branch->id,
-                    'companyName' => $branch->company
-                        ? $this->modelTranslation($branch->company, 'name', $locale)
-                        : '',
                     'code' => $branch->code,
                     'name' => $this->modelTranslation($branch, 'name', $locale),
+                    'nameEn' => $this->modelTranslation($branch, 'name', 'en'),
+                    'nameAr' => $this->modelTranslation($branch, 'name', 'ar'),
                     'isActive' => $branch->is_active,
+                    'lockVersion' => (int) $branch->lock_version,
                 ])
                 ->values(),
         ]);
@@ -92,34 +113,26 @@ class AppPageController extends Controller
 
     public function numbering(Request $request): Response
     {
-        $locale = $this->locale($request);
-
         return Inertia::render('Settings/Numbering', [
             'sequences' => DB::table('number_sequence')
-                ->leftJoin('company', 'company.id', '=', 'number_sequence.company_id')
                 ->select([
                     'number_sequence.id',
-                    'number_sequence.company_id',
                     'number_sequence.key',
                     'number_sequence.doc_type',
                     'number_sequence.prefix',
                     'number_sequence.include_year',
-                    'number_sequence.include_branch',
                     'number_sequence.padding',
                     'number_sequence.reset_policy',
                     'number_sequence.next_value',
-                    'company.name as company_name',
                 ])
                 ->orderBy('number_sequence.doc_type')
                 ->get()
                 ->map(fn (object $sequence): array => [
                     'id' => $sequence->id,
-                    'companyName' => $this->translationFromJson($sequence->company_name, $locale),
                     'key' => $sequence->key,
                     'docType' => $sequence->doc_type,
                     'prefix' => $sequence->prefix,
                     'includeYear' => (bool) $sequence->include_year,
-                    'includeBranch' => (bool) $sequence->include_branch,
                     'padding' => (int) $sequence->padding,
                     'resetPolicy' => $sequence->reset_policy,
                     'nextValue' => (int) $sequence->next_value,
@@ -144,8 +157,8 @@ class AppPageController extends Controller
                     'theme' => $user->theme,
                     'isActive' => $user->is_active,
                     'roles' => $user->roles
-                        ->pluck('name')
-                        ->sort()
+                        ->sortBy('name')
+                        ->map(fn (Role $role): array => ['id' => $role->id, 'name' => $role->name])
                         ->values(),
                 ])
                 ->values(),
@@ -162,24 +175,23 @@ class AppPageController extends Controller
                         ->values(),
                 ])
                 ->values(),
+            'allPermissions' => Permission::query()
+                ->orderBy('name')
+                ->pluck('name')
+                ->values(),
         ]);
     }
 
-    public function notifications(Request $request): Response
+    public function notifications(Request $request, NotificationService $notifications): Response
     {
-        $locale = $this->locale($request);
-
         return Inertia::render('Notifications', [
-            'items' => DB::table('notification')
-                ->leftJoin('company', 'company.id', '=', 'notification.company_id')
-                ->where('notification.user_id', $request->user()->id)
+            'items' => $notifications->queryForUser($request->user()->id)
                 ->select([
                     'notification.id',
                     'notification.type',
                     'notification.target_ref',
                     'notification.read',
                     'notification.at',
-                    'company.name as company_name',
                 ])
                 ->orderByDesc('notification.at')
                 ->limit(100)
@@ -190,7 +202,6 @@ class AppPageController extends Controller
                     'targetRef' => $notification->target_ref,
                     'read' => (bool) $notification->read,
                     'at' => $notification->at,
-                    'companyName' => $this->translationFromJson($notification->company_name, $locale),
                 ])
                 ->values(),
         ]);
@@ -198,12 +209,16 @@ class AppPageController extends Controller
 
     public function markNotificationRead(Request $request, string $id): RedirectResponse
     {
-        DB::table('notification')
-            ->where('id', $id)
-            ->where('user_id', $request->user()->id)
-            ->update(['read' => true]);
+        app(NotificationService::class)->markRead($request->user()->id, $id);
 
         return back()->with('success', __('Notification marked as read.'));
+    }
+
+    public function markAllNotificationsRead(Request $request): RedirectResponse
+    {
+        app(NotificationService::class)->markAllRead($request->user()->id);
+
+        return back()->with('success', __('All notifications marked as read.'));
     }
 
     private function locale(Request $request): string

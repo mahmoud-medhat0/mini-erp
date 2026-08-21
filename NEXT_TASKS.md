@@ -1,6 +1,6 @@
 # NEXT TASKS — actionable checklist
 
-> Laravel correction: do not port the old company-as-tenant or first-run owner onboarding assumptions into Laravel. Read `DOMAIN_MODEL_REVIEW.md` before using this historical Next.js checklist as implementation guidance.
+> Laravel correction: do not port the old company-as-tenant, Company/User membership, Company/Branch ownership, company-scoped roles, or first-run owner onboarding assumptions into Laravel. Read `DOMAIN_MODEL_REVIEW.md` before using this historical Next.js checklist as implementation guidance.
 
 Ordered. Each task: what to build · key files · acceptance. Follow the verification gate (lint → typecheck → tests → invariants → secret scan) and commit in small conventional commits. Keep `IMPLEMENTATION_STATUS.md` honest.
 

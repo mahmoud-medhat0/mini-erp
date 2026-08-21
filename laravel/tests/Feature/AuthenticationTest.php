@@ -7,6 +7,7 @@ use Database\Seeders\BootstrapUserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -111,5 +112,25 @@ class AuthenticationTest extends TestCase
 
         $this->assertTrue($user->is_active);
         $this->assertTrue(Hash::check('Password123!', $user->password));
+    }
+
+    public function test_bootstrap_user_role_assignment_can_be_disabled(): void
+    {
+        config()->set('erp_auth.bootstrap_user.enabled', true);
+        config()->set('erp_auth.bootstrap_user.assign_role', false);
+        config()->set('erp_auth.bootstrap_user.email', 'admin@mini-erp.local');
+        config()->set('erp_auth.bootstrap_user.password', 'Password123!');
+
+        Role::query()->create([
+            'name' => 'ERP_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        $this->seed(BootstrapUserSeeder::class);
+
+        $user = User::query()->where('email', 'admin@mini-erp.local')->firstOrFail();
+
+        $this->assertFalse($user->hasRole('ERP_ADMIN'));
     }
 }

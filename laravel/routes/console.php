@@ -8,6 +8,7 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Concurrency;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Command\Command;
 
@@ -36,23 +37,15 @@ Artisan::command('concurrency:stress {--workers=100 : Number of concurrent opera
     }
 
     $workers = max(1, min((int) $this->option('workers'), 250));
-    $companyId = (string) Str::uuid();
     $sequenceKey = 'stress-'.Str::lower(Str::random(10));
     $operation = 'stress.idempotency.'.Str::lower(Str::random(10));
     $idempotencyKey = (string) Str::uuid();
-
-    DB::table('company')->insert([
-        'id' => $companyId,
-        'name' => json_encode(['en' => 'Concurrency Stress', 'ar' => 'اختبار التزامن'], JSON_THROW_ON_ERROR),
-        'created_at' => now(),
-        'updated_at' => now(),
-    ]);
 
     try {
         $sequenceTasks = [];
 
         for ($i = 0; $i < $workers; $i++) {
-            $sequenceTasks[] = static fn (): int => app(NumberSequenceAllocator::class)->nextValue($companyId, $sequenceKey);
+            $sequenceTasks[] = static fn (): int => app(NumberSequenceAllocator::class)->nextValue($sequenceKey);
         }
 
         $values = Concurrency::run($sequenceTasks);
@@ -105,14 +98,15 @@ Artisan::command('concurrency:stress {--workers=100 : Number of concurrent opera
         return Command::SUCCESS;
     } finally {
         DB::table('number_sequence')
-            ->where('company_id', $companyId)
             ->where('key', $sequenceKey)
             ->delete();
         DB::table('idempotency_keys')
             ->where('operation', $operation)
             ->delete();
-        DB::table('company')
-            ->where('id', $companyId)
-            ->delete();
     }
 })->purpose('Run PostgreSQL concurrency stress checks for numbering and idempotency');
+
+Schedule::command('tokens:gc --batch=500')
+    ->hourly()
+    ->withoutOverlapping()
+    ->description('Delete expired auth and idempotency tokens');

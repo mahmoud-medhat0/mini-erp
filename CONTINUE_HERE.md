@@ -1,6 +1,6 @@
 # CONTINUE HERE — Mini ERP handoff
 
-> **Laravel correction:** this handoff describes the existing Next.js reference and contains old tenant wording. For the Laravel migration target, read `DOMAIN_MODEL_REVIEW.md` first: Company/Branch are ERP business scopes, not SaaS tenants, and first-run owner onboarding must not be ported unless the spec explicitly revalidates it.
+> **Laravel correction:** this handoff describes the existing Next.js reference and contains old tenant/company-scope wording. For the Laravel migration target, read `DOMAIN_MODEL_REVIEW.md` first: Company/Branch/User ownership, currentCompany/currentBranch, and first-run owner onboarding must not be ported unless an explicit owner decision revalidates them.
 
 > **ملخص بالعربي:** ده ملف تسليم لإكمال المشروع بموديل/جلسة تانية. المشروع ERP محاسبي حقيقي (مش mockup). **Phase 1 (Foundation) مكتملة ومتحققة على PostgreSQL وGitHub Actions.** الكود كله Next.js + TypeScript + Prisma + PostgreSQL، مبني كـ Modular Monolith بطبقات صارمة. اقرأ الأقسام تحت: **إيه اللي خلص**، **إزاي تشغّل وتتحقق**، **حالة Git/CI**، و**بداية Phase 2**. مهم: لا تكسر أي invariant محاسبي، ولا تحط بيانات وهمية، وكل مبلغ فلوس = BigInt minor units (مفيش float).
 

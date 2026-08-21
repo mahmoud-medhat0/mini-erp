@@ -22,13 +22,12 @@ class ConcurrencyFoundationTest extends TestCase
 
     public function test_number_allocator_returns_unique_increasing_values(): void
     {
-        $company = $this->createCompany();
         $allocator = app(NumberSequenceAllocator::class);
 
         $values = [];
 
         for ($i = 0; $i < 100; $i++) {
-            $values[] = $allocator->nextValue($company->id, 'sales.invoice');
+            $values[] = $allocator->nextValue('sales.invoice');
         }
 
         sort($values);
@@ -185,12 +184,10 @@ class ConcurrencyFoundationTest extends TestCase
 
     public function test_notification_dedupe_key_prevents_duplicate_logical_notifications(): void
     {
-        $company = $this->createCompany();
         $user = User::factory()->create();
 
         DB::table('notification')->insert([
             'id' => (string) Str::uuid(),
-            'company_id' => $company->id,
             'user_id' => $user->id,
             'type' => 'test',
             'target_ref' => 'invoice:1',
@@ -202,7 +199,6 @@ class ConcurrencyFoundationTest extends TestCase
 
         DB::table('notification')->insert([
             'id' => (string) Str::uuid(),
-            'company_id' => $company->id,
             'user_id' => $user->id,
             'type' => 'test',
             'target_ref' => 'invoice:1',

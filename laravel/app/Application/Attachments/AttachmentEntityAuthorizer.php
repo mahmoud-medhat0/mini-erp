@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Application\Attachments;
+
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\DB;
+
+class AttachmentEntityAuthorizer
+{
+    public function authorize(Authenticatable $user, string $entityType, string $entityId, string $ability): void
+    {
+        $definition = $this->definition($entityType);
+
+        abort_if($definition === null, 403);
+
+        $permission = $definition['permissions'][$ability] ?? null;
+
+        abort_if($permission === null, 403);
+        abort_unless($user->can($permission), 403);
+        abort_unless($this->entityExists($definition, $entityId), 404);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function allowedEntityTypes(): array
+    {
+        return array_keys(config('erp_attachments.entities', []));
+    }
+
+    /**
+     * @return array{table: string, key: string, permissions: array<string, string>}|null
+     */
+    private function definition(string $entityType): ?array
+    {
+        $definition = config("erp_attachments.entities.{$entityType}");
+
+        if (! is_array($definition)) {
+            return null;
+        }
+
+        $table = $definition['table'] ?? null;
+        $key = $definition['key'] ?? null;
+        $permissions = $definition['permissions'] ?? null;
+
+        if (! is_string($table) || ! is_string($key) || ! is_array($permissions)) {
+            return null;
+        }
+
+        if (! preg_match('/^[A-Za-z0-9_]+$/', $table) || ! preg_match('/^[A-Za-z0-9_]+$/', $key)) {
+            return null;
+        }
+
+        /** @var array<string, string> $permissions */
+        return [
+            'table' => $table,
+            'key' => $key,
+            'permissions' => $permissions,
+        ];
+    }
+
+    /**
+     * @param  array{table: string, key: string, permissions: array<string, string>}  $definition
+     */
+    private function entityExists(array $definition, string $entityId): bool
+    {
+        return DB::table($definition['table'])
+            ->where($definition['key'], $entityId)
+            ->exists();
+    }
+}

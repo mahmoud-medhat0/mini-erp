@@ -55,6 +55,28 @@ class HandleInertiaRequests extends Middleware
                         ->where('read', false)
                         ->count()
                     : 0,
+                'recent' => fn () => $request->user() && Schema::hasTable('notification')
+                    ? DB::table('notification')
+                        ->where('notification.user_id', $request->user()->id)
+                        ->select([
+                            'notification.id',
+                            'notification.type',
+                            'notification.target_ref',
+                            'notification.read',
+                            'notification.at',
+                        ])
+                        ->orderByDesc('notification.at')
+                        ->limit(5)
+                        ->get()
+                        ->map(fn (object $n): array => [
+                            'id' => $n->id,
+                            'type' => $n->type,
+                            'targetRef' => $n->target_ref,
+                            'read' => (bool) $n->read,
+                            'at' => (string) $n->at,
+                        ])
+                        ->all()
+                    : [],
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

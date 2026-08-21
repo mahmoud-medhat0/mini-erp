@@ -33,21 +33,64 @@
     "language": {
       "en": "EN",
       "ar": "Arabic"
+    },
+    "select": {
+      "placeholder": "Select an option...",
+      "searchPlaceholder": "Search...",
+      "noOptions": "No options found",
+      "clear": "Clear selection"
     }
   },
   "app": {
     "actions": {
-      "logout": "Logout"
+      "logout": "Logout",
+      "create": "Create",
+      "save": "Save",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "addCompany": "Add Company",
+      "addBranch": "Add Branch",
+      "addSequence": "Add Number Sequence",
+      "addRole": "Add New Role",
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "assign": "Assign",
+      "revoke": "Revoke",
+      "upload": "Upload",
+      "addUser": "Add User",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User"
     },
     "nav": {
       "dashboard": "Dashboard",
       "settings": "Settings",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "diagnostics": "System Diagnostics",
+      "groups": {
+        "main": "Main",
+        "administration": "Administration",
+        "system": "System"
+      }
+    },
+    "header": {
+      "workspace": "Mini ERP Core Workspace",
+      "postgresOnline": "PostgreSQL Online",
+      "systemOnline": "System Online",
+      "systemOffline": "Offline",
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar"
     },
     "dashboard": {
       "description": "Live foundation data from the Laravel database.",
       "noKpisTitle": "Accounting KPIs are not available yet",
       "noKpisDescription": "Financial KPIs will come from posted accounting entries after the accounting core is migrated.",
+      "liveDb": "Live DB",
+      "migrationReady": "Migration Ready",
+      "ledgerState": "Ledger State",
+      "ledgerBalanced": "Balanced Σ Dr = Σ Cr",
+      "securityEngine": "Security Engine",
+      "databaseEngine": "Database Engine",
+      "quickActions": "Quick Actions",
       "counts": {
         "companies": "Companies",
         "branches": "Branches",
@@ -68,7 +111,7 @@
         },
         "branches": {
           "title": "Branches",
-          "description": "Company branches and operational status."
+          "description": "Branch reference records and operational status."
         },
         "numbering": {
           "title": "Numbering",
@@ -80,15 +123,15 @@
         }
       },
       "company": {
-        "description": "Company is a business scope in this ERP migration, not a SaaS tenant.",
+        "description": "Company settings are business configuration, not SaaS tenancy or user membership.",
         "empty": "No companies have been created yet"
       },
       "branches": {
-        "description": "Branch records are shown from the ERP foundation schema.",
+        "description": "Branch records are standalone references until a later explicit business model defines more.",
         "empty": "No branches have been created yet"
       },
       "numbering": {
-        "description": "Sequence values are allocated server-side; the UI only reads configuration.",
+        "description": "Sequence values are allocated server-side by document key, without company or branch dimensions.",
         "empty": "No numbering sequences have been configured yet"
       },
       "users": {
@@ -98,11 +141,16 @@
       }
     },
     "notifications": {
-      "description": "Notifications addressed to the signed-in user.",
+      "description": "Real-time updates, alerts, and system activities addressed to your account.",
       "empty": "No notifications yet",
+      "emptyRecent": "No recent notifications",
+      "viewAll": "View all notifications",
+      "system": "System notification",
       "read": "Read",
       "unread": "Unread",
-      "markRead": "Mark read"
+      "markRead": "Mark read",
+      "markAllRead": "Mark all as read",
+      "all": "All"
     },
     "fields": {
       "company": "Company",
@@ -120,12 +168,30 @@
       "roles": "Roles",
       "permissions": "Permissions",
       "notification": "Notification",
-      "target": "Target"
+      "target": "Target",
+      "nameEn": "English name",
+      "nameAr": "Arabic name",
+      "key": "Key",
+      "prefix": "Prefix",
+      "padding": "Padding",
+      "includeYear": "Year",
+      "file": "File",
+      "entityType": "Entity type",
+      "entityId": "Entity ID"
     },
     "status": {
       "active": "Active",
       "inactive": "Inactive",
       "template": "Template"
+    },
+    "permissionsList": {
+      "settings.configure": "Configure System Settings",
+      "users.configure": "Manage Users & Permissions",
+      "diagnostics.view": "View System Diagnostics",
+      "company.manage": "Manage Companies",
+      "branch.manage": "Manage Branches",
+      "numbering.manage": "Manage Number Sequences",
+      "reports.view": "View Financial Reports"
     },
     "state": {
       "none": "None"
