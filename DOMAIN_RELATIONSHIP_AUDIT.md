@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Evidence rule: if a relationship is not explicitly supported by original owner requirements or latest owner correction, classify it as `UNDEFINED - DO NOT ASSUME`. Do not infer ownership from ERP convention, generated docs, Prisma schema, Laravel migrations, or tests.
 
-Post-audit correction note: the misleading global role template `COMPANY_ADMIN` was renamed to `ERP_ADMIN`. It remains a global role template and does not imply Company ownership. FiscalYear ownership/context is now resolved as `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant semantics.
+Post-audit correction note: the misleading global role template `COMPANY_ADMIN` was renamed to `ERP_ADMIN`. It remains a global role template and does not imply Company ownership. FiscalYear ownership/context is now resolved as `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant semantics. Spatie Activitylog is now the active audit backend; legacy `audit_log` remains archive.
 
 ## Relationship Classification Matrix
 
@@ -31,7 +31,7 @@ Post-audit correction note: the misleading global role template `COMPANY_ADMIN` 
 | User -> Branch | UNDEFINED - DO NOT ASSUME | No schema/model relationship. | Do not add. |
 | User = Employee | UNDEFINED - DO NOT ASSUME | No employee table/relationship in Laravel. | Do not infer. |
 | User -> Notification | CONFIRMED | `notification.user_id` FK cascade delete. | Keep as target-user relationship. |
-| User -> AuditLog as actor | CONFIRMED | `audit_log.actor_id` FK set null on delete. | Keep; consider soft deletes for audit fidelity later. |
+| User -> ActivityLog as causer | CONFIRMED | Spatie `activity_log.causer_type/causer_id` plus `AuditLogger` properties. | Keep through `AuditLogger`; consider actor snapshots/soft deletes later if required. |
 | User -> Attachment uploaded_by | DERIVED | `attachment.uploaded_by` FK set null on delete. | Keep for provenance; not authorization. |
 | Role templates | DERIVED | `RbacSeeder` seeds global templates. | Keep as global templates. |
 | `ERP_ADMIN` role name | CONFIRMED GLOBAL RBAC TEMPLATE | Replaces legacy `COMPANY_ADMIN`; no company ownership implied. | Keep as global template. |
@@ -44,8 +44,8 @@ Post-audit correction note: the misleading global role template `COMPANY_ADMIN` 
 | NumberSequence -> Company | REMOVE | No `number_sequence.company_id`. | Keep removed. |
 | NumberSequence -> Branch | REMOVE | No `include_branch` or branch FK. | Keep removed. |
 | NumberSequence identity | NEEDS_OWNER_DECISION | Current unique identity is global `key`. | Confirm document type/year/reset dimensions. |
-| AuditLog -> Company/Branch | REMOVE | No company/branch columns. | Keep removed. |
-| AuditLog -> Actor and audited entity/event | CONFIRMED | Actor FK plus `entity_type`, `entity_id`, `action`. | Keep. |
+| ActivityLog/AuditLog -> Company/Branch | REMOVE | No company/branch columns on active `activity_log` or legacy `audit_log`. | Keep removed. |
+| ActivityLog -> Actor and audited entity/event | CONFIRMED | Spatie causer fields plus mapped `properties.entity_type`, `properties.entity_id`, and event/action. | Keep. |
 | Attachment -> Company | REMOVE | No company column. | Keep removed. |
 | Attachment -> Business Entity | DERIVED | Uses `entity_type` and `entity_id`. | Keep, but add entity authorization before production use. |
 | Notification -> Company | REMOVE | No company column. | Keep removed. |
@@ -68,7 +68,7 @@ These are safe to build on now:
 - Users can have roles and direct permissions.
 - Roles can have permissions.
 - Notifications target users.
-- Audit records link to an actor when available and to an audited entity/event reference.
+- Activity records link to an actor/causer when available and to an audited entity/event reference.
 - Attachments record uploader provenance and generic entity reference.
 - Fiscal years are global to the ERP installation/business profile.
 - Financial periods belong to fiscal years.
@@ -94,6 +94,9 @@ These must not be used:
 - `fiscal_year.company_id`
 - `audit_log.company_id`
 - `audit_log.branch_id`
+- `activity_log.company_id`
+- `activity_log.branch_id`
+- `activity_log.tenant_id`
 - `attachment.company_id`
 - `notification.company_id`
 

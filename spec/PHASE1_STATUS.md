@@ -1,5 +1,7 @@
 # IMPLEMENTATION READINESS & PHASE 1 STATUS
 
+> Legacy Next.js Phase-1 snapshot. Current Laravel status lives in `../IMPLEMENTATION_STATUS.md` and `../CONTINUE_HERE.md`.
+
 > 2026-08-21 final update: Phase 1 Foundation is COMPLETE. PostgreSQL-backed integration, Playwright E2E, production build, and GitHub Actions CI have all passed. Later business modules remain scaffold-only until their roadmap phases.
 
 ## A. Repository/spec inspection (§56.1–2)

@@ -21,6 +21,7 @@ This repository is migrating in parallel from the verified Next.js foundation to
 - Tailwind
 - Laravel session auth + CSRF
 - Spatie Laravel Permission
+- Spatie Laravel Activitylog
 - Laravel queues, scheduler, notifications, policies, and gates
 - Pest/PHPUnit and browser tests where appropriate
 
@@ -30,6 +31,7 @@ This repository is migrating in parallel from the verified Next.js foundation to
 - `@inertiajs/react`, `react`, `react-dom`: required frontend runtime.
 - `spatie/laravel-permission`: required RBAC foundation for M5.
 - `spatie/laravel-translatable`: used from M3 for database-backed multilingual master data names, starting with company, branch, and currency.
+- `spatie/laravel-activitylog`: active audit backend from M10; legacy `audit_log` remains an archive.
 
 ## Schema Decision
 
@@ -40,6 +42,22 @@ M2 does not port the Prisma schema. The Laravel target must not copy the old com
 M2 only boots Laravel. M5 replaces Auth.js with Laravel session authentication, Argon2id hashing, CSRF, login throttling, session regeneration, logout invalidation, and generic credential errors.
 
 M5 auth backend includes Laravel's native `users` profile fields (`locale`, `theme`, `is_active`, `mfa_enabled`), Argon2id hashing, session login/logout, CSRF, active-account checks, throttling, session regeneration, logout invalidation, and a protected Inertia foundation route. Authentication must not establish a current tenant/current company/current branch unless a later domain review explicitly defines that workflow.
+
+## Accounting Migration
+
+Phase 2 Accounting Core has been implemented in Laravel as the current ledger spine: account categories/types, chart of accounts, FX rates, fiscal years/periods, manual journals, posting, immutable ledger entries, reversal, opening balances, General Journal, General Ledger, Trial Balance, demo data, and accounting stress tests.
+
+This does not implement later operational modules such as AR/AP workflows, Cash/Bank/Cheques, Sales, Purchasing, Inventory, Payroll, Rentals, or full financial statements.
+
+## Audit Migration
+
+M10 switches active audit writes to Spatie Activitylog.
+
+- `activity_log` is the active audit table.
+- `audit_log` is retained as a legacy archive.
+- `AuditLogger::record(...)` remains the central application API and writes through Spatie.
+- `AuditLogQueryService` maps Spatie records back to the existing audit viewer field aliases.
+- PostgreSQL/SQLite triggers enforce append-only behavior on both `activity_log` and legacy `audit_log`.
 
 ## RBAC Migration
 
@@ -58,7 +76,7 @@ M2 creates one minimal Inertia page to verify the stack. M6 will move React comp
 1. Keep `app/` running as reference.
 2. Build Laravel foundation in `laravel/`.
 3. Port schema, kernel, auth/RBAC, UI, and foundation flows incrementally.
-4. Run both stacks in CI during parallel migration.
+4. Run Laravel verification locally until a Laravel CI pipeline is explicitly connected.
 5. Remove Next runtime only after Laravel parity is tested and explicitly approved.
 
 ## Rollback Strategy

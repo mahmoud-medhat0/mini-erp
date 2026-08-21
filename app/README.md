@@ -1,5 +1,7 @@
 # Mini ERP — Application
 
+> Legacy reference only. The active implementation target is now `../laravel`. Do not use this README as current project status, and do not restore old tenant/company-scope assumptions from the Next.js reference app.
+
 Production-grade modular-monolith ERP. **Next.js (App Router) · TypeScript · PostgreSQL · Prisma · Zod · Tailwind.** Node.js runtime only (never Edge for accounting/DB).
 
 ## Architecture (enforced)

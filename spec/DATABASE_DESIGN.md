@@ -28,7 +28,8 @@ PostgreSQL target design reference. The current Laravel foundation uses Eloquent
 |`user_role`|user_id, role_id, scope_json|—|
 |`number_sequence`|doc_type, prefix, include_year, padding, next_value, reset_policy|current Laravel unique by global `key`; no company/branch dimension|
 |`approval_flow` / `approval_step` / `approval_action`|doc_type, order, approver, condition_json / decision, reason|—|
-|`audit_log`|entity_type, entity_id, action, actor, before_json, after_json, at, ip|append-only|
+|`activity_log`|Spatie Activitylog fields: event, description, causer, subject, properties, timestamps|active append-only audit backend; no Company/Branch scope|
+|`audit_log`|entity_type, entity_id, action, actor, before_json, after_json, at, ip|legacy append-only archive|
 |`attachment`|entity_type, entity_id, file_ref, name|polymorphic|
 |`notification`|type, target_ref, actor, read, at, user_id|—|
 

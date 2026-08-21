@@ -35,6 +35,7 @@ If a relationship is not explicitly established by owner requirements or later o
 - Empty RBAC assignments do not grant management access.
 - Settings and user-management mutations require explicit permissions such as `settings.configure` or `users.configure`.
 - Attachment access must be authorized through an explicit allowlisted entity registry and the referenced entity's server-side authorization rule.
+- Audit-log viewing requires `audit.view` or an explicitly allowed administrative permission.
 
 ## RBAC
 
@@ -52,13 +53,17 @@ If a relationship is not explicitly established by owner requirements or later o
 
 ## Data And Integrity
 
-- Money and accounting writes must remain transactional when implemented.
+- Money and accounting writes must remain transactional.
 - Posted financial history, audit records, numbering history, and journal data must not be garbage-collected merely because of age.
-- Audit records link actor, action, entity type/id, before/after payload, and timestamp without invented Company/Branch scope.
+- Spatie Activitylog is the active audit backend. Audit records link actor/causer, action/event, entity type/id, before/after payload, and timestamp without invented Company/Branch scope.
+- Legacy `audit_log` is retained as archive; both `activity_log` and `audit_log` are append-only at the database level.
+- Ledger entries are immutable; corrections must use reversal workflows.
 - FiscalYear is global to the single ERP context and must not be used as a Company/Tenant boundary.
 
 ## Current Gaps
 
-- Full accounting posting, period close enforcement, subledger posting, financial statements, and module policies are not implemented yet.
+- Full financial statements and later operational modules are not implemented yet.
+- AR/AP, Cash, Bank, Cheques, Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, Projects, and Budgeting need module-specific policies when implemented.
 - Branch exact semantics remain owner-decision-required.
 - Production admin/bootstrap process needs an explicit controlled mechanism; no implicit "first user" or "empty RBAC" privilege escalation is allowed.
+- Production scheduler execution still needs deployment wiring outside the codebase.

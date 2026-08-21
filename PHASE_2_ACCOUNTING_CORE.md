@@ -1,5 +1,7 @@
 # PHASE 2 - ACCOUNTING CORE IMPLEMENTATION CONTRACT
 
+> Current status update, 2026-08-21: Phase 2 Accounting Core has been implemented and locally verified in the Laravel target. Treat this file as the historical implementation contract and regression checklist, not as an instruction to rebuild Phase 2 from scratch. Current status lives in `IMPLEMENTATION_STATUS.md`; next tasks live in `NEXT_TASKS.md`.
+
 Audience: Gemini Flash 3.6 executing inside this repository.
 
 Purpose: implement Phase 2 Accounting Core only, using the current Laravel target and the latest owner corrections. This is an execution contract, not a brainstorming document. Follow it directly. Do not reconstruct architecture from older generated specs.
@@ -68,7 +70,7 @@ Current foundation already includes:
 - Number sequence allocator with PostgreSQL `INSERT ... ON CONFLICT ... DO UPDATE RETURNING`.
 - Idempotency store.
 - Optimistic locking currently used for `company` and `branch`.
-- Append-only audit service by convention.
+- Spatie Activitylog-backed audit service with append-only database enforcement.
 - Attachment and notification service foundations.
 - Token garbage collection.
 - PostgreSQL concurrency stress command for existing numbering/idempotency primitives.
@@ -270,7 +272,8 @@ Existing tables to reuse:
 - `financial_period`
 - `exchange_rate`
 - `number_sequence`
-- `audit_log`
+- `activity_log` through `AuditLogger`
+- legacy `audit_log` archive
 - `idempotency_keys`
 - `users`
 - Spatie permission tables
@@ -345,7 +348,7 @@ Audit every important action:
 - `opening_balance.create`
 - `opening_balance.post`
 
-Use `AuditLogger`. Do not invent company/branch audit fields.
+Use `AuditLogger`, which is backed by Spatie Activitylog in the current Laravel target. Do not invent company/branch audit fields.
 
 ### Slice 4 - Posting Engine
 

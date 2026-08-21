@@ -2,32 +2,23 @@
 
 Date: 2026-08-21
 
-Scope: current Laravel database schema assumptions, with focus on unsupported Company / Branch / User scoping and related audit, attachment, notification, numbering, RBAC, and concurrency tables.
+Scope: current Laravel schema after M10. Focus: unsupported Company/Branch/User scoping, accounting Phase 2 tables, audit/activity logging, attachments, notifications, numbering, RBAC, and concurrency.
 
-Post-audit correction note: after this audit, the misleading global `COMPANY_ADMIN` role template was renamed to `ERP_ADMIN`, settings management now denies empty RBAC assignments, attachment authorization/cleanup were hardened, and `fiscal_year.company_id` was removed for the single-ERP FiscalYear context.
+## Verification Snapshot
 
-Verification commands used:
+Latest full verification from `laravel/`:
 
-- `php artisan migrate:status`
-- `php artisan route:list --except-vendor`
-- `php artisan db:table branch`
-- `php artisan db:table number_sequence`
-- `php artisan db:table audit_log`
-- `php artisan db:table attachment`
-- `php artisan db:table notification`
-- `php artisan db:table fiscal_year`
-- `php artisan db:table company`
-- `php artisan db:table financial_period`
-- `php artisan db:table roles`
-- `php artisan db:table permissions`
-- `php artisan db:table model_has_roles`
-- `php artisan db:table model_has_permissions`
-- `php artisan db:table role_has_permissions`
-- `php artisan db:table idempotency_keys`
+- `php artisan migrate:status`: 24 migrations Ran.
+- `php artisan test`: 145 tests / 1185 assertions passed.
+- `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
+- `php artisan concurrency:stress --workers=100`: passed.
+- `php artisan accounting:concurrency-stress --workers=50`: passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed.
 
 ## Applied Migrations
 
-`php artisan migrate:status` reports all current migrations ran:
+Current migrations reported as Ran:
 
 - `0001_01_01_000000_create_users_table`
 - `0001_01_01_000001_create_cache_table`
@@ -41,298 +32,140 @@ Verification commands used:
 - `2026_08_21_070000_remove_unsupported_company_branch_scope_assumptions`
 - `2026_08_21_080000_rename_company_admin_role_template`
 - `2026_08_21_090000_remove_fiscal_year_company_scope`
+- `2026_08_21_092749_create_activity_log_table`
+- `2026_08_21_092750_add_event_column_to_activity_log_table`
+- `2026_08_21_092751_add_batch_uuid_column_to_activity_log_table`
+- `2026_08_21_100000_create_phase2_accounting_core_tables`
+- `2026_08_21_110000_enforce_ledger_entry_immutability`
+- `2026_08_21_120000_add_currency_foreign_key_constraints`
+- `2026_08_21_130000_add_timestamps_to_exchange_rate_table`
+- `2026_08_21_140000_create_account_type_and_add_relations`
+- `2026_08_21_150000_create_account_category_table_and_update_account_type`
+- `2026_08_21_160000_canonicalize_contra_revenue_account_type`
+- `2026_08_21_170000_enforce_audit_log_immutability`
+- `2026_08_21_180000_enforce_activity_log_immutability`
 
 ## Unsupported Assumptions Removed Or Absent
 
 | Assumption | Current schema status | Classification |
-| --- | --- | --- |
-| `company_user` pivot | Table absent; schema test asserts absence. | REMOVED LEGACY/AI ASSUMPTION |
+|---|---|---|
+| `company_user` pivot | Table absent; tests assert absence. | REMOVED LEGACY/AI ASSUMPTION |
 | `users.company_id` | Column absent. | UNDEFINED - DO NOT ASSUME |
 | `branch.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | Company -> Branch FK | Absent. | UNDEFINED - DO NOT ASSUME |
+| `fiscal_year.company_id` | Column absent; FiscalYear is global single-ERP context. | REMOVED LEGACY/AI ASSUMPTION |
 | `number_sequence.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
+| `number_sequence.branch_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | `number_sequence.include_branch` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | `audit_log.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | `audit_log.branch_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
+| `activity_log.company_id` | Column absent. | DO NOT ADD |
+| `activity_log.branch_id` | Column absent. | DO NOT ADD |
+| `activity_log.tenant_id` | Column absent. | DO NOT ADD |
 | `attachment.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | `notification.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
-| `fiscal_year.company_id` | Column absent; FiscalYear is global to this ERP installation/business profile. | REMOVED LEGACY/AI ASSUMPTION |
 | `roles.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | Spatie team foreign key | Not active; `permission.teams` false. | REMOVED |
 | `currentCompany` / `currentBranch` context | Not found in Laravel code. | REMOVED / ABSENT |
 
-## Remaining `company_id` / `branch_id`
-
-No runtime `company_id` or `branch_id` column was confirmed in the audited Laravel foundation tables.
-
-Non-runtime references remain in:
-
-- cleanup migrations that drop old unsupported columns if present;
-- tests asserting unsupported columns are absent;
-- stale docs and historical changelog/status files.
-
-These references are not active business schema.
-
-## Table Review
+## Key Tables
 
 ### `company`
 
-Columns verified:
-
-- `id` uuid primary key
-- `name` jsonb
-- `base_currency` char(3), default `EGP`
-- `settings_json` jsonb nullable
-- timestamps
-- `lock_version`
-
-Assumption review:
-
-- Safe as configurable company profile.
-- Does not prove multi-company tenancy.
-- No relationship to users, branches, roles, or permissions should be inferred.
+Company is a business profile/configuration record only. It does not own users, branches, roles, permissions, fiscal years, audit records, attachments, or notifications.
 
 ### `branch`
 
-Columns verified:
+Standalone reference records. No `company_id`, no Company relationship, and no DB-level code uniqueness because Branch exact semantics remain undefined.
 
-- `id` uuid primary key
-- `code`
-- `name` jsonb
-- `is_active`
-- `lock_version`
+### `fiscal_year` / `financial_period`
 
-Indexes:
-
-- primary key only
-
-Assumption review:
-
-- No `company_id`.
-- No company relationship.
-- No unique code constraint.
-- Exact branch semantics remain undefined.
-
-### `fiscal_year`
-
-Columns verified:
-
-- `id` uuid primary key
-- `year`
-- `start_date`
-- `end_date`
-- `status`
-
-Indexes and FKs:
-
-- unique `year`
-
-Assumption review:
-
-- FiscalYear is global to the single ERP installation/business profile.
-- No Company/Tenant relationship exists.
-- Period close/posting workflows must use FiscalYear/FinancialPeriod directly, not Company scope.
-
-### `financial_period`
-
-Columns verified:
-
-- `id` uuid primary key
-- `fiscal_year_id`
-- `month`
-- `start_date`
-- `end_date`
-- `status`
-
-Indexes and FKs:
-
-- unique `(fiscal_year_id, month)`
-- FK `fiscal_year_id` -> `fiscal_year.id`, cascade on delete
-
-Assumption review:
-
-- FinancialPeriod belongs to FiscalYear.
-- This relationship is valid in the single-ERP context.
+FinancialPeriod belongs to FiscalYear. FiscalYear is global to this single ERP installation/business profile.
 
 ### `number_sequence`
 
-Columns verified:
+Global sequence by `key`. No company or branch dimension. Atomic allocation uses PostgreSQL `INSERT ... ON CONFLICT ... DO UPDATE RETURNING`.
 
-- `id` uuid primary key
-- `key`
-- `doc_type`
-- `prefix`
-- `include_year`
-- `padding`
-- `reset_policy`
-- `next_value`
+### `activity_log`
 
-Indexes:
+Active audit backend through Spatie Activitylog.
 
-- unique `key`
+Expected core columns:
 
-Assumption review:
+- `id`
+- `log_name`
+- `description`
+- `subject_type`
+- `subject_id`
+- `event`
+- `causer_type`
+- `causer_id`
+- `properties`
+- `batch_uuid`
+- `created_at`
+- `updated_at`
 
-- No company dimension.
-- No branch dimension.
-- Concurrency-safe allocation by global `key` is implemented.
-- Business sequence dimensions and reset behavior still need owner confirmation.
+No company/branch/tenant scope. Append-only DB trigger blocks UPDATE/DELETE.
 
 ### `audit_log`
 
-Columns verified:
-
-- `id` uuid primary key
-- `actor_id` nullable
-- `action`
-- `entity_type`
-- `entity_id`
-- `before_json` nullable
-- `after_json` nullable
-- `reason` nullable
-- `request_id` nullable
-- `ip` nullable
-- `device` nullable
-- `at`
-
-Indexes and FKs:
-
-- index `(entity_type, entity_id)`
-- index `(actor_id, at)`
-- FK `actor_id` -> `users.id`, set null on delete
-
-Assumption review:
-
-- No company/branch scope.
-- Actor and audited entity/event are preserved.
-- Append-only is enforced by service convention, not by DB trigger/rule.
+Legacy archive retained for old audit rows. No new application writes should target this table. It remains append-only and has no company/branch fields.
 
 ### `attachment`
 
-Columns verified:
-
-- `id` uuid primary key
-- `entity_type`
-- `entity_id`
-- `file_ref`
-- `name`
-- `mime`
-- `size`
-- `uploaded_by` nullable
-- `at`
-
-Indexes and FKs:
-
-- index `(entity_type, entity_id)`
-- FK `uploaded_by` -> `users.id`, set null on delete
-
-Assumption review:
-
-- No company scope.
-- Generic entity reference is retained.
-- Authorization must come from the referenced entity policy, which is not implemented yet.
+Generic entity-linked metadata. Authorization comes from the allowlisted entity registry and server-side permissions, not company scope.
 
 ### `notification`
 
-Columns verified:
+User-targeted notifications with per-user dedupe. No company scope.
 
-- `id` uuid primary key
-- `user_id`
-- `type`
-- `target_ref`
-- `read`
-- `at`
-- `dedupe_key` nullable
+### Accounting Tables
 
-Indexes and FKs:
+Phase 2 accounting tables are implemented:
 
-- index `(user_id, read)`
-- unique `(user_id, dedupe_key)`
-- FK `user_id` -> `users.id`, cascade on delete
+- `account_category`
+- `account_type`
+- `account_group`
+- `account`
+- `journal_entry`
+- `journal_line`
+- `ledger_entry`
+- `opening_balance`
 
-Assumption review:
+Schema assumptions:
 
-- No company scope.
-- Target user relationship is valid.
-- Dedupe is per user, not global/company.
+- Account codes are global in the current single-ERP context.
+- AccountCategory -> AccountType is confirmed in current implementation.
+- AccountType -> AccountGroup/Account is confirmed in current implementation.
+- JournalEntry belongs to FinancialPeriod.
+- JournalLine belongs to JournalEntry and Account.
+- LedgerEntry is derived from posted JournalLine and is immutable.
+- OpeningBalance belongs to FiscalYear and Account.
+- No accounting table introduces company/branch/tenant scope.
 
 ### RBAC Tables
 
-`roles`:
+Spatie Permission tables are global:
 
-- global unique `(name, guard_name)`
-- `is_template`
-- no `company_id`
+- no Spatie teams
+- no `roles.company_id`
+- no company-owned permissions
+- `scope_json` remains an explicit future extension point, not a Company/Branch scope
 
-`permissions`:
+## Remaining `company_id` / `branch_id` References
 
-- unique `(name, guard_name)`
-- unique `(module, action)`
-- no `company_id`
+Allowed remaining references are non-runtime:
 
-`model_has_roles`, `model_has_permissions`, `role_has_permissions`:
+- cleanup migrations that drop old unsupported columns if present
+- tests asserting unsupported columns are absent
+- documentation describing removed assumptions
 
-- standard Spatie pivot structure
-- nullable `scope_json`
-- no active team/company FK
+These are not active business schema.
 
-Assumption review:
-
-- RBAC is confirmed.
-- Company-scoped RBAC is removed.
-- `scope_json` is a future extension point, not a confirmed company/branch scope.
-
-### `idempotency_keys`
-
-Columns verified:
-
-- `id`
-- `operation`
-- `key_hash`
-- `key_scope`
-- nullable `actor_id`
-- nullable `request_hash`
-- `status`
-- response fields
-- error field
-- timestamps
-- `expires_at`
-
-Indexes and FKs:
-
-- unique `(operation, key_hash, key_scope)`
-- index `(status, expires_at)`
-- index `expires_at`
-- FK `actor_id` -> `users.id`, set null on delete
-
-Assumption review:
-
-- Global idempotency scope is explicit through `key_scope`, default `global`.
-- No company/branch scope is present.
-
-## Schema Diff From Unsupported Tenant Model
-
-Expected current result of the correction pass:
-
-- Delete/avoid `company_user`.
-- Remove `branch.company_id`.
-- Remove Company -> Branch relationship.
-- Remove `number_sequence.company_id`.
-- Remove `number_sequence.include_branch`.
-- Preserve atomic numbering by `key`.
-- Remove unsupported audit/attachment/notification company scope.
-- Preserve audit actor/entity fields.
-- Preserve attachment entity reference.
-- Preserve notification user targeting and dedupe.
-- Keep Spatie teams disabled.
-
-The current audited schema matches those expected results, including removal of `fiscal_year.company_id`.
-
-## Risks And Follow-Ups
+## Follow-Ups
 
 1. Decide Branch semantics before adding relationships, uniqueness, or authorization rules.
-2. Decide document-number sequence identity before legal invoices or accounting documents.
-3. Add entity-level authorization for attachments as new business entities are registered.
-4. Consider DB-level audit immutability if append-only integrity must be protected from direct DB updates/deletes.
-5. Consider soft-deleting users or actor snapshots if audit actor identity must survive user deletion.
-6. Gate or remove settings authorization bootstrap fallback for production.
+2. Decide document-number reset policy for future legal/commercial documents.
+3. Register attachment authorization for each new Phase 3 entity.
+4. Decide whether legacy `audit_log` rows should be imported into `activity_log` later; current behavior preserves it as archive.
+5. Add Phase 3 schema without company/branch/tenant assumptions.

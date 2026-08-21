@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: the highest-risk current docs (`README.md`, `spec/DATABASE_DESIGN.md`, `spec/SECURITY.md`, and `spec/MASTER_ERP_SPEC.md`) were corrected after this audit to prevent restoring Company/Branch tenancy or misleading completion claims. A later owner decision resolved FiscalYear as `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: current docs have since been updated through M10. Phase 2 Accounting Core is implemented in Laravel, Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -20,20 +20,20 @@ Classification meanings:
 1. Several docs still describe a tenant/company/branch-scoped ERP. This directly contradicts the latest Company / Branch / User correction.
 2. Several docs describe the old Next.js implementation or Phase 1 foundation state. They are historical references, not Laravel implementation proof.
 3. Generated specification files contain useful module/business ideas but must not be treated as original owner requirements.
-4. The current Laravel implementation is foundation-only. Docs claiming complete ERP behavior, complete module implementation, or full accounting posting are stale unless explicitly scoped to foundation/invariants.
+4. The current Laravel implementation includes the foundation plus Phase 2 accounting ledger spine. Docs claiming later operational modules or complete ERP behavior remain stale unless explicitly scoped to current Laravel code.
 
 ## File Classification
 
 | File | Classification | Notes |
 | --- | --- | --- |
-| `README.md` | CURRENT | Post-audit corrected to describe the Laravel foundation and forbid Company/Branch tenancy assumptions. |
-| `CHANGELOG.md` | PARTIALLY_STALE | Useful history, but contains old Next.js and tenant/company-scope entries. Keep as history only. |
-| `CONTINUE_HERE.md` | LEGACY_REFERENCE | Old handoff/status file with completed Next tasks and unsupported company-scope/onboarding assumptions. |
+| `README.md` | CURRENT | Describes current Laravel migration, Phase 2 accounting, Spatie Activitylog, and no-tenant rule. |
+| `CHANGELOG.md` | CURRENT_WITH_HISTORY | Current top entries are aligned; older entries remain historical. |
+| `CONTINUE_HERE.md` | CURRENT | Current Laravel handoff; old Next handoff replaced. |
 | `DOMAIN_MODEL_REVIEW.md` | CURRENT | Aligned with the latest correction direction; still should be treated as review output, not original requirements. |
-| `IMPLEMENTATION_STATUS.md` | PARTIALLY_STALE | Useful current status plus historical Next/Laravel migration notes. Needs careful reading. |
-| `MIGRATION_PLAN.md` | PARTIALLY_STALE | Good migration context, but not proof of business relationships. |
-| `NEXT_TASKS.md` | LEGACY_REFERENCE | Historical task list. Contains old company/tenant assumptions and prior completion claims. |
-| `ROADMAP.md` | PARTIALLY_STALE | High-level planning reference. Not implementation proof. |
+| `IMPLEMENTATION_STATUS.md` | CURRENT | Current Laravel status and verification numbers. |
+| `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
+| `NEXT_TASKS.md` | CURRENT | Current Phase 3 recommendation. |
+| `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |
 | `docs/PROJECT_MAP.md` | PARTIALLY_STALE | Useful navigation map, but may include old Next/Laravel transition context. |
@@ -65,7 +65,7 @@ Classification meanings:
 | `app/src/modules/sales/README.md` | LEGACY_REFERENCE | Old module scaffold. |
 | `app/src/modules/suppliers/README.md` | LEGACY_REFERENCE | Old module scaffold. |
 | `app/src/modules/taxes/README.md` | LEGACY_REFERENCE | Old module scaffold. |
-| `spec/ACCOUNTING_EVENT_MAP.md` | PARTIALLY_STALE | Useful accounting design reference, but posting is not implemented in Laravel. |
+| `spec/ACCOUNTING_EVENT_MAP.md` | PARTIALLY_STALE | Useful accounting design reference. Phase 2 manual posting exists, but later operational posting events are not implemented. |
 | `spec/ARCHITECTURE.md` | PARTIALLY_STALE | Architectural ideas must be filtered through latest owner corrections and actual Laravel code. |
 | `spec/BUSINESS_RULES.md` | PARTIALLY_STALE | Useful rule catalog, but individual claims need owner/code verification. |
 | `spec/DATABASE_DESIGN.md` | PARTIALLY_STALE | Post-audit corrected with legacy/status warnings and no default company/branch scope rule; still a planning reference, not source of truth. |
@@ -95,7 +95,7 @@ Classification meanings:
 | Every query scoped by company_id | Corrected in `spec/SECURITY.md`; stale historical/generated references may remain | CONTRADICTORY if treated as current. No current company context exists. |
 | Document numbers unique per company/branch | database specs and old tasks | UNDEFINED. Current sequence identity is global `key`; company/branch dimensions removed. |
 | Fiscal years owned by company/tenant | old schema/audit notes before owner decision | REMOVE. Current Laravel schema has global `fiscal_year.year` and no `fiscal_year.company_id`. |
-| Accounting/posting complete | Status/spec wording in several files | NOT IMPLEMENTED beyond invariant kernel. |
+| Accounting/posting complete | Status/spec wording in several files | IMPLEMENTED for Phase 2 manual/opening-balance ledger spine only; later operational module posting is not implemented. |
 | Old Next.js Phase 1 complete | `app/README.md`, `spec/PHASE1_STATUS.md`, `CONTINUE_HERE.md` | LEGACY_REFERENCE only. Laravel target is current. |
 
 ## Documentation Handling Rules
@@ -105,5 +105,5 @@ Use these rules before implementing future work:
 1. Treat owner corrections as newer and stronger than generated docs.
 2. Treat generated specs as planning/reference, not original requirements.
 3. Do not add `company_id`, `branch_id`, tenant context, ownership relations, or authorization scopes unless explicitly confirmed.
-4. Do not claim a module is implemented because a README exists under the old Next app.
+4. Do not claim a later module is implemented because a README exists under the old Next app.
 5. Update stale docs only in a dedicated documentation correction pass.

@@ -1,45 +1,165 @@
-# NEXT TASKS — actionable checklist
+# NEXT TASKS - current Laravel track
 
-> Laravel correction: do not port the old company-as-tenant, Company/User membership, Company/Branch ownership, company-scoped roles, or first-run owner onboarding assumptions into Laravel. Read `DOMAIN_MODEL_REVIEW.md` before using this historical Next.js checklist as implementation guidance.
+Current status: Laravel migration through M10 is complete and verified locally on PostgreSQL.
 
-Ordered. Each task: what to build · key files · acceptance. Follow the verification gate (lint → typecheck → tests → invariants → secret scan) and commit in small conventional commits. Keep `IMPLEMENTATION_STATUS.md` honest.
+Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
-**2026-08-21 update:** T1–T6 are complete for Phase 1 foundation. DB-backed PostgreSQL verification passed locally, `next build` is wired into root GitHub Actions CI, and CI run `32440676342` completed `success` on `develop`.
+## Completed
 
-## Phase 1 — completed checklist (v0.1.0 foundation)
+- M2 Laravel/Inertia foundation.
+- M3 foundation schema, global RBAC, and no-team Spatie Permission.
+- M5 Laravel session auth.
+- M6 migrated app shell/pages.
+- M7 core kernel parity.
+- Phase 2 accounting core ledger spine.
+- M8 actions for migrated settings/users pages.
+- M9 attachments and notifications services.
+- M10 Spatie Activitylog audit backend, audit viewer, scheduler, and jobs baseline.
 
-### T1. Company/branch onboarding (first-run)
-- **Build:** full `PrismaCompanyRepository` implementing `CompanyRepository` (`modules/company/application/companyService.ts`): `createCompany` must, in a transaction, create the company, seed the **9 role templates for that company** with their permission links (from `core/rbac/seed.ts` + `roles.ts` + `catalog.ts`), add the owner membership, and assign `COMPANY_ADMIN`. Onboarding screen at `app/[locale]/onboarding` (create company + first branch) shown when the user has no company.
-- **Files:** `core/db/repositories/companyRepo.ts`, `app/[locale]/onboarding/*`, wire into `(app)/layout` (redirect to onboarding if no active company).
-- **Accept:** creating a company seeds roles+permissions rows; owner can sign in and reach the shell; company isolation holds. Add an integration test (DB-gated) that creates a company and asserts 9 roles + permission links exist.
+Latest verified:
 
-### T2. Users & Roles settings screen
-- **Build:** list users in company, list roles + their permissions (read from RBAC), assign/revoke roles to a user (server action → `UserRole`).
-- **Files:** `app/[locale]/(app)/settings/users/*`, a `PrismaUserAdminRepository`.
-- **Accept:** assigning a role changes the user's effective grants (loaded in `auth.ts` jwt callback via `loadGrants`); permission-denied state shows server-side.
+```text
+php artisan test: 145 tests / 1185 assertions passed
+Concurrency suite: 7 tests / 16 assertions passed
+PostgreSQL stress: concurrency + accounting stress passed
+TypeScript typecheck: passed
+Vite build: passed
+```
 
-### T3. Attachments end-to-end
-- **Build:** `PrismaAttachmentRepository` (metadata) + an upload route handler that validates (mime/size/name), stores via `AttachmentStorage` (local adapter in dev), and a download route enforcing company scope.
-- **Accept:** upload persists metadata + blob; cross-company download rejected; unit test for the service already exists — add a route test.
+## Immediate Next Recommendation - Phase 3
 
-### T4. Notifications foundation UI
-- **Build:** `PrismaNotificationRepository` + header bell + `/notifications` center (list, mark read), scoped per user/company.
-- **Accept:** notifications persist and list per user; mark-read works; cross-company mark rejected (service test exists).
+Phase 3 should implement AR/AP + Cash/Bank/Cheques on top of the existing accounting posting engine.
 
-### T5. Playwright smoke E2E
-- **Build:** `playwright.config.ts` + `tests/e2e/*`. Scenarios: unauthenticated → redirect to `/login`; invalid login → error; valid login → dashboard; navigate to a settings screen; permission-denied path. Run each in **EN and AR**, assert `dir=rtl` for AR, and toggle `data-theme` light/dark. Add a CI job that builds the app, runs migrations + seed against Postgres, seeds a test user (argon2 hash), starts the server, runs Playwright.
-- **Accept:** E2E green in CI; assertions verify real rendered/redirect state (no fake success).
+### T1. Customer And Supplier Master Data
 
-### T6. `next build` in CI + DoD flip — COMPLETE
-- **Build:** add a `build` step to CI (after `prisma generate`). Only after a confirmed green Actions run.
-- **Accept:** CI green end-to-end (npm ci → prisma generate → typecheck → lint → invariants → unit+integration → build → e2e). Phase-1 DoD flipped in `IMPLEMENTATION_STATUS.md`; tag `v0.1.0-phase1-foundation` after this docs update is green.
+Build:
 
-## Phase 2 — Accounting core (start only on explicit request)
-Build on `core/accounting-kernel`.
-- CoA (`account`, groups, types, hierarchy), JournalEntry/Line, LedgerEntry, FiscalYear/Period, opening balances, exchange rates.
-- **Posting engine** (`core/accounting/posting`): resolve accounts from configurable mapping → build balanced lines (base+txn currency) → assert period open + Σdr=Σcr → write JE+lines+ledger+subledger atomically, idempotent (idempotency key from `postingIdempotencyKey`), reversible. UI **Accounting tab** to inspect the generated entry.
-- Reports: General Journal, General Ledger, Trial Balance, then Financial Statements.
-- **New blocking invariant tests:** subledger=GL control, posted immutable, closed-period rejects posting, balance sheet balances. Reference: `spec/ACCOUNTING_EVENT_MAP.md`, `spec/BUSINESS_RULES.md`, `spec/WORKFLOW_CATALOG.md`, `spec/DATABASE_DESIGN.md`.
+- customer CRUD
+- supplier CRUD
+- status/active flags
+- contact and tax fields only where requirements support them
+- attachments through existing entity registry
+- audit via Spatie Activitylog
 
-## Definition of Done reminder (per feature)
-DB schema + migration + domain + application service + validation + permissions + workflow + accounting/subledger integration + audit + numbering + jobs (if any) + UI (list/create/edit/detail + loading/empty/error/permission states) + reports + export/print (where applicable) + EN/AR + RTL/LTR + light/dark + responsive + unit/integration/e2e tests + invariant tests + docs + traceability update. Only then mark COMPLETE.
+Accept:
+
+- server-side validation and permissions
+- no company/branch ownership invented
+- no opening-balance subledger posting unless explicitly included in Phase 3 design
+
+### T2. Cash And Bank Accounts
+
+Build:
+
+- cash account setup
+- bank account setup
+- link each cash/bank record to a valid GL account
+- prevent posting to inactive/control accounts unless a service-level rule explicitly allows it
+
+Accept:
+
+- all monetary values use integer minor units
+- account relations are DB-enforced
+- audit events are written to `activity_log`
+
+### T3. Receipts And Payments
+
+Build:
+
+- customer receipt draft/post flow
+- supplier payment draft/post flow
+- cash/bank method selection
+- balanced journal creation through the existing posting engine
+- idempotency for posting
+- reversal support
+
+Accept:
+
+- no duplicate posting under concurrency
+- closed periods reject posting
+- ledger rows are immutable
+- source document links to journal entry
+
+### T4. AR/AP Allocation Foundation
+
+Build:
+
+- allocation table/service to match receipts/payments against invoices or opening items when those source docs exist
+- for now, avoid inventing full Sales/Purchasing invoices if Phase 3 does not explicitly include them
+- support unapplied receipts/payments if needed
+
+Accept:
+
+- allocations are idempotent
+- cannot over-allocate
+- audit events are append-only
+
+### T5. Cheques Lifecycle
+
+Build:
+
+- incoming/outgoing cheque records
+- lifecycle statuses such as draft, received/issued, deposited, cleared, bounced/cancelled where requirements support them
+- GL posting rules for clear/bounce events
+
+Accept:
+
+- status transitions validated server-side
+- posting uses the same accounting invariants
+- no branch/company dimensions invented
+
+### T6. AR/AP And Cash/Bank Reports
+
+Build:
+
+- customer statement
+- supplier statement
+- cash book
+- bank book
+- basic AR/AP aging only if source documents exist
+
+Accept:
+
+- reports read posted ledger/subledger data only
+- every number drills back to source where implemented
+
+### T7. Notifications, Attachments, Audit
+
+Extend:
+
+- attachment entity registry for new Phase 3 entities
+- notification triggers for due/cleared/bounced/payment events only where meaningful
+- audit viewer filters should keep working without schema changes
+
+Accept:
+
+- authorization comes from entity-specific server-side rules
+- notifications remain user-targeted and deduped
+- no company scope added
+
+### T8. Verification Gate
+
+Required commands from `laravel/`:
+
+```powershell
+php artisan migrate --force
+php artisan migrate:status
+vendor/bin/pint --test
+php artisan test
+php artisan test --testsuite=Concurrency
+php artisan concurrency:stress --workers=100
+php artisan accounting:concurrency-stress --workers=50
+php artisan tokens:gc --batch=100
+npm run typecheck
+npm run build
+```
+
+Add Phase 3-specific PostgreSQL stress tests before marking Phase 3 complete.
+
+## Optional Hardening Before Phase 3
+
+- Browser QA for core accounting pages.
+- Production scheduler deployment note for `schedule:run`.
+- Bootstrap admin production policy.
+- Print/export design for accounting reports.
+- Legacy `audit_log` archive/import decision.

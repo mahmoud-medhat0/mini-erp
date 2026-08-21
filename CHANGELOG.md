@@ -3,6 +3,36 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Laravel M10 Spatie Activitylog, audit viewer, scheduler, and jobs baseline
+- Installed `spatie/laravel-activitylog` 4.12.3 and made Spatie `activity_log` the active audit backend.
+- Kept `App\Domain\Audit\AuditLogger::record(...)` as the central application adapter while routing new writes through Spatie Activitylog.
+- Preserved legacy `audit_log` as a read-only archive; no new application writes should target it.
+- Added backward-compatible audit query aliases so the audit UI still receives `actor_id`, `actor_name`, `action`, `entity_type`, `entity_id`, `before_json`, `after_json`, `reason`, `request_id`, `ip`, `device`, and `at`.
+- Added append-only DB triggers for both `activity_log` and legacy `audit_log` on PostgreSQL and SQLite.
+- Added the read-only `/audit-log` Inertia page protected by `audit.view` or `settings.configure`.
+- Registered `tokens:gc --batch=100` hourly with `withoutOverlapping()` and verified jobs/failed_jobs/job_batches baseline behavior.
+- Verified with `php artisan test` 145 tests / 1185 assertions, Concurrency suite 7/7, PostgreSQL stress commands, TypeScript typecheck, and Vite build.
+
+### Added — Laravel Phase 2 Accounting Core
+- Implemented the Laravel accounting ledger spine: account categories, account types, account groups/accounts, FX rates, fiscal periods, manual journals, posting engine, immutable ledger entries, reversal workflow, opening balances, General Journal, General Ledger, and Trial Balance.
+- Added database foreign keys for currency relationships across accounting tables.
+- Added account type/category CRUD pages and control-account behavior.
+- Added demo accounting seeder and polished empty states for accounting reports.
+- Added PostgreSQL accounting stress verification through `php artisan accounting:concurrency-stress --workers=50`.
+- Preserved the single-ERP context: no company/branch/tenant dimensions were introduced into accounting tables.
+
+### Added — Laravel M9 attachments and notifications services
+- Added attachment upload/list/download/delete service behavior with extension, MIME, and size validation.
+- Added explicit allowlisted entity authorization for attachment entities and storage cleanup compensation on failure.
+- Added reusable `AttachmentPanel` integration for supported entities.
+- Added notification service creation/list/unread/mark-read/mark-all-read behavior with per-user dedupe.
+- Triggered user notifications for role assign/revoke actions.
+
+### Added — Laravel M8 settings/user actions
+- Added real create/update actions for company profile, standalone branch references, numbering sequences, and role assignment/revocation.
+- Hardened permissions so empty RBAC assignments do not grant management mutations.
+- Preserved no-tenant/no-current-company behavior across settings actions.
+
 ### Corrected — Laravel fiscal-year single-ERP context
 - Removed unsupported `fiscal_year.company_id`; fiscal years are now global to this ERP installation/business profile with global `year` uniqueness.
 - Preserved `financial_period.fiscal_year_id` so financial periods belong to fiscal years without Company/Tenant semantics.
@@ -34,8 +64,8 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Added Laravel `tests/Invariants` coverage for money exactness/allocation, accounting balance/well-formed lines, and deterministic numbering.
 - Added working settings actions for company create/update, branch create/update, numbering create/update, and role assign/revoke with explicit IDs and no current-company or tenant session.
 - Added notification and attachment application services, attachment upload/download routes, notification dedupe/list/mark-read behavior, and service/feature tests.
-- Added append-only audit logging with sensitive-field redaction and wired audit records to company/branch/numbering/attachment mutations without inventing organizational scope.
-- Added an idempotent job runner/backoff primitive and scheduled `tokens:gc --batch=500` hourly with overlap protection.
+- Added append-only audit logging with sensitive-field redaction and wired audit records to company/branch/numbering/attachment mutations without inventing organizational scope. This is now backed by Spatie Activitylog for new writes.
+- Added an idempotent job runner/backoff primitive and scheduled `tokens:gc --batch=100` hourly with overlap protection.
 
 ### Added — Laravel migration M6 app pages
 - Migrated the authenticated Laravel Inertia app shell and pages for dashboard, settings hub, companies, branches, numbering, users/roles, and notifications.

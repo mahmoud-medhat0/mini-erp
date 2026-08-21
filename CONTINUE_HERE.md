@@ -1,107 +1,207 @@
-# CONTINUE HERE — Mini ERP handoff
+# CONTINUE HERE - Mini ERP Laravel handoff
 
-> **Laravel correction:** this handoff describes the existing Next.js reference and contains old tenant/company-scope wording. For the Laravel migration target, read `DOMAIN_MODEL_REVIEW.md` first: Company/Branch/User ownership, currentCompany/currentBranch, and first-run owner onboarding must not be ported unless an explicit owner decision revalidates them.
+Current date/context: 2026-08-21. This is the current handoff for the Laravel + Inertia + React migration track.
 
-> **ملخص بالعربي:** ده ملف تسليم لإكمال المشروع بموديل/جلسة تانية. المشروع ERP محاسبي حقيقي (مش mockup). **Phase 1 (Foundation) مكتملة ومتحققة على PostgreSQL وGitHub Actions.** الكود كله Next.js + TypeScript + Prisma + PostgreSQL، مبني كـ Modular Monolith بطبقات صارمة. اقرأ الأقسام تحت: **إيه اللي خلص**، **إزاي تشغّل وتتحقق**، **حالة Git/CI**، و**بداية Phase 2**. مهم: لا تكسر أي invariant محاسبي، ولا تحط بيانات وهمية، وكل مبلغ فلوس = BigInt minor units (مفيش float).
+The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
-This document is the single entry point for continuing the build. Read it fully before writing code.
+## Source Of Truth
 
----
+Use the current Laravel code and these documents first:
 
-## 1. What this project is
-A production-grade **Mini ERP / Accounting & Business Management System**. Core principle: *enter a transaction once → the system automatically produces every operational, subledger, inventory, accounting, reporting and audit consequence.* Full scope in `spec/MASTER_ERP_SPEC.md` (26 modules). **Do not reduce scope; phases are implementation order only.**
+- `README.md`
+- `IMPLEMENTATION_STATUS.md`
+- `NEXT_TASKS.md`
+- `DOMAIN_MODEL_REVIEW.md`
+- `DOMAIN_RELATIONSHIP_AUDIT.md`
+- `SCHEMA_ASSUMPTION_AUDIT.md`
+- `PROJECT_LOGIC_AUDIT.md`
+- `docs/CONCURRENCY_AUDIT.md`
 
-## 2. Tech + architecture (locked)
-- **Next.js (App Router) · TypeScript · PostgreSQL · Prisma · Zod · Tailwind · next-intl (EN/AR, RTL/LTR) · Auth.js (NextAuth v5) · Argon2 · pg-boss · Vitest · Playwright.** Node.js runtime only (never Edge for DB/accounting).
-- **Layering (strict):** `UI → Application Services → Domain Engines → Repositories → PostgreSQL`. The UI never touches Prisma and never contains authoritative accounting logic. **Repositories are the ONLY layer that accesses the DB.** Ledger/stock/subledger writes happen only in domain engines inside DB transactions.
-- **Modular monolith:** `src/modules/<domain>/{application,domain,db,ui}` + `src/core/*` kernel. Accounting is a shared kernel; it must not depend on other modules' internals.
-- Deep detail: `spec/FINAL_ARCHITECTURE_REVIEW.md`, `spec/ARCHITECTURE.md`, `spec/DATABASE_DESIGN.md`, `spec/BUSINESS_RULES.md`, `spec/ACCOUNTING_EVENT_MAP.md`.
+Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
 
-## 3. Non-negotiable rules (keep every one)
-- **Money = `bigint` minor units + currency.** Never IEEE-754 float in any monetary path. Use `src/core/money`.
-- **Double-entry:** every posted journal entry must balance (Σ debit = Σ credit) — `src/core/accounting-kernel`.
-- **Posted data is immutable;** correct via reversal, never edit/delete.
-- **Closed periods reject posting.** Company/branch isolation enforced server-side; `company_id` is never trusted from the browser (`src/core/tenant`).
-- **Concurrency-safe numbering** (`src/core/numbering`, atomic `INSERT … ON CONFLICT DO UPDATE RETURNING`).
-- **No fake data / no fake CRUD / no hardcoded KPIs.** If something can't run yet, show an EmptyState / "not available yet" and mark it `PARTIAL`/`BLOCKED` in `IMPLEMENTATION_STATUS.md`.
-- **DoD:** a module is done only when DB + services + validation + permissions + workflow + accounting/subledger + audit + numbering + jobs + UI (all states) + reports + EN/AR + RTL + light/dark + tests all exist (see `NEXT_TASKS.md` and master §47).
+## Current Stack
 
-## 4. Repo layout
+- Laravel 13.x + PHP 8.3+
+- PostgreSQL
+- Inertia.js + React + TypeScript + Tailwind
+- Laravel session auth and CSRF
+- Spatie Permission with teams disabled
+- Spatie Translatable for multilingual master data
+- Spatie Activitylog as the active audit backend
+- Laravel scheduler/queues baseline
+
+## Non-Negotiable Corrections
+
+This ERP is not currently a multi-tenant SaaS.
+
+Do not introduce:
+
+- tenant context or tenant middleware
+- `company_user`
+- `users.company_id`
+- `branch.company_id`
+- `fiscal_year.company_id`
+- `currentCompany` or `currentBranch`
+- company-owned roles/permissions
+- Spatie teams
+- company/branch dimensions in document numbering
+- branch/company security scopes unless explicitly defined later
+
+If a relationship is not explicitly supported by owner requirements or a later owner decision, classify it as:
+
+`UNDEFINED - DO NOT ASSUME`
+
+Confirmed later owner decision:
+
+- FiscalYear is `SINGLE-ERP CONTEXT`.
+- Fiscal years are global to this installation/business profile.
+- `fiscal_year.year` is globally unique.
+- FinancialPeriod belongs to FiscalYear.
+
+## Current Verified Status
+
+The Laravel migration through M10 is complete and locally verified on PostgreSQL.
+
+Implemented:
+
+- M2 Inertia foundation.
+- M3 schema foundation and global RBAC.
+- M5 Laravel session authentication.
+- M6 migrated Inertia shell/pages.
+- M7 Laravel core kernel parity.
+- Phase 2 accounting core ledger spine:
+  - currencies and FX rates
+  - fiscal years and periods
+  - account categories and account types
+  - chart of accounts
+  - manual journals
+  - posting engine
+  - immutable ledger entries
+  - reversal workflow
+  - opening balances
+  - General Journal, General Ledger, Trial Balance
+  - demo accounting data seeder and empty states
+- M8 page actions:
+  - company create/update
+  - branch create/update
+  - numbering create/update
+  - role assign/revoke
+- M9 attachments and notifications services.
+- M10 Spatie Activitylog migration, audit viewer, scheduler, and jobs baseline.
+
+Latest verified commands:
+
+```powershell
+cd laravel
+composer install
+php artisan migrate --force
+php artisan migrate:status
+vendor/bin/pint --test
+php artisan test
+php artisan test --testsuite=Concurrency
+php artisan concurrency:stress --workers=100
+php artisan accounting:concurrency-stress --workers=50
+php artisan tokens:gc --batch=100
+npm run typecheck
+npm run build
 ```
-app/
-  src/
-    app/[locale]/            # routes: login/, (app)/ protected group (layout=requireAuth), dashboard, settings/*
-    app/api/auth/[...nextauth]/route.ts
-    app/api/attachments/*      # scoped upload/download route handlers
-    core/                    # money, currency, numbering, rbac, audit, tenant, auth, jobs, attachments,
-                             # notifications, errors, accounting-kernel, db/(prisma + repositories)
-    modules/company/application/  # companyService, settingsService, branchService, userAdminService
-    ui/                      # Button, Input, StatusBadge, primitives (Card/PageHeader/EmptyState/PermissionDenied), AppShell
-    i18n/  locales/{en,ar}/  # next-intl
-    worker.ts                # pg-boss worker entrypoint
-  prisma/schema.prisma  prisma/seed.ts
-  tests/{invariants,unit,integration,e2e}/
-  # workflow lives at repo root: .github/workflows/ci.yml
-spec/  docs/  foundation/  style-guide.html
-CONTINUE_HERE.md  NEXT_TASKS.md  IMPLEMENTATION_STATUS.md  ROADMAP.md  CHANGELOG.md
+
+Latest results:
+
+- `php artisan migrate:status`: 24 migrations Ran.
+- `php artisan test`: 145 tests / 1185 assertions passed.
+- `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
+- `php artisan concurrency:stress --workers=100`: passed.
+- `php artisan accounting:concurrency-stress --workers=50`: passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed.
+
+## Audit Status
+
+Spatie Activitylog is now the active audit backend.
+
+- New writes go to `activity_log`.
+- Legacy `audit_log` is retained as a read-only archive.
+- `AuditLogger::record(...)` keeps the old application API but writes through Spatie Activitylog.
+- `AuditLogQueryService` maps Spatie rows back to the old UI aliases:
+  - `actor_id`
+  - `actor_name`
+  - `actor_email`
+  - `action`
+  - `entity_type`
+  - `entity_id`
+  - `before_json`
+  - `after_json`
+  - `reason`
+  - `request_id`
+  - `ip`
+  - `device`
+  - `at`
+- `activity_log` and legacy `audit_log` are protected by append-only DB triggers.
+
+Spatie Activitylog installed version:
+
+```text
+spatie/laravel-activitylog 4.12.3
 ```
 
-## 5. What is DONE (Phase 1) — verified
-**Core kernel (unit-tested):** money (exact minor units + exact allocation), accounting-kernel (`assertBalanced`), numbering (format + atomic allocate), RBAC (catalog + 9 role templates + seed plan + scope/tenant checks), tenant isolation, append-only audit service (+ redaction/diff), currency registry, typed errors, auth (credentials service + Argon2 adapter + rate limiter + session guard), attachments (storage abstraction + local adapter + validation), notifications service, jobs (idempotent runner + backoff + pg-boss adapter + worker).
+## Local Login
 
-**Integration + app (built, typechecked/linted locally; DB parts run in CI):** Prisma client singleton + repositories (user, append-only audit, atomic numbering, settings, branch, company onboarding, user admin, attachment metadata, notifications); NextAuth v5 credentials config + route handler; login screen; protected route group (`requireAuth`) that redirects signed-in/no-company users to onboarding; app shell (sidebar+topbar+notification count); reusable UI library; Company/Branches/Numbering/Users **Settings** screens (EN/AR, server-derived tenant, real persistence via services); dashboard shell (EmptyState, no mock KPIs); onboarding, notifications center, attachment upload/download route handlers.
+Default development bootstrap user:
 
-**Tooling/CI:** `package-lock.json`, TS-aware ESLint (clean at `--max-warnings=0`), PostCSS/Tailwind build config, root GitHub Actions CI with Postgres service + `prisma db push` + seed + **blocking accounting-invariant suite** + DB-backed numbering/company-onboarding integration tests + production build + Playwright smoke E2E job. **66 Vitest cases pass with DB.** Playwright smoke: **5/5 pass** with DB.
-
-**Status legend + full table:** `IMPLEMENTATION_STATUS.md` (COMPLETE / PARTIAL / SCAFFOLD ONLY). Phase 1 foundation is complete; domain modules for later phases remain scaffold-only.
-
-## 6. How to run & verify (in a NORMAL environment)
+```text
+Email: admin@mini-erp.local
+Password: Password123!
+Role: SUPER_ADMIN
 ```
-cd app
-cp .env.example .env         # set DATABASE_URL, AUTH_SECRET
-npm ci
-npm run prisma:generate
-npm run prisma:db-push       # local schema sync for verification
-npm run prisma:seed          # currencies + permission catalog
-npm run test                 # vitest: invariants + unit (+ integration if DATABASE_URL set)
-npm run lint                 # eslint --max-warnings=0  (must be clean)
-npm run typecheck            # next typegen + tsc --noEmit
-npm run build                # Next production build
-npm run e2e                  # Playwright; credential tests need DATABASE_URL
-npm run dev                  # app
-npm run worker               # pg-boss worker (separate process)
+
+The bootstrap user is not tied to a company, branch, tenant, or current-company context.
+
+## Run Locally
+
+```powershell
+cd laravel
+composer install
+npm install
+php artisan migrate --seed
+npm run dev
+composer run serve:no-xdebug
 ```
-**Verification gate before every commit:** format → lint → typecheck → tests → (invariant suite must pass) → secret scan → commit.
 
-## 7. Environmental gotchas (important for the next session)
-- `prisma generate` now runs cleanly in this environment. If TypeScript reports missing Prisma fields after schema edits, regenerate the client.
-- DB integration tests (`tests/integration/*.pg.test.ts`) **skip** unless `DATABASE_URL` is set; CI provides Postgres so they run there.
-- Playwright browser binaries must be installed locally with `npx playwright install chromium`; CI does this automatically. Credential/permission E2E tests need `DATABASE_URL`.
-- pg-boss is **v10** (batch `Job[]` work handler). Argon2 is native (built at full install; unit tests use a fake hasher so they don't need it).
+Open:
 
-## 8. Phase 1 completion
-Phase 1 foundation is complete after real PostgreSQL verification and a green GitHub Actions run (`32440676342`) on `develop`.
+```text
+http://127.0.0.1:8000
+```
 
-Verified:
-1. `npm run ci`: typegen + typecheck + lint + invariants + full Vitest.
-2. Vitest: 17 files, 66 tests passed with DB-backed integration enabled.
-3. Invariants: 4 files, 23 tests passed.
-4. Playwright: 5/5 passed against Postgres-backed auth/RBAC.
-5. Production build: `next build` passed.
-6. Onboarding transaction: company + branch + 9 roles + 458 permission links + owner membership + `COMPANY_ADMIN`; cross-company role leakage = 0.
+On this Windows/WAMP setup, direct `php artisan serve` may exit when Xdebug is enabled. Prefer `composer run serve:no-xdebug`.
 
-## 9. Phase 2 kickoff (Accounting core) — do NOT start until explicitly requested
-Build on `src/core/accounting-kernel`. Deliver: Chart of Accounts, Journal/Lines, Ledger, Trial Balance, Fiscal years/Periods, opening balances, FX rates, and the **posting engine** (atomic: JE + ledger + subledger, idempotent, period-locked, reversible). Rules & events already specified: `spec/ACCOUNTING_EVENT_MAP.md`, `spec/BUSINESS_RULES.md`, `spec/WORKFLOW_CATALOG.md`. Add invariant tests (subledger=GL, immutability, closed-period rejection) to the blocking CI suite.
+## Current DB Counts From Last Verification
 
-## 10. Git / remote / CI state
-- Branches: `main` (stable), `develop` (integration). Work on `develop` or feature branches; small **conventional commits**; run the gate before each.
-- Commit trailer used in this project:
-  ```
-  Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-  Claude-Session: https://claude.ai/code/session_01ErpWJ1PAKfi3VzsZuQRxD9
-  ```
-- **Remote:** `github.com/mahmoud-medhat0/mini-erp`. `develop` pushed successfully.
-- **CI** (`.github/workflows/ci.yml`): on push to main/develop → `npm ci` → `prisma generate` → typegen/typecheck → lint → DB push + seed → **blocking invariant tests** → unit + DB integration (Postgres service) → `next build` → Playwright smoke E2E (Postgres + Chromium). The accounting-invariant suite must never be made informational.
+```text
+audit_log: 17
+activity_log: 0
+users: 2
+jobs: 0
+failed_jobs: 0
+```
 
-## 11. Golden rules for whoever continues
-Accounting correctness > UI speed. Never mutate posted data. Never compute authoritative balances in the UI. Never bypass the posting engine (Phase 2). Keep company/branch isolation. Keep numbering concurrency-safe. Audit privileged actions. Mark honestly: COMPLETE only when actually done + tested. Keep `IMPLEMENTATION_STATUS.md`, `CHANGELOG.md`, `ROADMAP.md` in sync with reality.
+`activity_log` can be zero immediately after verification because test writes are rolled back and legacy seed records remain in `audit_log`.
+
+## Next Work
+
+Recommended next product phase: Phase 3 - AR/AP + Cash/Bank/Cheques.
+
+Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
+
+Before Phase 3, keep these invariants:
+
+- no tenant/company/branch scope
+- no float money math
+- posted journal and ledger data immutable
+- corrections by reversal
+- numbering atomic
+- posting idempotent
+- audit via Spatie Activitylog
+- attachment authorization through entity registry
+- notifications targeted to users

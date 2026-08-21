@@ -1,12 +1,12 @@
-# Mini ERP - Laravel Migration Foundation
+# Mini ERP - Laravel Migration
 
 Current target: Laravel + Inertia.js + React + TypeScript + Tailwind + PostgreSQL.
 
-This repository is migrating a Mini ERP foundation from the older Next.js reference app into Laravel. The current Laravel target is a foundation, not a complete ERP. It includes authentication, RBAC foundations, settings pages, Money/accounting invariant primitives, atomic numbering, audit, attachments, notifications, idempotency, and token garbage collection.
+The repository still contains the older Next.js reference app under `app/`, but the active migration target is `laravel/`.
 
-## Current Architecture Rule
+## Current Rule
 
-The Mini ERP must not be treated as a multi-tenant SaaS.
+The Mini ERP is not currently a multi-tenant SaaS.
 
 Do not introduce or restore:
 
@@ -20,79 +20,110 @@ Do not introduce or restore:
 - `currentCompany` or `currentBranch`
 - company/branch dimensions in document numbering
 
-If a Company, Branch, User, FiscalYear, Warehouse, Project, Department, CostCenter, Customer, Supplier, Employee, or other relationship is not explicitly supported by owner requirements or later owner decisions, classify it as:
+If a relationship is not explicitly supported by owner requirements or a later owner decision, classify it as:
 
 `UNDEFINED - DO NOT ASSUME`
 
-FiscalYear ownership/context has an explicit later owner decision: `SINGLE-ERP CONTEXT`. Fiscal years are global to this ERP installation/business profile, `year` is globally unique, and FinancialPeriod belongs to FiscalYear.
+## Implemented Laravel Scope
 
-## Implemented Laravel Foundation
-
-- Laravel session authentication with throttling and active-user checks.
+- Laravel session authentication with throttling, active-user checks, and bootstrap admin seeding.
 - Spatie Permission RBAC with teams disabled.
 - Global role templates and module/action permissions.
 - Inertia React app shell and settings/dashboard/notification pages.
 - Company profile configuration and standalone Branch reference records.
-- Global fiscal years with financial periods linked by `fiscal_year_id`.
-- Atomic number-sequence allocation by global sequence `key`.
-- Money value object and accounting draft-entry invariant checks.
-- Audit log linked to actor and audited entity/event.
-- Attachment service with allowlisted entity authorization and storage cleanup compensation.
-- Notification service targeted to users with per-user dedupe.
-- Idempotency store and bounded `tokens:gc`.
+- Global FiscalYear with FinancialPeriod linked by `fiscal_year_id`.
+- Atomic document number sequence allocation by global `key`.
+- Money value object, currency registry, accounting invariant kernel, and number formatting/config primitives.
+- Phase 2 Accounting Core:
+  - account categories and account types
+  - chart of accounts
+  - FX rates
+  - fiscal periods
+  - manual journal workflow
+  - posting engine
+  - immutable ledger entries
+  - reversal workflow
+  - opening balances
+  - General Journal, General Ledger, Trial Balance
+- M8 settings/user actions for company, branch, numbering, and role assign/revoke.
+- M9 attachment and notification services.
+- M10 Spatie Activitylog active audit backend, read-only audit viewer, scheduler, and queue/jobs baseline.
+- Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-The Laravel target does not yet implement:
-
-- journal posting engine
-- General Ledger persistence
-- reversal workflow
-- period close enforcement
-- subledger posting
-- financial statements
-- Sales, Purchasing, Inventory, Payroll, Rentals, Reports, or other full ERP modules
-
-Future business transactions should eventually be entered once and flow into accounting automatically, but that is not implemented in this correction pass.
+- AR/AP operational subledgers beyond the accounting ledger spine.
+- Cash, Bank, and Cheques modules.
+- Sales and Purchasing workflows.
+- Inventory.
+- Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
+- Full financial statements such as Balance Sheet, Income Statement, Cash Flow, and Equity Statement.
+- Laravel browser E2E parity with the old Next.js Playwright suite.
 
 ## Setup
 
-```bash
+```powershell
 cd laravel
 cp .env.example .env
 composer install
 npm install
 php artisan key:generate
-php artisan migrate --force
-php artisan db:seed
+php artisan migrate --seed
 npm run dev
-php artisan serve --host=127.0.0.1 --port=8000
+composer run serve:no-xdebug
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000
+```
+
+Default development login:
+
+```text
+Email: admin@mini-erp.local
+Password: Password123!
+Role: SUPER_ADMIN
 ```
 
 ## Verification
 
-```bash
-cd laravel
+Run from `laravel/`:
+
+```powershell
+composer install
+php artisan migrate --force
 php artisan migrate:status
+vendor/bin/pint --test
 php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
+php artisan accounting:concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
 ```
 
-## Documentation Status
+Latest verified result:
 
-Some files under `spec/` and the old `app/` directory describe the historical Next.js reference or generated target specifications. They are not authoritative when they conflict with owner corrections or current Laravel implementation.
+- 24 migrations Ran.
+- 145 PHPUnit tests / 1185 assertions passed.
+- 7 Concurrency suite tests / 16 assertions passed.
+- PostgreSQL concurrency and accounting stress commands passed.
+- TypeScript typecheck and Vite build passed.
 
-Use these current review/correction documents first:
+## Documentation Entry Points
 
+Use these first:
+
+- `CONTINUE_HERE.md`
+- `IMPLEMENTATION_STATUS.md`
+- `NEXT_TASKS.md`
 - `DOMAIN_MODEL_REVIEW.md`
-- `PROJECT_LOGIC_AUDIT.md`
-- `MD_DOCUMENTATION_AUDIT.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`
+- `PROJECT_LOGIC_AUDIT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical files may mention tenant/company scope. Treat those mentions as legacy unless a later owner decision explicitly confirms the relationship.
