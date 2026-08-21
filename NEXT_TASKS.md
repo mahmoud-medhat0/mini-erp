@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-2 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-3 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -25,14 +25,21 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - `receivable_entry` and `payable_entry` subledger tables.
   - global accounting mappings for `ar_control`, `ap_control`, and `opening_balance_offset`.
   - PostingEngine integration, idempotent posting, subledger-to-GL reconciliation, and DB integrity hardening.
+- Phase 3 Slice 3 receipt/payment posting:
+  - `customer_receipt` and `supplier_payment` draft/post flows.
+  - global numbering through `REC-YYYY-XXXXX` and `PAY-YYYY-XXXXX`.
+  - PostingEngine integration for Cash/Bank GL vs AR/AP control effects.
+  - AR/AP subledger effects and unapplied balance tracking.
+  - idempotency, linked GL currency validation, FK delete restriction, and DB integrity checks.
 
 Latest verified:
 
 ```text
-php artisan test: 173 tests / 1304 assertions passed
+php artisan test: 187 total / 185 passed / 2 PostgreSQL-specific skipped, 1377 assertions
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
+Phase 3 Slice 3 suite: 14 total / 12 passed / 2 PostgreSQL-specific skipped, 73 assertions
 PostgreSQL stress: concurrency + accounting stress passed
 TypeScript typecheck: passed
 Vite build: passed
@@ -40,10 +47,10 @@ Vite build: passed
 
 ## Next Recommended Phase
 
-Phase 3 Slice 3:
+Phase 3 Slice 4:
 
 ```text
-Receipt/Payment Posting
+Allocation Engine
 ```
 
 The corrected Phase 3 contract is:
@@ -54,15 +61,17 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 3.
+Use the Phase 3 contract and current code as the source of truth for Slice 4.
 
 The Slice 2 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_2_GEMINI_PROMPT.md`
 
-The Slice 3 execution prompt for Gemini is:
+The Slice 3 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
+
+Prepare a bounded Slice 4 prompt before implementation. Slice 4 must cover allocation records, unapplied receipt/payment settlement, deterministic row locking, over-allocation prevention, idempotency, and PostgreSQL stress coverage only.
 
 ## Phase 3 Must Include
 

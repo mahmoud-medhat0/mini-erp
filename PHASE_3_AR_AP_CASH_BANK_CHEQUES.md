@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slices 1-2 are implemented and verified.
+Status: corrected planning contract; Slices 1-3 are implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -421,6 +421,8 @@ Status: COMPLETE in Laravel as of 2026-08-21.
 - source links
 - idempotency
 - existing Accounting Engine only
+
+Status: COMPLETE in Laravel as of 2026-08-21, including DB integrity hardening for statuses, positive/non-negative amounts, `allocated + unapplied = amount`, exactly one CashAccount/BankAccount source, linked GL currency validation, idempotent posting, and FK delete restriction for posted financial documents.
 
 ### Slice 4 - Allocation Engine
 

@@ -6,7 +6,7 @@ Dependency-ordered. Scope is the complete ERP; phases are implementation order o
 |---|---|---|---|
 | 1 | Foundation | design system, theme, i18n/RTL, auth, RBAC, company/branch, settings, numbering, audit, attachments, notifications foundation, job runner, local test harness | **COMPLETE (Laravel local verification)** |
 | 2 | Accounting Core | CoA, journal, ledger, trial balance, periods, fiscal years, opening balances, closing/reopen, FX, posting engine, reversal | **COMPLETE (ledger spine)** |
-| 3 | AR/AP + Cash/Bank/Cheques | customer/supplier masters, AR/AP subledger, receipts, payments, cash, banks, cheques, bank reconciliation, statements/aging/cash-bank reports | **IN PROGRESS - Slices 1-2 complete** |
+| 3 | AR/AP + Cash/Bank/Cheques | customer/supplier masters, AR/AP subledger, receipts, payments, cash, banks, cheques, bank reconciliation, statements/aging/cash-bank reports | **IN PROGRESS - Slices 1-3 complete** |
 | 4 | Sales & Purchasing | quotes→orders→delivery→invoices→returns/credit notes, GRN, 2/3-way match, approvals, credit limits | Planned |
 | 5 | Inventory | items, SKU/barcode, warehouses, transfers, adjustments, counts, valuation (WAVG/FIFO), landed cost | Planned |
 | 6 | Tools & Rentals | equipment custody, rentals lifecycle + invoicing | Planned |

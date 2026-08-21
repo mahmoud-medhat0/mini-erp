@@ -116,5 +116,23 @@ return [
                 'delete' => ['suppliers.opening_balances'],
             ],
         ],
+        'customer_receipt' => [
+            'table' => 'customer_receipt',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['customers.receipts'],
+                'attach' => ['customers.receipts'],
+                'delete' => ['customers.receipts'],
+            ],
+        ],
+        'supplier_payment' => [
+            'table' => 'supplier_payment',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['suppliers.payments'],
+                'attach' => ['suppliers.payments'],
+                'delete' => ['suppliers.payments'],
+            ],
+        ],
     ],
 ];

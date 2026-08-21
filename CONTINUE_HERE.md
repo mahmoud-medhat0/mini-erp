@@ -15,6 +15,7 @@ Use the current Laravel code and these documents first:
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`
 - `PROJECT_LOGIC_AUDIT.md`
+- `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -60,7 +61,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 and Phase 3 Slices 1-2 is complete and locally verified on PostgreSQL.
+The Laravel migration through M10 and Phase 3 Slices 1-3 is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -98,6 +99,11 @@ Implemented:
   - `receivable_entry` and `payable_entry` subledgers.
   - global accounting mappings for AR control, AP control, and opening-balance offset accounts.
   - PostingEngine integration, idempotent posting, subledger-to-GL reconciliation, and DB integrity hardening.
+- Phase 3 Slice 3 receipt/payment posting:
+  - Customer Receipt and Supplier Payment draft/post services.
+  - global `REC-YYYY-XXXXX` and `PAY-YYYY-XXXXX` numbering.
+  - PostingEngine GL effects for Cash/Bank GL vs AR/AP control.
+  - AR/AP subledger effects, unapplied balance tracking, idempotent posting, linked GL currency validation, and DB integrity hardening.
 
 Latest verified commands:
 
@@ -118,13 +124,14 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: 27 migrations Ran.
-- `php artisan test`: 173 tests / 1304 assertions passed.
+- `php artisan migrate:status`: 29 migrations Ran.
+- `php artisan test`: 187 total / 185 passed / 2 PostgreSQL-specific skipped, 1377 assertions.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
+- `php artisan tokens:gc --batch=100`: passed.
 - `npm run typecheck`: passed.
-- `npm run build`: passed.
+- `npm run build`: passed with optional `laravel:fonts`/`fontaine` warning only.
 
 ## Audit Status
 
@@ -200,7 +207,7 @@ failed_jobs: 0
 
 ## Next Work
 
-Recommended next product slice: Phase 3 Slice 3 - Receipt/Payment Posting.
+Recommended next product slice: Phase 3 Slice 4 - Allocation Engine.
 
 Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
@@ -208,7 +215,9 @@ Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 `PHASE_3_SLICE_2_GEMINI_PROMPT.md` has already been used for the second bounded Phase 3 slice and is now historical reference for what Slice 2 delivered.
 
-Use `PHASE_3_SLICE_3_GEMINI_PROMPT.md` when asking Gemini to implement the next bounded Phase 3 slice.
+`PHASE_3_SLICE_3_GEMINI_PROMPT.md` has already been used for the third bounded Phase 3 slice and is now historical reference for what Slice 3 delivered.
+
+Prepare a new bounded Slice 4 prompt before asking Gemini to implement allocation behavior.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 

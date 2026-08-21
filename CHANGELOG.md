@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 3 customer receipts and supplier payments
+- Added Customer Receipt and Supplier Payment draft/post services using the existing Accounting PostingEngine only.
+- Added global receipt/payment numbering with `REC-YYYY-XXXXX` and `PAY-YYYY-XXXXX`.
+- Added AR/AP subledger effects and unapplied balance tracking for posted receipts/payments without implementing allocation behavior yet.
+- Hardened receipt/payment integrity with linked GL currency validation, delete restriction for referenced customer/supplier rows, status checks, amount checks, `allocated + unapplied = amount`, and exactly-one CashAccount/BankAccount checks.
+- Verified with `php artisan test` 187 total / 185 passed / 2 PostgreSQL-specific skipped, 1377 assertions; Concurrency suite 7/7; Phase 3 Slice 3 suite 14 total / 12 passed / 2 PostgreSQL-specific skipped; PostgreSQL stress commands; TypeScript typecheck; and Vite build.
+
 ### Added — Phase 3 Slice 2 AR/AP subledgers and opening balances
 - Added Customer and Supplier opening-balance services that post through the existing Accounting PostingEngine and create durable `receivable_entry` / `payable_entry` subledger rows.
 - Added global accounting account mappings for `ar_control`, `ap_control`, and `opening_balance_offset`, with account classification, active-account, and currency validation.

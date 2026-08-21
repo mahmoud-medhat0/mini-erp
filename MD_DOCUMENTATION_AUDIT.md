@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: current docs have since been updated through M10 and Phase 3 Slices 1-2. Phase 2 Accounting Core, Phase 3 master data for Customer/Supplier/CashAccount/BankAccount, and Phase 3 AR/AP opening-balance subledgers are implemented in Laravel. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: current docs have since been updated through M10 and Phase 3 Slices 1-3. Phase 2 Accounting Core, Phase 3 master data for Customer/Supplier/CashAccount/BankAccount, Phase 3 AR/AP opening-balance subledgers, and Phase 3 customer receipt/supplier payment posting are implemented in Laravel. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -32,11 +32,11 @@ Classification meanings:
 | `DOMAIN_MODEL_REVIEW.md` | CURRENT | Aligned with the latest correction direction; still should be treated as review output, not original requirements. |
 | `IMPLEMENTATION_STATUS.md` | CURRENT | Current Laravel status and verification numbers. |
 | `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
-| `NEXT_TASKS.md` | CURRENT | Current Phase 3 Slice 3 recommendation. |
-| `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-2 are complete and remaining slices include receipts/payments, allocations, cheques, reconciliation, and reports. |
+| `NEXT_TASKS.md` | CURRENT | Current Phase 3 Slice 4 recommendation. |
+| `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-3 are complete and remaining slices include allocations, cheques, reconciliation, and reports. |
 | `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 1; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 2; keep as traceability for what was requested. |
-| `PHASE_3_SLICE_3_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt for Gemini to implement Phase 3 Slice 3 only: receipt/payment posting without allocations. |
+| `PHASE_3_SLICE_3_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 3: receipt/payment posting without allocations. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

@@ -57,12 +57,16 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - `receivable_entry` and `payable_entry` subledgers.
   - global accounting mappings for AR control, AP control, and opening-balance offset accounts.
   - subledger-to-GL reconciliation and DB integrity hardening.
+- Phase 3 Slice 3 receipt/payment posting:
+  - Customer Receipt and Supplier Payment draft/post services.
+  - global receipt/payment numbering, PostingEngine GL effects, AR/AP subledger effects, and unapplied balances.
+  - idempotent posting, linked GL currency validation, and DB integrity hardening.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Receipts, payments, allocations, and AR/AP operational flows beyond opening balances.
-- Cash/Bank operational posting, statements, reconciliation, and Cheques lifecycle.
+- Allocations and AR/AP settlement workflows beyond unapplied receipt/payment tracking.
+- Cash/Bank statements, reconciliation, and Cheques lifecycle.
 - Sales and Purchasing workflows.
 - Inventory.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -116,8 +120,8 @@ npm run build
 
 Latest verified result:
 
-- 27 migrations Ran.
-- 173 PHPUnit tests / 1304 assertions passed.
+- 29 migrations Ran.
+- 187 PHPUnit tests total / 185 passed / 2 PostgreSQL-specific skipped, 1377 assertions.
 - 7 Concurrency suite tests / 16 assertions passed.
 - PostgreSQL concurrency and accounting stress commands passed.
 - TypeScript typecheck and Vite build passed.
