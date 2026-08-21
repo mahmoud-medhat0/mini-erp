@@ -1,11 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 1 — Laravel migration foundation (in progress)
-- **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL)
+- **Current phase:** Phase 1 — Laravel migration foundation (M6 pages complete; migration continues)
+- **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL, through M6 migrated Inertia pages)
 - **Tests passing:** Laravel PHPUnit 29/29, including migrated page coverage and Concurrency 7/7. PostgreSQL `concurrency:stress --workers=100` remains the required manual stress check.
-- **Latest verified code commit:** local `develop` worktree; see `git log` after commit.
+- **Latest verified code commit:** `7f1d673` (`feat(migration): port laravel app pages`) on local `develop`.
 - **Remote/CI:** No GitHub Actions pipeline is connected for this Laravel migration track.
 - **Verification:** `php artisan migrate --force` clean · `php artisan test` clean · `vendor\bin\pint --test` clean · `npm run typecheck` clean · `npm run build` clean · `composer validate --strict` clean · `php artisan concurrency:stress --workers=100` clean.
+- **Latest migrated slice:** M6 authenticated Inertia pages: dashboard, settings hub, companies, branches, numbering, users/roles, notifications, app shell, and notification read action.
 - **Handoff:** see `DOMAIN_MODEL_REVIEW.md` first for the Laravel architecture correction, then `CONTINUE_HERE.md` and `NEXT_TASKS.md` as historical Next.js reference material.
 
 ## Legend
