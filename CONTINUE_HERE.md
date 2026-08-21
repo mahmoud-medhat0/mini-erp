@@ -190,7 +190,9 @@ failed_jobs: 0
 
 ## Next Work
 
-Recommended next product phase: Phase 3 - AR/AP + Cash/Bank/Cheques.
+Recommended next product phase: Phase 3 - AR/AP + Cash/Bank/Cheques Foundation.
+
+Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 
@@ -202,6 +204,6 @@ Before Phase 3, keep these invariants:
 - corrections by reversal
 - numbering atomic
 - posting idempotent
-- audit via Spatie Activitylog
+- Phase 3 audit uses the owner-approved existing `audit_log` / existing Audit service decision
 - attachment authorization through entity registry
 - notifications targeted to users

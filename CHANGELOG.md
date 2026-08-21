@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Corrected — Phase 3 planning contract
+- Added `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 scope/contract proposal.
+- Added Bank Reconciliation to Phase 3 scope.
+- Removed the unsupported generic manual AR/AP adjustment assumption; generic manual receivable/payable adjustment remains `UNDEFINED - DO NOT ASSUME`.
+- Defined cheque accounting lifecycle requirements, cheque state-machine constraints, allocation concurrency/idempotency requirements, receipt/payment reversal owner-decision gates, and Phase 3 PostgreSQL stress-test expectations.
+- Confirmed Phase 3 must not introduce company, branch, or tenant scope and must not start Sales, Purchasing, or Inventory.
+
 ### Added — Laravel M10 Spatie Activitylog, audit viewer, scheduler, and jobs baseline
 - Installed `spatie/laravel-activitylog` 4.12.3 and made Spatie `activity_log` the active audit backend.
 - Kept `App\Domain\Audit\AuditLogger::record(...)` as the central application adapter while routing new writes through Spatie Activitylog.

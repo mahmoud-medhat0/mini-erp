@@ -1,6 +1,6 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Laravel migration through M10 complete; next recommended product phase is Phase 3 - AR/AP + Cash/Bank/Cheques.
+- **Current phase:** Laravel migration through M10 complete; next recommended product phase is Phase 3 - AR/AP + Cash/Bank/Cheques Foundation.
 - **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Spatie Activitylog M10 tightening.
 - **Tests passing:** Laravel PHPUnit 145/145, 1185 assertions; Concurrency suite 7/7, 16 assertions.
 - **Stress passing:** `concurrency:stress --workers=100` and `accounting:concurrency-stress --workers=50`.
@@ -98,4 +98,4 @@ Result summary:
 
 ## Next Milestone
 
-Recommended: Phase 3 - AR/AP + Cash/Bank/Cheques. See `NEXT_TASKS.md`.
+Recommended: Phase 3 - AR/AP + Cash/Bank/Cheques Foundation. See `NEXT_TASKS.md` and `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`.
