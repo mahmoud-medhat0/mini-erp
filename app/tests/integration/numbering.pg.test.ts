@@ -10,12 +10,11 @@ const d = HAS_DB ? describe : describe.skip;
 
 d('Numbering repository (Postgres) — concurrency', () => {
   // Imports are dynamic so the suite loads without @prisma/client when skipped.
-  // Typed as unknown here to avoid importing Prisma types at collection time.
   let repo: { nextValue(companyId: string, key: string): Promise<number> };
-  let prisma: { $disconnect(): Promise<void> };
+  let prisma: typeof import('../../src/core/db/prisma').prisma;
 
   beforeAll(async () => {
-    prisma = (await import('../../src/core/db/prisma')).prisma as unknown as { $disconnect(): Promise<void> };
+    prisma = (await import('../../src/core/db/prisma')).prisma;
     const mod = await import('../../src/core/db/repositories/numberSequenceRepo');
     repo = new mod.PrismaNumberSequenceRepository();
   });
@@ -26,7 +25,15 @@ d('Numbering repository (Postgres) — concurrency', () => {
 
   it('1000 concurrent nextValue calls are unique and contiguous', async () => {
     const key = `TEST-${Date.now()}`;
-    const companyId = 'itest-company';
+    const company = await prisma.company.create({
+      data: {
+        nameEn: 'Numbering Test Co',
+        nameAr: 'Numbering Test Co',
+        baseCurrency: 'EGP',
+        settingsJson: {},
+      },
+    });
+    const companyId = company.id;
     const results = await Promise.all(Array.from({ length: 1000 }, () => repo.nextValue(companyId, key)));
     const set = new Set(results);
     expect(set.size).toBe(1000);

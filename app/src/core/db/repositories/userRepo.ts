@@ -23,7 +23,10 @@ export async function loadGrants(userId: string, companyId: string): Promise<Gra
   for (const ur of userRoles) {
     const roleScope = (ur.scopeJson as Grant['scope']) ?? { companyId };
     for (const rp of ur.role.permissions) {
-      const permission = `${rp.permission.module}.${rp.permission.action}`;
+      const permission =
+        rp.permission.module === '_capability'
+          ? rp.permission.action
+          : `${rp.permission.module}.${rp.permission.action}`;
       grants.push({ permission: permission as Grant['permission'], scope: (rp.scopeJson as Grant['scope']) ?? roleScope });
     }
   }

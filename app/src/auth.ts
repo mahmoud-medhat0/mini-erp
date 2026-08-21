@@ -10,8 +10,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { CredentialsAuthService } from './core/auth/authService';
 import { Argon2PasswordHasher } from './core/auth/password.argon2';
 import { InMemoryRateLimiter } from './core/auth/rateLimit';
-import { PrismaUserRepository, loadGrants, resolveActiveCompany } from './core/db/repositories/userRepo';
-import type { Grant } from './core/rbac';
+import { PrismaUserRepository, resolveActiveCompany } from './core/db/repositories/userRepo';
 
 const authService = new CredentialsAuthService(new PrismaUserRepository(), new Argon2PasswordHasher());
 const loginLimiter = new InMemoryRateLimiter(5, 60_000);
@@ -43,14 +42,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub && !token.companyId) {
         token.companyId = await resolveActiveCompany(token.sub);
       }
-      if (token.sub && token.companyId) {
-        token.grants = (await loadGrants(token.sub, token.companyId as string)) as unknown as Grant[];
-      }
       return token;
     },
     async session({ session, token }) {
       (session as unknown as { companyId?: unknown }).companyId = token.companyId;
-      (session as unknown as { grants?: unknown }).grants = token.grants ?? [];
       if (session.user) (session.user as { id?: string }).id = token.sub;
       return session;
     },

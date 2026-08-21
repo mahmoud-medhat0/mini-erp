@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 const HAS_DB = !!process.env.DATABASE_URL;
 const PASSWORD = 'Correct-Horse-2026!';
@@ -49,6 +49,14 @@ test.beforeAll(async () => {
   });
 });
 
+async function signIn(page: Page, email: string) {
+  await page.goto('/en/login');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/en$/);
+}
+
 test('public locale pages render with correct direction', async ({ page }) => {
   await page.goto('/en');
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
@@ -70,28 +78,24 @@ test('invalid login shows generic error', async ({ page }) => {
   await page.getByLabel('Email').fill('missing@example.test');
   await page.getByLabel('Password').fill('bad-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('alert')).toContainText('Invalid email or password');
+  await expect(page).toHaveURL(/\/en\/login\?error=1$/);
+  await expect(page.locator('form').getByRole('alert')).toContainText('Invalid email or password');
 });
 
 test('valid admin login reaches dashboard and settings', async ({ page }) => {
   test.skip(!HAS_DB, 'DATABASE_URL is required for credentials auth');
-  await page.goto('/en/login');
-  await page.getByLabel('Email').fill(adminEmail);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await signIn(page, adminEmail);
 
   await page.goto('/en/dashboard');
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await expect(page).toHaveURL(/\/en\/dashboard$/);
+  await expect(page.getByText('KPIs will populate from posted accounting data')).toBeVisible();
   await page.goto('/en/settings/users');
   await expect(page.getByRole('heading', { name: 'Users & Roles' })).toBeVisible();
 });
 
 test('viewer sees server-side permission denied for user administration', async ({ page }) => {
   test.skip(!HAS_DB, 'DATABASE_URL is required for credentials auth');
-  await page.goto('/en/login');
-  await page.getByLabel('Email').fill(viewerEmail);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Sign in' }).click();
+  await signIn(page, viewerEmail);
 
   await page.goto('/en/settings/users');
   await expect(page.getByText("You don't have permission to view this")).toBeVisible();

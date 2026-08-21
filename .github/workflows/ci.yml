@@ -24,7 +24,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
 
-  # Accounting-invariant suite + DB integration. Invariants BLOCK the pipeline.
   tests:
     runs-on: ubuntu-latest
     services:
@@ -34,13 +33,15 @@ jobs:
           POSTGRES_USER: erp
           POSTGRES_PASSWORD: erp
           POSTGRES_DB: mini_erp_test
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U erp" --health-interval 10s
           --health-timeout 5s --health-retries 5
     env:
       DATABASE_URL: postgresql://erp:erp@localhost:5432/mini_erp_test?schema=public
+      PGBOSS_DATABASE_URL: postgresql://erp:erp@localhost:5432/mini_erp_test?schema=public
       AUTH_SECRET: ci-test-secret
+      AUTH_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -51,11 +52,15 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - name: Sync schema to test DB
-        run: npx prisma db push --skip-generate
+        run: npm run prisma:db-push -- --skip-generate
+      - name: Seed baseline catalog
+        run: npm run prisma:seed
       - name: Accounting invariants (blocking)
         run: npm run test:invariants
       - name: Full unit + integration tests
         run: npm run test
+      - name: Production build
+        run: npm run build
 
   e2e:
     runs-on: ubuntu-latest
@@ -66,12 +71,13 @@ jobs:
           POSTGRES_USER: erp
           POSTGRES_PASSWORD: erp
           POSTGRES_DB: mini_erp_e2e
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U erp" --health-interval 10s
           --health-timeout 5s --health-retries 5
     env:
       DATABASE_URL: postgresql://erp:erp@localhost:5432/mini_erp_e2e?schema=public
+      PGBOSS_DATABASE_URL: postgresql://erp:erp@localhost:5432/mini_erp_e2e?schema=public
       AUTH_SECRET: ci-test-secret
       AUTH_URL: http://127.0.0.1:3000
     steps:
@@ -84,7 +90,9 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - name: Sync schema to E2E DB
-        run: npx prisma db push --skip-generate
+        run: npm run prisma:db-push -- --skip-generate
+      - name: Seed baseline catalog
+        run: npm run prisma:seed
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Playwright smoke E2E

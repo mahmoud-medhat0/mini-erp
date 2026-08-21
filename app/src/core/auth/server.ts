@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import type { Session } from './session';
 import type { Grant } from '../rbac';
+import { loadGrants } from '../db/repositories/userRepo';
 
 export interface AuthIdentity {
   userId: string;
@@ -21,11 +22,13 @@ export interface AuthIdentity {
 export async function getServerIdentity(): Promise<AuthIdentity | null> {
   const s = await auth();
   if (!s?.user) return null;
+  const userId = (s.user as { id?: string }).id ?? '';
+  const companyId = (s as unknown as { companyId?: string | null }).companyId ?? null;
   return {
-    userId: (s.user as { id?: string }).id ?? '',
+    userId,
     email: s.user.email ?? '',
-    companyId: (s as unknown as { companyId?: string | null }).companyId ?? null,
-    grants: ((s as unknown as { grants?: Grant[] }).grants ?? []) as Grant[],
+    companyId,
+    grants: userId && companyId ? await loadGrants(userId, companyId) : [],
   };
 }
 

@@ -56,11 +56,15 @@ export class PrismaCompanyRepository implements CompanyRepository {
           create: { companyId: company.id, name: roleDef.name, isTemplate: true },
         });
 
+        const rolePermissions = roleDef.permissions.map((permission) => {
+          const key = permission.includes('.') ? permission : `_capability.${permission}`;
+          const permissionId = permissionIds.get(key);
+          if (!permissionId) throw new Error(`Missing seeded permission: ${permission}`);
+          return { roleId: role.id, permissionId };
+        });
+
         await tx.rolePermission.createMany({
-          data: roleDef.permissions.map((permission) => ({
-            roleId: role.id,
-            permissionId: permissionIds.get(permission)!,
-          })),
+          data: rolePermissions,
           skipDuplicates: true,
         });
       }
