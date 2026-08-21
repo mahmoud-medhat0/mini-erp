@@ -1,0 +1,10 @@
+<?php
+
+return [
+    'bootstrap_user' => [
+        'enabled' => filter_var(env('ERP_SEED_BOOTSTRAP_USER', env('APP_ENV') !== 'production'), FILTER_VALIDATE_BOOLEAN),
+        'name' => env('ERP_BOOTSTRAP_USER_NAME', 'Mini ERP Admin'),
+        'email' => env('ERP_BOOTSTRAP_USER_EMAIL', 'admin@mini-erp.local'),
+        'password' => env('ERP_BOOTSTRAP_USER_PASSWORD', 'Password123!'),
+    ],
+];

@@ -10,6 +10,13 @@ Apply the Laravel database foundation:
 php artisan migrate --seed
 ```
 
+The local bootstrap login seeded by default is:
+
+```text
+Email: admin@mini-erp.local
+Password: Password123!
+```
+
 Run the verification suite:
 
 ```powershell

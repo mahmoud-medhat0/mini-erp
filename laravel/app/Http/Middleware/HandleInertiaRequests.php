@@ -38,7 +38,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => fn () => $request->user()?->only('id', 'name', 'email'),
+                'user' => fn () => $request->user()?->only('id', 'name', 'email', 'locale', 'theme'),
                 'permissions' => [],
             ],
             'tenant' => [
@@ -47,7 +47,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'locale' => app()->getLocale(),
             'direction' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
-            'theme' => $request->session()->get('theme', 'light'),
+            'theme' => $request->user()?->theme ?? $request->session()->get('theme', 'system'),
             'notifications' => [
                 'unreadCount' => 0,
             ],

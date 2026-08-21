@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Laravel migration M5 authentication schema
+- Extended Laravel's native `users` table with locale, theme, active-account, and MFA status fields while preserving the existing session and password-reset tables.
+- Added PostgreSQL constraints for the supported locales/themes and an index for active-user filtering.
+- Made Argon2id the Laravel password-hashing default using the same memory/time/parallelism parameters as the verified Next.js reference.
+- Added integration coverage for auth columns, defaults, casts, mass assignment, and Argon2id password hashing; applied the migration successfully to local PostgreSQL.
+- Added Laravel session login/logout with CSRF, active-account checks, login throttling, session regeneration, logout invalidation, a protected Inertia foundation route, and a local bootstrap admin seeder.
+
 ### Added — Laravel migration M3 database foundation
 - Added Laravel migrations for the ERP foundation tables around the native `users` table: company, branch, company membership, currency, exchange rates, fiscal years/periods, number sequences, audit log, attachments, and notifications.
 - Added Spatie Translatable-backed Company, Branch, and Currency models with JSON multilingual `name` columns.
