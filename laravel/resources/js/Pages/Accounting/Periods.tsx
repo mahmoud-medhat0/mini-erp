@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -138,30 +139,22 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
               {yearForm.errors.year ? <p className="text-xs text-red-500 font-bold mt-1.5">{yearForm.errors.year}</p> : null}
             </div>
             <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.startDate || 'Start Date'}
-              </label>
-              <input
-                type="date"
+              <DatePicker
+                label={accDict.startDate || 'Start Date'}
                 value={yearForm.data.start_date}
-                onChange={(e) => yearForm.setData('start_date', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-mono"
+                onChange={(val) => yearForm.setData('start_date', val || '')}
+                error={yearForm.errors.start_date}
                 required
               />
-              {yearForm.errors.start_date ? <p className="text-xs text-red-500 font-bold mt-1.5">{yearForm.errors.start_date}</p> : null}
             </div>
             <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.endDate || 'End Date'}
-              </label>
-              <input
-                type="date"
+              <DatePicker
+                label={accDict.endDate || 'End Date'}
                 value={yearForm.data.end_date}
-                onChange={(e) => yearForm.setData('end_date', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-mono"
+                onChange={(val) => yearForm.setData('end_date', val || '')}
+                error={yearForm.errors.end_date}
                 required
               />
-              {yearForm.errors.end_date ? <p className="text-xs text-red-500 font-bold mt-1.5">{yearForm.errors.end_date}</p> : null}
             </div>
             <div className="sm:col-span-3 flex justify-end gap-3 pt-2">
               <button

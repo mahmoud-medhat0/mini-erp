@@ -152,5 +152,14 @@ return [
                 'delete' => ['cheques.delete', 'cheques.edit'],
             ],
         ],
+        'bank_reconciliation' => [
+            'table' => 'bank_reconciliation',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['banks.view'],
+                'attach' => ['banks.reconcile'],
+                'delete' => ['banks.reconcile'],
+            ],
+        ],
     ],
 ];

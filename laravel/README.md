@@ -68,7 +68,7 @@ Useful env controls:
 - Spatie Activitylog-backed audit service and `/audit-log` viewer.
 - Scheduler entry for `tokens:gc --batch=100`.
 - Queue/jobs baseline tables and tests.
-- Phase 3 Slices 1-5: Customer/Supplier, CashAccount/BankAccount, AR/AP subledgers and opening balances, receipt/payment posting, allocation settlement, and cheque lifecycle.
+- Phase 3 Slices 1-6: Customer/Supplier, CashAccount/BankAccount, AR/AP subledgers and opening balances, receipt/payment posting, allocation settlement, cheque lifecycle, and bank reconciliation foundation.
 
 ## Verification
 
@@ -83,6 +83,7 @@ php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
+php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -90,10 +91,10 @@ npm run build
 
 Latest verified result:
 
-- 31 migrations Ran.
-- 202 PHPUnit tests total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions.
+- 33 migrations Ran.
+- 213 PHPUnit tests total / 211 passed / 2 PostgreSQL-specific skipped, 1510 assertions.
 - Concurrency suite passed.
-- PostgreSQL concurrency/accounting/allocation/cheque stress commands passed.
+- PostgreSQL concurrency/accounting/allocation/cheque/bank reconciliation stress commands passed.
 - TypeScript typecheck and Vite build passed.
 
 ## Audit Backend

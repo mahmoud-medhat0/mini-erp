@@ -70,11 +70,14 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - pre-clear receive/deposit/clear/bounce/return and issue/clear/return/cancel workflows.
   - configurable Cheques Under Collection and Cheques Payable mappings.
   - PostingEngine GL effects, AR/AP subledger effects, idempotency, Spatie Activitylog audit, attachment registry entries, and cheque concurrency stress coverage.
+- Phase 3 Slice 6 bank reconciliation:
+  - BankReconciliation and BankReconciliationLine records/services.
+  - manual ledger-backed statement matching, CashBook and BankBook query services, zero-difference finalization, immutable finalized records, and bank reconciliation stress coverage.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Cash/Bank statements and bank reconciliation.
+- Broad Inertia pages and reports for Phase 3 workflows.
 - Sales and Purchasing workflows.
 - Inventory.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -123,6 +126,7 @@ php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
+php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -130,10 +134,10 @@ npm run build
 
 Latest verified result:
 
-- 31 migrations Ran.
-- 202 PHPUnit tests total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions.
+- 33 migrations Ran.
+- 213 PHPUnit tests total / 211 passed / 2 PostgreSQL-specific skipped, 1510 assertions.
 - 7 Concurrency suite tests / 16 assertions passed.
-- PostgreSQL concurrency, accounting, allocation, and cheque stress commands passed.
+- PostgreSQL concurrency, accounting, allocation, cheque, and bank reconciliation stress commands passed.
 - TypeScript typecheck and Vite build passed.
 
 ## Documentation Entry Points
@@ -149,6 +153,7 @@ Use these first:
 - `PHASE_3_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`

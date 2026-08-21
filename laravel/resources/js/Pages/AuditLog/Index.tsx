@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { getDictionary } from '../../lib/i18n';
@@ -197,27 +198,19 @@ export default function AuditLogIndex({
 
             {/* Date From */}
             <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.dateFrom || (isAr ? 'من تاريخ' : 'Date From')}
-              </label>
-              <input
-                type="date"
+              <DatePicker
+                label={auditDict.dateFrom || (isAr ? 'من تاريخ' : 'Date From')}
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
+                onChange={(val) => setDateFrom(val || '')}
               />
             </div>
 
             {/* Date To */}
             <div>
-              <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.dateTo || (isAr ? 'إلى تاريخ' : 'Date To')}
-              </label>
-              <input
-                type="date"
+              <DatePicker
+                label={auditDict.dateTo || (isAr ? 'إلى تاريخ' : 'Date To')}
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
+                onChange={(val) => setDateTo(val || '')}
               />
             </div>
           </div>

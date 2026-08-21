@@ -3,6 +3,19 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 6 bank reconciliation
+- Implemented `bank_reconciliation` header and `bank_reconciliation_line` statement matching models and migration (`2026_08_22_000000_create_phase3_slice6_bank_reconciliation_tables.php`).
+- Created `CashBookQueryService` and `BankBookQueryService` derived strictly from immutable posted `ledger_entry` rows.
+- Implemented `BankReconciliationService` handling draft creation, statement line management, candidate ledger entry lookup, line matching, unmatching, dynamic summary computation, and strict zero-difference finalization checks.
+- Added PostgreSQL partial unique index `bank_recon_line_matched_ledger_unique` to prevent duplicate ledger entry matching globally across statement lines.
+- Registered RBAC permission `banks.reconcile` and attachment entity `bank_reconciliation`.
+- Built `accounting:bank-reconciliation-concurrency-stress --workers=50` command verifying concurrent duplicate-match protection and idempotent finalization.
+- Hardened matching date/currency validation, deterministic header-first lock ordering, and DB-level immutability triggers for finalized reconciliation headers/lines.
+- Verified with `php artisan test` 213 total / 211 passed / 2 PostgreSQL-specific skipped, 1510 assertions; Phase 3 Slice 6 suite 11/11; Concurrency suite 7/7; PostgreSQL concurrency/accounting/allocation/cheque/bank-reconciliation stress commands; TypeScript typecheck; and Vite build.
+### Added — Phase 3 Slice 6 bank reconciliation prompt
+- Added `PHASE_3_SLICE_6_GEMINI_PROMPT.md` as the bounded execution contract for ledger-backed bank reconciliation, cash/bank book query foundations, strict reconciliation lifecycle, duplicate-match/finalize concurrency stress, Spatie-backed audit, and attachment/RBAC integration.
+- Explicitly kept bank statement import, bank feed/OCR parsing, automatic bank adjustment posting, broad Slice 7 UI, Sales/Purchasing/Inventory, and full financial statements out of Slice 6.
+
 ### Added — Phase 3 Slice 5 cheque lifecycle
 - Added `incoming_cheque` and `outgoing_cheque` records with pre-clear state machines for incoming receive/deposit/clear/bounce/return and outgoing issue/clear/return/cancel.
 - Added configurable `cheques_under_collection` and `cheques_payable` accounting mappings without company, branch, or tenant dimensions.

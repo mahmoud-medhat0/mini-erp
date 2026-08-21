@@ -1,12 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 3 Slice 5 Cheque Lifecycle complete; next recommended product slice is Phase 3 Slice 6 (Bank Reconciliation & Cash/Bank Statements).
-- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 3 Slice 5 Cheque Lifecycle pass.
-- **Tests passing:** Laravel PHPUnit 202 total / 200 passed / 2 skipped, 1464 assertions; Concurrency suite 7/7, 16 assertions; Phase 3 Cheque suite 8/8, 51 assertions.
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, and `accounting:cheque-concurrency-stress --workers=50`.
+- **Current phase:** Phase 3 Slice 6 Bank Reconciliation & Cash/Bank Statements complete; next recommended product slice is Phase 3 Slice 7 (Inertia Pages for Phase 3 workflows).
+- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 3 Slice 6 Bank Reconciliation pass.
+- **Tests passing:** Laravel PHPUnit 213 total / 211 passed / 2 skipped, 1510 assertions; Concurrency suite 7/7, 16 assertions; Phase 3 Recon suite 11/11, 46 assertions.
+- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, and `accounting:bank-reconciliation-concurrency-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` and `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 3 Slice 5 worktree.
+- **Latest verified code commit:** pending for Phase 3 Slice 6 worktree.
 - **Handoff:** start with `CONTINUE_HERE.md`, then this file, then `NEXT_TASKS.md`.
 
 ## Legend
@@ -32,6 +32,7 @@
 | Phase 3 Slice 3 Receipts & Payments | COMPLETE | `customer_receipt`, `supplier_payment`, draft/post flows, number allocation (`REC-YYYY-XXXXX`, `PAY-YYYY-XXXXX`), PostingEngine GL effects, subledger effects, unapplied tracking (`allocated_minor = 0`, `unapplied_minor = amount_minor`), and idempotency safety. |
 | Phase 3 Slice 4 Allocation Engine | COMPLETE | `receivable_allocation`, `payable_allocation`, CustomerReceipt-to-ReceivableEntry allocations, SupplierPayment-to-PayableEntry allocations, unapplied/allocated tracking, over-allocation prevention, deterministic row locking, reversal support, and allocation concurrency stress command. |
 | Phase 3 Slice 5 Cheque Lifecycle | COMPLETE | `incoming_cheque`, `outgoing_cheque`, pre-clear cheque state machines (`receive`, `deposit`, `clear`, `bounce`, `return`, `issue`, `cancel`), configurable mappings (`cheques_under_collection`, `cheques_payable`), number sequence allocation (`ICHQ-YYYY-XXXXX`, `OCHQ-YYYY-XXXXX`), PostingEngine integration, AR/AP subledger effects, owner-decision boundary for post-clear bounce/return, and cheque concurrency stress command. |
+| Phase 3 Slice 6 Bank Reconciliation | COMPLETE | `bank_reconciliation`, `bank_reconciliation_line`, CashBook & BankBook query services derived from posted `ledger_entry` rows, statement line matching, draft -> in_progress -> reconciled lifecycle, summary snapshot computation, zero-difference finalization checks, DB-enforced immutable reconciled state, attachment registry entry, and PostgreSQL bank recon concurrency stress command. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -61,6 +62,7 @@ php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
+php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -68,15 +70,16 @@ npm run build
 
 Result summary:
 
-- `php artisan migrate --force`: nothing pending; applied through Phase 3 Slice 5 cheque tables.
-- `php artisan migrate:status`: 31 migrations Ran.
+- `php artisan migrate --force`: nothing pending; applied through Phase 3 Slice 6 bank reconciliation tables and reconciliation immutability triggers.
+- `php artisan migrate:status`: 33 migrations Ran.
 - `vendor/bin/pint --test`: passed.
-- `php artisan test`: 202 total / 200 passed / 2 PostgreSQL-specific skipped, 1464 assertions.
+- `php artisan test`: 213 total / 211 passed / 2 PostgreSQL-specific skipped, 1510 assertions.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
 - `php artisan accounting:allocation-concurrency-stress --workers=50`: passed with true concurrent AR/AP workers, 3 accepted and 47 rejected cleanly for each side.
 - `php artisan accounting:cheque-concurrency-stress --workers=50`: passed with concurrent clear replay, clear-vs-bounce race protection, and outgoing clear duplicate-post prevention.
+- `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed with duplicate-match protection and concurrent idempotent finalization.
 - `php artisan tokens:gc --batch=100`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed with optional `laravel:fonts`/`fontaine` warning only.
@@ -93,7 +96,7 @@ Result summary:
 | Sales | SCAFFOLD ONLY | Not started. |
 | Purchasing | SCAFFOLD ONLY | Not started. |
 | Inventory | SCAFFOLD ONLY | Not started. |
-| AR/AP + Cash/Bank/Cheques | IN PROGRESS | Phase 3 Slices 1-5 are complete; Slice 6 Bank Reconciliation & Cash/Bank Statements is next. |
+| AR/AP + Cash/Bank/Cheques | IN PROGRESS | Phase 3 Slices 1-6 are complete; Slice 7 Inertia Pages for Phase 3 workflows is next. |
 | Payroll, Rentals, Fixed Assets, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
 | Full financial statements | NOT IMPLEMENTED | General Journal, General Ledger, and Trial Balance exist; Balance Sheet/Income Statement/Cash Flow are later work. |
 
@@ -107,4 +110,4 @@ Result summary:
 
 ## Next Milestone
 
-Recommended: Phase 3 Slice 6 - Bank Reconciliation & Cash/Bank Statements. Prepare a bounded Slice 6 prompt from `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` before implementation.
+Recommended: Phase 3 Slice 7 - Inertia Pages for Phase 3 workflows. Prepare a bounded Slice 7 prompt from `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` before implementation.

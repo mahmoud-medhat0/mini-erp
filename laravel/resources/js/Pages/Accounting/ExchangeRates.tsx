@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { CurrencyRow, FxRateRow, SharedPageProps } from '../../Types';
@@ -164,17 +165,13 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.effectiveDate || 'Effective Date'}
-              </label>
-              <input
-                type="date"
+              <DatePicker
+                label={accDict.effectiveDate || 'Effective Date'}
                 value={form.data.date}
-                onChange={(e) => form.setData('date', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs font-mono"
+                onChange={(val) => form.setData('date', val || '')}
+                error={form.errors.date}
                 required
               />
-              {form.errors.date ? <p className="text-xs text-red-500 mt-1">{form.errors.date}</p> : null}
             </div>
 
             <div>

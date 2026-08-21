@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slices 1-5 are implemented and verified.
+Status: corrected planning contract; Slices 1-6 are implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -450,6 +450,8 @@ Status: COMPLETE in Laravel as of 2026-08-21, including incoming/outgoing cheque
 - matched/unmatched transactions
 - reconciliation difference
 - status lifecycle
+
+Status: COMPLETE in Laravel as of 2026-08-21, including ledger-backed bank reconciliation records, manual statement-line matching, CashBook/BankBook query services, zero-difference finalization checks, immutable finalized records, attachment registry entry, and PostgreSQL bank reconciliation stress coverage.
 
 ### Slice 7 - Inertia Pages
 
