@@ -220,12 +220,12 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
           </div>
 
           {/* Navigation Items List */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-            {/* GROUP 1: MAIN */}
+          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+            {/* GROUP 1: STANDALONE INDIVIDUAL ITEMS */}
             <div className="space-y-1">
               {!sidebarCollapsed ? (
-                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                  {dict.app.nav.groups.main}
+                <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
+                  {dict.app.nav.groups.overview || (locale === 'ar' ? 'الصفحات الرئيسية' : 'Overview')}
                 </p>
               ) : (
                 <div className="my-1 border-t border-[var(--border)]" />
@@ -260,103 +260,6 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     {!sidebarCollapsed ? <span>{dict.app.nav.dashboard}</span> : null}
                   </div>
                 </Link>
-
-                {/* Accounting Core Link & Sub-menu */}
-                <div className="space-y-1">
-                  <div
-                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
-                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                    } ${
-                      active.startsWith('accounting')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <Link
-                      href="/accounting"
-                      onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (accDict.title || 'Accounting Core') : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
-                    >
-                      <svg
-                        className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          active.startsWith('accounting') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                      {!sidebarCollapsed ? <span>{accDict.title || 'Accounting Core'}</span> : null}
-                    </Link>
-                    {!sidebarCollapsed ? (
-                      <button
-                        type="button"
-                        onClick={() => setAccountingExpanded(!accountingExpanded)}
-                        className="p-1 hover:text-white transition-colors cursor-pointer"
-                      >
-                        <svg
-                          className={`size-3 transition-transform duration-200 ${accountingExpanded ? 'rotate-180' : ''}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {(accountingExpanded || sidebarCollapsed) ? (
-                    <div className="space-y-1 pt-0.5">
-                      {[
-                        { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa || 'Chart of Accounts', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
-                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories || (locale === 'ar' ? 'تصنيفات الحسابات' : 'Account Categories'), icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-                        { key: 'accounting.account_types' as NavKey, href: '/accounting/account-types', label: accDict.accountTypes || 'Account Types', icon: 'M7 7h10M7 12h10M7 17h10' },
-                        { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal || 'General Journal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                        { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger || 'General Ledger', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                        { key: 'accounting.trial_balance' as NavKey, href: '/accounting/trial-balance', label: accDict.trialBalance || 'Trial Balance', icon: 'M3 6l9-4 9 4v14l-9 4-9-4V6z' },
-                        { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods || 'Fiscal Periods', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-                        { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances || 'Opening Balances', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                        { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates || 'Exchange Rates', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
-                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                      ].map((subItem) => {
-                        const isSubActive = active === subItem.key;
-                        return (
-                          <Link
-                            key={subItem.key}
-                            href={subItem.href}
-                            onClick={() => setMobileMenuOpen(false)}
-                            title={sidebarCollapsed ? subItem.label : undefined}
-                            className={`group relative flex items-center gap-3 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 ps-6'
-                            } ${
-                              isSubActive
-                                ? 'bg-[var(--primary)] text-white shadow-xs font-bold'
-                                : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                            }`}
-                          >
-                            <svg
-                              className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
-                                isSubActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
-                              }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" d={subItem.icon} />
-                            </svg>
-                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </div>
 
                 {/* Notifications Link */}
                 <Link
@@ -400,118 +303,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     </span>
                   ) : null}
                 </Link>
-              </div>
-            </div>
 
-            {/* GROUP 2: ADMINISTRATION (Collapsible Sub-Menu) */}
-            <div className="space-y-1">
-              {!sidebarCollapsed ? (
-                <div className="flex items-center justify-between px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                  <span>{dict.app.nav.groups.administration}</span>
-                  <button
-                    type="button"
-                    onClick={() => setAdminExpanded(!adminExpanded)}
-                    className="p-0.5 hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <svg
-                      className={`size-3 transition-transform duration-200 ${adminExpanded ? 'rotate-180' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
-              ) : (
-                <div className="my-1 border-t border-[var(--border)]" />
-              )}
-
-              {(adminExpanded || sidebarCollapsed) ? (
-                <div className="space-y-1 pt-0.5">
-                  {/* Settings Main Overview Link */}
-                  <Link
-                    href="/settings"
-                    onClick={() => setMobileMenuOpen(false)}
-                    title={sidebarCollapsed ? dict.app.nav.settings : undefined}
-                    className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
-                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
-                    } ${
-                      active === 'settings'
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <svg
-                        className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          active === 'settings' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      {!sidebarCollapsed ? <span>{dict.app.nav.settings}</span> : null}
-                    </div>
-                  </Link>
-
-                  {/* Sub-items (Companies, Branches, Numbering, Users) */}
-                  {[
-                    { key: 'settings.company' as NavKey, href: '/settings/company', label: dict.app.settings.sections.company.title, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1 M14 7h1m-1 4h1m-1 4h1' },
-                    { key: 'settings.branches' as NavKey, href: '/settings/branches', label: dict.app.settings.sections.branches.title, icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
-                    { key: 'settings.numbering' as NavKey, href: '/settings/numbering', label: dict.app.settings.sections.numbering.title, icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
-                    { key: 'settings.users' as NavKey, href: '/settings/users', label: dict.app.settings.sections.users.title, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-                  ].map((subItem) => {
-                    const isSubActive = active === subItem.key;
-
-                    return (
-                      <Link
-                        key={subItem.key}
-                        href={subItem.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        title={sidebarCollapsed ? subItem.label : undefined}
-                        className={`group relative flex items-center gap-3 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                          sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 ps-6'
-                        } ${
-                          isSubActive
-                            ? 'bg-[var(--primary)] text-white shadow-xs font-bold'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        <svg
-                          className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
-                            isSubActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
-                          }`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d={subItem.icon} />
-                        </svg>
-                        {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            {/* GROUP 3: SYSTEM */}
-            <div className="space-y-1">
-              {!sidebarCollapsed ? (
-                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                  {dict.app.nav.groups.system}
-                </p>
-              ) : (
-                <div className="my-1 border-t border-[var(--border)]" />
-              )}
-
-              <div className="space-y-1">
+                {/* System Diagnostics Link */}
                 <Link
                   href="/foundation"
                   onClick={() => setMobileMenuOpen(false)}
@@ -539,6 +332,236 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     {!sidebarCollapsed ? <span>{dict.app.nav.diagnostics}</span> : null}
                   </div>
                 </Link>
+              </div>
+            </div>
+
+            {/* GROUP 2: MODULE GROUPS CONTAINING SUB-ELEMENTS */}
+            <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+              {!sidebarCollapsed ? (
+                <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
+                  {dict.app.nav.groups.modules || (locale === 'ar' ? 'الوحدات والإدارة' : 'Modules & Administration')}
+                </p>
+              ) : (
+                <div className="my-1 border-t border-[var(--border)]" />
+              )}
+
+              <div className="space-y-2">
+                {/* 1. Accounting Core Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('accounting')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/accounting"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (accDict.title || 'Accounting Core') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg
+                        className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
+                          active.startsWith('accounting') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{accDict.title || 'Accounting Core'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button
+                        type="button"
+                        onClick={() => setAccountingExpanded(!accountingExpanded)}
+                        className="p-1 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <svg
+                          className={`size-3.5 transition-transform duration-200 ${accountingExpanded ? 'rotate-180' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(accountingExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa || 'Chart of Accounts', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories || (locale === 'ar' ? 'تصنيفات الحسابات' : 'Account Categories'), icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+                        { key: 'accounting.account_types' as NavKey, href: '/accounting/account-types', label: accDict.accountTypes || 'Account Types', icon: 'M7 7h10M7 12h10M7 17h10' },
+                        { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal || 'General Journal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                        { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger || 'General Ledger', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                        { key: 'accounting.trial_balance' as NavKey, href: '/accounting/trial-balance', label: accDict.trialBalance || 'Trial Balance', icon: 'M3 6l9-4 9 4v14l-9 4-9-4V6z' },
+                        { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods || 'Fiscal Periods', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                        { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances || 'Opening Balances', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates || 'Exchange Rates', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                      ].map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${
+                              isSubActive
+                                ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20 font-bold'
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg
+                              className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
+                                isSubActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d={subItem.icon} />
+                            </svg>
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 2. Administration & Settings Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('settings')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/settings"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (dict.app.nav.groups.administration || 'Administration') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg
+                        className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
+                          active.startsWith('settings') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.groups.administration || 'Administration'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button
+                        type="button"
+                        onClick={() => setAdminExpanded(!adminExpanded)}
+                        className="p-1 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <svg
+                          className={`size-3.5 transition-transform duration-200 ${adminExpanded ? 'rotate-180' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(adminExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {/* Settings Main Overview Link */}
+                      <Link
+                        href="/settings"
+                        onClick={() => setMobileMenuOpen(false)}
+                        title={sidebarCollapsed ? dict.app.nav.settings : undefined}
+                        className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                          sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                        } ${
+                          active === 'settings'
+                            ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20 font-bold'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <svg
+                          className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
+                            active === 'settings' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                        {!sidebarCollapsed ? <span className="truncate">{dict.app.nav.settings}</span> : null}
+                      </Link>
+
+                      {/* Sub-items (Companies, Branches, Numbering, Users) */}
+                      {[
+                        { key: 'settings.company' as NavKey, href: '/settings/company', label: dict.app.settings.sections.company.title, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1 M14 7h1m-1 4h1m-1 4h1' },
+                        { key: 'settings.branches' as NavKey, href: '/settings/branches', label: dict.app.settings.sections.branches.title, icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
+                        { key: 'settings.numbering' as NavKey, href: '/settings/numbering', label: dict.app.settings.sections.numbering.title, icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
+                        { key: 'settings.users' as NavKey, href: '/settings/users', label: dict.app.settings.sections.users.title, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+                      ].map((subItem) => {
+                        const isSubActive = active === subItem.key;
+
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${
+                              isSubActive
+                                ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20 font-bold'
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg
+                              className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
+                                isSubActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d={subItem.icon} />
+                            </svg>
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>

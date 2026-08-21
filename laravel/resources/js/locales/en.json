@@ -85,6 +85,8 @@
       "notifications": "Notifications",
       "diagnostics": "System Diagnostics",
       "groups": {
+        "overview": "Overview",
+        "modules": "Modules & Administration",
         "main": "Main",
         "administration": "Administration",
         "system": "System"

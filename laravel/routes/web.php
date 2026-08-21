@@ -25,10 +25,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/settings', [AppPageController::class, 'settings'])->name('settings');
     Route::get('/settings/company', [AppPageController::class, 'companies'])->name('settings.company');
     Route::post('/settings/company', [SettingsActionController::class, 'storeCompany'])->name('settings.company.store');
-    Route::patch('/settings/company/{companyId}', [SettingsActionController::class, 'updateCompany'])->name('settings.company.update');
+    Route::patch('/settings/company/{companyId?}', [SettingsActionController::class, 'updateCompany'])->name('settings.company.update');
     Route::get('/settings/branches', [AppPageController::class, 'branches'])->name('settings.branches');
     Route::post('/settings/branches', [SettingsActionController::class, 'storeBranch'])->name('settings.branches.store');
     Route::patch('/settings/branches/{branchId}', [SettingsActionController::class, 'updateBranch'])->name('settings.branches.update');
+    Route::delete('/settings/branches/{branchId}', [SettingsActionController::class, 'deleteBranch'])->name('settings.branches.delete');
     Route::get('/settings/numbering', [AppPageController::class, 'numbering'])->name('settings.numbering');
     Route::post('/settings/numbering', [SettingsActionController::class, 'storeNumbering'])->name('settings.numbering.store');
     Route::patch('/settings/numbering/{sequenceId}', [SettingsActionController::class, 'updateNumbering'])->name('settings.numbering.update');

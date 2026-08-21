@@ -85,6 +85,8 @@
       "notifications": "الإشعارات",
       "diagnostics": "تشخيصات النظام",
       "groups": {
+        "overview": "الصفحات الرئيسية",
+        "modules": "الوحدات والإدارة",
         "main": "الرئيسية",
         "administration": "الإدارة والتهيئة",
         "system": "النظام والصيانة"
