@@ -1,11 +1,11 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 1 — Foundation (COMPLETE)
-- **Latest verified:** 2026-08-21 (local PostgreSQL + GitHub Actions)
-- **Tests passing:** Vitest 66/66 with DB-backed integration enabled. Invariants 23/23. Playwright smoke 5/5 with DB-backed credential/RBAC paths.
-- **Latest verified code commit:** `1c9737f` (branch `develop`)
-- **Remote:** `origin/develop` pushed successfully; CI run `32440676342` completed `success`.
-- **Verification:** `npm ci` clean · `prisma generate` clean · `prisma db push` clean · `prisma seed` clean · `npm run ci` clean · `next build` clean · `playwright` smoke 5/5.
+- **Current phase:** Phase 1 — Laravel migration foundation (in progress)
+- **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL)
+- **Tests passing:** Laravel PHPUnit 26/26, including Concurrency 7/7. PostgreSQL `concurrency:stress --workers=100` passed.
+- **Latest verified code commit:** local `develop` worktree; see `git log` after commit.
+- **Remote/CI:** No GitHub Actions pipeline is connected for this Laravel migration track.
+- **Verification:** `php artisan migrate --force` clean · `php artisan test` clean · `php artisan test --testsuite=Concurrency` clean · `php artisan concurrency:stress --workers=100` clean · `php artisan tokens:gc --batch=100` clean.
 - **Handoff:** see `DOMAIN_MODEL_REVIEW.md` first for the Laravel architecture correction, then `CONTINUE_HERE.md` and `NEXT_TASKS.md` as historical Next.js reference material.
 
 ## Legend
@@ -19,6 +19,7 @@
 | M3 database foundation | PARTIAL | Native `users` plus company/branch business tables and non-team Spatie RBAC seeders; domain relationships beyond the spec review must not be assumed |
 | M5 session auth backend | COMPLETE | Login/logout, Argon2id, throttling, active users, bootstrap admin, protected foundation route |
 | Removed tenant assumptions | COMPLETE | Laravel tenant context/middleware/onboarding and Spatie `company_id` teams removed |
+| Concurrency hardening | COMPLETE | `idempotency_keys`, optimistic locks, PostgreSQL number allocation, bounded auth token GC, notification dedupe, audit doc, and stress/test coverage |
 
 ## Core kernel
 | Item | Status | Notes |
@@ -66,10 +67,11 @@ All 24 domain modules are `SCAFFOLD ONLY` (directory + boundary files); implemen
 ## Known issues
 - Next.js build has non-blocking warnings: root detection (`turbopack.root`) and deprecated `middleware` convention.
 - DB-backed integration/E2E requires `DATABASE_URL`; without it those suites intentionally skip or cannot exercise credential paths.
+- No GitHub Actions workflow is connected for the Laravel migration track; verification is currently local.
 
 ## Remote (GitHub)
-- **Status:** `origin/develop` push succeeded.
-- **CI:** GitHub Actions run `32440676342` completed `success` for commit `1c9737f`.
+- **Status:** Not used for the current Laravel migration verification.
+- **CI:** Not connected.
 
 ## Next milestone
-Tag `v0.1.0-phase1-foundation` after this documentation update has a green Actions run, then start Phase 2 (Accounting core) only on explicit request.
+Continue the Laravel migration with the next explicitly requested backend slice; accounting posting must use the concurrency primitives documented in `docs/CONCURRENCY_AUDIT.md`.

@@ -3,6 +3,15 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Laravel concurrency hardening
+- Added a Laravel concurrency audit at `docs/CONCURRENCY_AUDIT.md` covering current mutation surfaces, lock ordering, idempotency, retries, token cleanup, and future posting/job risks without reintroducing SaaS tenant assumptions.
+- Added an `idempotency_keys` table, operation/key/scope uniqueness, status checks on PostgreSQL, and a database-backed idempotency store that never logs raw keys.
+- Added optimistic locking primitives with `lock_version` columns on `company` and `branch`, localized conflict messages in EN/AR, and exception rendering for JSON/Inertia requests.
+- Added PostgreSQL-safe number sequence allocation using `INSERT ... ON CONFLICT ... DO UPDATE RETURNING`.
+- Added bounded authentication garbage collection for expired database sessions, password reset tokens, and idempotency keys via `php artisan tokens:gc`.
+- Added notification dedupe-key schema protection and `php artisan concurrency:stress` for PostgreSQL stress verification.
+- Added a dedicated Laravel `Concurrency` PHPUnit suite covering sequence allocation, idempotency replay/conflict behavior, stale optimistic updates, token GC, notification dedupe, and localization.
+
 ### Corrected — Laravel architecture review
 - Added `DOMAIN_MODEL_REVIEW.md` to classify confirmed ERP relationships versus old multi-tenant implementation artifacts.
 - Removed the Laravel tenant context, tenant middleware, first-run onboarding assumption, Inertia `tenant` shared prop, and Spatie Permission company/team scope.

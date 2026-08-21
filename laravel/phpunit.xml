@@ -14,6 +14,9 @@
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
+        <testsuite name="Concurrency">
+            <directory>tests/Concurrency</directory>
+        </testsuite>
         <testsuite name="Invariants">
             <directory>tests/Invariants</directory>
         </testsuite>
