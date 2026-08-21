@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+@source '../js/**/*.{ts,tsx}';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+:root,
+[data-theme='light'] {
+    --background: #f5f6f8;
+    --surface: #ffffff;
+    --border: #dfe3e8;
+    --text-primary: #1a2230;
+    --text-secondary: #4d5768;
+    --text-muted: #7a8496;
+    --primary: #2563a8;
+    --success: #1f8a4c;
+    --success-subtle: #e4f4ea;
+    --danger: #c62a2a;
+    --danger-subtle: #fbe3e3;
+}
+
+[data-theme='dark'] {
+    --background: #0e1420;
+    --surface: #161d2b;
+    --border: #2a3446;
+    --text-primary: #e7ecf3;
+    --text-secondary: #aeb8c8;
+    --text-muted: #7d8798;
+    --primary: #4d90d4;
+    --success: #4cc27e;
+    --success-subtle: #12271a;
+    --danger: #ec5b5b;
+    --danger-subtle: #2c1414;
+}
+
+html {
+    color-scheme: light;
+}
+
+html[data-theme='dark'] {
+    color-scheme: dark;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+}
+
+.code,
+.identifier {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
