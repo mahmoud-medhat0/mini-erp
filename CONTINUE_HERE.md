@@ -61,7 +61,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 and Phase 3 Slices 1-8 is complete and locally verified on PostgreSQL.
+The Laravel migration through M10 and Phase 3 Slices 1-9 is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -119,21 +119,16 @@ Implemented:
   - manual ledger-backed statement matching only; no bank statement import.
   - CashBook and BankBook query services derived from immutable posted ledger entries.
   - draft -> in_progress -> reconciled lifecycle, zero-difference finalization, DB-enforced immutable finalized records, and PostgreSQL reconciliation stress coverage.
-- Phase 3 Slice 7 Inertia pages & UX actions:
-  - 13 Controllers: CustomerController, SupplierController, CashAccountController, BankAccountController, CustomerOpeningBalanceController, SupplierOpeningBalanceController, CustomerReceiptController, SupplierPaymentController, ReceivableAllocationController, PayableAllocationController, IncomingChequeController, OutgoingChequeController, BankReconciliationController.
-  - 13 web route endpoints registered in `laravel/routes/web.php`.
-  - 14 Inertia pages under `resources/js/Pages` (Customers, Suppliers, CashAccounts, BankAccounts, OpeningBalances, Receipts, Payments, Allocations, Cheques, BankReconciliations).
-  - Custom React DatePicker component with 3x4 grid views, RTL support, zero emojis, and clean SVG icons.
-  - Updated sidebar navigation with expandable groups (AR/Customers, AP/Suppliers, Cash/Bank/Cheques).
-  - Full English/Arabic translations in `en.json` and `ar.json`.
-  - 13/13 passing PHPUnit UI feature tests (`Phase3Slice7UiTest.php`).
-- Phase 3 Slice 8 operational/subledger reports:
-  - `reports.view` permission and protected report endpoints.
-  - `App\Application\Reports` services for customer/supplier statements, AR/AP aging, cheque register, bank reconciliation status/detail, and AR/AP to GL reconciliation.
-  - ledger-backed Cash Book and Bank Book report pages with CSV export.
-  - Reports Hub Inertia page plus 11 report pages under `resources/js/Pages/Reports`.
-  - read-only reports over existing Phase 2/Phase 3 durable data only; no fake invoice aging and no accounting mutation.
-  - 12/12 passing report feature tests (`Phase3Slice8ReportsTest.php`).
+- Phase 3 Slice 7 Inertia pages and UX actions:
+  - 13 Controllers, 14 Inertia pages, DatePicker with RTL support, sidebar navigation, EN/AR locale support, and 13/13 UI feature tests.
+- Phase 3 Slice 8 operational and subledger reports:
+  - `reports.view` permission, Reports Hub, customer/supplier statements, AR/AP aging, Cash Book, Bank Book, Cheque Register, bank reconciliation status/detail, AR/AP to GL reconciliation, CSV exports, and read-only report services under `App\Application\Reports`.
+- Phase 3 Slice 9 PostgreSQL stress and integrity hardening:
+  - `accounting:phase3-integrity-check` audit command.
+  - `accounting:phase3-stress` orchestrator command.
+  - PostgreSQL concurrency stress coverage across all Phase 3 workflows.
+  - `Phase3Slice9StressIntegrityTest` 6/6 tests, 262 assertions.
+  - read-only report integrity verified.
 
 Latest verified commands:
 
@@ -144,6 +139,7 @@ php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
+php artisan test --filter=Phase3Slice9StressIntegrityTest
 php artisan test --filter=Phase3Slice8ReportsTest
 php artisan test --filter=Phase3Slice6BankReconciliationTest
 php artisan test --testsuite=Concurrency
@@ -152,6 +148,8 @@ php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
+php artisan accounting:phase3-integrity-check
+php artisan accounting:phase3-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -160,7 +158,8 @@ npm run build
 Latest results:
 
 - `php artisan migrate:status`: 33 migrations Ran.
-- `php artisan test`: 236 passing tests reported after Slice 8 implementation.
+- `php artisan test`: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 9 implementation.
+- `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
@@ -168,8 +167,10 @@ Latest results:
 - `php artisan accounting:allocation-concurrency-stress --workers=50`: passed.
 - `php artisan accounting:cheque-concurrency-stress --workers=50`: passed.
 - `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed.
+- `php artisan accounting:phase3-integrity-check`: passed.
+- `php artisan accounting:phase3-stress --workers=5`: passed locally; Gemini also reported `--workers=50` coverage.
 - `php artisan tokens:gc --batch=100`: passed.
-- `vendor/bin/pint --test`: passed after formatting cleanup.
+- `vendor/bin/pint --test`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
 
@@ -251,7 +252,7 @@ ledger_entry: 156
 
 ## Next Work
 
-Recommended next product slice: Phase 3 Slice 9 - PostgreSQL stress / integrity tests.
+Recommended next product slice: Phase 3 Slice 10 - docs, status, and final verification gate.
 
 Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
@@ -271,7 +272,9 @@ Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 `PHASE_3_SLICE_8_GEMINI_PROMPT.md` has already been used for the eighth bounded Phase 3 slice and is now historical reference for what Slice 8 delivered.
 
-Prepare a new bounded Slice 9 prompt before asking Gemini to implement PostgreSQL stress/integrity hardening.
+`PHASE_3_SLICE_9_GEMINI_PROMPT.md` has already been used for the ninth bounded Phase 3 slice and is now historical reference for what Slice 9 delivered.
+
+Prepare a new bounded Slice 10 prompt before asking Gemini to perform final Phase 3 docs/status/verification cleanup.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 

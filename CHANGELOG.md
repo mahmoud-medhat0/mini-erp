@@ -3,6 +3,12 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 9 concurrency stress & integrity tests
+- Added non-mutating integrity check command `php artisan accounting:phase3-integrity-check` covering Customer Receipts, Supplier Payments, AR/AP Allocations, Cheque Lifecycles, Bank Reconciliations, and Report read-only invariants.
+- Added Phase 3 concurrency stress orchestrator command `php artisan accounting:phase3-stress {--workers=50}` executing PostgreSQL row-locking concurrency scenarios across all Phase 3 workflows.
+- Created `Phase3Slice9StressIntegrityTest.php` feature test suite (6/6 passing, 262 assertions) validating receipt/payment posting idempotency, period close posting locks, allocation over-pressure bounds, report read-only behavior, integrity check artisan command, and strict anti-tenancy/company-scoping rules.
+- Verified 242 total PHPUnit passing tests, 0 TypeScript errors (`npm run typecheck`), clean Pint formatting (`vendor/bin/pint --test`), and Vite asset compilation (`npm run build`).
+
 ### Added — Phase 3 Slice 8 operational/subledger reports
 - Added `reports.view` permission, Reports Hub, and protected report endpoints.
 - Implemented read-only report services and Inertia pages for Customer Statement, Supplier Statement, AR Aging, AP Aging, Cash Book, Bank Book, Cheque Register, Bank Reconciliation status/detail, AR to GL reconciliation, and AP to GL reconciliation.

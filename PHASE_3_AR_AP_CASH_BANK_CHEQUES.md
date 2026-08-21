@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slices 1-8 are implemented and verified.
+Status: corrected planning contract; Slices 1-9 are fully implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -484,6 +484,8 @@ Status: COMPLETE in Laravel as of 2026-08-21, including Reports Hub, `reports.vi
 - bank reconciliation duplicate matching
 - period close races
 - subledger to GL reconciliation
+
+Status: COMPLETE in Laravel as of 2026-08-21, including `accounting:phase3-integrity-check`, `accounting:phase3-stress`, Phase 3 stress/integrity feature coverage, period close and report read-only checks, subledger-to-GL consistency verification, PostgreSQL stress coverage across Phase 3 workflows, and 6/6 Slice 9 feature tests.
 
 ### Slice 10 - Docs / Status / Final Verification
 

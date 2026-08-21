@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-8 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-9 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -28,26 +28,19 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - Phase 3 Slice 3 receipt/payment posting:
   - `customer_receipt` and `supplier_payment` draft/post flows.
   - global numbering through `REC-YYYY-XXXXX` and `PAY-YYYY-XXXXX`.
-  - PostingEngine integration for Cash/Bank GL vs AR/AP control effects.
-  - AR/AP subledger effects and unapplied balance tracking.
-  - idempotency, linked GL currency validation, FK delete restriction, and DB integrity checks.
+  - PostingEngine GL entries and subledger entries.
+  - unapplied amount tracking (`allocated_minor = 0`, `unapplied_minor = amount_minor`).
 - Phase 3 Slice 4 allocation engine:
-  - `receivable_allocation` and `payable_allocation` settlement metadata.
-  - CustomerReceipt-to-ReceivableEntry and SupplierPayment-to-PayableEntry allocation services.
-  - unapplied/allocated balance updates without creating GL/journal/ledger rows.
-  - deterministic row locking, active allocation row locking, idempotent allocation/reversal, and over-allocation prevention.
-  - true concurrent AR/AP allocation stress command.
+  - `receivable_allocation` and `payable_allocation` models/migrations.
+  - CustomerReceipt-to-ReceivableEntry allocations and SupplierPayment-to-PayableEntry allocations.
+  - unapplied and allocated balance tracking, over-allocation prevention, and reversal support.
+  - `accounting:allocation-concurrency-stress` command.
 - Phase 3 Slice 5 cheque lifecycle:
-  - `incoming_cheque` and `outgoing_cheque` records.
-  - pre-clear state machines for incoming receive/deposit/clear/bounce/return and outgoing issue/clear/return/cancel.
-  - configurable mappings for `cheques_under_collection` and `cheques_payable`.
-  - PostingEngine journals/ledger effects, AR/AP subledger restoration entries, Spatie Activitylog audit, attachment registry entries, and idempotent transition commands.
-  - true PostgreSQL cheque transition stress command.
+  - `incoming_cheque` and `outgoing_cheque` models/migrations.
+  - pre-clear lifecycle states (`receive`, `deposit`, `clear`, `bounce`, `return`, `issue`, `cancel`).
+  - configurable mappings (`cheques_under_collection`, `cheques_payable`), number allocation (`ICHQ-YYYY-XXXXX`, `OCHQ-YYYY-XXXXX`).
+  - `accounting:cheque-concurrency-stress` command.
 - Phase 3 Slice 6 bank reconciliation:
-  - `bank_reconciliation` and `bank_reconciliation_line`.
-  - CashBook & BankBook query services derived from immutable posted `ledger_entry` rows.
-  - manual statement line matching, lifecycle and summary rules, attachment registry integration, and DB-enforced immutability after finalization.
-  - true PostgreSQL reconciliation concurrency stress command.
 - Phase 3 Slice 7 Inertia pages and UX actions:
   - Customer, Supplier, CashAccount, BankAccount, opening balance, receipt/payment, allocation, cheque, and bank reconciliation controllers/routes.
   - Inertia pages for the implemented Phase 3 workflows.
@@ -60,11 +53,16 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - dedicated report query services under `App\Application\Reports`.
   - streaming CSV exports for report downloads.
   - read-only reporting over existing durable Phase 2/Phase 3 data only.
+- Phase 3 Slice 9 PostgreSQL stress and integrity hardening:
+  - `accounting:phase3-integrity-check` non-mutating audit command.
+  - `accounting:phase3-stress` orchestrator command.
+  - stress coverage across Phase 3 posting, allocation, cheque, bank reconciliation, period-close, subledger-to-GL, and report read-only invariants.
+  - `Phase3Slice9StressIntegrityTest` feature suite.
 
 Latest verified:
 
 ```text
-php artisan test: 236 passing tests reported after Slice 8 implementation
+php artisan test: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 9 implementation
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
@@ -74,18 +72,20 @@ Phase 3 Slice 5 suite: 8 tests / 51 assertions passed
 Phase 3 Slice 6 suite: 11 tests / 46 assertions passed
 Phase 3 Slice 7 UI suite: 13 tests passed
 Phase 3 Slice 8 reports suite: 12 tests / 180 assertions passed
-PostgreSQL stress: concurrency + accounting + allocation + cheque + bank reconciliation stress passed
-Pint: passed after formatting cleanup
+Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed
+PostgreSQL stress: concurrency + accounting + allocation + cheque + bank reconciliation + phase3-stress passed
+Phase 3 integrity check: passed
+Pint: passed
 TypeScript typecheck: passed
 Vite build: passed
 ```
 
 ## Next Recommended Phase
 
-Phase 3 Slice 9:
+Phase 3 Slice 10:
 
 ```text
-PostgreSQL Stress / Integrity Tests
+Docs / Status / Final Verification
 ```
 
 The corrected Phase 3 contract is:
@@ -96,7 +96,7 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 9.
+Use the Phase 3 contract and current code as the source of truth for Slice 10.
 
 The Slice 2 execution prompt for Gemini has already been used:
 
@@ -126,9 +126,13 @@ The Slice 8 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_8_GEMINI_PROMPT.md`
 
-Prepare a new bounded Slice 9 prompt before implementation.
+The Slice 9 execution prompt for Gemini has already been used:
 
-Slice 9 should harden and verify the existing Phase 3 workflows and reports with PostgreSQL stress/integrity coverage: posting races, allocation races, cheque transition races, bank reconciliation duplicate matching/finalization, period close races, subledger-to-GL reconciliation consistency, and report read consistency. It must not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic adjustment posting, or tenant/company/branch scope.
+- `PHASE_3_SLICE_9_GEMINI_PROMPT.md`
+
+Prepare a new bounded Slice 10 prompt before implementation.
+
+Slice 10 should perform final Phase 3 documentation/status cleanup and a final verification gate only. It must not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic adjustment posting, or tenant/company/branch scope.
 
 ## Phase 3 Must Include
 

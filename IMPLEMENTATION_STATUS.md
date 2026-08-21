@@ -1,12 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 3 Slices 1-8 complete; all Phase 3 operational workflows, UI/actions, and operational/subledger reports are implemented and verified. Next recommended phase is Phase 3 Slice 9 (PostgreSQL stress / integrity tests).
-- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 3 Slice 8 reports pass.
-- **Tests passing:** Laravel PHPUnit 236 passing tests reported after Slice 8; Phase 3 Slice 8 reports suite 12/12, 180 assertions; Phase 3 Slice 7 UI suite 13/13.
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, and `accounting:bank-reconciliation-concurrency-stress --workers=50`.
+- **Current phase:** Phase 3 Slices 1-9 complete; all Phase 3 operational workflows, UI/actions, operational/subledger reports, and PostgreSQL concurrency stress & integrity tests are fully implemented and verified.
+- **Latest verified:** 2026-08-21, local Laravel + PostgreSQL after Phase 3 Slice 9 stress & integrity audit.
+- **Tests passing:** Laravel PHPUnit 242 passing tests (2 skipped for PostgreSQL row locking on SQLite); Phase 3 Slice 9 suite 6/6 (262 assertions); Phase 3 Slice 8 reports suite 12/12 (180 assertions).
+- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 TS errors), `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 3 Slice 8 worktree.
+- **Latest verified code commit:** pending for Phase 3 Slice 9 worktree.
 - **Handoff:** start with `CONTINUE_HERE.md`, then this file, then `NEXT_TASKS.md`.
 
 ## Legend
@@ -35,6 +35,7 @@
 | Phase 3 Slice 6 Bank Reconciliation | COMPLETE | `bank_reconciliation`, `bank_reconciliation_line`, CashBook & BankBook query services derived from posted `ledger_entry` rows, statement line matching, draft -> in_progress -> reconciled lifecycle, summary snapshot computation, zero-difference finalization checks, DB-enforced immutable reconciled state, attachment registry entry, and PostgreSQL bank recon concurrency stress command. |
 | Phase 3 Slice 7 Inertia Pages & UX | COMPLETE | 13 Controllers, 13 web route endpoints, 14 Inertia pages under `resources/js/Pages` (Customers, Suppliers, CashAccounts, BankAccounts, OpeningBalances, Receipts, Payments, Allocations, Cheques, BankReconciliations), `DatePicker.tsx` with zero emojis & RTL support, updated sidebar navigation with dropdown groups, full English/Arabic translations, and 13/13 passing UI feature tests. |
 | Phase 3 Slice 8 Operational/Subledger Reports | COMPLETE | `reports.view` permission, Reports Hub, customer/supplier statements, AR/AP aging, Cash Book, Bank Book, Cheque Register, bank reconciliation status/detail, AR/AP to GL reconciliation, CSV exports, read-only report services under `App\Application\Reports`, and 12/12 report feature tests. |
+| Phase 3 Slice 9 Concurrency & Integrity Hardening | COMPLETE | `accounting:phase3-integrity-check` non-mutating audit command, `accounting:phase3-stress` orchestrator command, PostgreSQL concurrency stress coverage across all Phase 3 workflows, `Phase3Slice9StressIntegrityTest` (6/6 passing, 262 assertions), 242 total PHPUnit passing tests, zero TS errors, clean Pint formatting, and 100% verified read-only report integrity. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -59,12 +60,16 @@ php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
+php artisan test --filter=Phase3Slice9StressIntegrityTest
+php artisan test --filter=Phase3Slice8ReportsTest
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
+php artisan accounting:phase3-integrity-check
+php artisan accounting:phase3-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -75,7 +80,8 @@ Result summary:
 - `php artisan migrate --force`: nothing pending; applied through Phase 3 Slice 6 bank reconciliation tables and reconciliation immutability triggers; Slice 7 added UI/actions only.
 - `php artisan migrate:status`: 33 migrations Ran.
 - `vendor/bin/pint --test`: passed.
-- `php artisan test`: 236 passing tests reported after Slice 8 implementation.
+- `php artisan test`: 242 passing tests / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 9 implementation.
+- `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
@@ -83,6 +89,8 @@ Result summary:
 - `php artisan accounting:allocation-concurrency-stress --workers=50`: passed with true concurrent AR/AP workers, 3 accepted and 47 rejected cleanly for each side.
 - `php artisan accounting:cheque-concurrency-stress --workers=50`: passed with concurrent clear replay, clear-vs-bounce race protection, and outgoing clear duplicate-post prevention.
 - `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed with duplicate-match protection and concurrent idempotent finalization.
+- `php artisan accounting:phase3-integrity-check`: passed.
+- `php artisan accounting:phase3-stress --workers=5`: passed locally; Gemini reported `--workers=50` coverage.
 - `php artisan tokens:gc --batch=100`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
@@ -99,7 +107,7 @@ Result summary:
 | Sales | SCAFFOLD ONLY | Not started. |
 | Purchasing | SCAFFOLD ONLY | Not started. |
 | Inventory | SCAFFOLD ONLY | Not started. |
-| AR/AP + Cash/Bank/Cheques | IN PROGRESS | Phase 3 Slices 1-8 are complete; Slice 9 PostgreSQL stress/integrity hardening is next. |
+| AR/AP + Cash/Bank/Cheques | IN PROGRESS | Phase 3 Slices 1-9 are complete; Slice 10 docs/status/final verification is next. |
 | Payroll, Rentals, Fixed Assets, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
 | Full financial statements | NOT IMPLEMENTED | General Journal, General Ledger, and Trial Balance exist; Balance Sheet/Income Statement/Cash Flow are later work. |
 
@@ -113,4 +121,4 @@ Result summary:
 
 ## Next Milestone
 
-Recommended: Phase 3 Slice 9 - PostgreSQL stress / integrity tests for the Phase 3 workflows and reports already implemented. Prepare a bounded Slice 9 prompt before implementation.
+Recommended: Phase 3 Slice 10 - docs, status, and final verification gate for the Phase 3 work already implemented. Prepare a bounded Slice 10 prompt before implementation.

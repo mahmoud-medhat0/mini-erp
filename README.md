@@ -79,6 +79,10 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Phase 3 Slice 8 operational/subledger reports:
   - Reports Hub, customer/supplier statements, AR/AP aging, Cash Book, Bank Book, Cheque Register, Bank Reconciliation status/detail, and AR/AP to GL reconciliation.
   - `reports.view` permission, CSV exports, read-only report services, and Inertia report pages.
+- Phase 3 Slice 9 PostgreSQL stress and integrity hardening:
+  - `accounting:phase3-integrity-check` non-mutating audit command.
+  - `accounting:phase3-stress` orchestrator command.
+  - Phase 3 stress/integrity feature coverage, period-close checks, report read-only checks, and subledger-to-GL consistency verification.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
@@ -132,6 +136,8 @@ php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
+php artisan accounting:phase3-integrity-check
+php artisan accounting:phase3-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -140,11 +146,13 @@ npm run build
 Latest verified result:
 
 - 33 migrations Ran.
-- 236 PHPUnit tests passing reported after Slice 8.
+- 242 PHPUnit tests passing / 2 PostgreSQL-locking skips / 2064 assertions reported after Slice 9.
+- Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
-- PostgreSQL concurrency, accounting, allocation, cheque, and bank reconciliation stress commands passed.
-- TypeScript typecheck passed and Vite build passed with 0 fontaine warnings.
+- PostgreSQL concurrency, accounting, allocation, cheque, bank reconciliation, and phase3 stress commands passed.
+- Phase 3 integrity check passed.
+- TypeScript typecheck passed and Vite build passed.
 
 ## Documentation Entry Points
 
@@ -162,6 +170,7 @@ Use these first:
 - `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_8_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_9_GEMINI_PROMPT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`
