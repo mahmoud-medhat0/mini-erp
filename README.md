@@ -76,11 +76,13 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Phase 3 Slice 7 Inertia pages and UX actions:
   - customer/supplier, cash/bank, opening balance, receipt/payment, allocation, cheque, and bank reconciliation pages/actions.
   - expandable navigation groups, full English/Arabic translations, RTL-aware DatePicker, validation feedback, permission-aware actions, and UI feature tests.
+- Phase 3 Slice 8 operational/subledger reports:
+  - Reports Hub, customer/supplier statements, AR/AP aging, Cash Book, Bank Book, Cheque Register, Bank Reconciliation status/detail, and AR/AP to GL reconciliation.
+  - `reports.view` permission, CSV exports, read-only report services, and Inertia report pages.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Standalone reports for Phase 3 workflows, including customer/supplier statements, aging, cash book, bank book, cheque register, bank reconciliation status, and AR/AP to GL reconciliation.
 - Sales and Purchasing workflows.
 - Inventory.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -138,7 +140,8 @@ npm run build
 Latest verified result:
 
 - 33 migrations Ran.
-- 226 PHPUnit tests total / 224 passed / 2 PostgreSQL-specific skipped, 1622 assertions.
+- 236 PHPUnit tests passing reported after Slice 8.
+- Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
 - PostgreSQL concurrency, accounting, allocation, cheque, and bank reconciliation stress commands passed.
 - TypeScript typecheck passed and Vite build passed with 0 fontaine warnings.
@@ -158,6 +161,7 @@ Use these first:
 - `PHASE_3_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
+- `PHASE_3_SLICE_8_GEMINI_PROMPT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`

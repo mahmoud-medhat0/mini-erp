@@ -31,6 +31,40 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   );
 }
 
+export function Button({
+  children,
+  onClick,
+  className = '',
+  variant = 'primary',
+  type = 'button',
+  disabled = false,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  className?: string;
+  variant?: 'primary' | 'secondary' | 'danger';
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+}) {
+  const base = 'inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer border shadow-2xs';
+  const variants = {
+    primary: 'bg-[var(--primary)] text-white hover:opacity-90 border-transparent',
+    secondary: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--background)]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 border-transparent',
+  };
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`${base} ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   return (
     <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 py-10 text-center">

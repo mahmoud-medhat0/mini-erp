@@ -91,6 +91,8 @@ class BankBookQueryService
         return [
             'bank_account' => [
                 'id' => $bankAccount->id,
+                'code' => $bankAccount->code,
+                'name' => $bankAccount->name,
                 'account_number' => $bankAccount->account_number,
                 'bank_name' => $bankAccount->bank_name,
                 'currency' => $bankAccount->currency,

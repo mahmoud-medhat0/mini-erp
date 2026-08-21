@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 3 Slice 8 operational/subledger reports
+- Added `reports.view` permission, Reports Hub, and protected report endpoints.
+- Implemented read-only report services and Inertia pages for Customer Statement, Supplier Statement, AR Aging, AP Aging, Cash Book, Bank Book, Cheque Register, Bank Reconciliation status/detail, AR to GL reconciliation, and AP to GL reconciliation.
+- Added streaming CSV exports for report downloads.
+- Kept reports derived from existing durable Phase 2/Phase 3 records only: no fake Sales/Purchase invoice aging, no accounting mutation, no bank import, no automatic adjustment posting, and no tenant/company/branch scope.
+- Verified `Phase3Slice8ReportsTest.php` 12/12 tests / 180 assertions, `php artisan test` 236 passing tests reported after Slice 8, `vendor/bin/pint --test`, `npm run typecheck`, and `npm run build`.
+
 ### Added — Phase 3 Slice 7 Inertia pages & UX actions
 - Created 13 Http Controllers (`CustomerController`, `SupplierController`, `CashAccountController`, `BankAccountController`, `CustomerOpeningBalanceController`, `SupplierOpeningBalanceController`, `CustomerReceiptController`, `SupplierPaymentController`, `ReceivableAllocationController`, `PayableAllocationController`, `IncomingChequeController`, `OutgoingChequeController`, `BankReconciliationController`).
 - Registered 13 web route endpoints in `routes/web.php` covering index, store, update, post, reverse, lifecycle state transitions, and bank reconciliation line matching/finalization.

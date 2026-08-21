@@ -38,7 +38,18 @@ export type NavKey =
   | 'incoming-cheques.index'
   | 'outgoing-cheques.index'
   | 'bank-reconciliations.index'
-  | 'bank-reconciliations.show';
+  | 'bank-reconciliations.show'
+  | 'reports.index'
+  | 'reports.customer-statement'
+  | 'reports.supplier-statement'
+  | 'reports.ar-aging'
+  | 'reports.ap-aging'
+  | 'reports.cash-book'
+  | 'reports.bank-book'
+  | 'reports.cheque-register'
+  | 'reports.bank-reconciliations'
+  | 'reports.ar-gl-reconciliation'
+  | 'reports.ap-gl-reconciliation';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -56,6 +67,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const [arExpanded, setArExpanded] = useState(() => active.startsWith('customer') || active.startsWith('receivable'));
   const [apExpanded, setApExpanded] = useState(() => active.startsWith('supplier') || active.startsWith('payable'));
   const [cashBankExpanded, setCashBankExpanded] = useState(() => active.includes('cash') || active.includes('bank') || active.includes('cheque'));
+  const [reportsExpanded, setReportsExpanded] = useState(() => active.startsWith('reports'));
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
@@ -619,6 +631,68 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                           className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
                             sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                           } ${active === subItem.key || (subItem.key === 'bank-reconciliations.index' && active === 'bank-reconciliations.show') ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 5. Reports & Subledgers Dropdown Group */}
+                <div className="space-y-1">
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('reports')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/reports"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? (locale === 'ar' ? 'التقارير الفرعية' : 'Reports & Subledgers') : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('reports') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'التقارير الفرعية' : 'Reports & Subledgers'}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setReportsExpanded(!reportsExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${reportsExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(reportsExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'reports.index' as NavKey, href: '/reports', label: locale === 'ar' ? 'مركز التقارير' : 'Reports Hub' },
+                        { key: 'reports.customer-statement' as NavKey, href: '/reports/customer-statement', label: locale === 'ar' ? 'كشف حساب عميل' : 'Customer Statement' },
+                        { key: 'reports.supplier-statement' as NavKey, href: '/reports/supplier-statement', label: locale === 'ar' ? 'كشف حساب مورد' : 'Supplier Statement' },
+                        { key: 'reports.ar-aging' as NavKey, href: '/reports/ar-aging', label: locale === 'ar' ? 'أعمار ديون العملاء' : 'AR Aging' },
+                        { key: 'reports.ap-aging' as NavKey, href: '/reports/ap-aging', label: locale === 'ar' ? 'أعمار ديون الموردين' : 'AP Aging' },
+                        { key: 'reports.cash-book' as NavKey, href: '/reports/cash-book', label: locale === 'ar' ? 'دفتر الخزينة' : 'Cash Book' },
+                        { key: 'reports.bank-book' as NavKey, href: '/reports/bank-book', label: locale === 'ar' ? 'دفتر البنك' : 'Bank Book' },
+                        { key: 'reports.cheque-register' as NavKey, href: '/reports/cheque-register', label: locale === 'ar' ? 'سجل الشيكات' : 'Cheque Register' },
+                        { key: 'reports.bank-reconciliations' as NavKey, href: '/reports/bank-reconciliations', label: locale === 'ar' ? 'تقرير تسوية البنك' : 'Bank Recon Report' },
+                        { key: 'reports.ar-gl-reconciliation' as NavKey, href: '/reports/ar-gl-reconciliation', label: locale === 'ar' ? 'مطابقة العملاء بالأستاذ' : 'AR to GL Recon' },
+                        { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: locale === 'ar' ? 'مطابقة الموردين بالأستاذ' : 'AP to GL Recon' },
+                      ].map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
                         >
                           {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
                         </Link>

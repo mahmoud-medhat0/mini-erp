@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Laravel migration through M10 plus Phase 3 Slices 1-7 is complete and verified locally on PostgreSQL.
+Current status: Laravel migration through M10 plus Phase 3 Slices 1-8 is complete and verified locally on PostgreSQL.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -54,11 +54,17 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - expandable sidebar navigation groups and full English/Arabic translations.
   - custom RTL-aware `DatePicker.tsx`.
   - permission-aware actions, validation feedback, empty states, and UI feature tests.
+- Phase 3 Slice 8 operational/subledger reports:
+  - `reports.view` permission and protected report routes.
+  - report hub plus customer/supplier statements, AR/AP aging, cash book, bank book, cheque register, bank reconciliation status/detail, and AR/AP to GL reconciliation reports.
+  - dedicated report query services under `App\Application\Reports`.
+  - streaming CSV exports for report downloads.
+  - read-only reporting over existing durable Phase 2/Phase 3 data only.
 
 Latest verified:
 
 ```text
-php artisan test: 226 total / 224 passed / 2 PostgreSQL-specific skipped, 1622 assertions
+php artisan test: 236 passing tests reported after Slice 8 implementation
 Concurrency suite: 7 tests / 16 assertions passed
 Phase 3 Slice 1 suite: 14 tests / 58 assertions passed
 Phase 3 Slice 2 suite: 14 tests / 61 assertions passed
@@ -67,17 +73,19 @@ Phase 3 Slice 4 suite: 7 tests / 38 assertions passed
 Phase 3 Slice 5 suite: 8 tests / 51 assertions passed
 Phase 3 Slice 6 suite: 11 tests / 46 assertions passed
 Phase 3 Slice 7 UI suite: 13 tests passed
+Phase 3 Slice 8 reports suite: 12 tests / 180 assertions passed
 PostgreSQL stress: concurrency + accounting + allocation + cheque + bank reconciliation stress passed
+Pint: passed after formatting cleanup
 TypeScript typecheck: passed
-Vite build: passed with 0 fontaine warnings
+Vite build: passed
 ```
 
 ## Next Recommended Phase
 
-Phase 3 Slice 8:
+Phase 3 Slice 9:
 
 ```text
-Phase 3 Operational Reports and Subledger Reports
+PostgreSQL Stress / Integrity Tests
 ```
 
 The corrected Phase 3 contract is:
@@ -88,7 +96,7 @@ The Slice 1 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
 
-Use the Phase 3 contract and current code as the source of truth for Slice 8.
+Use the Phase 3 contract and current code as the source of truth for Slice 9.
 
 The Slice 2 execution prompt for Gemini has already been used:
 
@@ -114,9 +122,13 @@ The Slice 7 execution prompt for Gemini has already been used:
 
 - `PHASE_3_SLICE_7_GEMINI_PROMPT.md`
 
-Prepare a new bounded Slice 8 prompt before implementation.
+The Slice 8 execution prompt for Gemini has already been used:
 
-Slice 8 should cover standalone Phase 3 operational reports only: customer/supplier statements, AR/AP aging, cash book, bank book, cheque register, bank reconciliation report/status, and AR/AP to GL reconciliation reports. It must not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic bank adjustment posting, or tenant/company/branch scope.
+- `PHASE_3_SLICE_8_GEMINI_PROMPT.md`
+
+Prepare a new bounded Slice 9 prompt before implementation.
+
+Slice 9 should harden and verify the existing Phase 3 workflows and reports with PostgreSQL stress/integrity coverage: posting races, allocation races, cheque transition races, bank reconciliation duplicate matching/finalization, period close races, subledger-to-GL reconciliation consistency, and report read consistency. It must not start sales, purchasing, inventory, payroll, full financial statements, bank import, automatic adjustment posting, or tenant/company/branch scope.
 
 ## Phase 3 Must Include
 

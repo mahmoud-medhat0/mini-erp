@@ -61,7 +61,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10 and Phase 3 Slices 1-7 is complete and locally verified on PostgreSQL.
+The Laravel migration through M10 and Phase 3 Slices 1-8 is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -127,6 +127,13 @@ Implemented:
   - Updated sidebar navigation with expandable groups (AR/Customers, AP/Suppliers, Cash/Bank/Cheques).
   - Full English/Arabic translations in `en.json` and `ar.json`.
   - 13/13 passing PHPUnit UI feature tests (`Phase3Slice7UiTest.php`).
+- Phase 3 Slice 8 operational/subledger reports:
+  - `reports.view` permission and protected report endpoints.
+  - `App\Application\Reports` services for customer/supplier statements, AR/AP aging, cheque register, bank reconciliation status/detail, and AR/AP to GL reconciliation.
+  - ledger-backed Cash Book and Bank Book report pages with CSV export.
+  - Reports Hub Inertia page plus 11 report pages under `resources/js/Pages/Reports`.
+  - read-only reports over existing Phase 2/Phase 3 durable data only; no fake invoice aging and no accounting mutation.
+  - 12/12 passing report feature tests (`Phase3Slice8ReportsTest.php`).
 
 Latest verified commands:
 
@@ -137,6 +144,7 @@ php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
+php artisan test --filter=Phase3Slice8ReportsTest
 php artisan test --filter=Phase3Slice6BankReconciliationTest
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
@@ -152,7 +160,8 @@ npm run build
 Latest results:
 
 - `php artisan migrate:status`: 33 migrations Ran.
-- `php artisan test`: 226 total / 224 passed / 2 PostgreSQL-specific skipped, 1622 assertions.
+- `php artisan test`: 236 passing tests reported after Slice 8 implementation.
+- `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
@@ -160,8 +169,9 @@ Latest results:
 - `php artisan accounting:cheque-concurrency-stress --workers=50`: passed.
 - `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
+- `vendor/bin/pint --test`: passed after formatting cleanup.
 - `npm run typecheck`: passed.
-- `npm run build`: passed with 0 fontaine warnings.
+- `npm run build`: passed.
 
 ## Audit Status
 
@@ -241,7 +251,7 @@ ledger_entry: 156
 
 ## Next Work
 
-Recommended next product slice: Phase 3 Slice 8 - Phase 3 operational reports and subledger reports.
+Recommended next product slice: Phase 3 Slice 9 - PostgreSQL stress / integrity tests.
 
 Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
@@ -259,7 +269,9 @@ Use `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` as the corrected Phase 3 contract.
 
 `PHASE_3_SLICE_7_GEMINI_PROMPT.md` has already been used for the seventh bounded Phase 3 slice and is now historical reference for what Slice 7 delivered.
 
-Prepare a new bounded Slice 8 prompt before asking Gemini to implement Phase 3 reports.
+`PHASE_3_SLICE_8_GEMINI_PROMPT.md` has already been used for the eighth bounded Phase 3 slice and is now historical reference for what Slice 8 delivered.
+
+Prepare a new bounded Slice 9 prompt before asking Gemini to implement PostgreSQL stress/integrity hardening.
 
 Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested.
 

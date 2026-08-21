@@ -1,6 +1,6 @@
 # PHASE 3 - AR/AP + Cash + Banks + Cheques Foundation
 
-Status: corrected planning contract; Slices 1-7 are implemented and verified.
+Status: corrected planning contract; Slices 1-8 are implemented and verified.
 
 Do not implement remaining slices from this document until the owner explicitly requests the next Phase 3 slice.
 
@@ -473,6 +473,8 @@ Status: COMPLETE in Laravel as of 2026-08-21, including Inertia pages/actions fo
 - cheque register
 - bank reconciliation report/status
 - AR/AP to GL reconciliation
+
+Status: COMPLETE in Laravel as of 2026-08-21, including Reports Hub, `reports.view` permission, Customer/Supplier Statements, AR/AP Aging, Cash Book, Bank Book, Cheque Register, Bank Reconciliation status/detail, AR/AP to GL reconciliation, CSV exports, read-only report services, Inertia report pages, and 12/12 report feature tests.
 
 ### Slice 9 - PostgreSQL Stress / Integrity Tests
 

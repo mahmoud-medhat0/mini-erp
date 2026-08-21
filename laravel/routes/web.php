@@ -16,6 +16,17 @@ use App\Http\Controllers\IncomingChequeController;
 use App\Http\Controllers\OutgoingChequeController;
 use App\Http\Controllers\PayableAllocationController;
 use App\Http\Controllers\ReceivableAllocationController;
+use App\Http\Controllers\Reports\ApAgingController;
+use App\Http\Controllers\Reports\ApToGlReconciliationController;
+use App\Http\Controllers\Reports\ArAgingController;
+use App\Http\Controllers\Reports\ArToGlReconciliationController;
+use App\Http\Controllers\Reports\BankBookController;
+use App\Http\Controllers\Reports\BankReconciliationReportController;
+use App\Http\Controllers\Reports\CashBookController;
+use App\Http\Controllers\Reports\ChequeRegisterReportController;
+use App\Http\Controllers\Reports\CustomerStatementController;
+use App\Http\Controllers\Reports\ReportsHubController;
+use App\Http\Controllers\Reports\SupplierStatementController;
 use App\Http\Controllers\SettingsActionController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
@@ -169,6 +180,31 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/bank-reconciliations/{id}/lines/{lineId}/match', [BankReconciliationController::class, 'matchLine'])->name('bank-reconciliations.lines.match');
     Route::post('/bank-reconciliations/{id}/lines/{lineId}/unmatch', [BankReconciliationController::class, 'unmatchLine'])->name('bank-reconciliations.lines.unmatch');
     Route::post('/bank-reconciliations/{id}/finalize', [BankReconciliationController::class, 'finalize'])->name('bank-reconciliations.finalize');
+
+    // Phase 3 Slice 8 Reports & Subledgers Routes
+    Route::prefix('reports')->middleware('can:reports.view')->group(function (): void {
+        Route::get('/', [ReportsHubController::class, 'index'])->name('reports.index');
+        Route::get('/customer-statement', [CustomerStatementController::class, 'index'])->name('reports.customer-statement');
+        Route::get('/customer-statement/export', [CustomerStatementController::class, 'exportCsv'])->name('reports.customer-statement.export');
+        Route::get('/supplier-statement', [SupplierStatementController::class, 'index'])->name('reports.supplier-statement');
+        Route::get('/supplier-statement/export', [SupplierStatementController::class, 'exportCsv'])->name('reports.supplier-statement.export');
+        Route::get('/ar-aging', [ArAgingController::class, 'index'])->name('reports.ar-aging');
+        Route::get('/ar-aging/export', [ArAgingController::class, 'exportCsv'])->name('reports.ar-aging.export');
+        Route::get('/ap-aging', [ApAgingController::class, 'index'])->name('reports.ap-aging');
+        Route::get('/ap-aging/export', [ApAgingController::class, 'exportCsv'])->name('reports.ap-aging.export');
+        Route::get('/cash-book', [CashBookController::class, 'index'])->name('reports.cash-book');
+        Route::get('/cash-book/export', [CashBookController::class, 'exportCsv'])->name('reports.cash-book.export');
+        Route::get('/bank-book', [BankBookController::class, 'index'])->name('reports.bank-book');
+        Route::get('/bank-book/export', [BankBookController::class, 'exportCsv'])->name('reports.bank-book.export');
+        Route::get('/cheque-register', [ChequeRegisterReportController::class, 'index'])->name('reports.cheque-register');
+        Route::get('/cheque-register/export', [ChequeRegisterReportController::class, 'exportCsv'])->name('reports.cheque-register.export');
+        Route::get('/bank-reconciliations', [BankReconciliationReportController::class, 'index'])->name('reports.bank-reconciliations');
+        Route::get('/bank-reconciliations/{id}', [BankReconciliationReportController::class, 'show'])->name('reports.bank-reconciliations.show');
+        Route::get('/ar-gl-reconciliation', [ArToGlReconciliationController::class, 'index'])->name('reports.ar-gl-reconciliation');
+        Route::get('/ar-gl-reconciliation/export', [ArToGlReconciliationController::class, 'exportCsv'])->name('reports.ar-gl-reconciliation.export');
+        Route::get('/ap-gl-reconciliation', [ApToGlReconciliationController::class, 'index'])->name('reports.ap-gl-reconciliation');
+        Route::get('/ap-gl-reconciliation/export', [ApToGlReconciliationController::class, 'exportCsv'])->name('reports.ap-gl-reconciliation.export');
+    });
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');
