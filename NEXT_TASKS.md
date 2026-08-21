@@ -2,9 +2,9 @@
 
 Ordered. Each task: what to build · key files · acceptance. Follow the verification gate (lint → typecheck → tests → invariants → secret scan) and commit in small conventional commits. Keep `IMPLEMENTATION_STATUS.md` honest.
 
-**2026-08-21 update:** T1–T5 have implementation in place: onboarding, users/roles, attachment routes, notifications UI, and Playwright smoke/CI job. Route-level attachment coverage was added with mocked auth/storage. Remaining work before Phase-1 tag is DB-backed CI/E2E verification, then adding `next build` to CI after the first green run and flipping DoD honestly.
+**2026-08-21 update:** T1–T6 are complete for Phase 1 foundation. DB-backed PostgreSQL verification passed locally, `next build` is wired into root GitHub Actions CI, and CI run `32440676342` completed `success` on `develop`.
 
-## Phase 1 — remaining (finish before tagging v0.1.0)
+## Phase 1 — completed checklist (v0.1.0 foundation)
 
 ### T1. Company/branch onboarding (first-run)
 - **Build:** full `PrismaCompanyRepository` implementing `CompanyRepository` (`modules/company/application/companyService.ts`): `createCompany` must, in a transaction, create the company, seed the **9 role templates for that company** with their permission links (from `core/rbac/seed.ts` + `roles.ts` + `catalog.ts`), add the owner membership, and assign `COMPANY_ADMIN`. Onboarding screen at `app/[locale]/onboarding` (create company + first branch) shown when the user has no company.
@@ -28,11 +28,11 @@ Ordered. Each task: what to build · key files · acceptance. Follow the verific
 - **Build:** `playwright.config.ts` + `tests/e2e/*`. Scenarios: unauthenticated → redirect to `/login`; invalid login → error; valid login → dashboard; navigate to a settings screen; permission-denied path. Run each in **EN and AR**, assert `dir=rtl` for AR, and toggle `data-theme` light/dark. Add a CI job that builds the app, runs migrations + seed against Postgres, seeds a test user (argon2 hash), starts the server, runs Playwright.
 - **Accept:** E2E green in CI; assertions verify real rendered/redirect state (no fake success).
 
-### T6. `next build` in CI + DoD flip
+### T6. `next build` in CI + DoD flip — COMPLETE
 - **Build:** add a `build` step to CI (after `prisma generate`). Only after a confirmed green Actions run.
-- **Accept:** CI green end-to-end (npm ci → prisma generate → typecheck → lint → invariants → unit+integration → e2e → build). Flip the Phase-1 DoD checklist in `IMPLEMENTATION_STATUS.md`; tag `v0.1.0-phase1-foundation` and push the tag.
+- **Accept:** CI green end-to-end (npm ci → prisma generate → typecheck → lint → invariants → unit+integration → build → e2e). Phase-1 DoD flipped in `IMPLEMENTATION_STATUS.md`; tag `v0.1.0-phase1-foundation` after this docs update is green.
 
-## Phase 2 — Accounting core (start only after Phase 1 DoD)
+## Phase 2 — Accounting core (start only on explicit request)
 Build on `core/accounting-kernel`.
 - CoA (`account`, groups, types, hierarchy), JournalEntry/Line, LedgerEntry, FiscalYear/Period, opening balances, exchange rates.
 - **Posting engine** (`core/accounting/posting`): resolve accounts from configurable mapping → build balanced lines (base+txn currency) → assert period open + Σdr=Σcr → write JE+lines+ledger+subledger atomically, idempotent (idempotency key from `postingIdempotencyKey`), reversible. UI **Accounting tab** to inspect the generated entry.

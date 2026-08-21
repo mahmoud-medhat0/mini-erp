@@ -1,6 +1,6 @@
 # CONTINUE HERE — Mini ERP handoff
 
-> **ملخص بالعربي:** ده ملف تسليم لإكمال المشروع بموديل/جلسة تانية. المشروع ERP محاسبي حقيقي (مش mockup). المرحلة الحالية **Phase 1 (Foundation)** شغّالة ومختبرة. الكود كله Next.js + TypeScript + Prisma + PostgreSQL، مبني كـ Modular Monolith بطبقات صارمة. اقرأ الأقسام تحت: **إيه اللي خلص**، **إزاي تشغّل وتتحقق**، **حالة Git/CI**، و**المتبقّي (Phase 1) + بداية Phase 2**. مهم: لا تكسر أي invariant محاسبي، ولا تحط بيانات وهمية، وكل مبلغ فلوس = BigInt minor units (مفيش float).
+> **ملخص بالعربي:** ده ملف تسليم لإكمال المشروع بموديل/جلسة تانية. المشروع ERP محاسبي حقيقي (مش mockup). **Phase 1 (Foundation) مكتملة ومتحققة على PostgreSQL وGitHub Actions.** الكود كله Next.js + TypeScript + Prisma + PostgreSQL، مبني كـ Modular Monolith بطبقات صارمة. اقرأ الأقسام تحت: **إيه اللي خلص**، **إزاي تشغّل وتتحقق**، **حالة Git/CI**، و**بداية Phase 2**. مهم: لا تكسر أي invariant محاسبي، ولا تحط بيانات وهمية، وكل مبلغ فلوس = BigInt minor units (مفيش float).
 
 This document is the single entry point for continuing the build. Read it fully before writing code.
 
@@ -39,7 +39,7 @@ app/
     worker.ts                # pg-boss worker entrypoint
   prisma/schema.prisma  prisma/seed.ts
   tests/{invariants,unit,integration,e2e}/
-  .github/workflows/ci.yml   # Postgres service, blocking invariant suite, E2E smoke
+  # workflow lives at repo root: .github/workflows/ci.yml
 spec/  docs/  foundation/  style-guide.html
 CONTINUE_HERE.md  NEXT_TASKS.md  IMPLEMENTATION_STATUS.md  ROADMAP.md  CHANGELOG.md
 ```
@@ -49,9 +49,9 @@ CONTINUE_HERE.md  NEXT_TASKS.md  IMPLEMENTATION_STATUS.md  ROADMAP.md  CHANGELOG
 
 **Integration + app (built, typechecked/linted locally; DB parts run in CI):** Prisma client singleton + repositories (user, append-only audit, atomic numbering, settings, branch, company onboarding, user admin, attachment metadata, notifications); NextAuth v5 credentials config + route handler; login screen; protected route group (`requireAuth`) that redirects signed-in/no-company users to onboarding; app shell (sidebar+topbar+notification count); reusable UI library; Company/Branches/Numbering/Users **Settings** screens (EN/AR, server-derived tenant, real persistence via services); dashboard shell (EmptyState, no mock KPIs); onboarding, notifications center, attachment upload/download route handlers.
 
-**Tooling/CI:** `package-lock.json`, TS-aware ESLint (clean at `--max-warnings=0`), PostCSS/Tailwind build config, CI with Postgres service + `prisma db push` + **blocking accounting-invariant suite** + DB-gated numbering/company-onboarding integration tests + Playwright smoke E2E job. **66 Vitest cases (64 + 2 skipped locally without DB).** Local Playwright: 2 pass + 3 DB-gated skipped.
+**Tooling/CI:** `package-lock.json`, TS-aware ESLint (clean at `--max-warnings=0`), PostCSS/Tailwind build config, root GitHub Actions CI with Postgres service + `prisma db push` + seed + **blocking accounting-invariant suite** + DB-backed numbering/company-onboarding integration tests + production build + Playwright smoke E2E job. **66 Vitest cases pass with DB.** Playwright smoke: **5/5 pass** with DB.
 
-**Status legend + full table:** `IMPLEMENTATION_STATUS.md` (COMPLETE / PARTIAL / SCAFFOLD ONLY). No module is marked COMPLETE yet — Phase 1 is not finished (see §8).
+**Status legend + full table:** `IMPLEMENTATION_STATUS.md` (COMPLETE / PARTIAL / SCAFFOLD ONLY). Phase 1 foundation is complete; domain modules for later phases remain scaffold-only.
 
 ## 6. How to run & verify (in a NORMAL environment)
 ```
@@ -59,11 +59,11 @@ cd app
 cp .env.example .env         # set DATABASE_URL, AUTH_SECRET
 npm ci
 npm run prisma:generate
-npm run prisma:migrate       # or: npx prisma db push
+npm run prisma:db-push       # local schema sync for verification
 npm run prisma:seed          # currencies + permission catalog
 npm run test                 # vitest: invariants + unit (+ integration if DATABASE_URL set)
 npm run lint                 # eslint --max-warnings=0  (must be clean)
-npm run typecheck            # tsc --noEmit (must be 0 after prisma generate)
+npm run typecheck            # next typegen + tsc --noEmit
 npm run build                # Next production build
 npm run e2e                  # Playwright; credential tests need DATABASE_URL
 npm run dev                  # app
@@ -77,13 +77,18 @@ npm run worker               # pg-boss worker (separate process)
 - Playwright browser binaries must be installed locally with `npx playwright install chromium`; CI does this automatically. Credential/permission E2E tests need `DATABASE_URL`.
 - pg-boss is **v10** (batch `Job[]` work handler). Argon2 is native (built at full install; unit tests use a fake hasher so they don't need it).
 
-## 8. Remaining Phase 1 (to reach tag `v0.1.0-phase1-foundation`)
-See `NEXT_TASKS.md` for the actionable checklist. Headlines:
-1. **DB-backed verification pass:** run CI/Postgres to execute onboarding integration, numbering integration, and full credential/permission Playwright smoke.
-2. **Wire `next build` into CI** once the first green Actions run is confirmed.
-3. Flip DoD items in `IMPLEMENTATION_STATUS.md`; only then tag `v0.1.0-phase1-foundation`.
+## 8. Phase 1 completion
+Phase 1 foundation is complete after real PostgreSQL verification and a green GitHub Actions run (`32440676342`) on `develop`.
 
-## 9. Phase 2 kickoff (Accounting core) — do NOT start until Phase 1 DoD is met
+Verified:
+1. `npm run ci`: typegen + typecheck + lint + invariants + full Vitest.
+2. Vitest: 17 files, 66 tests passed with DB-backed integration enabled.
+3. Invariants: 4 files, 23 tests passed.
+4. Playwright: 5/5 passed against Postgres-backed auth/RBAC.
+5. Production build: `next build` passed.
+6. Onboarding transaction: company + branch + 9 roles + 458 permission links + owner membership + `COMPANY_ADMIN`; cross-company role leakage = 0.
+
+## 9. Phase 2 kickoff (Accounting core) — do NOT start until explicitly requested
 Build on `src/core/accounting-kernel`. Deliver: Chart of Accounts, Journal/Lines, Ledger, Trial Balance, Fiscal years/Periods, opening balances, FX rates, and the **posting engine** (atomic: JE + ledger + subledger, idempotent, period-locked, reversible). Rules & events already specified: `spec/ACCOUNTING_EVENT_MAP.md`, `spec/BUSINESS_RULES.md`, `spec/WORKFLOW_CATALOG.md`. Add invariant tests (subledger=GL, immutability, closed-period rejection) to the blocking CI suite.
 
 ## 10. Git / remote / CI state
@@ -93,8 +98,8 @@ Build on `src/core/accounting-kernel`. Deliver: Chart of Accounts, Journal/Lines
   Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01ErpWJ1PAKfi3VzsZuQRxD9
   ```
-- **Remote:** `github.com/mahmoud-medhat0/mini-erp`. Local `develop` was ahead of `origin/develop` (`ffc6bc4`) by ~11 commits when handed off. If continuing in an environment WITH write access: `git push origin develop`. Do NOT edit git http.proxy / sslCAInfo in a sandboxed session — it breaks egress.
-- **CI** (`app/.github/workflows/ci.yml`): on push to main/develop → `npm ci` → `prisma generate` → typecheck → lint → **blocking invariant tests** → unit + DB integration (Postgres service) → Playwright smoke E2E (Postgres + Chromium). The accounting-invariant suite must never be made informational.
+- **Remote:** `github.com/mahmoud-medhat0/mini-erp`. `develop` pushed successfully.
+- **CI** (`.github/workflows/ci.yml`): on push to main/develop → `npm ci` → `prisma generate` → typegen/typecheck → lint → DB push + seed → **blocking invariant tests** → unit + DB integration (Postgres service) → `next build` → Playwright smoke E2E (Postgres + Chromium). The accounting-invariant suite must never be made informational.
 
 ## 11. Golden rules for whoever continues
 Accounting correctness > UI speed. Never mutate posted data. Never compute authoritative balances in the UI. Never bypass the posting engine (Phase 2). Keep company/branch isolation. Keep numbering concurrency-safe. Audit privileged actions. Mark honestly: COMPLETE only when actually done + tested. Keep `IMPLEMENTATION_STATUS.md`, `CHANGELOG.md`, `ROADMAP.md` in sync with reality.

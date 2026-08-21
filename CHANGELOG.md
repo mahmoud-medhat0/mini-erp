@@ -2,7 +2,7 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
-## [Unreleased] — Phase 1: Foundation (in progress)
+## [Unreleased] — Phase 1: Foundation (complete)
 ### Added
 - Project scaffold: Next.js (App Router) + TypeScript + Prisma + Zod + Tailwind, modular-monolith structure (24 modules + core kernel).
 - Core kernel (tested): exact **Money** value object (BigInt minor units, exact allocation), **accounting-kernel** (`assertBalanced` Σdr=Σcr), concurrency-safe **numbering**, server-side **RBAC** with scope + tenant isolation, typed **errors**, **audit** types, **currency** registry (EGP seed, multi-currency).
@@ -67,10 +67,10 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Fixed Prisma JSON typing in settings persistence.
 
 ### Verification — 2026-08-21
-- `prisma generate` ✓ · `eslint --max-warnings=0` ✓ · `tsc --noEmit` ✓ · `vitest` **64 passed / 2 skipped** ✓ · `next build` ✓ · `playwright` smoke **2 passed / 3 DB-gated skipped** locally.
+- Local PostgreSQL verification: `prisma generate` ✓ · `prisma db push` ✓ · `prisma seed` ✓ · `npm run ci` ✓ · `next build` ✓ · `playwright` smoke **5 passed / 0 skipped** ✓.
+- Vitest: **17 files / 66 tests passed** with DB-backed integration enabled. Invariants: **4 files / 23 tests passed**.
+- Onboarding transaction verified: company + branch + 9 roles + 458 permission links + owner membership + `COMPANY_ADMIN`; cross-company role leakage = 0.
+- GitHub Actions CI run `32440676342` completed `success` for `develop`.
 
 ### Tests
-- 64 passing + 2 DB-gated integrations (skip without DATABASE_URL, run in CI). Invariant suite intact. Playwright smoke is configured; credential/permission tests run with Postgres.
-
-### Notes
-- GitHub remote not yet connected — session token is repo-bound and no repo is enabled for this session (see IMPLEMENTATION_STATUS → Remote).
+- 66 Vitest tests pass with PostgreSQL. 5 Playwright smoke tests pass with PostgreSQL-backed auth/RBAC. Invariant suite remains blocking.

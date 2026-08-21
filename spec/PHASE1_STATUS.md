@@ -1,5 +1,7 @@
 # IMPLEMENTATION READINESS & PHASE 1 STATUS
 
+> 2026-08-21 final update: Phase 1 Foundation is COMPLETE. PostgreSQL-backed integration, Playwright E2E, production build, and GitHub Actions CI have all passed. Later business modules remain scaffold-only until their roadmap phases.
+
 ## A. Repository/spec inspection (§56.1–2)
 Greenfield confirmed — no prior app code. Spec set present and cross-checked against the 57-section master instruction. All 26 modules, engines, invariants, RBAC, i18n/theming, jobs, and the operational concerns (deploy/DR/observability/perf/security/testing) are covered by the spec set + this Phase-1 code.
 
@@ -29,11 +31,17 @@ Phase 1 (Foundation) has no upstream dependencies. Ready. Confirmed.
 
 **Test result:** `23 passed (23)` via vitest. The 4 files are the accounting-invariant harness that gates CI.
 
-## E. Phase 1 — remaining (BLOCKED only by "not yet built", not by decisions)
-Auth.js wiring + argon2 hashing · RBAC seed (role templates → permission catalog rows) · company/branch onboarding + Settings UI · numbering config UI · attachments storage adapter · notifications foundation · pg-boss job-runner bootstrap · Playwright smoke E2E · full `npm install` + `prisma migrate` against a Postgres instance + Next build (environment-dependent). None require a user decision.
+## E. Phase 1 — completion verification
+Auth.js wiring + argon2 hashing · RBAC seed · company/branch onboarding · settings/numbering UI · attachments foundation · notifications foundation · pg-boss bootstrap · Playwright smoke E2E · PostgreSQL schema sync/seed · production build are implemented and verified for the Phase-1 foundation scope.
+
+Final verification:
+- Vitest: 17 files / 66 tests passed with DB-backed integration enabled.
+- Invariants: 4 files / 23 tests passed.
+- Playwright: 5/5 smoke tests passed with PostgreSQL-backed auth/RBAC.
+- GitHub Actions: CI run `32440676342` completed `success` on `develop`.
 
 ## F. Definition-of-Done tracking (§47)
 Per module, DoD applicability is documented in the module README + `TRACEABILITY_MATRIX_V2.md`. A module is DONE only when DB+domain+services+validation+permissions+workflow+accounting/subledger+audit+numbering+jobs+UI(all states)+reports+export/print+EN/AR+RTL+light/dark+responsive+tests all exist. **No module is marked DONE yet** — Phase 1 core kernel is the only slice complete-and-tested.
 
-## G. What I will implement next
-Finish Phase 1 remaining (auth/RBAC seed/company-branch/settings/numbering UI/jobs bootstrap/E2E smoke), then Phase 2 (Accounting core: CoA, JE/ledger/trial balance, periods, posting engine) building directly on `accounting-kernel`.
+## G. What to implement next
+Start Phase 2 only on explicit request: Accounting core (CoA, JE/ledger/trial balance, periods, posting engine) building directly on `accounting-kernel`.
