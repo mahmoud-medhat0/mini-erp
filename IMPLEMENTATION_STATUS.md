@@ -2,11 +2,11 @@
 
 - **Current phase:** Phase 1 — Laravel migration foundation (Company/Branch/User relationship correction complete; migration continues)
 - **Latest verified:** 2026-08-21 (local Laravel + PostgreSQL, through post-audit correction pass)
-- **Tests passing:** Laravel PHPUnit 60/60, 792 assertions; Concurrency suite 7/7, 16 assertions. PostgreSQL `concurrency:stress --workers=100` passed.
+- **Tests passing:** Laravel PHPUnit 61/61, 795 assertions; Concurrency suite 7/7, 16 assertions. PostgreSQL `concurrency:stress --workers=100` passed.
 - **Latest verified code commit:** pending for the current M7-M10 worktree; previous commit `7f1d673` ported Laravel app pages.
 - **Remote/CI:** No GitHub Actions pipeline is connected for this Laravel migration track.
 - **Verification:** `php artisan migrate --force` clean · `php artisan migrate:status` clean · `php artisan test` clean · `php artisan test --testsuite=Concurrency` clean · `php artisan concurrency:stress --workers=100` clean · `php artisan tokens:gc --batch=100` clean · `vendor\bin\pint --test` clean. TypeScript/build were not rerun in this backend pass.
-- **Latest migrated slice:** Bootstrap admin seeding correction: `DatabaseSeeder` seeds RBAC before the bootstrap user, assigns the configured global `ERP_ADMIN` role explicitly, and fixes the `/settings/users/roles` route ordering conflict. No company, branch, tenant, or current-company scope was introduced.
+- **Latest migrated slice:** FiscalYear ownership/context correction: `fiscal_year.company_id` removed, `fiscal_year.year` globally unique, and `financial_period.fiscal_year_id` preserved. Bootstrap admin role seeding and `/settings/users/roles` route ordering also corrected. No company, branch, tenant, or current-company scope was introduced.
 - **Handoff:** see `DOMAIN_MODEL_REVIEW.md` first for the Laravel architecture correction, then `CONTINUE_HERE.md` and `NEXT_TASKS.md` as historical Next.js reference material.
 
 ## Legend
@@ -19,14 +19,14 @@ Statuses in the Laravel migration table are current. Older Next.js/Prisma status
 |---|---|---|
 | M2 Inertia foundation | COMPLETE | Laravel app boots with Inertia/Vite and health route |
 | Domain model review | COMPLETE | `DOMAIN_MODEL_REVIEW.md` now applies the stricter evidence rule: undefined relationships are not assumed |
-| M3 database foundation | PARTIAL | Native `users`, company configuration, standalone branch reference records, and non-team Spatie RBAC seeders; unsupported Company/User and Company/Branch relationships removed |
+| M3 database foundation | PARTIAL | Native `users`, company configuration, standalone branch reference records, global fiscal years/periods, and non-team Spatie RBAC seeders; unsupported Company/User, Company/Branch, and Company/FiscalYear relationships removed |
 | M5 session auth backend | COMPLETE | Login/logout, Argon2id, throttling, active users, explicit bootstrap admin role assignment, protected foundation route |
 | M6 migrated Inertia pages | COMPLETE | Dashboard, settings hub, companies, branches, numbering, users/roles, notifications, app shell, and notification read action backed by real Laravel data |
 | M7 Laravel core kernel parity | COMPLETE | Money, currency registry, accounting invariant, domain errors, number formatter/config, and Laravel invariant tests |
 | M8 page actions | COMPLETE | Company/branch/numbering actions and role assign/revoke use explicit IDs, validation, permissions, optimistic locks where available, and no tenant/current-company session |
 | M9 attachments + notifications | COMPLETE | Attachment upload/download service/routes, explicit allowlisted entity authorization, storage cleanup compensation, and notification service with per-user dedupe/list/mark-read behavior, without invented company scope |
 | M10 audit + jobs/scheduler | COMPLETE | Append-only audit logger, idempotent job runner/backoff primitive, and hourly `tokens:gc` schedule |
-| Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed |
+| Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed |
 | Removed tenant assumptions | COMPLETE | Laravel tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams removed |
 | Concurrency hardening | COMPLETE | `idempotency_keys`, optimistic locks, PostgreSQL number allocation by sequence key, bounded auth token GC, notification dedupe, attachment failure compensation, audit doc, and stress/test coverage |
 

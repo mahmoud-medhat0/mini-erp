@@ -2,7 +2,7 @@
 
 > Current status: legacy/generated target design, not current Laravel source of truth.
 >
-> Post-audit correction rule, 2026-08-21: do not treat Company as a tenant and do not add Company/User/Branch ownership, `company_id`, `branch_id`, Spatie Teams, current-company/current-branch context, or company/branch numbering dimensions unless an explicit owner decision requires that exact relationship. Any older company/branch scoping claim in this file is stale unless re-approved.
+> Post-audit correction rule, 2026-08-21: do not treat Company as a tenant and do not add Company/User/Branch ownership, `company_id`, `branch_id`, Spatie Teams, current-company/current-branch context, or company/branch numbering dimensions unless an explicit owner decision requires that exact relationship. FiscalYear ownership/context is explicitly `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Any older company/branch scoping claim in this file is stale unless re-approved.
 
 PostgreSQL target design reference. The current Laravel foundation uses Eloquent / Laravel Query Builder migrations and application services. Old Prisma schema details are historical only and are not current target architecture. Separation of concerns remains the intended direction: operational documents are distinct from accounting ledger rows, and future UI/services must call application/domain services instead of writing ledger or stock rows directly.
 
@@ -37,7 +37,7 @@ PostgreSQL target design reference. The current Laravel foundation uses Eloquent
 |---|---|---|
 |`account`|code, multilingual name, type ENUM(asset,liability,equity,revenue,expense), group_id, parent_id, nature ENUM(debit,credit), is_control, currency?, status|account code uniqueness scope needs owner decision; tree via parent_id|
 |`account_group`|multilingual name, statement_section|for statement rollups|
-|`fiscal_year`|year, start, end, status|FiscalYear ownership/context is OWNER DECISION REQUIRED; do not assume Company ownership, global fiscal years, or multi-company fiscal calendars|
+|`fiscal_year`|year, start, end, status|single-ERP context; no company_id; global unique(year)|
 |`financial_period`|fiscal_year_id, month, start, end, status ENUM(open,closed,reopened)|unique(fy,month)|
 |`journal_entry`|number, date, description, reference, source_type, source_id, currency, fx_rate, status, lifecycle stamps|index(source_type,source_id); index(date)|
 |`journal_line`|entry_id, account_id, debit_minor, credit_minor, debit_txn_minor, credit_txn_minor, confirmed accounting dimensions, tax_id, memo|Branch/Department dimensions are OWNER DECISION REQUIRED and must not be specified as confirmed `branch_id`; account not control-manual; balance enforcement on post|

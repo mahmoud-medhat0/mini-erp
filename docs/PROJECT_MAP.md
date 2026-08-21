@@ -1,6 +1,6 @@
 # Mini ERP — Project Map & Implementation Blueprint
 
-**Status:** Foundation session (greenfield). This is the architectural source of truth.
+**Status:** Legacy greenfield planning reference. Current Laravel source of truth is the owner corrections plus `DOMAIN_MODEL_REVIEW.md` / `IMPLEMENTATION_STATUS.md`.
 **Owner:** Mahmoud Medhat · **Date:** 2026-08-20 · **Timezone:** Africa/Cairo
 **Core principle:** *ENTER DATA ONCE → AUTOMATE EVERYTHING ELSE.*
 One transaction → one source of truth → automatic inventory / AR-AP / cash-bank / accounting → automatic reporting → complete traceability.
@@ -79,8 +79,8 @@ Grouped for the sidebar (see §7 of the master brief). Each module has: List · 
 Only the load-bearing entities are listed; each has `id`, `created_at`, `created_by`, `updated_at`, `updated_by`, and soft-delete/void where relevant.
 
 **Org & security**
-- `Company` → `Branch` → `User` · `Role` · `Permission` (module→feature→action) · `RolePermission`
-- `FinancialPeriod` (open/closed/reopened) · `NumberSequence` (prefix, year, branch, next, reset policy)
+- `Company` profile/configuration · standalone `Branch` reference concept · `User` · `Role` · `Permission` (module→feature→action) · `RolePermission`
+- global `FiscalYear` → `FinancialPeriod` (open/closed/reopened) · `NumberSequence` (prefix, year option, next, reset policy; no company/branch dimension)
 
 **Accounting (the spine)**
 - `Account` (code, name_en, name_ar, type, parent_id, nature debit/credit, is_control, status)

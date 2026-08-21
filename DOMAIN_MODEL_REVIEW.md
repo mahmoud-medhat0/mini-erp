@@ -25,6 +25,8 @@ If a relationship is not explicitly supported by the original requirements, clas
 | Audit trail linked to actor and audited entity/event | CONFIRMED |
 | Attachments linked to referenced business entity | CONFIRMED |
 | Notifications targeted to users and business events/entities | CONFIRMED |
+| FiscalYear is global to this single ERP installation/business profile | CONFIRMED BY OWNER DECISION |
+| FinancialPeriod belongs to FiscalYear | CONFIRMED BY OWNER DECISION |
 
 ## Undefined Relationships
 
@@ -58,6 +60,7 @@ The Laravel target must not create or depend on:
 - `currentBranch`
 - `number_sequence(company_id, key)`
 - `number_sequence.include_branch`
+- `fiscal_year.company_id`
 - company-scoped audit, attachment, or notification records unless a later explicit entity model requires it
 
 ## Preserved
@@ -69,6 +72,7 @@ The Laravel target must not create or depend on:
 - Audit append-only behavior, redaction, actor link, entity type/id, action, before/after JSON, timestamp.
 - Attachment metadata linked by `entity_type` / `entity_id` and uploaded actor.
 - Notification targeting by `user_id`, `target_ref`, read state, and per-user dedupe key.
+- Fiscal years by global `year`, with financial periods linked by `fiscal_year_id`.
 - Atomic/concurrency-safe numbering by sequence key.
 - Idempotency and token garbage collection.
 
@@ -76,7 +80,7 @@ The Laravel target must not create or depend on:
 
 `company.id` remains as the primary key of the company configuration record.
 
-`fiscal_year.company_id` remains in the current schema, but explicit owner evidence for FiscalYear ownership/context was not found during the post-audit pass. It must be treated as OWNER DECISION REQUIRED. Do not build accounting posting, period close, or financial reports on this relationship until the owner confirms whether fiscal years are global, company-profile-owned, or modeled another way.
+FiscalYear ownership/context is resolved as `SINGLE-ERP CONTEXT`: no Company/Tenant relationship, no `company_id`, and global `year` uniqueness.
 
 ## Rule For Future Work
 

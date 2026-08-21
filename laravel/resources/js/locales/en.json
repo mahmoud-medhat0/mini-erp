@@ -59,7 +59,13 @@
       "upload": "Upload",
       "addUser": "Add User",
       "editUser": "Edit User",
-      "deleteUser": "Delete User"
+      "deleteUser": "Delete User",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "selectAllInModule": "Select All in Module",
+      "deselectModule": "Deselect Module",
+      "showLess": "Show Less",
+      "showMore": "more"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -177,12 +183,31 @@
       "includeYear": "Year",
       "file": "File",
       "entityType": "Entity type",
-      "entityId": "Entity ID"
+      "entityId": "Entity ID",
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "password": "Password",
+      "passwordKeep": "(Leave blank to keep unchanged)",
+      "language": "Preferred Language",
+      "role": "Primary Role",
+      "activeAccount": "Active User Account",
+      "activeAccountDesc": "Enable or disable access to the Mini ERP workspace for this account.",
+      "roleName": "Role Name",
+      "roleNamePlaceholder": "e.g. Senior Accountant",
+      "selected": "Selected",
+      "searchPermissionsPlaceholder": "Search all permissions...",
+      "modulesAndDomains": "Modules & Domains",
+      "configureAccessScopes": "Configure granular access scopes by category domain."
     },
     "status": {
       "active": "Active",
       "inactive": "Inactive",
       "template": "Template"
+    },
+    "messages": {
+      "confirmDeleteRole": "Are you sure you want to delete role \"{name}\"?",
+      "confirmDeleteUser": "Are you sure you want to delete user \"{name}\"?",
+      "cannotDeleteSelf": "You cannot delete your own logged-in account!"
     },
     "permissionsList": {
       "settings.configure": "Configure System Settings",

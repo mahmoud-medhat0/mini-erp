@@ -2,7 +2,7 @@
 
 **Current status:** legacy/generated target specification and planning reference. It does not override original owner requirements, explicit later owner decisions, or the corrected Laravel architecture.
 
-**Post-audit correction rule, 2026-08-21:** Company is not a tenant. Do not implement Company/User/Branch ownership, `company_user`, `users.company_id`, `branch.company_id`, company-scoped roles/permissions, Spatie Teams, `currentCompany`, `currentBranch`, or company/branch numbering dimensions unless an explicit owner decision approves that exact relationship.
+**Post-audit correction rule, 2026-08-21:** Company is not a tenant. Do not implement Company/User/Branch ownership, `company_user`, `users.company_id`, `branch.company_id`, company-scoped roles/permissions, Spatie Teams, `currentCompany`, `currentBranch`, or company/branch numbering dimensions unless an explicit owner decision approves that exact relationship. FiscalYear ownership/context is explicitly `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope.
 
 **Authority limit:** this document describes intended ERP capabilities, many of which are not implemented. It must not be used to claim Sales, Purchasing, Inventory, Accounting Posting, Payroll, Rentals, Reports, GL, period close, or financial statements are complete in the current Laravel target.
 
@@ -73,7 +73,7 @@ Numbering · Approval workflow · Recurring transactions · Reporting · RBAC/pe
 
 **Reversal / unposting:** posted entries are corrected by an automatic **reversing entry** (mirror Dr/Cr, linked to original). Direct unposting is allowed only in an open period, with the `Reverse`/`Unpost` permission, and always leaves an audit trail; closed-period entries can only be reversed into an open period.
 
-**Fiscal structure:** `FiscalYear` -> `FinancialPeriod`(open/closed/reopened). FiscalYear ownership/context is OWNER DECISION REQUIRED: do not assume FiscalYear belongs to Company, is global, or uses multi-company fiscal calendars. Period close blocks new postings (override needs `Reopen` permission + audit). **Year-end close** rolls net P&L into Retained Earnings and opens the next year with carried balances (opening-balance JV). Opening balances entered via dedicated opening template.
+**Fiscal structure:** `FiscalYear` -> `FinancialPeriod`(open/closed/reopened). FiscalYear is global to this single ERP installation/business profile; `year` is globally unique; there is no Company/Tenant fiscal calendar scope. Period close blocks new postings (override needs `Reopen` permission + audit). **Year-end close** rolls net P&L into Retained Earnings and opens the next year with carried balances (opening-balance JV). Opening balances entered via dedicated opening template.
 
 **Subledgers reconciled to GL control accounts:** AR (customers), AP (suppliers), Cash, Bank, Inventory, Fixed Assets, Payroll, Tax, Equity/Partners. Each subledger balance must equal its GL control account (reconciliation report, B9 + BUSINESS_RULES).
 

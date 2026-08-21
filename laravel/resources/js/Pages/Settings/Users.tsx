@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ToggleSwitch from '../../Components/ToggleSwitch';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -105,7 +106,9 @@ function formatPermission(perm: string, dict: ReturnType<typeof getDictionary>):
 
   const parts = perm.split('.');
   if (parts.length === 2) {
-    const domain = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+    const domainMeta = CATEGORY_META[parts[0]];
+    const isAr = dict.app.actions.cancel === 'إلغاء';
+    const domain = domainMeta ? (isAr ? domainMeta.labelAr : domainMeta.labelEn) : (parts[0].charAt(0).toUpperCase() + parts[0].slice(1));
     const action = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
     return `${domain}: ${action}`;
   }
@@ -205,7 +208,7 @@ function UserFormModal({
           {/* Name */}
           <div className="space-y-1">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              Full Name <span className="text-[var(--danger)]">*</span>
+              {dict.app.fields.fullName} <span className="text-[var(--danger)]">*</span>
             </label>
             <input
               type="text"
@@ -221,7 +224,7 @@ function UserFormModal({
           {/* Email */}
           <div className="space-y-1">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              Email Address <span className="text-[var(--danger)]">*</span>
+              {dict.app.fields.email} <span className="text-[var(--danger)]">*</span>
             </label>
             <input
               type="email"
@@ -237,7 +240,7 @@ function UserFormModal({
           {/* Password */}
           <div className="space-y-1">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              Password {user ? '(Leave blank to keep)' : <span className="text-[var(--danger)]">*</span>}
+              {dict.app.fields.password} {user ? dict.app.fields.passwordKeep : <span className="text-[var(--danger)]">*</span>}
             </label>
             <input
               type="password"
@@ -253,7 +256,7 @@ function UserFormModal({
 
           {/* Language / Locale */}
           <SearchableSelect
-            label="Preferred Language"
+            label={dict.app.fields.language}
             options={languageOptions}
             value={data.locale}
             onChange={(val) => setData('locale', val ?? 'en')}
@@ -263,7 +266,7 @@ function UserFormModal({
 
           {/* Role */}
           <SearchableSelect
-            label="Primary Role"
+            label={dict.app.fields.role}
             options={roleOptions}
             value={data.role_id}
             onChange={(val) => setData('role_id', val ?? '')}
@@ -271,17 +274,14 @@ function UserFormModal({
             isClearable={true}
           />
 
-          {/* Active Status */}
-          <div className="flex items-center gap-3 pt-6">
-            <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={data.is_active}
-                onChange={(e) => setData('is_active', e.target.checked)}
-                className="size-4 rounded border-[var(--border)] text-blue-600 focus:ring-blue-500"
-              />
-              <span>Active User Account</span>
-            </label>
+          {/* Active Status Toggle */}
+          <div className="pt-5 sm:col-span-2">
+            <ToggleSwitch
+              checked={data.is_active}
+              onChange={(val) => setData('is_active', val)}
+              label={dict.app.fields.activeAccount}
+              description={dict.app.fields.activeAccountDesc}
+            />
           </div>
         </div>
 
@@ -520,13 +520,13 @@ function RoleFormModal({
         {/* Role Name Input */}
         <div className="space-y-1.5 max-w-md">
           <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-            Role Name <span className="text-[var(--danger)]">*</span>
+            {dict.app.fields.roleName} <span className="text-[var(--danger)]">*</span>
           </label>
           <input
             type="text"
             value={data.name}
             onChange={(e) => setData('name', e.target.value)}
-            placeholder="e.g. Senior Accountant"
+            placeholder={dict.app.fields.roleNamePlaceholder}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
             required
           />
@@ -538,9 +538,9 @@ function RoleFormModal({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h4 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                {dict.app.fields.permissions} ({data.permissions.length} / {allPermissions.length} Selected)
+                {dict.app.fields.permissions} ({data.permissions.length} / {allPermissions.length} {dict.app.fields.selected})
               </h4>
-              <p className="m-0 text-xs text-[var(--text-muted)]">Configure granular access scopes by category domain.</p>
+              <p className="m-0 text-xs text-[var(--text-muted)]">{dict.app.fields.configureAccessScopes}</p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -548,7 +548,7 @@ function RoleFormModal({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search all permissions..."
+                placeholder={dict.app.fields.searchPermissionsPlaceholder}
                 className="w-56 sm:w-72 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               />
               <button
@@ -556,7 +556,7 @@ function RoleFormModal({
                 onClick={toggleSelectAll}
                 className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3.5 py-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
               >
-                {data.permissions.length === allPermissions.length ? 'Clear All' : 'Select All'}
+                {data.permissions.length === allPermissions.length ? dict.app.actions.clearAll : dict.app.actions.selectAll}
               </button>
             </div>
           </div>
@@ -566,7 +566,7 @@ function RoleFormModal({
             {/* Left Category Sidebar with SVG Icons */}
             <div className="space-y-1 max-h-96 overflow-y-auto border-b pb-3 lg:border-b-0 lg:border-e lg:pb-0 lg:pe-3 border-[var(--border)]">
               <span className="block px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                Modules & Domains
+                {dict.app.fields.modulesAndDomains}
               </span>
 
               {categoriesList.map((catKey) => {
@@ -627,7 +627,7 @@ function RoleFormModal({
                       {getCategoryTitle(activeCategory, isRtl)}
                     </span>
                     <span className="rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                      {activeCatSelectedCount} / {activeCatPerms.length} Selected
+                      {activeCatSelectedCount} / {activeCatPerms.length} {dict.app.fields.selected}
                     </span>
                   </div>
 
@@ -636,7 +636,7 @@ function RoleFormModal({
                     onClick={() => toggleCategoryAll(activeCatPerms)}
                     className="text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:underline"
                   >
-                    {isCurrentGroupAllSelected ? 'Deselect Module' : 'Select All in Module'}
+                    {isCurrentGroupAllSelected ? dict.app.actions.deselectModule : dict.app.actions.selectAllInModule}
                   </button>
                 </div>
               ) : (
@@ -734,14 +734,14 @@ function RoleCard({
               type="button"
               onClick={onEdit}
               className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-1.5 text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)] transition-colors"
-              title="Edit Role"
+              title={dict.app.actions.editRole}
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </button>
 
-            {!role.isTemplate ? <DeleteRoleButton roleId={role.id} roleName={role.name} /> : null}
+            {!role.isTemplate ? <DeleteRoleButton roleId={role.id} roleName={role.name} dict={dict} /> : null}
           </div>
         </div>
 
@@ -767,7 +767,7 @@ function RoleCard({
               onClick={() => setExpanded(!expanded)}
               className="inline-flex items-center gap-1 text-[11px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg hover:bg-blue-500/20 transition-colors"
             >
-              <span>{expanded ? 'Show Less' : `+ ${remainingCount} more`}</span>
+              <span>{expanded ? dict.app.actions.showLess : `+ ${remainingCount} ${dict.app.actions.showMore}`}</span>
             </button>
           ) : null}
         </div>
@@ -811,12 +811,13 @@ function RevokeRoleButton({
   );
 }
 
-function DeleteRoleButton({ roleId, roleName }: { roleId: number | string; roleName: string }) {
+function DeleteRoleButton({ roleId, roleName, dict }: { roleId: number | string; roleName: string; dict: ReturnType<typeof getDictionary> }) {
   const { delete: destroy, processing } = useForm({});
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (confirm(`Are you sure you want to delete role "${roleName}"?`)) {
+    const msg = (dict.app.messages.confirmDeleteRole || 'Are you sure you want to delete role "{name}"?').replace('{name}', roleName);
+    if (confirm(msg)) {
       destroy(`/settings/roles/${roleId}`, { preserveScroll: true });
     }
   }
@@ -826,6 +827,7 @@ function DeleteRoleButton({ roleId, roleName }: { roleId: number | string; roleN
       <button
         type="submit"
         disabled={processing}
+        title={dict.app.actions.deleteRole}
         className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50"
       >
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -836,17 +838,28 @@ function DeleteRoleButton({ roleId, roleName }: { roleId: number | string; roleN
   );
 }
 
-function DeleteUserButton({ userId, userName, currentUserId }: { userId: number | string; userName: string; currentUserId?: number | string }) {
+function DeleteUserButton({
+  userId,
+  userName,
+  currentUserId,
+  dict,
+}: {
+  userId: number | string;
+  userName: string;
+  currentUserId?: number | string;
+  dict: ReturnType<typeof getDictionary>;
+}) {
   const { delete: destroy, processing } = useForm({});
   const isSelf = String(userId) === String(currentUserId);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSelf) {
-      alert("You cannot delete your own logged-in account!");
+      alert(dict.app.messages.cannotDeleteSelf || "You cannot delete your own logged-in account!");
       return;
     }
-    if (confirm(`Are you sure you want to delete user "${userName}"?`)) {
+    const msg = (dict.app.messages.confirmDeleteUser || 'Are you sure you want to delete user "{name}"?').replace('{name}', userName);
+    if (confirm(msg)) {
       destroy(`/settings/users/${userId}`, { preserveScroll: true });
     }
   }
@@ -856,7 +869,7 @@ function DeleteUserButton({ userId, userName, currentUserId }: { userId: number 
       <button
         type="submit"
         disabled={processing || isSelf}
-        title={isSelf ? "Cannot delete self" : "Delete User"}
+        title={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
         className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1067,14 +1080,14 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
                                 setEditingUser(user);
                               }}
                               className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-1.5 text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)] transition-colors"
-                              title="Edit User"
+                              title={dict.app.actions.editUser}
                             >
                               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
 
-                            <DeleteUserButton userId={user.id} userName={user.name} currentUserId={auth?.user?.id} />
+                            <DeleteUserButton userId={user.id} userName={user.name} currentUserId={auth?.user?.id} dict={dict} />
                           </div>
                         </td>
                       </tr>

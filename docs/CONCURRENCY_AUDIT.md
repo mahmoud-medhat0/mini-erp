@@ -31,6 +31,7 @@ This audit covers the current Laravel + Inertia migration state. The Laravel tar
 | Notifications | Medium duplicate logical notifications | `insertOrIgnore` when dedupe key is supplied | unique per `(user_id, dedupe_key)` where dedupe key is not null | Same user receives one logical notification per dedupe key | `AttachmentAndNotificationTest`, `ConcurrencyFoundationTest` |
 | Attachments | Medium storage/metadata consistency | Local storage write with failure compensation around metadata/audit persistence; explicit allowlisted entity authorization | `attachment.id` primary key, entity lookup index | Attachment metadata remains linked to `entity_type/entity_id`, not company scope; unknown entities deny by default | `AttachmentAndNotificationTest` |
 | Audit logging | Low append race; high integrity importance | Append-only insert | `audit_log.id` primary key; entity and actor indexes | Audit keeps actor/entity/action/before-after/redaction without guessed org scope | `AuditAndJobsTest` |
+| Fiscal year / financial period setup | Medium close/post race when posting is implemented | Future period-close operations must lock the financial period row | `fiscal_year.year` global unique; `financial_period(fiscal_year_id, month)` unique | Fiscal years are global to the single ERP context; periods belong to fiscal years | `FoundationSchemaTest` |
 | Accounting posting | Critical, not yet implemented | Must be one short transaction | Future journal/source unique constraints and balanced-entry checks | Same logical event posts once; period close/post race cannot invalidate data | Pending Phase 2 |
 
 ## Explicit Lock Ordering For Future Posting
@@ -56,7 +57,7 @@ No operation should acquire these in reverse order.
 - `currency.code` primary key.
 - `branch.id` primary key; no assumed `branch.company_id`.
 - `exchange_rate(currency, date)` unique.
-- `fiscal_year(company_id, year)` unique; active schema relationship remains OWNER DECISION REQUIRED and must not be used as tenant/user/branch scope.
+- `fiscal_year.year` unique globally; FiscalYear has no Company/Tenant scope.
 - `financial_period(fiscal_year_id, month)` unique.
 - `number_sequence.key` unique; no company or branch dimension.
 - `audit_log(entity_type, entity_id)` and `audit_log(actor_id, at)` indexes.
@@ -71,6 +72,7 @@ No operation should acquire these in reverse order.
 - `branch(company_id, code)` uniqueness and Company/Branch FK.
 - `number_sequence(company_id, key)`.
 - `number_sequence.include_branch`.
+- `fiscal_year.company_id`.
 - `audit_log.company_id` and `audit_log.branch_id`.
 - `attachment.company_id`.
 - `notification.company_id`.

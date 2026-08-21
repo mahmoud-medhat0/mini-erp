@@ -5,7 +5,9 @@ namespace Tests\Integration;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Currency;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -41,6 +43,7 @@ class FoundationSchemaTest extends TestCase
         $this->assertTrue(Schema::hasColumn('permissions', 'module'));
         $this->assertTrue(Schema::hasColumn('role_has_permissions', 'scope_json'));
         $this->assertFalse(Schema::hasColumn('branch', 'company_id'));
+        $this->assertFalse(Schema::hasColumn('fiscal_year', 'company_id'));
         $this->assertFalse(Schema::hasColumn('number_sequence', 'company_id'));
         $this->assertFalse(Schema::hasColumn('number_sequence', 'include_branch'));
         $this->assertFalse(Schema::hasColumn('audit_log', 'company_id'));
@@ -64,6 +67,43 @@ class FoundationSchemaTest extends TestCase
         ]);
 
         $this->assertSame(2, Branch::query()->where('code', 'MAIN')->count());
+    }
+
+    public function test_fiscal_years_are_global_and_financial_periods_belong_to_fiscal_years(): void
+    {
+        $fiscalYearId = (string) Str::uuid();
+
+        DB::table('fiscal_year')->insert([
+            'id' => $fiscalYearId,
+            'year' => 2026,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'open',
+        ]);
+
+        DB::table('financial_period')->insert([
+            'id' => (string) Str::uuid(),
+            'fiscal_year_id' => $fiscalYearId,
+            'month' => 1,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-01-31',
+            'status' => 'open',
+        ]);
+
+        $this->assertDatabaseHas('financial_period', [
+            'fiscal_year_id' => $fiscalYearId,
+            'month' => 1,
+        ]);
+
+        $this->expectException(QueryException::class);
+
+        DB::table('fiscal_year')->insert([
+            'id' => (string) Str::uuid(),
+            'year' => 2026,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'open',
+        ]);
     }
 
     public function test_foundation_names_are_translatable(): void

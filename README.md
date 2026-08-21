@@ -14,6 +14,7 @@ Do not introduce or restore:
 - `company_user`
 - `users.company_id`
 - `branch.company_id`
+- `fiscal_year.company_id`
 - Company-owned users, branches, roles, or permissions
 - Spatie Teams
 - `currentCompany` or `currentBranch`
@@ -23,6 +24,8 @@ If a Company, Branch, User, FiscalYear, Warehouse, Project, Department, CostCent
 
 `UNDEFINED - DO NOT ASSUME`
 
+FiscalYear ownership/context has an explicit later owner decision: `SINGLE-ERP CONTEXT`. Fiscal years are global to this ERP installation/business profile, `year` is globally unique, and FinancialPeriod belongs to FiscalYear.
+
 ## Implemented Laravel Foundation
 
 - Laravel session authentication with throttling and active-user checks.
@@ -30,6 +33,7 @@ If a Company, Branch, User, FiscalYear, Warehouse, Project, Department, CostCent
 - Global role templates and module/action permissions.
 - Inertia React app shell and settings/dashboard/notification pages.
 - Company profile configuration and standalone Branch reference records.
+- Global fiscal years with financial periods linked by `fiscal_year_id`.
 - Atomic number-sequence allocation by global sequence `key`.
 - Money value object and accounting draft-entry invariant checks.
 - Audit log linked to actor and audited entity/event.

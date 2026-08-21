@@ -3,6 +3,11 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Corrected — Laravel fiscal-year single-ERP context
+- Removed unsupported `fiscal_year.company_id`; fiscal years are now global to this ERP installation/business profile with global `year` uniqueness.
+- Preserved `financial_period.fiscal_year_id` so financial periods belong to fiscal years without Company/Tenant semantics.
+- Added a migration guard that blocks the correction if existing data contains duplicate fiscal years for the same global year.
+
 ### Corrected — Laravel bootstrap admin seeding
 - Made local bootstrap admin role assignment explicit and config-controlled: `DatabaseSeeder` seeds RBAC before the bootstrap user, then assigns the configured global `ERP_ADMIN` role without company, branch, tenant, or current-company scope.
 - Added coverage for the default bootstrap admin permission path and for disabling bootstrap role assignment.
@@ -12,7 +17,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Added explicit allowlisted attachment entity authorization; unknown entity types and missing/unauthorized entities deny by default.
 - Added attachment storage failure compensation so a metadata/audit persistence failure deletes the newly stored file.
 - Renamed the misleading global `COMPANY_ADMIN` role template to `ERP_ADMIN` and added a migration path for existing development data.
-- Reclassified `fiscal_year.company_id` as OWNER DECISION REQUIRED; no schema change was made for that unresolved relationship.
+- Reclassified `fiscal_year.company_id` as OWNER DECISION REQUIRED; later resolved by removing the column for single-ERP fiscal years.
 - Corrected current documentation to prevent reintroducing Company/Branch tenancy, company-scoped RBAC, or company/branch numbering dimensions.
 
 ### Corrected — Laravel Company/Branch/User relationship assumptions

@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: current Laravel database schema assumptions, with focus on unsupported Company / Branch / User scoping and related audit, attachment, notification, numbering, RBAC, and concurrency tables.
 
-Post-audit correction note: after this audit, the misleading global `COMPANY_ADMIN` role template was renamed to `ERP_ADMIN`, settings management now denies empty RBAC assignments, and attachment authorization/cleanup were hardened. `fiscal_year.company_id` remains OWNER DECISION REQUIRED.
+Post-audit correction note: after this audit, the misleading global `COMPANY_ADMIN` role template was renamed to `ERP_ADMIN`, settings management now denies empty RBAC assignments, attachment authorization/cleanup were hardened, and `fiscal_year.company_id` was removed for the single-ERP FiscalYear context.
 
 Verification commands used:
 
@@ -39,6 +39,8 @@ Verification commands used:
 - `2026_08_21_050000_remove_spatie_team_scope_from_permission_tables`
 - `2026_08_21_060000_add_concurrency_hardening_foundation`
 - `2026_08_21_070000_remove_unsupported_company_branch_scope_assumptions`
+- `2026_08_21_080000_rename_company_admin_role_template`
+- `2026_08_21_090000_remove_fiscal_year_company_scope`
 
 ## Unsupported Assumptions Removed Or Absent
 
@@ -54,19 +56,14 @@ Verification commands used:
 | `audit_log.branch_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | `attachment.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | `notification.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
+| `fiscal_year.company_id` | Column absent; FiscalYear is global to this ERP installation/business profile. | REMOVED LEGACY/AI ASSUMPTION |
 | `roles.company_id` | Column absent. | REMOVED LEGACY/AI ASSUMPTION |
 | Spatie team foreign key | Not active; `permission.teams` false. | REMOVED |
 | `currentCompany` / `currentBranch` context | Not found in Laravel code. | REMOVED / ABSENT |
 
 ## Remaining `company_id` / `branch_id`
 
-Runtime schema:
-
-| Column | Current justification | Classification |
-| --- | --- | --- |
-| `fiscal_year.company_id` | Current implementation ties fiscal years to `company`, with unique `(company_id, year)` and FK restrict delete. Original owner correction does not prove Company ownership of fiscal calendars. | NEEDS_OWNER_DECISION |
-
-No runtime `branch_id` column was confirmed in the audited Laravel foundation tables.
+No runtime `company_id` or `branch_id` column was confirmed in the audited Laravel foundation tables.
 
 Non-runtime references remain in:
 
@@ -121,7 +118,6 @@ Assumption review:
 Columns verified:
 
 - `id` uuid primary key
-- `company_id` uuid
 - `year`
 - `start_date`
 - `end_date`
@@ -129,14 +125,13 @@ Columns verified:
 
 Indexes and FKs:
 
-- unique `(company_id, year)`
-- FK `company_id` -> `company.id`, restrict on delete
+- unique `year`
 
 Assumption review:
 
-- This is the only active schema column still assuming Company owns another business entity.
-- It may be valid later, but current evidence is insufficient.
-- Do not build period close/posting workflows on this relationship until owner confirms it.
+- FiscalYear is global to the single ERP installation/business profile.
+- No Company/Tenant relationship exists.
+- Period close/posting workflows must use FiscalYear/FinancialPeriod directly, not Company scope.
 
 ### `financial_period`
 
@@ -156,8 +151,8 @@ Indexes and FKs:
 
 Assumption review:
 
-- Internal fiscal-year relationship is implemented.
-- Validity depends on resolving fiscal-year ownership.
+- FinancialPeriod belongs to FiscalYear.
+- This relationship is valid in the single-ERP context.
 
 ### `number_sequence`
 
@@ -331,14 +326,13 @@ Expected current result of the correction pass:
 - Preserve notification user targeting and dedupe.
 - Keep Spatie teams disabled.
 
-The current audited schema matches those expected results except for the unresolved `fiscal_year.company_id`.
+The current audited schema matches those expected results, including removal of `fiscal_year.company_id`.
 
 ## Risks And Follow-Ups
 
-1. Resolve `fiscal_year.company_id` before implementing posting, closing, reports, or accounting periods.
-2. Decide Branch semantics before adding relationships, uniqueness, or authorization rules.
-3. Decide document-number sequence identity before legal invoices or accounting documents.
-4. Add entity-level authorization for attachments.
-5. Consider DB-level audit immutability if append-only integrity must be protected from direct DB updates/deletes.
-6. Consider soft-deleting users or actor snapshots if audit actor identity must survive user deletion.
-7. Gate or remove settings authorization bootstrap fallback for production.
+1. Decide Branch semantics before adding relationships, uniqueness, or authorization rules.
+2. Decide document-number sequence identity before legal invoices or accounting documents.
+3. Add entity-level authorization for attachments as new business entities are registered.
+4. Consider DB-level audit immutability if append-only integrity must be protected from direct DB updates/deletes.
+5. Consider soft-deleting users or actor snapshots if audit actor identity must survive user deletion.
+6. Gate or remove settings authorization bootstrap fallback for production.

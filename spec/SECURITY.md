@@ -55,10 +55,10 @@ If a relationship is not explicitly established by owner requirements or later o
 - Money and accounting writes must remain transactional when implemented.
 - Posted financial history, audit records, numbering history, and journal data must not be garbage-collected merely because of age.
 - Audit records link actor, action, entity type/id, before/after payload, and timestamp without invented Company/Branch scope.
+- FiscalYear is global to the single ERP context and must not be used as a Company/Tenant boundary.
 
 ## Current Gaps
 
 - Full accounting posting, period close enforcement, subledger posting, financial statements, and module policies are not implemented yet.
-- FiscalYear ownership/context remains owner-decision-required.
 - Branch exact semantics remain owner-decision-required.
 - Production admin/bootstrap process needs an explicit controlled mechanism; no implicit "first user" or "empty RBAC" privilege escalation is allowed.

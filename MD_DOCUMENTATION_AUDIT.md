@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: the highest-risk current docs (`README.md`, `spec/DATABASE_DESIGN.md`, `spec/SECURITY.md`, and `spec/MASTER_ERP_SPEC.md`) were corrected after this audit to prevent restoring Company/Branch tenancy or misleading completion claims. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: the highest-risk current docs (`README.md`, `spec/DATABASE_DESIGN.md`, `spec/SECURITY.md`, and `spec/MASTER_ERP_SPEC.md`) were corrected after this audit to prevent restoring Company/Branch tenancy or misleading completion claims. A later owner decision resolved FiscalYear as `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -94,6 +94,7 @@ Classification meanings:
 | Roles/permissions are company scoped | Old onboarding/company-admin tasks | REMOVE. Spatie teams are disabled; roles are global templates. |
 | Every query scoped by company_id | Corrected in `spec/SECURITY.md`; stale historical/generated references may remain | CONTRADICTORY if treated as current. No current company context exists. |
 | Document numbers unique per company/branch | database specs and old tasks | UNDEFINED. Current sequence identity is global `key`; company/branch dimensions removed. |
+| Fiscal years owned by company/tenant | old schema/audit notes before owner decision | REMOVE. Current Laravel schema has global `fiscal_year.year` and no `fiscal_year.company_id`. |
 | Accounting/posting complete | Status/spec wording in several files | NOT IMPLEMENTED beyond invariant kernel. |
 | Old Next.js Phase 1 complete | `app/README.md`, `spec/PHASE1_STATUS.md`, `CONTINUE_HERE.md` | LEGACY_REFERENCE only. Laravel target is current. |
 

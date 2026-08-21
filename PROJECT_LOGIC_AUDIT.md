@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: inspection-only review of the current Mini ERP repository, with emphasis on the Laravel target. No feature work, refactor, schema change, or existing documentation rewrite was performed in this pass.
 
-Post-audit correction note: after this audit, a focused correction pass removed the implicit settings authorization fallback, added allowlisted attachment entity authorization, added attachment storage failure compensation, renamed the misleading `COMPANY_ADMIN` role template to `ERP_ADMIN`, and corrected stale tenant/company-scope documentation. `fiscal_year.company_id` remains OWNER DECISION REQUIRED.
+Post-audit correction note: after this audit, focused correction passes removed the implicit settings authorization fallback, added allowlisted attachment entity authorization, added attachment storage failure compensation, renamed the misleading `COMPANY_ADMIN` role template to `ERP_ADMIN`, corrected stale tenant/company-scope documentation, and removed `fiscal_year.company_id` for the single-ERP FiscalYear context.
 
 Reviewed evidence:
 
@@ -26,10 +26,11 @@ The latest Company / Branch / User correction is reflected in the schema for the
 - No `audit_log.company_id` or `audit_log.branch_id`.
 - No `attachment.company_id`.
 - No `notification.company_id`.
+- No `fiscal_year.company_id`; fiscal years are global by `year`.
 - Spatie teams are disabled.
 - No `currentCompany` or `currentBranch` context was found in Laravel code.
 
-The main remaining business-model concern is `fiscal_year.company_id`. It is the only active runtime `company_id` found in the audited foundation tables. It may be a legitimate company financial configuration, but the owner correction explicitly says Company ownership must not be assumed. Treat this as NEEDS_OWNER_DECISION before accounting periods become production data.
+The previous business-model concern, `fiscal_year.company_id`, has been resolved by owner decision as `SINGLE-ERP CONTEXT`: FiscalYear is global to this ERP installation/business profile and not Company/Tenant owned.
 
 ## Severity Summary
 
@@ -42,7 +43,7 @@ No active critical runtime defect was confirmed in the implemented foundation du
 1. POST-AUDIT CORRECTED for current docs: `README.md`, `spec/DATABASE_DESIGN.md`, `spec/SECURITY.md`, and `spec/MASTER_ERP_SPEC.md` now carry the no-tenant/no-assumed-company-scope rule. Historical files can still mention old behavior when labeled as legacy.
 2. POST-AUDIT CORRECTED: attachment routes now use an allowlisted entity authorization boundary and deny unknown/missing/unauthorized entities by default.
 3. POST-AUDIT CORRECTED: the implicit settings bootstrap fallback was removed; empty RBAC assignments no longer grant management access.
-4. `fiscal_year.company_id` remains in the live schema and needs owner confirmation. It is not safe to infer multi-company fiscal calendars from generic company financial requirements.
+4. POST-AUDIT CORRECTED: `fiscal_year.company_id` was removed; no multi-company fiscal calendars are inferred.
 
 ### Medium
 
@@ -130,7 +131,7 @@ The current implementation now mostly honors the latest correction:
 
 Unresolved:
 
-- `fiscal_year.company_id` remains. This needs owner decision.
+- FiscalYear is global to the single ERP context; `fiscal_year.company_id` is removed.
 - Branch exact model remains undefined. Current standalone Branch screen and table should not be treated as a security boundary.
 - Role template name `COMPANY_ADMIN` was renamed to `ERP_ADMIN` after this audit.
 
@@ -145,7 +146,7 @@ Verified with `php artisan db:table`:
 - `audit_log`: actor/entity/event payload fields; indexes on `(entity_type, entity_id)` and `(actor_id, at)`. No company/branch fields.
 - `attachment`: entity reference, file metadata, `uploaded_by`; index on `(entity_type, entity_id)`. No company field.
 - `notification`: `user_id`, type, target ref, read flag, dedupe key; indexes on `(user_id, read)` and unique `(user_id, dedupe_key)`. No company field.
-- `fiscal_year`: has `company_id`, unique `(company_id, year)`, FK to `company`. This remains unresolved.
+- `fiscal_year`: `id`, `year`, `start_date`, `end_date`, `status`; unique `year`; no `company_id`.
 
 See `SCHEMA_ASSUMPTION_AUDIT.md` for the full schema assumption review.
 
@@ -268,7 +269,7 @@ These are not allowed under the latest owner correction unless original requirem
 ## Recommended Correction Order
 
 1. Mark stale/contradictory docs so they cannot be used as source of truth.
-2. Resolve `fiscal_year.company_id` with owner decision before building accounting periods.
+2. POST-AUDIT CORRECTED: resolve `fiscal_year.company_id` by removing it for single-ERP fiscal years.
 3. POST-AUDIT CORRECTED: rename `COMPANY_ADMIN` global role template to `ERP_ADMIN`.
 4. POST-AUDIT CORRECTED: remove the bootstrap settings fallback.
 5. POST-AUDIT CORRECTED: add attachment entity authorization before exposing real business attachments.

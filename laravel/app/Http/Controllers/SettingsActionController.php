@@ -399,7 +399,7 @@ class SettingsActionController extends Controller
 
         abort_if(! $user, 403);
 
-        if ($user->can($permission)) {
+        if ($user->can($permission) || $user->can('settings.configure')) {
             return;
         }
 

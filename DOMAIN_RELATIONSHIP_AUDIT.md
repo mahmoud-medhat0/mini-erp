@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Evidence rule: if a relationship is not explicitly supported by original owner requirements or latest owner correction, classify it as `UNDEFINED - DO NOT ASSUME`. Do not infer ownership from ERP convention, generated docs, Prisma schema, Laravel migrations, or tests.
 
-Post-audit correction note: the misleading global role template `COMPANY_ADMIN` was renamed to `ERP_ADMIN`. It remains a global role template and does not imply Company ownership.
+Post-audit correction note: the misleading global role template `COMPANY_ADMIN` was renamed to `ERP_ADMIN`. It remains a global role template and does not imply Company ownership. FiscalYear ownership/context is now resolved as `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant semantics.
 
 ## Relationship Classification Matrix
 
@@ -37,8 +37,9 @@ Post-audit correction note: the misleading global role template `COMPANY_ADMIN` 
 | `ERP_ADMIN` role name | CONFIRMED GLOBAL RBAC TEMPLATE | Replaces legacy `COMPANY_ADMIN`; no company ownership implied. | Keep as global template. |
 | Spatie Teams | REMOVE | `permission.teams` is false. | Keep disabled. |
 | Permission `scope_json` | DERIVED | Nullable column exists on permission pivots. | Do not assign semantics until requirements define scope. |
-| Company -> FiscalYear | NEEDS_OWNER_DECISION | `fiscal_year.company_id` exists. | Do not build accounting on this until owner confirms. |
-| FiscalYear -> FinancialPeriod | DERIVED | `financial_period.fiscal_year_id` FK exists. | Reasonable internal relationship, but fiscal-year owner still unresolved. |
+| Company -> FiscalYear | REMOVE | `fiscal_year.company_id` removed. | Do not reintroduce. |
+| FiscalYear global year identity | CONFIRMED BY OWNER DECISION | `fiscal_year.year` is globally unique. | Keep single-ERP context. |
+| FiscalYear -> FinancialPeriod | CONFIRMED BY OWNER DECISION | `financial_period.fiscal_year_id` FK exists. | Keep. |
 | Account -> FiscalYear/Company | NOT IMPLEMENTED / UNDEFINED | No account table in Laravel target. | Do not design yet. |
 | NumberSequence -> Company | REMOVE | No `number_sequence.company_id`. | Keep removed. |
 | NumberSequence -> Branch | REMOVE | No `include_branch` or branch FK. | Keep removed. |
@@ -69,7 +70,8 @@ These are safe to build on now:
 - Notifications target users.
 - Audit records link to an actor when available and to an audited entity/event reference.
 - Attachments record uploader provenance and generic entity reference.
-- Financial periods belong to fiscal years, subject to resolving fiscal-year ownership.
+- Fiscal years are global to the ERP installation/business profile.
+- Financial periods belong to fiscal years.
 
 ## Removed Or Unsupported Assumptions
 
@@ -89,6 +91,7 @@ These must not be used:
 - Spatie teams
 - `number_sequence.company_id`
 - `number_sequence.include_branch`
+- `fiscal_year.company_id`
 - `audit_log.company_id`
 - `audit_log.branch_id`
 - `attachment.company_id`
@@ -97,11 +100,10 @@ These must not be used:
 ## Needs Owner Decision
 
 1. Does the ERP support exactly one company profile, or multiple company profiles without tenant semantics, or something else?
-2. Should fiscal years be global, tied to the company profile, or modeled differently?
-3. Is Branch a master-data table, free-form reporting dimension, physical location, or future module concept?
-4. Should branch codes be unique globally, non-unique labels, or not stored as master data?
-5. What are the exact document-numbering dimensions: document type, year, fiscal year, legal sequence, country, business unit, or other?
-6. Should additional global role-template names be adjusted for clarity as more modules move to Laravel?
+2. Is Branch a master-data table, free-form reporting dimension, physical location, or future module concept?
+3. Should branch codes be unique globally, non-unique labels, or not stored as master data?
+4. What are the exact document-numbering dimensions: document type, year, fiscal year, legal sequence, country, business unit, or other?
+5. Should additional global role-template names be adjusted for clarity as more modules move to Laravel?
 
 ## Implementation Guardrail
 

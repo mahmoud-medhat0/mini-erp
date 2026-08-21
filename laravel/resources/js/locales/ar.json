@@ -59,7 +59,13 @@
       "upload": "رفع",
       "addUser": "إضافة مستخدم",
       "editUser": "تعديل مستخدم",
-      "deleteUser": "حذف مستخدم"
+      "deleteUser": "حذف مستخدم",
+      "selectAll": "تحديد الكل",
+      "clearAll": "إلغاء تحديد الكل",
+      "selectAllInModule": "تحديد كافة صلاحيات الوحدة",
+      "deselectModule": "إلغاء تحديد الوحدة",
+      "showLess": "عرض أقل",
+      "showMore": "إضافية"
     },
     "nav": {
       "dashboard": "لوحة التحكم",
@@ -177,12 +183,31 @@
       "includeYear": "السنة",
       "file": "الملف",
       "entityType": "نوع الكيان",
-      "entityId": "معرف الكيان"
+      "entityId": "معرف الكيان",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "passwordKeep": "(اتركه فارغاً للإبقاء عليها كما هي)",
+      "language": "اللغة المفضلة",
+      "role": "الدور الرئيسي",
+      "activeAccount": "حساب مستخدم نشط",
+      "activeAccountDesc": "تمكين أو تعطيل إمكانية وصول هذا الحساب لمساحة العمل.",
+      "roleName": "اسم الدور",
+      "roleNamePlaceholder": "مثال: محاسب أول",
+      "selected": "محدد",
+      "searchPermissionsPlaceholder": "البحث في جميع الصلاحيات...",
+      "modulesAndDomains": "الوحدات والنطاقات",
+      "configureAccessScopes": "تخصيص نطاقات الوصول الدقيقة حسب نطاق الوحدة."
     },
     "status": {
       "active": "نشط",
       "inactive": "غير نشط",
       "template": "قالب قياسي"
+    },
+    "messages": {
+      "confirmDeleteRole": "هل أنت أصلًا متاكد من حذف الدور \"{name}\"؟",
+      "confirmDeleteUser": "هل أنت متأكد من حذف المستخدم \"{name}\"؟",
+      "cannotDeleteSelf": "لا يمكنك حذف حسابك المسجل حالياً!"
     },
     "permissionsList": {
       "settings.configure": "تهيئة إعدادات النظام",
