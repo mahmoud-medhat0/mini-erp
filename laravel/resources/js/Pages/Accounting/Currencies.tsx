@@ -4,33 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, tableClasses } from '../../Components/Primitives';
 import { getAccountTypeLabel, getLocalizedName, getAccountNatureLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AccountItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  type: string;
-  nature: string;
-};
-
-type FxRateItem = {
-  id: string;
-  date: string;
-  rate_e6: number;
-};
-
-type CurrencyItem = {
-  code: string;
-  name: Record<string, string> | string;
-  symbol: string;
-  exponent: number;
-  accounts_count?: number;
-  journal_entries_count?: number;
-  exchange_rates_count?: number;
-  accounts?: AccountItem[];
-  exchange_rates?: FxRateItem[];
-};
+import type { AccountItem, CurrencyItem, FxRateItem, SharedPageProps } from '../../Types';
 
 type CurrenciesProps = SharedPageProps & {
   currencies: CurrencyItem[];

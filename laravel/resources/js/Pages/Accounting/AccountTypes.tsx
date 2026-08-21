@@ -4,53 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getCategoryLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AccountCategoryItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  normal_balance: 'debit' | 'credit';
-  statement_type: 'balance_sheet' | 'income_statement';
-  is_contra: boolean;
-};
-
-type AccountGroupSubItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  type: string;
-  statement_section: string;
-};
-
-type AccountSubItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  type: string;
-  nature: string;
-  is_control: boolean;
-  currency: string;
-};
-
-type AccountTypeItem = {
-  id: string;
-  account_category_id?: string | null;
-  code: string;
-  name: Record<string, string> | string;
-  normal_balance: 'debit' | 'credit';
-  statement_type: 'balance_sheet' | 'income_statement';
-  category: string;
-  is_contra: boolean;
-  sort_order: number;
-  is_system: boolean;
-  is_active: boolean;
-  accountCategory?: AccountCategoryItem | null;
-  groups_count?: number;
-  accounts_count?: number;
-  groups?: AccountGroupSubItem[];
-  accounts?: AccountSubItem[];
-};
+import type { AccountCategoryItem, AccountGroupSubItem, AccountSubItem, AccountTypeItem, SharedPageProps } from '../../Types';
 
 type AccountTypesProps = SharedPageProps & {
   accountTypes: AccountTypeItem[];

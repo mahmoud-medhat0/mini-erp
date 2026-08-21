@@ -3,19 +3,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type JournalRow = {
-  id: string;
-  number?: string | null;
-  entry_date: string;
-  description?: string | null;
-  reference?: string | null;
-  currency: string;
-  status: string;
-  period?: { id: string; month: number } | null;
-  createdBy?: { id: number; name: string } | null;
-};
+import type { JournalRow, SharedPageProps } from '../../Types';
 
 type GeneralJournalProps = SharedPageProps & {
   journals: {

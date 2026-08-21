@@ -4,17 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type LedgerRow = {
-  id: string;
-  entry_date: string;
-  debit_minor: number;
-  credit_minor: number;
-  currency: string;
-  account?: { code: string; name: Record<string, string> | string } | null;
-  journalEntry?: { id: string; number?: string | null; description?: string | null } | null;
-};
+import type { LedgerRow, SharedPageProps } from '../../Types';
 
 type GeneralLedgerProps = SharedPageProps & {
   ledger: {

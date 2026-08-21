@@ -34,6 +34,7 @@ Classification meanings:
 | `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
 | `NEXT_TASKS.md` | CURRENT | Current Phase 3 recommendation. |
 | `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; includes Bank Reconciliation, AR/AP source limits, cheque lifecycle, allocation concurrency, and owner-decision gates. |
+| `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt for Gemini to implement Phase 3 Slice 1 only. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

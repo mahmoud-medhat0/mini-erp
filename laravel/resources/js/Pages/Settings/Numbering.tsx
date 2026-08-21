@@ -4,32 +4,10 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type SequenceRow = {
-  id: string;
-  key: string;
-  docType: string;
-  prefix: string;
-  includeYear: boolean;
-  padding: number;
-  resetPolicy: string;
-  nextValue: number;
-  preview: string;
-};
+import type { NumberingFormData, SequenceRow, SharedPageProps } from '../../Types';
 
 type NumberingProps = SharedPageProps & {
   sequences: SequenceRow[];
-};
-
-type NumberingFormData = {
-  key: string;
-  doc_type: string;
-  prefix: string;
-  include_year: boolean;
-  padding: number;
-  reset_policy: string;
-  next_value: number;
 };
 
 function NumberingFormModal({

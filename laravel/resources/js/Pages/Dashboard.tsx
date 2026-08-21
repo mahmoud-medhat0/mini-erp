@@ -3,15 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge } from '../Components/Primitives';
 import { getDictionary } from '../lib/i18n';
-import type { SharedPageProps } from '../Types/page';
-
-type NotificationItem = {
-  id: string;
-  type: string;
-  targetRef: string;
-  read: boolean;
-  at: string;
-};
+import type { NotificationItem, SharedPageProps } from '../Types';
 
 type DashboardProps = SharedPageProps & {
   counts: Record<'companies' | 'branches' | 'users' | 'roles' | 'permissions' | 'numberSequences' | 'unreadNotifications', number>;

@@ -5,28 +5,10 @@ import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type BranchRow = {
-  id: string;
-  code: string;
-  name: string;
-  nameEn: string;
-  nameAr: string;
-  isActive: boolean;
-  lockVersion: number;
-};
+import type { BranchFormData, BranchRow, SharedPageProps } from '../../Types';
 
 type BranchesProps = SharedPageProps & {
   branches: BranchRow[];
-};
-
-type BranchFormData = {
-  code: string;
-  name_en: string;
-  name_ar: string;
-  is_active: boolean;
-  lock_version?: number;
 };
 
 function BranchFormModal({
@@ -43,7 +25,7 @@ function BranchFormModal({
     name_en: branch?.nameEn ?? '',
     name_ar: branch?.nameAr ?? '',
     is_active: branch?.isActive ?? true,
-    lock_version: branch?.lockVersion,
+    lock_version: branch?.lockVersion ?? 0,
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {

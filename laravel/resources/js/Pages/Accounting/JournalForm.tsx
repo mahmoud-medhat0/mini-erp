@@ -4,31 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { formatDate, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AccountOption = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  nature: string;
-  is_control: boolean;
-};
-
-type PeriodOption = {
-  id: string;
-  month: number;
-  start_date: string;
-  end_date: string;
-  fiscal_year?: {
-    year: number;
-  } | null;
-};
-
-type CurrencyOption = {
-  code: string;
-  name: Record<string, string> | string;
-  symbol: string;
-};
+import type { AccountOption, CurrencyOption, PeriodOption, SharedPageProps } from '../../Types';
 
 type JournalFormProps = SharedPageProps & {
   periods: PeriodOption[];

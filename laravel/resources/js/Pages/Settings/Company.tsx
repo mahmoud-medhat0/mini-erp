@@ -5,33 +5,11 @@ import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type CurrencyRow = {
-  code: string;
-  name: string;
-};
-
-type CompanyRow = {
-  id: string;
-  name: string;
-  nameEn: string;
-  nameAr: string;
-  baseCurrency: string;
-  lockVersion: number;
-  createdAt: string | null;
-};
+import type { CompanyFormData, CompanyRow, CurrencyRow, SharedPageProps } from '../../Types';
 
 type CompanyProps = SharedPageProps & {
   currencies: CurrencyRow[];
   companies: CompanyRow[];
-};
-
-type CompanyFormData = {
-  name_en: string;
-  name_ar: string;
-  base_currency: string;
-  lock_version?: number;
 };
 
 function CompanyFormModal({

@@ -5,16 +5,7 @@ import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type JournalLineRow = {
-  id: string;
-  line_no: number;
-  account?: { id: string; code: string; name: Record<string, string> | string } | null;
-  memo?: string | null;
-  debit_minor: number;
-  credit_minor: number;
-};
+import type { JournalLineRow, SharedPageProps } from '../../Types';
 
 type JournalDetailProps = SharedPageProps & {
   journal: {

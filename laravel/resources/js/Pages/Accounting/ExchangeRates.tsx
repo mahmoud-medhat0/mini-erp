@@ -3,21 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type FxRateRow = {
-  id?: string;
-  currency: string;
-  date: string;
-  rate_e6: number;
-  currency_ref?: CurrencyRow | null;
-};
-
-type CurrencyRow = {
-  code: string;
-  name: Record<string, string> | string;
-  symbol: string;
-};
+import type { CurrencyRow, FxRateRow, SharedPageProps } from '../../Types';
 
 type ExchangeRatesProps = SharedPageProps & {
   rates: {

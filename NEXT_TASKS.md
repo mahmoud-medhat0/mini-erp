@@ -38,6 +38,10 @@ The corrected Phase 3 contract is:
 
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 
+The Slice 1 execution prompt for Gemini is:
+
+- `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
+
 Use that document as the source of truth before implementation.
 
 ## Phase 3 Must Include

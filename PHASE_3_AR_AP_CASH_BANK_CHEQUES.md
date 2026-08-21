@@ -57,7 +57,7 @@ Do not:
 - bypass `AuditLogger` by scattering raw audit writes across services
 - add Company/Branch/Tenant audit scope
 
-If another planning document says Phase 3 should write new audit rows to legacy `audit_log`, treat that Phase 3 wording as stale. This contract preserves the owner-approved Spatie Activitylog decision.
+Any older Phase 3 instruction that makes legacy `audit_log` the active audit write target is stale. This contract preserves the owner-approved Spatie Activitylog decision.
 
 Required Phase 3 audit coverage:
 

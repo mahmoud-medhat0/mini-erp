@@ -4,39 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AuditLogRow = {
-  id: string;
-  actor_id: number | string | null;
-  actor_name?: string | null;
-  actor_email?: string | null;
-  action: string;
-  entity_type: string;
-  entity_id: string;
-  before_json?: string | null;
-  after_json?: string | null;
-  reason?: string | null;
-  request_id?: string | null;
-  ip?: string | null;
-  device?: string | null;
-  at: string;
-};
-
-type UserOption = {
-  id: number;
-  name: string;
-  email: string;
-};
-
-type PaginatedAuditLogs = {
-  data: AuditLogRow[];
-  current_page: number;
-  last_page: number;
-  total: number;
-  prev_page_url: string | null;
-  next_page_url: string | null;
-};
+import type { AuditLogRow, PaginatedAuditLogs, SharedPageProps, UserOption } from '../../Types';
 
 type AuditLogProps = SharedPageProps & {
   logs: PaginatedAuditLogs;

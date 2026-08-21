@@ -4,24 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type PeriodRow = {
-  id: string;
-  month: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-};
-
-type FiscalYearRow = {
-  id: string;
-  year: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-  periods?: PeriodRow[];
-};
+import type { FiscalYearRow, PeriodRow, SharedPageProps } from '../../Types';
 
 type PeriodsProps = SharedPageProps & {
   fiscalYears: FiscalYearRow[];

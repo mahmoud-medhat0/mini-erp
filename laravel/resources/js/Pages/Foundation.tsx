@@ -2,7 +2,7 @@ import { Head, usePage } from '@inertiajs/react';
 
 import AppLayout from '../Components/AppLayout';
 import { Card, PageHeader, StatusBadge } from '../Components/Primitives';
-import type { SharedPageProps } from '../Types/page';
+import type { SharedPageProps } from '../Types';
 
 type FoundationProps = SharedPageProps & {
   status: string;

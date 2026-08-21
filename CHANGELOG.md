@@ -10,6 +10,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Defined cheque accounting lifecycle requirements, cheque state-machine constraints, allocation concurrency/idempotency requirements, receipt/payment reversal owner-decision gates, and Phase 3 PostgreSQL stress-test expectations.
 - Confirmed Phase 3 must not introduce company, branch, or tenant scope and must not start Sales, Purchasing, or Inventory.
 - Clarified that Phase 3 audit uses the owner-approved Spatie Activitylog backend through the existing `AuditLogger`; legacy `audit_log` remains archive only.
+- Added `PHASE_3_SLICE_1_GEMINI_PROMPT.md` for the first bounded implementation slice: Customer/Supplier and Cash/Bank master-data foundation only.
 
 ### Added — Laravel M10 Spatie Activitylog, audit viewer, scheduler, and jobs baseline
 - Installed `spatie/laravel-activitylog` 4.12.3 and made Spatie `activity_log` the active audit backend.

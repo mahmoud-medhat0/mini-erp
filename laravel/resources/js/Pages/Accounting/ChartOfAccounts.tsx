@@ -4,52 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getAccountTypeLabel, getLocalizedName, getAccountNatureLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AccountTypeItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  normal_balance: 'debit' | 'credit';
-  category: string;
-};
-
-type AccountGroupRow = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  account_type_id?: string | null;
-  accountType?: AccountTypeItem | null;
-  type: string;
-  statement_section?: string | null;
-  parent_id?: string | null;
-  sort_order: number;
-  is_active: boolean;
-  accounts?: AccountRow[];
-  children?: AccountGroupRow[];
-};
-
-type AccountRow = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  account_type_id?: string | null;
-  accountType?: AccountTypeItem | null;
-  type: string;
-  nature: string;
-  account_group_id?: string | null;
-  currency: string;
-  is_control: boolean;
-  allow_manual_posting: boolean;
-  is_active: boolean;
-  group?: AccountGroupRow | null;
-};
-
-type CurrencyRow = {
-  code: string;
-  name: Record<string, string> | string;
-  symbol: string;
-};
+import type { AccountGroupRow, AccountRow, AccountTypeItem, CurrencyRow, SharedPageProps } from '../../Types';
 
 type CoaProps = SharedPageProps & {
   groups: AccountGroupRow[];

@@ -4,15 +4,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge } from '../Components/Primitives';
 import { getDictionary } from '../lib/i18n';
-import type { SharedPageProps } from '../Types/page';
-
-type NotificationRow = {
-  id: string;
-  type: string;
-  targetRef: string;
-  read: boolean;
-  at: string;
-};
+import type { NotificationRow, SharedPageProps } from '../Types';
 
 type NotificationsProps = SharedPageProps & {
   items: NotificationRow[];

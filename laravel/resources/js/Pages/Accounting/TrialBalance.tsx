@@ -4,19 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getAccountTypeLabel, getLocalizedName, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type TbRow = {
-  account_id: string;
-  account_code: string;
-  account_name: Record<string, string> | string;
-  type: string;
-  nature: string;
-  total_debit: number;
-  total_credit: number;
-  debit_balance: number;
-  credit_balance: number;
-};
+import type { SharedPageProps, TbRow } from '../../Types';
 
 type TrialBalanceProps = SharedPageProps & {
   rows: TbRow[];

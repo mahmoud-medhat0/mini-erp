@@ -4,21 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getAccountNatureLabel, getAccountTypeLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AccountRow = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  type: string;
-  nature: string;
-};
-
-type OpeningBalanceRow = {
-  debit_minor: number;
-  credit_minor: number;
-  status: string;
-};
+import type { AccountRow, OpeningBalanceRow, SharedPageProps } from '../../Types';
 
 type OpeningBalancesProps = SharedPageProps & {
   fiscalYears: { id: string; year: number }[];

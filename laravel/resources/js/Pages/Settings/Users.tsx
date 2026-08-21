@@ -5,24 +5,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import ToggleSwitch from '../../Components/ToggleSwitch';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type UserRow = {
-  id: number | string;
-  name: string;
-  email: string;
-  locale: string;
-  theme: string;
-  isActive: boolean;
-  roles: { id: number | string; name: string }[];
-};
-
-type RoleRow = {
-  id: number | string;
-  name: string;
-  isTemplate: boolean;
-  permissions: string[];
-};
+import type { RoleRow, SharedPageProps, UserRow } from '../../Types';
 
 type UsersProps = SharedPageProps & {
   users: UserRow[];

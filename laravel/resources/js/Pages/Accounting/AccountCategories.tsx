@@ -4,31 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types/page';
-
-type AccountTypeSubItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  normal_balance: 'debit' | 'credit';
-  statement_type: 'balance_sheet' | 'income_statement';
-  is_contra: boolean;
-  is_active: boolean;
-};
-
-type AccountCategoryItem = {
-  id: string;
-  code: string;
-  name: Record<string, string> | string;
-  normal_balance: 'debit' | 'credit';
-  statement_type: 'balance_sheet' | 'income_statement';
-  is_contra: boolean;
-  sort_order: number;
-  is_system: boolean;
-  is_active: boolean;
-  account_types_count?: number;
-  account_types?: AccountTypeSubItem[];
-};
+import type { AccountCategoryItem, AccountTypeSubItem, SharedPageProps } from '../../Types';
 
 type AccountCategoriesProps = SharedPageProps & {
   accountCategories: AccountCategoryItem[];
