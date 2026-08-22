@@ -18,6 +18,7 @@ use App\Http\Controllers\CustomerInvoiceRevisionController;
 use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
 use App\Http\Controllers\DeliveryNoteController;
+use App\Http\Controllers\FinancialStatementMappingController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
@@ -137,6 +138,14 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/account-categories', [AccountingController::class, 'storeAccountCategory'])->name('accounting.account_categories.store');
         Route::patch('/account-categories/{accountCategory}', [AccountingController::class, 'updateAccountCategory'])->name('accounting.account_categories.update');
         Route::delete('/account-categories/{accountCategory}', [AccountingController::class, 'destroyAccountCategory'])->name('accounting.account_categories.destroy');
+
+        // Phase 5 Slice 1 Financial Statement Mappings Routes
+        Route::get('/statement-mappings', [FinancialStatementMappingController::class, 'index'])->name('accounting.statement_mappings.index');
+        Route::post('/statement-mappings/lines', [FinancialStatementMappingController::class, 'storeLine'])->name('accounting.statement_mappings.lines.store');
+        Route::put('/statement-mappings/lines/{id}', [FinancialStatementMappingController::class, 'updateLine'])->name('accounting.statement_mappings.lines.update');
+        Route::delete('/statement-mappings/lines/{id}', [FinancialStatementMappingController::class, 'destroyLine'])->name('accounting.statement_mappings.lines.destroy');
+        Route::post('/statement-mappings/assign', [FinancialStatementMappingController::class, 'assign'])->name('accounting.statement_mappings.assign');
+        Route::post('/statement-mappings/bulk-assign', [FinancialStatementMappingController::class, 'bulkAssign'])->name('accounting.statement_mappings.bulk_assign');
     });
 
     // Phase 3 Operational Master Data & Accounting Routes

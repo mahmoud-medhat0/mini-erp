@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             AccountCategorySeeder::class,
             AccountTypeSeeder::class,
             AccountingCoreSeeder::class,
+            FinancialStatementLineSeeder::class,
             UnitOfMeasureSeeder::class,
             ProductCategorySeeder::class,
         ]);

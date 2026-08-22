@@ -3,6 +3,16 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 5 Slice 1 Financial Statement Mapping Foundation (2026-08-23)
+- Created database migration for financial statement lines taxonomy: `financial_statement_line` table and nullable `financial_statement_line_id` foreign key on `account` (`2026_08_23_000000_create_phase5_slice1_financial_statement_line_tables.php`).
+- Created `FinancialStatementLine` model with `HasTranslations` (`name`), `HasUuids`, and `accounts` relationship. Updated `Account` model with `financialStatementLine` relationship.
+- Implemented `FinancialStatementLineSeeder` seeding 11 default system statement lines (`ASSET_CURRENT`, `ASSET_NON_CURRENT`, `LIABILITY_CURRENT`, `LIABILITY_NON_CURRENT`, `EQUITY`, `REVENUE`, `CONTRA_REVENUE`, `COGS`, `EXPENSE_OPERATING`, `INCOME_OTHER`, `EXPENSE_OTHER`) idempotently. Auto-assigned obvious chart of accounts to default lines.
+- Implemented `FinancialStatementMappingService` providing statement line CRUD, system line deletion protection (`is_system = true`), in-use deletion protection (`accounts()->count() > 0`), statement_type compatibility validation, bulk account assignment, and `AuditLogger` integration.
+- Created `FinancialStatementMappingController` and routes under `/accounting/statement-mappings` protected by `accounting.mappings` permission.
+- Created Inertia React page `FinancialStatementMappings.tsx` featuring tab filters, mapped/unmapped account views, quick assignment widget, system badges, no emojis per UI rules, and full EN/AR translation dictionary support.
+- Hardened the Slice 1 page after review so visible TSX text uses dictionary keys only, statement/section/balance option labels are translated client-side, and controller option payloads no longer carry English-only labels.
+- Created comprehensive feature test suite `Phase5Slice1FinancialStatementMappingTest.php` (9/9 passing tests, 30 assertions) covering schema integrity, seeder idempotency, relationships, validations, system line delete protection, account assignment matching, RBAC authorization, and audit logging.
+
 ### Added — Phase 5 Financial Statements & Period Close Planning (2026-08-23)
 - Added `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md` as the master planning contract for Financial Statements and Period Close.
 - Added six bounded Gemini execution prompts:

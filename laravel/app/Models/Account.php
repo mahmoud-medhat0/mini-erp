@@ -22,6 +22,7 @@ class Account extends Model
         'type',
         'nature',
         'account_group_id',
+        'financial_statement_line_id',
         'parent_id',
         'currency',
         'is_control',
@@ -50,6 +51,11 @@ class Account extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(AccountGroup::class, 'account_group_id');
+    }
+
+    public function financialStatementLine(): BelongsTo
+    {
+        return $this->belongsTo(FinancialStatementLine::class, 'financial_statement_line_id');
     }
 
     public function parent(): BelongsTo

@@ -82,26 +82,20 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), Phase 4 Slice 7 (Inventory Costing Decision Pack), Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting), Phase 4 Slice 9 (Operational Reports & Returns Decision Pack), and Phase 4 Slice 10 (Sales Returns, Credit Notes, Supplier Adjustments, Operations Close-Out & Manual AR/AP Note Settlement) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 planning files are prepared and ready for bounded execution.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slice 1 (Financial Statement Mapping Foundation) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 2 is ready for bounded execution.
 
 Implemented:
 
 - M2 Inertia foundation.
 - M3 schema foundation and global RBAC.
-- M5 Laravel session authentication.
-- M6 migrated Inertia shell/pages.
-- M7 Laravel core kernel parity.
-- Phase 2 accounting core ledger spine.
-- M8 page actions.
-- M9 attachments and notifications services.
-- M10 Spatie Activitylog migration, audit viewer, scheduler, and jobs baseline.
+- M5 session auth backend.
+- M6 migrated React/Inertia pages.
+- M7 core accounting kernel parity.
+- Phase 2 accounting core.
+- M8 page actions for settings/users.
+- M9 attachment registry + notification system.
+- M10 Spatie Activitylog audit backend, scheduler, and jobs baseline.
 - Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
-- Phase 4 Slice 1 Product & Service Catalog Foundation.
-- Phase 4 Slice 2 Sales Order Backend & UX.
-- Phase 4 Slice 3 Purchase Order Backend & UX.
-- Phase 4 Slice 4 Delivery Notes & Goods Receipts.
-- Phase 4 Slice 5 Customer Invoice Posting.
-- Phase 4 Slice 6 Supplier Bill Posting.
 - Phase 4 Slice 7 Inventory Costing Decision Pack (Moving Weighted Average Costing).
 - Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting.
 - Phase 4 Slice 9 Operational Reports & Returns Decision Pack:

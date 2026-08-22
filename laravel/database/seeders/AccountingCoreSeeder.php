@@ -301,6 +301,8 @@ class AccountingCoreSeeder extends Seeder
                     ]
                 );
             }
+
+            $this->call(FinancialStatementLineSeeder::class);
         }
     }
 }

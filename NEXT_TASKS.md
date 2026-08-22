@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Financial Statements & Period Close planning files were prepared on 2026-08-23.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slice 1 Financial Statement Mapping Foundation is complete and locally corrected on 2026-08-23 for the no-hardcoded-visible-page-text rule.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -33,9 +33,16 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Feature test suite `Phase4Slice10ReturnsCreditNotesTest.php` (38/38 passing tests, 0 skipped, 230 assertions).
   - GL mapping keys `sales_returns` (4200), `inventory_return_variance` (5200), `inventory_scrap_loss` (5300), `purchase_returns_allowances` (5400), `input_tax_receivable` (1300), `output_tax_payable` (2200) seeded idempotently in `AccountingCoreSeeder` with accounts.
   - Manual tax percentage in integer basis points (`intdiv(($baseMinor * $rateBps) + 5000, 10000)`) with modes `none`/`manual_rate`/`manual_amount`; manual/open credit/debit settlement with explicit settlement/reversal actions and no extra GL.
+- Phase 5 Slice 1 Financial Statement Mapping Foundation (FULLY COMPLETE):
+  - Database schema: `financial_statement_line` table and `account.financial_statement_line_id` FK (`2026_08_23_000000_create_phase5_slice1_financial_statement_line_tables.php`).
+  - Model & Relations: `FinancialStatementLine` model with `HasTranslations` (`name`), `HasUuids`, and `accounts` relationship; `Account` updated with `financialStatementLine` relationship.
+  - Default Seeder: `FinancialStatementLineSeeder` seeds 11 default system statement lines (`ASSET_CURRENT`, `ASSET_NON_CURRENT`, `LIABILITY_CURRENT`, `LIABILITY_NON_CURRENT`, `EQUITY`, `REVENUE`, `CONTRA_REVENUE`, `COGS`, `EXPENSE_OPERATING`, `INCOME_OTHER`, `EXPENSE_OTHER`) idempotently.
+  - Domain Service: `FinancialStatementMappingService` with line CRUD, account assignment validation (system line protection, line in-use protection, statement_type matching), and `AuditLogger` integration.
+  - Controller & Routes: `FinancialStatementMappingController` and routes under `/accounting/statement-mappings` protected by `accounting.mappings` permission.
+  - Inertia Page: `FinancialStatementMappings.tsx` with mapped/unmapped account views, tabs, quick assignment widget, system badges, no emojis, full EN/AR dictionary translations, and no hardcoded visible TSX text fallbacks.
+  - Feature Suite: `Phase5Slice1FinancialStatementMappingTest.php` (9/9 passing tests, 30 assertions).
 - Phase 5 planning files prepared:
   - `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md`
-  - `PHASE_5_SLICE_1_GEMINI_PROMPT.md`
   - `PHASE_5_SLICE_2_GEMINI_PROMPT.md`
   - `PHASE_5_SLICE_3_GEMINI_PROMPT.md`
   - `PHASE_5_SLICE_4_GEMINI_PROMPT.md`
@@ -46,12 +53,10 @@ Latest verified baseline:
 
 ```text
 php artisan migrate --force: Nothing to migrate
-php artisan migrate:status: all migrations Ran through 2026_08_22_200000_create_phase4_slice10_settlement_tables
-php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest: 38 tests / 38 passed / 0 skipped / 230 assertions
-php artisan test: 407 tests, 404 passed, 3 skipped / 3172 assertions
+php artisan migrate:status: all migrations Ran through 2026_08_23_000000_create_phase5_slice1_financial_statement_line_tables
+php artisan test: 416 tests, 413 passed, 3 skipped / 3202 assertions
 php artisan test --testsuite=Concurrency: 7 tests / 16 assertions
 php artisan concurrency:stress --workers=10: PASSED CLEANLY
-php artisan concurrency:stress --workers=100: BLOCKED LOCALLY by Windows paging-file memory exhaustion, not an application assertion failure
 php artisan accounting:concurrency-stress --workers=50: PASSED CLEANLY
 php artisan accounting:allocation-concurrency-stress --workers=50: PASSED CLEANLY
 php artisan accounting:settlement-concurrency-stress --workers=50: PASSED CLEANLY
@@ -69,14 +74,13 @@ Inventory backend forbidden float/rounding source scan: no results
 
 ## Next Execution
 
-Start Phase 5 in bounded order:
+Continue Phase 5 in bounded order:
 
-1. `PHASE_5_SLICE_1_GEMINI_PROMPT.md` - Financial Statement Mapping Foundation.
-2. `PHASE_5_SLICE_2_GEMINI_PROMPT.md` - Balance Sheet and Income Statement.
-3. `PHASE_5_SLICE_3_GEMINI_PROMPT.md` - Cash Flow Statement Foundation.
-4. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
-5. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
-6. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+1. `PHASE_5_SLICE_2_GEMINI_PROMPT.md` - Balance Sheet and Income Statement.
+2. `PHASE_5_SLICE_3_GEMINI_PROMPT.md` - Cash Flow Statement Foundation.
+3. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
+4. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
+5. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
 
 Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
