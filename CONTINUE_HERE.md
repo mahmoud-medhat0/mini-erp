@@ -1,6 +1,6 @@
 # CONTINUE HERE - Mini ERP Laravel handoff
 
-Current date/context: 2026-08-21. This is the current handoff for the Laravel + Inertia + React migration track.
+Current date/context: 2026-08-22. This is the current handoff for the Laravel + Inertia + React migration track.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -21,6 +21,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -66,7 +67,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), and Phase 4 Slice 2 (Sales Order Backend & UX with exact integer totals) is complete and locally verified on PostgreSQL. Phase 4 Slice 3 Purchase Order Backend & UX is prompt-ready.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), and Phase 4 Slice 3 (Purchase Order Backend & UX with exact integer totals) is complete and locally verified on PostgreSQL. Phase 4 Slice 4 Delivery Notes & Goods Receipts is prompt-ready.
 
 Implemented:
 
@@ -81,17 +82,18 @@ Implemented:
 - M10 Spatie Activitylog migration, audit viewer, scheduler, and jobs baseline.
 - Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
 - Phase 4 Slice 1 Product & Service Catalog Foundation.
-- Phase 4 Slice 2 Sales Order Backend & UX:
-  - `sales_order` and `sales_order_line` models and migrations.
-  - `SalesOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
+- Phase 4 Slice 2 Sales Order Backend & UX.
+- Phase 4 Slice 3 Purchase Order Backend & UX:
+  - `purchase_order` and `purchase_order_line` models and migrations.
+  - `PurchaseOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
   - Exact integer math calculation helper (`calculateLineTotalMinor` using `intdiv` & `% 1000000`), 0 float/rounding usage.
   - Overflow checks and fractional-minor rejection validation.
-  - Number sequence allocation `SO-YYYY-XXXXX` with idempotent confirmation replay.
+  - Number sequence allocation `PO-YYYY-XXXXX` with idempotent confirmation replay.
   - Spatie Activitylog audit via `AuditLogger`.
-  - Attachment entity registry registration for `sales_order`.
-  - `SalesOrderController` endpoints under `/sales/orders/*`.
-  - `SalesOrders.tsx` Inertia page with customer selector, product/UOM selector, dynamic line items, real-time line total preview, status badges, and action buttons.
-  - `Phase4Slice2SalesOrderTest` 15/15 passing tests; local recheck after source-scan cleanup: 72 assertions.
+  - Attachment entity registry registration for `purchase_order`.
+  - `PurchaseOrderController` endpoints under `/purchasing/orders/*`.
+  - `PurchaseOrders.tsx` Inertia page with supplier selector, product/UOM selector, dynamic line items, real-time line total preview, status badges, and action buttons.
+  - `Phase4Slice3PurchaseOrderTest` 16/16 passing tests (74 assertions).
   - currencies and FX rates
   - fiscal years and periods
   - account categories and account types
@@ -182,9 +184,9 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: not included in the attached Slice 2 summary; must be re-run in the correction pass.
-- `php artisan test`: 269 passing tests / 2221 assertions reported after Phase 4 Slice 2 correction.
-- `php artisan test --filter=Phase4Slice2SalesOrderTest`: 15 tests / 72 assertions passed locally after source-scan cleanup.
+- `php artisan migrate:status`: not included in the attached Slice 3 summary; re-run in Slice 4 verification.
+- `php artisan test`: 285 passing tests / 2311 assertions reported after Phase 4 Slice 3.
+- `php artisan test --filter=Phase4Slice3PurchaseOrderTest`: 16 tests / 74 assertions passed locally after source-scan cleanup.
 - `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
@@ -196,7 +198,7 @@ Latest results:
 - `php artisan accounting:phase3-integrity-check`: passed.
 - `php artisan accounting:phase3-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
-- `vendor/bin/pint --test`: passed after Phase 4 Slice 2 report.
+- `vendor/bin/pint --test`: passed after local Slice 3 source-scan cleanup.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
 
@@ -289,12 +291,13 @@ Phase 4 planning is prepared:
 - `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 
 Next prepared execution step:
 
-1. **Phase 4 Slice 3: Purchase Order Backend & UX**
-   - Purchase Order header/lines, Supplier/Product/Currency relationships, exact integer totals, lifecycle, `PO-YYYY-XXXXX` numbering, audit, attachments, and Inertia UX.
-   - No Delivery Notes, Goods Receipts, Supplier Bills, AP/GL posting, Inventory Valuation, COGS, VAT, Returns, Reports, E2E hardening, or deployment work.
+1. **Phase 4 Slice 4: Delivery Notes & Goods Receipts**
+   - Delivery Notes from confirmed Sales Orders and Goods Receipts from confirmed Purchase Orders, with exact integer fulfillment quantities and cumulative over-fulfillment prevention.
+   - No Customer Invoices, Supplier Bills, AR/AP/GL posting, Inventory Valuation, stock balance ledger, COGS, VAT, Returns, Reports, E2E hardening, or deployment work.
 
 Other possible owner choices:
 

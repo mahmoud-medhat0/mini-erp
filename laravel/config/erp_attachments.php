@@ -179,5 +179,14 @@ return [
                 'delete' => ['sales.delete', 'sales.edit'],
             ],
         ],
+        'purchase_order' => [
+            'table' => 'purchase_order',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['purchasing.view'],
+                'attach' => ['purchasing.edit', 'purchasing.create'],
+                'delete' => ['purchasing.delete', 'purchasing.edit'],
+            ],
+        ],
     ],
 ];

@@ -4,7 +4,7 @@ Date: 2026-08-21
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: current docs have since been updated through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), and Phase 4 Slice 2 (Sales Order Backend & UX with exact integer totals). All Phase 3 subledger/banking/reconciliation workflows and Phase 4 catalog & sales order tables, models, services, controllers, seeders, RBAC, attachment registry, and Inertia React pages are complete and verified in Laravel with 269 passing tests, 0 TS errors, clean Pint formatting, and successful Vite build. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: current docs have since been updated through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), and Phase 4 Slice 3 (Purchase Order Backend & UX with exact integer totals). All Phase 3 subledger/banking/reconciliation workflows and Phase 4 catalog, sales order, and purchase order tables, models, services, controllers, seeders, RBAC, attachment registry, and Inertia React pages are complete and verified in Laravel with 285 passing tests, 0 TS errors, clean Pint formatting, and successful Vite build. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -32,7 +32,7 @@ Classification meanings:
 | `DOMAIN_MODEL_REVIEW.md` | CURRENT | Aligned with the latest correction direction; still should be treated as review output, not original requirements. |
 | `IMPLEMENTATION_STATUS.md` | CURRENT | Current Laravel status and verification numbers. |
 | `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
-| `NEXT_TASKS.md` | CURRENT | Current handoff points to Phase 4 Slice 3 Purchase Order Backend & UX prompt. |
+| `NEXT_TASKS.md` | CURRENT | Current handoff points to Phase 4 Slice 4 Delivery Notes & Goods Receipts prompt. |
 | `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-10 are complete for the agreed scope. |
 | `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 1; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 2; keep as traceability for what was requested. |
@@ -47,9 +47,10 @@ Classification meanings:
 | `PHASE_3_FINAL_VERIFICATION_REPORT.md` | CURRENT | Formal Phase 3 close-out and final verification report. |
 | `PHASE_4_SALES_PURCHASING_OPERATIONS.md` | CURRENT | Phase 4 planning contract and slice plan; not proof of implementation. |
 | `PHASE_4_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 1 Product/Service Catalog Foundation. |
-| `PHASE_4_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 2 Sales Order Backend & UX; follow-up correction required. |
+| `PHASE_4_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 2 Sales Order Backend & UX; follow-up integer-total correction was handled separately. |
 | `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded correction prompt already used for Sales Order exact integer totals. |
-| `PHASE_4_SLICE_3_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt prepared for Phase 4 Slice 3 Purchase Order Backend & UX; not yet executed. |
+| `PHASE_4_SLICE_3_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 3 Purchase Order Backend & UX. |
+| `PHASE_4_SLICE_4_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt prepared for Phase 4 Slice 4 Delivery Notes & Goods Receipts; not yet executed. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

@@ -95,12 +95,15 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Phase 4 Slice 2 Sales Order Backend & UX:
   - Sales Order header/lines, lifecycle, `SO-YYYY-XXXXX` numbering, attachment registry, audit, and Inertia UX.
   - exact integer line-total math with overflow checks and fractional-minor rejection.
+- Phase 4 Slice 3 Purchase Order Backend & UX:
+  - Purchase Order header/lines, lifecycle, `PO-YYYY-XXXXX` numbering, attachment registry, audit, and Inertia UX.
+  - exact integer line-total math with overflow checks and fractional-minor rejection.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
 - Sales and Purchasing workflows.
-- Purchase Orders. The execution prompt is prepared in `PHASE_4_SLICE_3_GEMINI_PROMPT.md`.
+- Delivery Notes and Goods Receipts. The execution prompt is prepared in `PHASE_4_SLICE_4_GEMINI_PROMPT.md`.
 - Customer Invoices and Supplier Bills.
 - Inventory valuation, COGS, stock movement, and warehouse semantics.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -159,8 +162,8 @@ npm run build
 
 Latest verified result:
 
-- 269 PHPUnit tests passing / 2221 assertions reported after Phase 4 Slice 2 correction.
-- Phase 4 Slice 2 exact integer total correction is complete.
+- 285 PHPUnit tests passing / 2311 assertions reported after Phase 4 Slice 3.
+- Phase 4 Slices 1-3 are complete for their agreed operational scope.
 - Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
@@ -180,6 +183,7 @@ Use these first:
 - `PHASE_4_SLICE_2_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 - `NEXT_TASKS.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`

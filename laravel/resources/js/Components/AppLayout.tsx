@@ -43,6 +43,7 @@ export type NavKey =
   | 'product-categories.index'
   | 'uoms.index'
   | 'sales-orders.index'
+  | 'purchase-orders.index'
   | 'reports.index'
   | 'reports.customer-statement'
   | 'reports.supplier-statement'
@@ -680,6 +681,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: locale === 'ar' ? 'المنتجات والخدمات' : 'Products & Services' },
                         { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: locale === 'ar' ? 'أوامر البيع' : 'Sales Orders' },
+                        { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: locale === 'ar' ? 'أوامر الشراء' : 'Purchase Orders' },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: locale === 'ar' ? 'تصنيفات المنتجات' : 'Product Categories' },
                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: locale === 'ar' ? 'وحدات القياس' : 'Units of Measure' },
                       ].map((subItem) => (

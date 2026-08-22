@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 2 (Sales Order Backend & UX with exact integer totals) is complete and verified locally on PostgreSQL. Phase 4 Slice 3 (Purchase Order Backend & UX) is prompt-ready in `PHASE_4_SLICE_3_GEMINI_PROMPT.md`. See `PHASE_4_SALES_PURCHASING_OPERATIONS.md`.
+Current status: Phase 4 Slice 3 (Purchase Order Backend & UX with exact integer totals) is complete and verified locally on PostgreSQL. Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation) is prompt-ready in `PHASE_4_SLICE_4_GEMINI_PROMPT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -10,57 +10,91 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - M3 foundation schema, global RBAC, and no-team Spatie Permission.
 - M5 Laravel session auth.
 - M6 migrated app shell/pages.
-- M7 Laravel core kernel parity.
+- M7 core kernel parity.
 - Phase 2 accounting core ledger spine.
-- M8 page actions for migrated settings/users pages.
+- M8 actions for migrated settings/users pages.
 - M9 attachments and notifications services.
 - M10 audit, scheduler, and jobs baseline.
-- Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
+- Phase 3 Slices 1-10:
+  - master data
+  - AR/AP subledgers
+  - receipts/payments
+  - allocation engine
+  - cheques
+  - bank reconciliation
+  - Inertia pages/UX
+  - operational reports
+  - PostgreSQL stress/integrity hardening
+  - close-out report
 - Phase 4 Slice 1 Product/Service Catalog Foundation.
-- Phase 4 Slice 2 Sales Order Backend & UX:
-  - `sales_order` and `sales_order_line` tables and Eloquent models.
-  - `SalesOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
-  - Exact integer math calculation helper (`calculateLineTotalMinor` using `intdiv` & `% 1000000`), 0 float/rounding usage.
+- Phase 4 Slice 2 Sales Order Backend & UX with exact integer totals.
+- Phase 4 Slice 3 Purchase Order Backend & UX:
+  - `purchase_order` and `purchase_order_line` tables and Eloquent models.
+  - `PurchaseOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
+  - Exact integer calculation helper using `intdiv` and `% 1000000`.
   - Overflow checks and fractional-minor rejection validation.
-  - Number sequence allocation `SO-YYYY-XXXXX` with idempotent confirmation replay.
+  - Number sequence allocation `PO-YYYY-XXXXX` with idempotent confirmation replay.
   - Spatie Activitylog audit via `AuditLogger`.
-  - Attachment entity registry registration for `sales_order`.
-  - `SalesOrderController` endpoints under `/sales/orders/*`.
-  - `SalesOrders.tsx` Inertia page with customer selector, product/UOM selector, dynamic line items, real-time line total preview, status badges, and action buttons.
-  - `Phase4Slice2SalesOrderTest` 15/15 passing tests; local recheck after source-scan cleanup: 72 assertions.
+  - Attachment entity registry registration for `purchase_order`.
+  - `PurchaseOrderController` endpoints under `/purchasing/orders/*`.
+  - `PurchaseOrders.tsx` Inertia page.
+  - `Phase4Slice3PurchaseOrderTest` 16/16 passing tests (74 assertions).
 
-Latest verified test suite baseline:
+Latest reported baseline after Slice 3:
 
 ```text
-php artisan test: 269 passing tests / 2221 assertions
-Phase4Slice2SalesOrderTest: 15 passing tests / 72 assertions locally after source-scan cleanup
+php artisan test: 285 passing tests / 2311 assertions
+Phase4Slice3PurchaseOrderTest: 16 passing tests / 74 assertions
+php artisan test --testsuite=Concurrency: 7 passing tests / 16 assertions
 vendor/bin/pint --test: passed
 npm run typecheck: passed (0 TS errors)
 npm run build: passed
-Source scan check: 0 forbidden float/rounding patterns in authoritative Sales Order backend code
+Source scan check: 0 forbidden float/rounding patterns in authoritative Purchase Order backend code after local false-positive cleanup
 ```
 
-## Immediate Priority - Phase 4 Slice 3 (Purchase Order Backend & Operations)
+## Immediate Priority
 
-1. Execute `PHASE_4_SLICE_3_GEMINI_PROMPT.md`:
-   - Create `purchase_order` and `purchase_order_line` tables.
-   - Implement `PurchaseOrderService` (create, update, submit, confirm, cancel).
-   - Exact integer math for line totals and header totals.
-   - Document sequence allocation `PO-YYYY-XXXXX`.
-   - RBAC permissions (`purchasing.*`).
-   - Attachment registry entry for `purchase_order`.
-   - Inertia controllers and React pages for Purchase Orders.
-   - Feature test suite for Purchase Orders.
+Execute:
 
-## Next Steps - Phase 4 Slices 4-10
+- `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 
-- **Slice 4**: Delivery Notes & Goods Receipts (`delivery_note`, `goods_receipt`).
-- **Slice 5**: Customer Invoice Posting (linking Sales Orders & Delivery Notes to AR/GL via PostingEngine).
-- **Slice 6**: Supplier Bill Posting (linking Purchase Orders & Goods Receipts to AP/GL via PostingEngine).
-- **Slice 7**: Inventory Costing Decision Slice (FIFO / Weighted Average after owner decision).
-- **Slice 8**: Returns, Credit Notes, Debit Notes.
-- **Slice 9**: Phase 4 Inertia UX Refinements.
-- **Slice 10**: Reports, Concurrency Stress, Final Verification Gate for Phase 4.
+Scope:
+
+- Delivery Notes from confirmed Sales Orders.
+- Goods Receipts from confirmed Purchase Orders.
+- `delivery_note`, `delivery_note_line`, `goods_receipt`, and `goods_receipt_line`.
+- Operational fulfillment quantities only.
+- Exact integer `quantity_e6` validation.
+- Cumulative over-delivery and over-receipt prevention.
+- `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` global numbering.
+- Spatie Activitylog via `AuditLogger`.
+- Attachment registry entries.
+- Inertia pages and actions.
+
+Explicitly out of scope for Slice 4:
+
+- customer invoices
+- supplier bills
+- AR/AP/GL posting
+- PostingEngine integration
+- inventory valuation
+- stock balance ledger
+- COGS
+- VAT/tax
+- discounts/price lists
+- returns/credit notes/debit notes
+- warehouse/location/branch semantics
+- company/branch/tenant scope
+- reports
+
+## Upcoming Phase 4 Slices
+
+- **Slice 5:** Customer Invoice posting to AR/GL through the existing PostingEngine.
+- **Slice 6:** Supplier Bill posting to AP/GL through the existing PostingEngine.
+- **Slice 7:** Inventory costing/subledger only after owner decision on costing method.
+- **Slice 8:** Returns, Credit Notes, and Debit Notes only after owner decision.
+- **Slice 9:** Phase 4 Inertia pages/actions polish for workflows that are already stable.
+- **Slice 10:** Phase 4 reports, PostgreSQL stress/integrity hardening, documentation close-out, and final verification.
 
 ## Owner Decisions Still Needed
 
@@ -72,8 +106,9 @@ Do not implement these without explicit owner approval:
 - warehouse/location semantics.
 - warehouse-to-branch relationship.
 - post-confirmation sales order cancellation behavior once delivery/invoice exists.
+- post-confirmation purchase order cancellation behavior once goods receipt/bill exists.
 - price lists, discounts, and contract pricing.
-- separate quotation module.
+- separate quotation/requisition modules.
 - approval workflow engine beyond bounded status transitions.
 - credit limit blocking.
 - returns/credit notes/debit notes exact rules.

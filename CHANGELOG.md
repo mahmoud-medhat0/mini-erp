@@ -3,9 +3,18 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
-### Added - Phase 4 Slice 3 Purchase Order prompt
-- Added `PHASE_4_SLICE_3_GEMINI_PROMPT.md` as the bounded execution contract for Purchase Order Backend & UX.
-- Updated handoff/status documentation so the next prepared execution step is Phase 4 Slice 3 after the Sales Order integer-total correction.
+### Added - Phase 4 Slice 4 fulfillment prompt
+- Added `PHASE_4_SLICE_4_GEMINI_PROMPT.md` as the bounded execution contract for Delivery Notes and Goods Receipts operational fulfillment.
+- Updated handoff/status documentation so the next prepared execution step is Phase 4 Slice 4 after Purchase Orders.
+
+### Added — Phase 4 Slice 3 Purchase Order Backend & UX
+- Created migration `2026_08_22_040000_create_phase4_slice3_purchase_order_tables.php` defining `purchase_order` and `purchase_order_line` tables with optimistic locking (`lock_version`), integer currency columns, `quantity_e6` scaling, foreign keys, and zero prohibited tenancy/company columns.
+- Created Eloquent models `PurchaseOrder` and `PurchaseOrderLine` with relationships to Supplier, Currency, Product, UnitOfMeasure, and User.
+- Implemented `PurchaseOrderService` domain service supporting full document lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`), exact integer math calculation helper (`calculateLineTotalMinor` using `intdiv` and `% 1000000`), server-side line & header total recomputations, global number sequence allocation (`PO-YYYY-XXXXX`) via `NumberSequenceAllocator`, idempotent confirmation replay, and Spatie Activitylog auditing via `AuditLogger`.
+- Registered `purchase_order` entity definition in `config/erp_attachments.php` mapping permissions `purchasing.view`, `purchasing.create`, `purchasing.edit`, `purchasing.delete`.
+- Created `PurchaseOrderController` and web routes under `/purchasing/orders/*`.
+- Created Inertia React page `PurchaseOrders.tsx` with supplier selector, product/UOM selector, dynamic line items, real-time total preview, status badges, and action controls. Added Purchase Orders link to `AppLayout.tsx` navigation.
+- Created `Phase4Slice3PurchaseOrderTest.php` feature test suite (16/16 passing, 74 assertions). Verified full suite (285 passing tests, 0 TS errors, clean Pint formatting, successful Vite build).
 
 ### Fixed — Phase 4 Slice 2 Sales Order Integer Math Correction
 - Refactored `SalesOrderService.php` to calculate line totals using exact integer math helper `calculateLineTotalMinor` (`intdiv` and `% 1000000`), completely eliminating `round()`, `(float)`, and floating division `/ 1000000`.

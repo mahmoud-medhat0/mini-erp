@@ -1,6 +1,6 @@
 # PHASE 4 - SALES & PURCHASING OPERATIONS
 
-Status: IN PROGRESS - Slices 1-2 complete, Slice 3 prompt-ready
+Status: IN PROGRESS - Slices 1-3 complete, Slice 4 prompt-ready
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -220,7 +220,7 @@ Original execution file:
 
 Create supplier-facing purchase order draft lifecycle only.
 
-Status: PROMPT READY
+Status: COMPLETE (with exact integer totals)
 
 Expected scope:
 
@@ -243,6 +243,8 @@ Execution file:
 
 Create delivery note and goods receipt document lifecycles.
 
+Status: PROMPT READY
+
 Expected scope:
 
 - delivery note from sales order
@@ -252,6 +254,10 @@ Expected scope:
 - no inventory valuation
 - no invoice auto-generation
 - no branch/warehouse assumptions unless approved
+
+Execution file:
+
+- `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 
 ### Slice 5 - Customer Invoice Posting
 

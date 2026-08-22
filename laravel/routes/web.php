@@ -18,6 +18,7 @@ use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
 use App\Http\Controllers\OutgoingChequeController;
 use App\Http\Controllers\PayableAllocationController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ReceivableAllocationController;
 use App\Http\Controllers\Reports\ApAgingController;
 use App\Http\Controllers\Reports\ApToGlReconciliationController;
@@ -233,6 +234,14 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/sales/orders/{salesOrder}/submit', [SalesOrderController::class, 'submit'])->name('sales-orders.submit');
     Route::post('/sales/orders/{salesOrder}/confirm', [SalesOrderController::class, 'confirm'])->name('sales-orders.confirm');
     Route::post('/sales/orders/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->name('sales-orders.cancel');
+
+    // Phase 4 Slice 3 Purchase Order Routes
+    Route::get('/purchasing/orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+    Route::post('/purchasing/orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+    Route::put('/purchasing/orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
+    Route::post('/purchasing/orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->name('purchase-orders.submit');
+    Route::post('/purchasing/orders/{purchaseOrder}/confirm', [PurchaseOrderController::class, 'confirm'])->name('purchase-orders.confirm');
+    Route::post('/purchasing/orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');
