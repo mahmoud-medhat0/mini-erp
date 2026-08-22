@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slice 1 Financial Statement Mapping Foundation is complete and locally corrected on 2026-08-23 for the no-hardcoded-visible-page-text rule.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slice 1 Financial Statement Mapping Foundation and Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation are complete and locally corrected on 2026-08-23.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -41,46 +41,32 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Controller & Routes: `FinancialStatementMappingController` and routes under `/accounting/statement-mappings` protected by `accounting.mappings` permission.
   - Inertia Page: `FinancialStatementMappings.tsx` with mapped/unmapped account views, tabs, quick assignment widget, system badges, no emojis, full EN/AR dictionary translations, and no hardcoded visible TSX text fallbacks.
   - Feature Suite: `Phase5Slice1FinancialStatementMappingTest.php` (9/9 passing tests, 30 assertions).
-- Phase 5 planning files prepared:
-  - `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md`
-  - `PHASE_5_SLICE_2_GEMINI_PROMPT.md`
-  - `PHASE_5_SLICE_3_GEMINI_PROMPT.md`
-  - `PHASE_5_SLICE_4_GEMINI_PROMPT.md`
-  - `PHASE_5_SLICE_5_GEMINI_PROMPT.md`
-  - `PHASE_5_SLICE_6_GEMINI_PROMPT.md`
+- Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation (FULLY COMPLETE):
+  - Query Services: `BalanceSheetReportService` and `IncomeStatementReportService` generating structured financial statement lines and account totals from immutable posted `ledger_entry` records.
+  - Local correction: report date filtering uses accounting `ledger_entry.entry_date`, never row `created_at`, so backdated/postdated postings appear in the correct reporting period.
+  - Subtotals & Accounting Equation: Balance Sheet compares Total Assets against Liabilities + Equity, reports `is_balanced` status and imbalance warning if unmapped or out of balance; Income Statement calculates Net Revenue, Gross Profit, Operating Income, and Net Income / (Loss).
+  - Unmapped Accounts Visibility: Both reports display unmapped active accounts with non-zero movement in dedicated sections and set `has_unmapped_warning`; unmapped accounts with no movements are not noisy warnings.
+  - Controllers & Export: `BalanceSheetReportController` and `IncomeStatementReportController` with CSV export streaming (`exportCsv`).
+  - Authorization: Strict server-side gates enforcing `reports.view` AND `view_financials` for report viewing, and `reports.export` AND `view_financials` for CSV export.
+  - Inertia Pages & Navigation: `BalanceSheet.tsx` and `IncomeStatement.tsx` with date filter controls, period dropdowns, imbalance & unmapped warning banners, no emojis, full EN/AR dictionary translations, Reports Hub integration, sidebar navigation, no new hardcoded visible TSX fallbacks, and integer-safe money formatting.
+  - Feature Suite: `Phase5Slice2FinancialStatementsTest.php` (8/8 passing tests, 54 assertions).
 
-Latest verified baseline:
+## Immediate Next Steps (Phase 5 Slice 3)
 
-```text
-php artisan migrate --force: Nothing to migrate
-php artisan migrate:status: all migrations Ran through 2026_08_23_000000_create_phase5_slice1_financial_statement_line_tables
-php artisan test: 416 tests, 413 passed, 3 skipped / 3202 assertions
-php artisan test --testsuite=Concurrency: 7 tests / 16 assertions
-php artisan concurrency:stress --workers=10: PASSED CLEANLY
-php artisan accounting:concurrency-stress --workers=50: PASSED CLEANLY
-php artisan accounting:allocation-concurrency-stress --workers=50: PASSED CLEANLY
-php artisan accounting:settlement-concurrency-stress --workers=50: PASSED CLEANLY
-php artisan accounting:cheque-concurrency-stress --workers=50: PASSED CLEANLY
-php artisan accounting:bank-reconciliation-concurrency-stress --workers=50: PASSED CLEANLY
-php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
-php artisan accounting:phase3-integrity-check: PASSED
-php artisan accounting:phase3-stress --workers=50: 50 SUCCESS
-php artisan tokens:gc --batch=100: OK
-vendor/bin/pint --test: passed
-npm run typecheck: passed (0 TS errors)
-npm run build: passed (chunk size warning only)
-Inventory backend forbidden float/rounding source scan: no results
-```
+- Execute **Phase 5 Slice 3: Cash Flow Statement Foundation**:
+  - Read `PHASE_5_SLICE_3_GEMINI_PROMPT.md`.
+  - Implement Cash Flow statement generation service (Indirect/Direct method foundation) categorizing operating, investing, and financing cash flows from posted ledger movements.
+  - Create report controller, routes under `reports.cash_flow`, and Inertia reporting page (`CashFlow.tsx`).
+  - Add feature tests for cash flow classification, date filtering, and permission guards.
 
 ## Next Execution
 
 Continue Phase 5 in bounded order:
 
-1. `PHASE_5_SLICE_2_GEMINI_PROMPT.md` - Balance Sheet and Income Statement.
-2. `PHASE_5_SLICE_3_GEMINI_PROMPT.md` - Cash Flow Statement Foundation.
-3. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
-4. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
-5. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+1. `PHASE_5_SLICE_3_GEMINI_PROMPT.md` - Cash Flow Statement Foundation.
+2. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
+3. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
+4. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
 
 Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 

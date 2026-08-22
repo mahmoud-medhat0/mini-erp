@@ -73,6 +73,8 @@ export type NavKey =
   | 'reports.customer-invoices'
   | 'reports.supplier-bills'
   | 'reports.stock-movements'
+  | 'reports.balance_sheet'
+  | 'reports.income_statement'
   | 'reports.ar-gl-reconciliation'
   | 'reports.ap-gl-reconciliation';
 
@@ -122,6 +124,8 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'supplier-adjustment-notes.index': 'purchasing.view',
   'supplier-bills.index': 'purchasing.view',
   'reports.index': 'reports.view',
+  'reports.balance_sheet': 'view_financials',
+  'reports.income_statement': 'view_financials',
   'audit.view': 'audit.view',
 };
 
@@ -240,6 +244,9 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const navAllowed = (key: NavKey): boolean => {
     const primary = NAV_PERMS[key];
     if (!primary) return true;
+    if (primary === 'view_financials') {
+      return can('reports.view') && can('view_financials');
+    }
     if (can(primary)) return true;
     const fallback = NAV_PERMS_FALLBACK[key];
     return !!fallback && can(fallback);
@@ -841,6 +848,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'reports.bank-reconciliations' as NavKey, href: '/reports/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconReport },
                         { key: 'reports.ar-gl-reconciliation' as NavKey, href: '/reports/ar-gl-reconciliation', label: dict.app.nav.layoutKeys.arToGlRecon },
                          { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: dict.app.nav.layoutKeys.apToGlRecon },
+                        { key: 'reports.balance_sheet' as NavKey, href: '/reports/balance-sheet', label: accDict.balanceSheet },
+                        { key: 'reports.income_statement' as NavKey, href: '/reports/income-statement', label: accDict.incomeStatement },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}

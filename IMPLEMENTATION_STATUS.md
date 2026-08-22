@@ -1,14 +1,14 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 5 Slice 1 (Financial Statement Mapping Foundation) is COMPLETE. Phase 5 Slice 2 (Balance Sheet & Income Statement Core Generation) is next.
-- **Latest verified:** 2026-08-23, local Laravel after Phase 5 Slice 1 Financial Statement Mapping no-hardcoded-visible-page-text correction.
-- **Tests passing:** Phase 5 Slice 1 suite 9 tests, 9 passed, 0 skipped / 30 assertions after local correction. Full suite baseline from Slice 1 report: 416 tests, 413 passed, 3 skipped / 3202 assertions.
+- **Current phase:** Phase 5 Slice 2 (Balance Sheet & Income Statement Core Generation) is COMPLETE after local correction review. Phase 5 Slice 3 (Cash Flow Statement Foundation) is next.
+- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL after Phase 5 Slice 2 Balance Sheet & Income Statement correction pass.
+- **Tests passing:** Gemini full-suite baseline: 422 tests, 419 passed, 3 skipped / 3257 assertions. Local Slice 2 correction verification: `Phase5Slice2FinancialStatementsTest` 8 tests, 8 passed, 0 skipped / 54 assertions.
 - **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, and the PHPUnit Concurrency suite. `concurrency:stress --workers=100` is blocked locally by Windows paging-file memory exhaustion; lower worker counts pass.
 - **Frontend verification:** `npm run typecheck` passed, `npm run build` passed (chunk size warning only).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 5 Slice 1 implementation.
+- **Latest verified code commit:** pending for Phase 5 Slice 2 implementation.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
-- **Phase 5 prompts:** start with `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md`, then `PHASE_5_SLICE_2_GEMINI_PROMPT.md`.
+- **Phase 5 prompts:** start with `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md`, then `PHASE_5_SLICE_3_GEMINI_PROMPT.md`.
 
 ## Legend
 
@@ -39,8 +39,9 @@
 | Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting | COMPLETE | `stock_balance` and `stock_movement_ledger` tables/models, `MovingWeightedAverageInventoryService`, GL mappings (`inventory_asset`, `grni_clearing`, `cogs`), Goods Receipt stock receipt posting (Dr Inventory Asset / Cr GRNI Clearing), Delivery Note stock issue posting (Dr COGS / Cr Inventory Asset), Supplier Bill stock line GRNI clearing, Customer Invoice stock line DN matching, read-only Inertia stock balances page (`StockBalances.tsx`), PostgreSQL integrity constraints via `2026_08_22_090000_harden_phase4_slice8_inventory_integrity.php`, 14-test Slice 8 feature suite, and 50-iteration inventory integrity stress command. |
 | Phase 4 Slice 9 Operational Reports & Returns Decision Pack | COMPLETE | 7 Query Services (`SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`), 7 Controllers, 7 Inertia Pages, Reports Hub links, `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md` decision pack, schema-aligned report numbers, and 7/7 passing feature tests (`Phase4Slice9OperationalReportsTest`, 85 assertions). |
 | Phase 4 Slice 10 Sales Returns, Credit Notes & Operations Close-Out | COMPLETE | Implemented seven migrations, 7 domain services, manual AR/AP note settlement and reversal (`receivable_entry_settlement`, `payable_entry_settlement`), 38 feature tests passing. |
-| Phase 5 Slice 1 Financial Statement Mapping Foundation | COMPLETE | Created `financial_statement_line` table and `account.financial_statement_line_id` FK, `FinancialStatementLine` model, default system statement lines seeder (11 lines), `FinancialStatementMappingService`, `FinancialStatementMappingController`, routes, Inertia React management page (`FinancialStatementMappings.tsx`), EN/AR translations, no hardcoded visible TSX text fallbacks after local correction, and 9/9 passing feature tests (`Phase5Slice1FinancialStatementMappingTest`). |
-| Phase 5 Financial Statements & Period Close | PLANNED | Planning and Gemini execution prompts prepared: master contract plus Slices 1-6 for financial statement mapping, Balance Sheet/Income Statement, Cash Flow, Period Close controls, Year-End Close decision pack, UX/export/E2E close-out. Must preserve exact permissions and no hardcoded visible UI text/team/tenant assumptions. |
+| Phase 5 Slice 1 Financial Statement Mapping Foundation | COMPLETE | Created `financial_statement_line` table and `account.financial_statement_line_id` FK, `FinancialStatementLine` model, default system statement lines seeder (11 lines), `FinancialStatementMappingService`, `FinancialStatementMappingController`, routes, Inertia React management page (`FinancialStatementMappings.tsx`), EN/AR translations, and 9/9 passing feature tests (`Phase5Slice1FinancialStatementMappingTest`). |
+| Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation | COMPLETE | Implemented `BalanceSheetReportService`, `IncomeStatementReportService`, `BalanceSheetReportController`, `IncomeStatementReportController`, CSV exports, routes under `reports.balance_sheet` and `reports.income_statement`, Inertia pages `BalanceSheet.tsx` & `IncomeStatement.tsx`, and Reports Hub cards. Local correction pass enforces report filtering by `ledger_entry.entry_date` instead of row `created_at`, shows unmapped warnings only for accounts with non-zero movement, requires `reports.view` + `view_financials` for viewing and `reports.export` + `view_financials` for CSV export, keeps new pages/nav text dictionary-backed, uses integer-safe frontend money formatting, and verifies 8/8 passing feature tests (`Phase5Slice2FinancialStatementsTest`, 54 assertions). |
+| Phase 5 Financial Statements & Period Close | PARTIAL | Slices 1-2 are implemented and corrected: financial statement mapping, Balance Sheet, and Income Statement. Slices 3-6 remain pending: Cash Flow, Period Close controls, Year-End Close decision pack, and UX/export/E2E close-out. Must preserve exact permissions and no hardcoded visible UI text/team/tenant assumptions. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -57,7 +58,23 @@
 
 ## Verification Snapshot
 
-Last full verification from `laravel/`:
+Latest Phase 5 Slice 2 local correction verification from `laravel/`:
+
+```powershell
+vendor/bin/pint --test
+php artisan test --filter=Phase5Slice2FinancialStatementsTest
+npm run typecheck
+npm run build
+```
+
+Result summary:
+
+- `vendor/bin/pint --test`: passed.
+- `php artisan test --filter=Phase5Slice2FinancialStatementsTest`: 8 tests, 8 passed, 0 skipped / 54 assertions.
+- `npm run typecheck`: passed.
+- `npm run build`: passed (chunk size warning only).
+
+Last full verification baseline from `laravel/`:
 
 ```powershell
 composer install
@@ -119,7 +136,7 @@ Result summary:
 | Inventory | PARTIAL | Moving Weighted Average stock balance and immutable stock movement ledger are implemented; sales/purchase returns are supported through reversal stock movements (`recordReturn`/`recordScrap`), with scrap disposition not increasing saleable stock. Warehouse/location, stock counts, and generic stock adjustments are not implemented. |
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
 | Payroll, Rentals, Fixed Assets, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
-| Full financial statements | PLANNED | Phase 5 prompt files prepared for Balance Sheet, Income Statement, Cash Flow, and Period Close controls. |
+| Full financial statements | PARTIAL | Mapping, Balance Sheet, and Income Statement are complete. Cash Flow, period close controls, year-end close decision pack, and print/export UX close-out remain pending. |
 
 ## Known Issues / Residual Risks
 
@@ -134,7 +151,7 @@ Result summary:
 
 Phase 3 is 100% complete for the agreed scope, and Phase 4 is complete through Slice 10 (Slices 1-10). Returns, credit notes, invoice revisions, purchase returns, supplier adjustment notes, manual tax basis points, manual AR/AP note settlement, and operational close-out hardening are implemented and locally verified.
 
-No required Phase 4 correction remains. Phase 5 is ready to start with `PHASE_5_SLICE_1_GEMINI_PROMPT.md`.
+No required Phase 4 correction remains. Phase 5 Slice 1 and Slice 2 are complete. Continue with `PHASE_5_SLICE_3_GEMINI_PROMPT.md`.
 
 Other owner options:
 

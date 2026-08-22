@@ -3,6 +3,23 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation (2026-08-22)
+- Implemented `BalanceSheetReportService` generating read-only Balance Sheet financial position as of a specified date from immutable posted `ledger_entry` records and statement line taxonomy mappings; compares Total Assets to Liabilities + Equity, calculates `is_balanced` status and imbalance amount, and handles contra-asset/contra-liability display signs.
+- Implemented `IncomeStatementReportService` generating read-only Income Statement profit and loss over a date range or fiscal period; calculates Net Revenue (Gross Revenue less Sales Returns & Allowances), Gross Profit, Operating Income, and Net Income / (Loss).
+- Implemented unmapped accounts visibility and warning banners (`has_unmapped_warning`) on both reports to ensure active accounts with movements are never hidden.
+- Created `BalanceSheetReportController` and `IncomeStatementReportController` with CSV export streaming (`exportCsv`). Registered routes under `/reports/balance-sheet` and `/reports/income-statement` protected by server-side gates enforcing `reports.view` AND `view_financials` for report viewing, and `reports.export` AND `view_financials` for CSV exports.
+- Created Inertia React reporting pages `BalanceSheet.tsx` and `IncomeStatement.tsx` with date filter controls, fiscal period selector, imbalance & unmapped warning banners, no emojis, full EN/AR dictionary translations, Reports Hub integration, and sidebar navigation links.
+- Created comprehensive feature test suite `Phase5Slice2FinancialStatementsTest.php` covering Balance Sheet equation verification, Income Statement Net Income calculation, contra revenue & contra asset display signs, unmapped accounts visibility, permission enforcement (`view_financials`, `reports.view`, `reports.export`), Inertia page props, and read-only ledger query immutability.
+
+### Corrected — Phase 5 Slice 2 Local Review (2026-08-23)
+- Corrected Balance Sheet and Income Statement report filtering to use accounting `ledger_entry.entry_date` instead of database row `created_at`, so backdated/postdated accounting activity reports in the correct financial period.
+- Corrected unmapped account warnings so accounts with no movement do not create noisy warning rows; active unmapped accounts with non-zero report movement remain visible.
+- Corrected Income Statement period selector data to use actual `financial_period` columns (`fiscal_year_id`, `month`, `start_date`, `end_date`, `status`) instead of a non-existent `name` column.
+- Hardened report-page authorization in the UI so export controls require both `reports.export` and `view_financials`.
+- Removed new hardcoded visible TSX fallback strings from the Slice 2 report pages and navigation entries; text is now dictionary-backed for EN/AR.
+- Replaced frontend minor-unit display formatting with integer-safe formatting instead of floating-point division.
+- Verified local correction with clean Pint, `Phase5Slice2FinancialStatementsTest.php` 8/8 tests and 54 assertions, clean TypeScript typecheck, and successful Vite build.
+
 ### Added — Phase 5 Slice 1 Financial Statement Mapping Foundation (2026-08-23)
 - Created database migration for financial statement lines taxonomy: `financial_statement_line` table and nullable `financial_statement_line_id` foreign key on `account` (`2026_08_23_000000_create_phase5_slice1_financial_statement_line_tables.php`).
 - Created `FinancialStatementLine` model with `HasTranslations` (`name`), `HasUuids`, and `accounts` relationship. Updated `Account` model with `financialStatementLine` relationship.

@@ -3,11 +3,34 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader } from '../../Components/Primitives';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 
 export default function ReportsIndex({ locale }: SharedPageProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
+  const can = useCan();
+  const canViewFinancials = can('view_financials');
 
   const reportGroups = [
+    ...(canViewFinancials
+      ? [
+          {
+            title: accDict.financialStatements,
+            reports: [
+              {
+                name: accDict.balanceSheet,
+                desc: accDict.balanceSheetDesc,
+                href: '/reports/balance-sheet',
+              },
+              {
+                name: accDict.incomeStatement,
+                desc: accDict.incomeStatementDesc,
+                href: '/reports/income-statement',
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: dict.app.pages.reports.arCustomerReports,
       reports: [

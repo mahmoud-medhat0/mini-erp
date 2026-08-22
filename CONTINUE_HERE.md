@@ -82,7 +82,16 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slice 1 (Financial Statement Mapping Foundation) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 2 is ready for bounded execution.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slice 1, and Phase 5 Slice 2 (Balance Sheet & Income Statement Core Generation) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 3 is ready for bounded execution.
+
+Latest Phase 5 Slice 2 local correction notes:
+
+- Balance Sheet and Income Statement services must filter posted ledger activity by `ledger_entry.entry_date`, not row `created_at`.
+- Unmapped statement warnings must include only active unmapped accounts with non-zero movement in the report range/as-of window.
+- New financial statement pages/nav entries must keep visible UI text dictionary-backed; do not add hardcoded visible English strings in TSX pages.
+- Viewing requires `reports.view` plus `view_financials`; CSV export requires `reports.export` plus `view_financials`.
+- Frontend statement amount formatting must remain integer-safe from minor units, without floating-point division.
+- Local targeted verification: `Phase5Slice2FinancialStatementsTest.php` 8/8 passing tests, 54 assertions; Pint, TypeScript typecheck, and Vite build all passed.
 
 Implemented:
 
@@ -96,12 +105,6 @@ Implemented:
 - M9 attachment registry + notification system.
 - M10 Spatie Activitylog audit backend, scheduler, and jobs baseline.
 - Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
-- Phase 4 Slice 7 Inventory Costing Decision Pack (Moving Weighted Average Costing).
-- Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting.
-- Phase 4 Slice 9 Operational Reports & Returns Decision Pack:
-  - 7 Read-only Operational Query Services (`SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`).
-  - 7 HTTP Controllers under `App\Http\Controllers\Reports`.
-  - 7 Inertia UI Pages under `resources/js/Pages/Reports`.
   - Main Reports Hub (`Reports/Index.tsx`) links.
   - Returns / Credit Notes / Debit Notes owner decision pack `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
   - Feature test suite `Phase4Slice9OperationalReportsTest.php` (7/7 passing tests, 85 assertions after local schema-alignment correction).
@@ -207,6 +210,23 @@ Implemented:
   - Repository documentation audit, status synchronization, final verification gate execution, and `PHASE_3_FINAL_VERIFICATION_REPORT.md`.
 
 Latest verified commands:
+
+Phase 5 Slice 2 correction pass:
+
+```powershell
+cd laravel
+vendor/bin/pint --test
+php artisan test --filter=Phase5Slice2FinancialStatementsTest
+npm run typecheck
+npm run build
+```
+
+Latest Phase 5 Slice 2 correction results:
+
+- `vendor/bin/pint --test`: passed.
+- `php artisan test --filter=Phase5Slice2FinancialStatementsTest`: 8 tests / 8 passed / 0 skipped / 54 assertions.
+- `npm run typecheck`: passed.
+- `npm run build`: passed (chunk size warning only).
 
 ```powershell
 cd laravel
@@ -357,7 +377,7 @@ Phase 4 planning is prepared:
 
 Next prepared execution step:
 
-No required Phase 4 business slice or correction pass is pending. Awaiting owner direction.
+Execute `PHASE_5_SLICE_3_GEMINI_PROMPT.md` for Cash Flow Statement Foundation.
 
 Other possible owner choices:
 
@@ -372,7 +392,7 @@ Not started; each requires a bounded owner prompt before any implementation:
 - Full tax/VAT filing module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.
-- Full financial statements.
+- Remaining Phase 5 financial statement work beyond Balance Sheet/Income Statement: Cash Flow, period close controls, year-end close decision pack, and UX/export/print close-out.
 
 Going forward, keep these invariants:
 

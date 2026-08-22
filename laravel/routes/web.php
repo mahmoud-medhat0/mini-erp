@@ -33,6 +33,7 @@ use App\Http\Controllers\Reports\ApAgingController;
 use App\Http\Controllers\Reports\ApToGlReconciliationController;
 use App\Http\Controllers\Reports\ArAgingController;
 use App\Http\Controllers\Reports\ArToGlReconciliationController;
+use App\Http\Controllers\Reports\BalanceSheetReportController;
 use App\Http\Controllers\Reports\BankBookController;
 use App\Http\Controllers\Reports\BankReconciliationReportController;
 use App\Http\Controllers\Reports\CashBookController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
 use App\Http\Controllers\Reports\DeliveryNoteReportController;
 use App\Http\Controllers\Reports\GoodsReceiptReportController;
+use App\Http\Controllers\Reports\IncomeStatementReportController;
 use App\Http\Controllers\Reports\PurchaseOrderReportController;
 use App\Http\Controllers\Reports\ReportsHubController;
 use App\Http\Controllers\Reports\SalesOrderReportController;
@@ -246,6 +248,12 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/customer-invoices', [CustomerInvoiceReportController::class, 'index'])->name('reports.customer-invoices');
         Route::get('/supplier-bills', [SupplierBillReportController::class, 'index'])->name('reports.supplier-bills');
         Route::get('/stock-movements', [StockMovementReportController::class, 'index'])->name('reports.stock-movements');
+
+        // Phase 5 Slice 2 Financial Statements Reports
+        Route::get('/balance-sheet', [BalanceSheetReportController::class, 'index'])->name('reports.balance_sheet');
+        Route::get('/balance-sheet/export', [BalanceSheetReportController::class, 'exportCsv'])->name('reports.balance_sheet.export');
+        Route::get('/income-statement', [IncomeStatementReportController::class, 'index'])->name('reports.income_statement');
+        Route::get('/income-statement/export', [IncomeStatementReportController::class, 'exportCsv'])->name('reports.income_statement.export');
     });
 
     // Phase 4 Slice 1 Catalog Routes
