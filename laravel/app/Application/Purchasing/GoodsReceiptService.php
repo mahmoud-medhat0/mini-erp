@@ -2,7 +2,9 @@
 
 namespace App\Application\Purchasing;
 
+use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Domain\Audit\AuditLogger;
+use App\Models\FinancialPeriod;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptLine;
 use App\Models\PurchaseOrder;
@@ -18,6 +20,7 @@ class GoodsReceiptService
 
     public function __construct(
         private readonly NumberSequenceAllocator $numberAllocator,
+        private readonly MovingWeightedAverageInventoryService $inventoryService,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -167,6 +170,36 @@ class GoodsReceiptService
 
             $this->validateAndLockFulfillmentLines($purchaseOrder, $linesArray, $goodsReceipt->id);
 
+            // Process stock line inventory costing if stock products are present
+            $goodsReceipt->load(['lines.product', 'lines.purchaseOrderLine']);
+            $hasStockLines = $goodsReceipt->lines->contains(fn ($line) => $line->product && $line->product->type === 'stock');
+
+            if ($hasStockLines) {
+                $period = $this->resolveFinancialPeriodForDate($goodsReceipt->receipt_date);
+
+                foreach ($goodsReceipt->lines as $line) {
+                    if ($line->product && $line->product->type === 'stock') {
+                        $poLine = $line->purchaseOrderLine ?? PurchaseOrderLine::query()->where('id', $line->purchase_order_line_id)->first();
+                        $unitCostMinor = $poLine ? $poLine->unit_price_minor : 0;
+
+                        $this->inventoryService->recordReceipt(
+                            sourceType: 'goods_receipt',
+                            sourceId: $goodsReceipt->id,
+                            sourceLineId: $line->id,
+                            movementDate: $goodsReceipt->receipt_date,
+                            productId: $line->product_id,
+                            unitOfMeasureId: $line->unit_of_measure_id,
+                            currency: $purchaseOrder->currency,
+                            quantityE6: $line->quantity_e6,
+                            unitCostMinor: $unitCostMinor,
+                            fiscalYearId: $period->fiscal_year_id,
+                            financialPeriodId: $period->id,
+                            actorId: $actorId,
+                        );
+                    }
+                }
+            }
+
             $before = $goodsReceipt->toArray();
 
             $number = $goodsReceipt->number;
@@ -196,6 +229,22 @@ class GoodsReceiptService
 
             return $goodsReceipt->fresh(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
         });
+    }
+
+    private function resolveFinancialPeriodForDate(string $date): FinancialPeriod
+    {
+        /** @var FinancialPeriod|null $period */
+        $period = FinancialPeriod::query()
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->whereIn('status', ['open', 'reopened'])
+            ->first();
+
+        if (! $period) {
+            throw ValidationException::withMessages(['receipt_date' => ["No open financial period covers date {$date}."]]);
+        }
+
+        return $period;
     }
 
     public function cancel(string $id, ?int $actorId = null): GoodsReceipt

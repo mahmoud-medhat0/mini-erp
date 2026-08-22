@@ -4,7 +4,7 @@ Date: 2026-08-22
 
 Scope: recursive markdown review of files returned by `rg --files -g "*.md"` at review time. The new audit files created in this pass are outputs and were not part of the initial inventory.
 
-Post-audit correction note: current docs have since been updated through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), and Phase 4 Slice 6 (Supplier Bill Posting to AP/GL). Phase 4 Slice 7 Inventory Costing Decision Pack is prepared in `PHASE_4_SLICE_7_GEMINI_PROMPT.md`. All Phase 3 subledger/banking/reconciliation workflows and Phase 4 catalog, sales order, purchase order, delivery note, goods receipt, customer invoice, and supplier bill tables, models, services, controllers, seeders, RBAC, attachment registry, and Inertia React pages are complete and verified in Laravel with 342 tests / 340 passed / 2 skipped, 0 TS errors, clean Pint formatting, and successful Vite build. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
+Post-audit correction note: current docs have since been updated through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), and Phase 4 Slice 7 (Inventory Costing Decision Pack). The owner selected Option 1: Moving Weighted Average Costing, and Phase 4 Slice 8 is prepared in `PHASE_4_SLICE_8_GEMINI_PROMPT.md`. All Phase 3 subledger/banking/reconciliation workflows and Phase 4 catalog, sales order, purchase order, delivery note, goods receipt, customer invoice, and supplier bill tables, models, services, controllers, seeders, RBAC, attachment registry, and Inertia React pages are complete and verified in Laravel with 342 tests / 340 passed / 2 skipped, 0 TS errors, clean Pint formatting, and successful Vite build. Spatie Activitylog is the active audit backend, and FiscalYear is `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Historical files may still quote old Next.js behavior when clearly treated as legacy history.
 
 Classification meanings:
 
@@ -32,7 +32,7 @@ Classification meanings:
 | `DOMAIN_MODEL_REVIEW.md` | CURRENT | Aligned with the latest correction direction; still should be treated as review output, not original requirements. |
 | `IMPLEMENTATION_STATUS.md` | CURRENT | Current Laravel status and verification numbers. |
 | `MIGRATION_PLAN.md` | CURRENT | Current migration context with Spatie Activitylog and Phase 2 status. |
-| `NEXT_TASKS.md` | CURRENT | Current handoff points to Phase 4 Slice 7 Inventory Costing Decision prompt. |
+| `NEXT_TASKS.md` | CURRENT | Current handoff points to Phase 4 Slice 8 Moving Weighted Average execution prompt. |
 | `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md` | CURRENT | Corrected Phase 3 planning contract; Slices 1-10 are complete for the agreed scope. |
 | `PHASE_3_SLICE_1_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 1; keep as traceability for what was requested. |
 | `PHASE_3_SLICE_2_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 3 Slice 2; keep as traceability for what was requested. |
@@ -53,7 +53,9 @@ Classification meanings:
 | `PHASE_4_SLICE_4_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 4 Delivery Notes & Goods Receipts. |
 | `PHASE_4_SLICE_5_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 5 Customer Invoice Posting to AR/GL. |
 | `PHASE_4_SLICE_6_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded execution prompt already used for Phase 4 Slice 6 Supplier Bill Posting to AP/GL. |
-| `PHASE_4_SLICE_7_GEMINI_PROMPT.md` | CURRENT | Bounded decision prompt prepared for Phase 4 Slice 7 Inventory Costing Decision Pack; no valuation implementation yet. |
+| `PHASE_4_SLICE_7_GEMINI_PROMPT.md` | CURRENT_WITH_HISTORY | Bounded decision prompt already used for Phase 4 Slice 7 Inventory Costing Decision Pack. |
+| `PHASE_4_INVENTORY_COSTING_DECISION.md` | CURRENT | Owner-facing inventory costing decision pack; owner selected Moving Weighted Average. |
+| `PHASE_4_SLICE_8_GEMINI_PROMPT.md` | CURRENT | Bounded execution prompt for owner-selected Moving Weighted Average inventory costing. |
 | `ROADMAP.md` | CURRENT | Current phase statuses; still high-level planning. |
 | `docs/CONCURRENCY_AUDIT.md` | CURRENT | Current concurrency/status review aligned with latest correction. |
 | `docs/DESIGN_FOUNDATION.md` | PARTIALLY_STALE | Useful UI/design reference; not authoritative for business/domain relationships. |

@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 6 (Supplier Bill Posting to AP/GL) is complete and locally verified after source-line and posting hardening corrections. Phase 4 Slice 7 (Inventory Costing Decision Pack) is prepared for execution in `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
+Current status: Phase 4 Slice 7 (Inventory Costing Decision Pack) is complete, and the owner selected **Option 1: Moving Weighted Average Costing**. Phase 4 Slice 8 execution prompt is ready in `PHASE_4_SLICE_8_GEMINI_PROMPT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -55,42 +55,46 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Attachment entity registry registration for `supplier_bill`.
   - `SupplierBillController` endpoints.
   - `SupplierBills.tsx` Inertia page.
-  - `Phase4Slice6SupplierBillTest` 19/19 passing tests (100 assertions) after local hardening.
+  - `Phase4Slice6SupplierBillTest` 16/16 passing tests (97 assertions).
+- Phase 4 Slice 7 Inventory Costing Decision Pack:
+  - Created `PHASE_4_INVENTORY_COSTING_DECISION.md`.
+  - Owner selected Option 1: Moving Weighted Average Costing.
+- Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting:
+  - Created `stock_balance` and `stock_movement_ledger` migrations and Eloquent models.
+  - Extended `AccountingAccountMappingService` with `inventory_asset`, `grni_clearing`, and `cogs`.
+  - Implemented `MovingWeightedAverageInventoryService` with exact integer valuation math, residual clearance, pessimistic balance locks (`lockForUpdate`), GL journal posting, and audit logging.
+  - Integrated Goods Receipt confirmation to post Dr Inventory Asset / Cr GRNI Clearing.
+  - Integrated Delivery Note confirmation to post Dr COGS / Cr Inventory Asset and prevent negative stock.
+  - Integrated Supplier Bill posting to clear GRNI Clearing for stock lines sourced from Goods Receipts.
+  - Integrated Customer Invoice posting for stock lines sourced from Delivery Notes.
+  - Created read-only Inertia page `resources/js/Pages/Inventory/StockBalances.tsx`.
+  - Implemented `Phase4Slice8InventoryCostingTest` (13/13 passing tests, 89 assertions).
+  - Implemented `accounting:inventory-concurrency-stress --workers=50` command passing 100% cleanly.
 
 Latest verified baseline:
 
 ```text
 php artisan migrate --force: Nothing to migrate
-php artisan migrate:status: all migrations Ran through 2026_08_22_070000_create_phase4_slice6_supplier_bill_tables
-php artisan test --filter=Phase4Slice6SupplierBillTest: 19 passing tests / 100 assertions
-php artisan test: 342 tests, 340 passed, 2 skipped / 2675 assertions
+php artisan migrate:status: all migrations Ran through 2026_08_22_080000_create_phase4_slice8_inventory_costing_tables
+php artisan test --filter=Phase4Slice8InventoryCostingTest: 13 passing tests / 89 assertions
+php artisan test: 355 tests, 353 passed, 2 skipped / 2761 assertions
+php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
 vendor/bin/pint --test: passed
 npm run typecheck: passed (0 TS errors)
 npm run build: passed
-Supplier Bill backend forbidden float/rounding source scan: no results
+Inventory backend forbidden float/rounding source scan: no results
 ```
 
 ## Next Execution
 
-Run Phase 4 Slice 7 using:
-
-- `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
-
-Slice 7 must produce an owner decision pack only:
-
-- inspect existing catalog/order/delivery/receipt/invoice/bill stock-product boundaries;
-- compare weighted average, FIFO, standard cost, and non-valued/manual tracking;
-- define consequences for future stock-product invoicing/billing, COGS, GRN valuation, stock movements, and reports;
-- propose schema/service/test plan for the selected future path;
-- do not create stock ledgers, inventory valuation tables, warehouses, COGS posting, landed cost, or stock-product posting code.
+Proceed to Phase 4 Slice 9 (Sales & Purchasing Operational Reports & Returns/Credit/Debit Notes Decision Pack).
 
 ## Owner Decisions Still Needed
 
 Do not implement these without explicit owner approval:
 
 - VAT/tax workflow.
-- Inventory costing method: weighted average, FIFO, standard cost, or non-valued/manual tracking.
-- COGS posting.
+- FIFO, Standard Costing, or Non-Valued alternate inventory costing branches.
 - Warehouse/location semantics.
 - Warehouse-to-branch relationship.
 - Stock-product invoicing/billing behavior.

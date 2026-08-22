@@ -6,6 +6,7 @@ use App\Domain\Audit\AuditLogger;
 use App\Models\Account;
 use App\Models\AccountingAccountMapping;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class AccountingAccountMappingService
 {
@@ -17,6 +18,9 @@ class AccountingAccountMappingService
         'cheques_payable',
         'sales_revenue',
         'purchase_expense',
+        'inventory_asset',
+        'grni_clearing',
+        'cogs',
     ];
 
     public function __construct(
@@ -25,33 +29,36 @@ class AccountingAccountMappingService
 
     public function getMapping(string $key): ?AccountingAccountMapping
     {
-        return AccountingAccountMapping::query()
-            ->with('account')
-            ->where('key', $key)
-            ->first();
+        if (! in_array($key, self::ALLOWED_KEYS, true)) {
+            throw new InvalidArgumentException("Invalid account mapping key: {$key}");
+        }
+
+        /** @var AccountingAccountMapping|null $mapping */
+        $mapping = AccountingAccountMapping::query()->where('key', $key)->first();
+
+        return $mapping;
     }
 
     public function getAccount(string $key): Account
     {
-        $this->assertAllowedKey($key);
-
         $mapping = $this->getMapping($key);
 
         if (! $mapping || ! $mapping->account_id) {
             throw ValidationException::withMessages([
-                'mapping' => ["Accounting mapping for [{$key}] is not configured."],
+                'account_mapping' => ["Required accounting mapping [{$key}] is missing. Please configure it in Chart of Accounts settings."],
             ]);
         }
 
-        if (! $mapping->account || ! $mapping->account->is_active) {
+        /** @var Account|null $account */
+        $account = Account::query()->find($mapping->account_id);
+
+        if (! $account || ! $account->is_active) {
             throw ValidationException::withMessages([
-                'mapping' => ["Mapped account for [{$key}] is missing or inactive."],
+                'account_mapping' => ["Mapped account for [{$key}] is inactive or missing."],
             ]);
         }
 
-        $this->assertAccountMatchesKey($key, $mapping->account);
-
-        return $mapping->account;
+        return $account;
     }
 
     public function getAccountId(string $key): string
@@ -61,67 +68,48 @@ class AccountingAccountMappingService
 
     public function setMapping(string $key, string $accountId, ?string $description = null, int|string|null $actorId = null): AccountingAccountMapping
     {
-        $this->assertAllowedKey($key);
-
-        /** @var Account|null $account */
-        $account = Account::query()->find($accountId);
-        if (! $account) {
-            throw ValidationException::withMessages([
-                'account_id' => ["GL Account [{$accountId}] does not exist."],
-            ]);
+        if (! in_array($key, self::ALLOWED_KEYS, true)) {
+            throw new InvalidArgumentException("Invalid account mapping key: {$key}");
         }
 
-        if (! $account->is_active) {
-            throw ValidationException::withMessages([
-                'account_id' => ["GL Account [{$account->code}] is inactive."],
-            ]);
-        }
+        /** @var Account $account */
+        $account = Account::query()->findOrFail($accountId);
 
         $this->assertAccountMatchesKey($key, $account);
 
-        $existing = AccountingAccountMapping::query()->where('key', $key)->first();
-        $before = $existing?->toArray();
+        $userActorId = is_numeric($actorId) ? (int) $actorId : null;
 
+        /** @var AccountingAccountMapping $mapping */
         $mapping = AccountingAccountMapping::query()->updateOrCreate(
             ['key' => $key],
             [
-                'account_id' => $accountId,
-                'description' => $description ?? $existing?->description,
-                'is_system' => true,
-                'created_by' => $existing ? $existing->created_by : $actorId,
-                'updated_by' => $actorId,
+                'account_id' => $account->id,
+                'description' => $description,
+                'created_by' => $userActorId,
+                'updated_by' => $userActorId,
             ]
         );
 
         $this->auditLogger->record(
-            actorId: $actorId,
-            action: $before ? 'update' : 'create',
+            actorId: $userActorId,
+            action: 'accounting_mapping.update',
             entityType: 'accounting_account_mapping',
-            entityId: $mapping->id,
-            before: $before,
-            after: $mapping->fresh()->toArray(),
+            entityId: (string) $mapping->id,
+            before: null,
+            after: ['key' => $key, 'account_id' => $account->id]
         );
 
-        return $mapping->fresh(['account']);
-    }
-
-    private function assertAllowedKey(string $key): void
-    {
-        if (! in_array($key, self::ALLOWED_KEYS, true)) {
-            throw ValidationException::withMessages([
-                'key' => ["Mapping key [{$key}] is not allowed in current slice."],
-            ]);
-        }
+        return $mapping;
     }
 
     private function assertAccountMatchesKey(string $key, Account $account): void
     {
         $expectedTypes = match ($key) {
-            'ar_control', 'cheques_under_collection' => ['asset'],
-            'ap_control', 'cheques_payable' => ['liability'],
+            'ar_control', 'cheques_under_collection', 'inventory_asset' => ['asset'],
+            'ap_control', 'cheques_payable', 'grni_clearing' => ['liability'],
             'opening_balance_offset' => ['equity'],
             'sales_revenue' => ['revenue'],
-            'purchase_expense' => ['expense'],
+            'purchase_expense', 'cogs' => ['expense'],
         };
 
         if (! in_array($account->type, $expectedTypes, true)) {
@@ -131,8 +119,8 @@ class AccountingAccountMappingService
         }
 
         $expectedNature = match ($key) {
-            'ar_control', 'cheques_under_collection', 'purchase_expense' => 'debit',
-            'ap_control', 'cheques_payable', 'sales_revenue' => 'credit',
+            'ar_control', 'cheques_under_collection', 'purchase_expense', 'inventory_asset', 'cogs' => 'debit',
+            'ap_control', 'cheques_payable', 'sales_revenue', 'grni_clearing' => 'credit',
             'opening_balance_offset' => null,
         };
 

@@ -7,8 +7,12 @@ use App\Application\Purchasing\GoodsReceiptService;
 use App\Application\Purchasing\PurchaseOrderService;
 use App\Application\Sales\DeliveryNoteService;
 use App\Application\Sales\SalesOrderService;
+use App\Models\Account;
+use App\Models\AccountingAccountMapping;
 use App\Models\Customer;
 use App\Models\DeliveryNote;
+use App\Models\FinancialPeriod;
+use App\Models\FiscalYear;
 use App\Models\JournalEntry;
 use App\Models\LedgerEntry;
 use App\Models\PayableEntry;
@@ -17,6 +21,7 @@ use App\Models\ProductCategory;
 use App\Models\PurchaseOrder;
 use App\Models\ReceivableEntry;
 use App\Models\SalesOrder;
+use App\Models\StockBalance;
 use App\Models\Supplier;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
@@ -69,6 +74,37 @@ class Phase4Slice4FulfillmentTest extends TestCase
         $catRaw = ProductCategory::query()->where('code', 'RAW')->firstOrFail();
         $catFg = ProductCategory::query()->where('code', 'FG')->firstOrFail();
 
+        $fiscalYear = FiscalYear::query()->create([
+            'year' => 2026,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'open',
+            'created_by' => $this->adminUser->id,
+            'updated_by' => $this->adminUser->id,
+            'lock_version' => 1,
+        ]);
+
+        FinancialPeriod::query()->create([
+            'fiscal_year_id' => $fiscalYear->id,
+            'period_number' => 1,
+            'month' => 1,
+            'name' => 'Current Period',
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+            'status' => 'open',
+            'created_by' => $this->adminUser->id,
+            'updated_by' => $this->adminUser->id,
+            'lock_version' => 1,
+        ]);
+
+        $invAcc = Account::query()->create(['code' => '1300-S4', 'name' => 'Inv Asset', 'type' => 'asset', 'nature' => 'debit', 'currency' => 'EGP', 'is_active' => true]);
+        $grniAcc = Account::query()->create(['code' => '2200-S4', 'name' => 'GRNI', 'type' => 'liability', 'nature' => 'credit', 'currency' => 'EGP', 'is_active' => true]);
+        $cogsAcc = Account::query()->create(['code' => '5200-S4', 'name' => 'COGS', 'type' => 'expense', 'nature' => 'debit', 'currency' => 'EGP', 'is_active' => true]);
+
+        AccountingAccountMapping::query()->updateOrCreate(['key' => 'inventory_asset'], ['account_id' => $invAcc->id]);
+        AccountingAccountMapping::query()->updateOrCreate(['key' => 'grni_clearing'], ['account_id' => $grniAcc->id]);
+        AccountingAccountMapping::query()->updateOrCreate(['key' => 'cogs'], ['account_id' => $cogsAcc->id]);
+
         $this->customer = Customer::query()->create([
             'code' => 'CUST-001',
             'name' => 'Acme Corp',
@@ -89,9 +125,20 @@ class Phase4Slice4FulfillmentTest extends TestCase
             'type' => 'stock',
             'unit_of_measure_id' => $this->uom->id,
             'product_category_id' => $catFg->id,
+            'default_sales_price_minor' => 15000,
             'status' => 'active',
             'is_sales_enabled' => true,
             'is_purchase_enabled' => false,
+            'lock_version' => 1,
+        ]);
+
+        StockBalance::query()->create([
+            'product_id' => $this->salesProduct->id,
+            'unit_of_measure_id' => $this->uom->id,
+            'currency' => 'EGP',
+            'quantity_e6' => 1000000000,
+            'valuation_amount_minor' => 10000000,
+            'avg_unit_cost_e6' => 10000,
             'lock_version' => 1,
         ]);
 

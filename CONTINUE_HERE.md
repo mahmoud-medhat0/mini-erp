@@ -70,7 +70,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), and Phase 4 Slice 6 (Supplier Bill Posting to AP/GL) is complete and locally verified on PostgreSQL. Phase 4 Slice 7 Inventory Costing Decision Pack is prepared in `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), Phase 4 Slice 7 (Inventory Costing Decision Pack), and Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting) is complete and locally verified on PostgreSQL.
 
 Implemented:
 
@@ -319,12 +319,14 @@ Phase 4 planning is prepared:
 - `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_8_GEMINI_PROMPT.md`
+- `PHASE_4_INVENTORY_COSTING_DECISION.md`
 
 Next prepared execution step:
 
-1. **Phase 4 Slice 7: Inventory Costing Decision Pack**
-   - Inspect current stock-product boundaries and produce an owner decision matrix for weighted average, FIFO, standard cost, and non-valued/manual stock tracking.
-   - Do not implement inventory valuation, stock ledger, warehouse semantics, COGS, landed cost, or stock-product invoice/bill posting until the owner chooses the costing model.
+1. **Phase 4 Slice 8: Moving Weighted Average Inventory Costing & Stock Product Posting**
+   - Implement only the owner-selected Moving Weighted Average model.
+   - Do not implement FIFO layers, Standard Costing, Non-Valued alternate branches, warehouse semantics, landed cost, returns, credit notes, or debit notes.
 
 Other possible owner choices:
 

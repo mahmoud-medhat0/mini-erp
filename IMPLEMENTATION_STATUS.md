@@ -1,12 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 4 Slice 6 complete (Supplier Bill Posting to AP/GL). Slice 7 Inventory Costing Decision prompt ready.
-- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 6 hardening correction.
-- **Tests passing:** Laravel PHPUnit 342 tests, 340 passed, 2 skipped / 2675 assertions; Phase 4 Slice 6 suite 19/19 (100 assertions).
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
+- **Current phase:** Phase 4 Slice 8 complete (Moving Weighted Average Inventory Costing & Posting).
+- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 8 implementation.
+- **Tests passing:** Laravel PHPUnit 355 tests, 353 passed, 2 skipped / 2761 assertions; Phase 4 Slice 8 suite 13/13 (89 assertions).
+- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 TS errors), `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 4 Slice 6 implementation/correction and Slice 7 prompt/docs.
+- **Latest verified code commit:** pending for Phase 4 Slice 8 implementation.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 
 ## Legend
@@ -33,9 +33,10 @@
 | Phase 4 Slice 3 Purchase Order Backend | COMPLETE | `purchase_order` and `purchase_order_line` models/migrations, `PurchaseOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`), exact integer total calculation (`intdiv` & `% 1000000`), number sequence allocation `PO-YYYY-XXXXX`, idempotent confirmation, Spatie Activitylog audit, attachment entity registry for `purchase_order`, Inertia purchase order management pages (`PurchaseOrders.tsx`), 16/16 passing feature tests. |
 | Phase 4 Slice 4 Delivery Notes & Goods Receipts | COMPLETE | `delivery_note`, `delivery_note_line`, `goods_receipt`, `goods_receipt_line` models/migrations, `DeliveryNoteService` & `GoodsReceiptService` lifecycle, integer quantity validation (`quantity_e6`), cumulative over-fulfillment prevention with deterministic transaction locks, `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` number allocation, Spatie Activitylog audit, attachment entity registry for `delivery_note` & `goods_receipt`, Inertia management pages (`DeliveryNotes.tsx`, `GoodsReceipts.tsx`), 17/17 passing feature tests. |
 | Phase 4 Slice 5 Customer Invoice Posting | COMPLETE | `customer_invoice` and `customer_invoice_line`, lifecycle, strict Sales Order/Delivery Note source matching, exact integer totals, `INV-YYYY-XXXXX`, `sales_revenue` mapping, PostingEngine posting Dr AR / Cr Sales Revenue, `receivable_entry` debit, attachment registry, Inertia page, and 19/19 passing feature tests after local hardening. |
-| Phase 4 Slice 6 Supplier Bill Posting | COMPLETE | `supplier_bill` and `supplier_bill_line`, lifecycle, strict Purchase Order/Goods Receipt source matching, exact integer totals, `BILL-YYYY-XXXXX`, `purchase_expense` mapping, PostingEngine posting Dr Purchase Expense / Cr AP Control, `payable_entry` credit, attachment registry, Inertia page, and 19/19 passing feature tests after local hardening. |
-| Phase 4 Slice 7 Inventory Costing Decision | PLANNED | Decision prompt prepared in `PHASE_4_SLICE_7_GEMINI_PROMPT.md`; no inventory valuation, stock ledger, COGS, warehouse semantics, or stock-product posting may be implemented until owner chooses the costing model. |
-| Phase 4 Slices 8-10 Operations | PLANNED | Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
+| Phase 4 Slice 6 Supplier Bill Posting | COMPLETE | `supplier_bill` and `supplier_bill_line`, lifecycle, strict Purchase Order/Goods Receipt source matching, exact integer totals, `BILL-YYYY-XXXXX`, `purchase_expense` mapping, PostingEngine posting Dr Purchase Expense / Cr AP Control, `payable_entry` credit, attachment registry, Inertia page, and 16/16 passing feature tests. |
+| Phase 4 Slice 7 Inventory Costing Decision | COMPLETE | Created `PHASE_4_INVENTORY_COSTING_DECISION.md` comparing Weighted Average, FIFO, Standard Costing, and Non-Valued Stock Tracking. Owner selected Option 1: Moving Weighted Average Costing. |
+| Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting | COMPLETE | `stock_balance` and `stock_movement_ledger` tables/models, `MovingWeightedAverageInventoryService`, GL mappings (`inventory_asset`, `grni_clearing`, `cogs`), Goods Receipt stock receipt posting (Dr Inventory Asset / Cr GRNI Clearing), Delivery Note stock issue posting (Dr COGS / Cr Inventory Asset), Supplier Bill stock line GRNI clearing, Customer Invoice stock line DN matching, read-only Inertia stock balances page (`StockBalances.tsx`), 13/13 passing feature tests, and 50-worker inventory concurrency stress command. |
+| Phase 4 Slices 9-10 Operations | PLANNED | Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -123,9 +124,9 @@ Result summary:
 
 ## Next Milestone
 
-Phase 3 is 100% complete for the agreed scope, and Phase 4 Slices 1-6 are complete. The next prepared execution step is:
+Phase 3 is 100% complete for the agreed scope, and Phase 4 Slices 1-7 are complete. The owner selected Moving Weighted Average Costing for inventory.
 
-- Phase 4 Slice 7: Inventory Costing Decision Pack using `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
+- Next execution: Phase 4 Slice 8 using `PHASE_4_SLICE_8_GEMINI_PROMPT.md`.
 
 Other owner options:
 

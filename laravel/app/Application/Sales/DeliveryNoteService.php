@@ -2,9 +2,11 @@
 
 namespace App\Application\Sales;
 
+use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\DeliveryNote;
 use App\Models\DeliveryNoteLine;
+use App\Models\FinancialPeriod;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderLine;
 use App\Support\Numbering\NumberSequenceAllocator;
@@ -18,6 +20,7 @@ class DeliveryNoteService
 
     public function __construct(
         private readonly NumberSequenceAllocator $numberAllocator,
+        private readonly MovingWeightedAverageInventoryService $inventoryService,
         private readonly AuditLogger $auditLogger,
     ) {}
 
@@ -167,6 +170,32 @@ class DeliveryNoteService
 
             $this->validateAndLockFulfillmentLines($salesOrder, $linesArray, $deliveryNote->id);
 
+            // Process stock line inventory costing if stock products are present
+            $deliveryNote->load(['lines.product']);
+            $hasStockLines = $deliveryNote->lines->contains(fn ($line) => $line->product && $line->product->type === 'stock');
+
+            if ($hasStockLines) {
+                $period = $this->resolveFinancialPeriodForDate($deliveryNote->delivery_date);
+
+                foreach ($deliveryNote->lines as $line) {
+                    if ($line->product && $line->product->type === 'stock') {
+                        $this->inventoryService->recordIssue(
+                            sourceType: 'delivery_note',
+                            sourceId: $deliveryNote->id,
+                            sourceLineId: $line->id,
+                            movementDate: $deliveryNote->delivery_date,
+                            productId: $line->product_id,
+                            unitOfMeasureId: $line->unit_of_measure_id,
+                            currency: $salesOrder->currency,
+                            quantityE6: $line->quantity_e6,
+                            fiscalYearId: $period->fiscal_year_id,
+                            financialPeriodId: $period->id,
+                            actorId: $actorId,
+                        );
+                    }
+                }
+            }
+
             $before = $deliveryNote->toArray();
 
             $number = $deliveryNote->number;
@@ -196,6 +225,22 @@ class DeliveryNoteService
 
             return $deliveryNote->fresh(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
         });
+    }
+
+    private function resolveFinancialPeriodForDate(string $date): FinancialPeriod
+    {
+        /** @var FinancialPeriod|null $period */
+        $period = FinancialPeriod::query()
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->whereIn('status', ['open', 'reopened'])
+            ->first();
+
+        if (! $period) {
+            throw ValidationException::withMessages(['delivery_date' => ["No open financial period covers date {$date}."]]);
+        }
+
+        return $period;
     }
 
     public function cancel(string $id, ?int $actorId = null): DeliveryNote

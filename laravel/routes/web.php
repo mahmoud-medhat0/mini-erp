@@ -36,6 +36,7 @@ use App\Http\Controllers\Reports\ReportsHubController;
 use App\Http\Controllers\Reports\SupplierStatementController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SettingsActionController;
+use App\Http\Controllers\StockBalanceController;
 use App\Http\Controllers\SupplierBillController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
@@ -268,6 +269,9 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/sales/invoices/{customerInvoice}/approve', [CustomerInvoiceController::class, 'approve'])->name('customer-invoices.approve');
     Route::post('/sales/invoices/{customerInvoice}/post', [CustomerInvoiceController::class, 'post'])->name('customer-invoices.post');
     Route::post('/sales/invoices/{customerInvoice}/cancel', [CustomerInvoiceController::class, 'cancel'])->name('customer-invoices.cancel');
+
+    // Phase 4 Slice 8 Inventory Costing Routes
+    Route::get('/inventory/stock-balances', [StockBalanceController::class, 'index'])->name('stock-balances.index');
 
     // Phase 4 Slice 6 Supplier Bill Routes
     Route::get('/purchasing/bills', [SupplierBillController::class, 'index'])->name('supplier-bills.index');

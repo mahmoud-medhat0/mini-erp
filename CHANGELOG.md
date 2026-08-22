@@ -3,6 +3,25 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting
+- Implemented `stock_balance` and `stock_movement_ledger` migrations and Eloquent domain models.
+- Added database immutability triggers for `stock_movement_ledger` on PostgreSQL and SQLite.
+- Extended `AccountingAccountMappingService` with `inventory_asset`, `grni_clearing`, and `cogs` mapped account keys.
+- Implemented `MovingWeightedAverageInventoryService` supporting exact integer valuation math (`quantity_e6`), residual clearance on final issue, pessimistic balance locking (`lockForUpdate`), GL journal posting, and audit logging.
+- Integrated Goods Receipt confirmation to post stock receipt (Dr `inventory_asset` / Cr `grni_clearing`).
+- Integrated Delivery Note confirmation to post stock issue (Dr `cogs` / Cr `inventory_asset`) and enforce non-negative stock.
+- Integrated Supplier Bill posting to clear `grni_clearing` for stock lines sourced from Goods Receipts.
+- Integrated Customer Invoice posting for stock lines sourced from Delivery Notes.
+- Implemented read-only Inertia stock balances page `resources/js/Pages/Inventory/StockBalances.tsx`.
+- Implemented `Phase4Slice8InventoryCostingTest` feature test suite (13/13 tests passing, 89 assertions).
+- Implemented `accounting:inventory-concurrency-stress --workers=50` command passing 100% cleanly.
+
+### Added — Phase 4 Slice 7 Inventory Costing Decision Pack
+- Created `PHASE_4_INVENTORY_COSTING_DECISION.md` as the owner-facing decision document for stock costing.
+- Compared Moving Weighted Average, FIFO layers, Standard Costing, and Non-Valued / Manual Stock Tracking.
+- Documented current stock-product boundaries, required future GL mappings, operational consequences, concurrency/integrity requirements, and the blocked Phase 4 Slice 8 contract.
+- Confirmed this was documentation-only: no migrations, no PHP/TS implementation changes, no database mutation, and no tenant/company/branch scope introduced.
+
 ### Added — Phase 4 Slice 7 Inventory Costing Decision Prompt
 - Added `PHASE_4_SLICE_7_GEMINI_PROMPT.md` as a bounded decision-pack contract before any inventory valuation implementation.
 - Scope is limited to reviewing current stock-product boundaries, comparing weighted average, FIFO, standard cost, and non-valued/manual stock tracking, and producing owner-ready consequences, recommended path, and future implementation plan.

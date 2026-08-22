@@ -322,6 +322,15 @@ class CustomerInvoiceService
                 throw ValidationException::withMessages(['lines' => ['Customer invoice must have at least one line item before posting.']]);
             }
 
+            // Verify stock product source rules on post
+            foreach ($invoice->lines as $line) {
+                if ($line->product && $line->product->type === 'stock') {
+                    if (! $line->delivery_note_line_id) {
+                        throw ValidationException::withMessages(['lines' => ['Stock product lines on customer invoices must be sourced from a Delivery Note.']]);
+                    }
+                }
+            }
+
             // Verify period is open and date falls within range
             $period = FinancialPeriod::query()->where('id', $invoice->financial_period_id)->lockForUpdate()->firstOrFail();
             if (! $period->isOpen()) {
@@ -596,11 +605,14 @@ class CustomerInvoiceService
             /** @var Product $product */
             $product = $products[$productId];
 
-            // Rejection of stock products in Slice 5
+            // Stock product boundary check: must be sourced from a Delivery Note
             if ($product->type === 'stock') {
-                throw ValidationException::withMessages([
-                    "lines.{$index}.product_id" => ["Stock product [{$product->code}] cannot be invoiced in Slice 5. Only service and non-stock products are allowed."],
-                ]);
+                $dnlIdCheck = $line['delivery_note_line_id'] ?? null;
+                if (! $dnlIdCheck || ! $deliveryNote) {
+                    throw ValidationException::withMessages([
+                        "lines.{$index}.product_id" => ["Stock product [{$product->code}] must be sourced from a Delivery Note."],
+                    ]);
+                }
             }
 
             if ($product->status !== 'active' || ! $product->is_sales_enabled) {

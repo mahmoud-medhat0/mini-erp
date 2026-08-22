@@ -1,6 +1,6 @@
 # PHASE 4 - SALES & PURCHASING OPERATIONS
 
-Status: IN PROGRESS - Slices 1, 2, 3, 4, 5 & 6 complete, Slice 7 decision prompt ready
+Status: IN PROGRESS - Slices 1, 2, 3, 4, 5, 6, 7 & 8 complete (Moving Weighted Average Inventory Costing & Posting)
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -310,22 +310,52 @@ Execution file:
 
 Prepare the owner decision pack for the future inventory valuation approach. Do not implement valuation code in this slice.
 
-Status: READY FOR EXECUTION
+Status: COMPLETE
 
-Owner must decide:
+Owner decision:
 
-- weighted average
-- FIFO
-- standard cost
-- manual/non-valued stock tracking
+- **Selected: Moving Weighted Average Costing**
+- Not selected for Slice 8: FIFO, Standard Costing, Manual/Non-Valued Stock Tracking
 
-No default assumption is allowed.
+Do not implement unselected costing branches in Slice 8.
 
 Execution file:
 
 - `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
 
-### Slice 8 - Returns, Credit Notes, Debit Notes
+Decision pack:
+
+- `PHASE_4_INVENTORY_COSTING_DECISION.md`
+
+Owner selected Moving Weighted Average Costing. Next step is Slice 8 implementation for that model only.
+
+### Slice 8 - Moving Weighted Average Inventory Costing & Stock Product Posting
+
+Implement the owner-selected Moving Weighted Average inventory valuation/tracking path.
+
+Status: READY FOR EXECUTION
+
+This slice must follow `PHASE_4_INVENTORY_COSTING_DECISION.md` and implement only:
+
+- Moving Weighted Average Costing
+
+Execution file:
+
+- `PHASE_4_SLICE_8_GEMINI_PROMPT.md`
+
+Expected scope must explicitly define:
+
+- stock balance / stock ledger behavior
+- goods receipt stock effect
+- delivery note stock effect
+- supplier bill stock-product behavior
+- customer invoice stock-product behavior
+- COGS / inventory asset / GRNI impact where applicable
+- deterministic locks, idempotency, and stress tests
+
+Do not implement FIFO layers, Standard Costing, or Non-Valued alternate branches.
+
+### Slice 9 - Returns, Credit Notes, Debit Notes
 
 Only after owner approval, implement sales returns, purchase returns, credit notes, and debit notes.
 
@@ -338,26 +368,9 @@ This slice must define:
 - tax effect if tax exists
 - posting/reversal invariants
 
-### Slice 9 - Inertia Pages & UX Actions
+### Slice 10 - Reports, UX Gaps, Stress, Docs, Final Verification
 
-Build polished Arabic/English Inertia pages for Phase 4 workflows that already have stable backend behavior.
-
-Expected scope:
-
-- product catalog
-- UOM/category management
-- sales orders
-- purchase orders
-- delivery/goods receipt
-- invoices/bills
-- permission-aware actions
-- empty states
-- validation feedback
-- no marketing landing pages
-
-### Slice 10 - Reports, Stress, Docs, Final Verification
-
-Close Phase 4 with operational reports, stress/integrity commands, documentation synchronization, and final verification.
+Close Phase 4 with operational reports, any remaining Phase 4 UX gaps, stress/integrity commands, documentation synchronization, and final verification.
 
 Expected scope:
 
@@ -365,6 +378,8 @@ Expected scope:
 - purchase order report
 - invoice/bill report
 - delivery/goods receipt report
+- permission-aware action review
+- empty state and validation feedback review
 - AR/AP reconciliation checks extended to invoices/bills
 - PostgreSQL stress tests for sequence allocation, posting, and lifecycle races
 - full docs/status close-out

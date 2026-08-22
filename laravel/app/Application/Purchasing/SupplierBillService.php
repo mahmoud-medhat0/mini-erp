@@ -313,10 +313,12 @@ class SupplierBillService
                 throw ValidationException::withMessages(['lines' => ['Cannot post supplier bill without line items.']]);
             }
 
-            // Re-verify that no stock products exist on bill
+            // Verify stock product source rules on post
             foreach ($bill->lines as $line) {
                 if ($line->product && $line->product->type === 'stock') {
-                    throw ValidationException::withMessages(['lines' => ['Billing stock products requires inventory costing/valuation logic which is not enabled in this slice.']]);
+                    if (! $line->goods_receipt_line_id) {
+                        throw ValidationException::withMessages(['lines' => ['Stock product lines on supplier bills must be sourced from a Goods Receipt.']]);
+                    }
                 }
             }
 
@@ -337,10 +339,36 @@ class SupplierBillService
 
             // Fetch GL Accounts
             $apAccount = $this->mappingService->getAccount('ap_control');
-            $expenseAccount = $this->mappingService->getAccount('purchase_expense');
+            $expenseAccount = null;
+            $grniAccount = null;
 
-            if ($apAccount->currency !== $bill->currency || $expenseAccount->currency !== $bill->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped GL account currency must match bill currency.']]);
+            $stockTotalMinor = 0;
+            $expenseTotalMinor = 0;
+
+            foreach ($bill->lines as $line) {
+                if ($line->product && $line->product->type === 'stock') {
+                    $stockTotalMinor += $line->line_total_minor;
+                } else {
+                    $expenseTotalMinor += $line->line_total_minor;
+                }
+            }
+
+            if ($expenseTotalMinor > 0) {
+                $expenseAccount = $this->mappingService->getAccount('purchase_expense');
+                if ($expenseAccount->currency !== $bill->currency) {
+                    throw ValidationException::withMessages(['currency' => ['Mapped Purchase Expense account currency must match bill currency.']]);
+                }
+            }
+
+            if ($stockTotalMinor > 0) {
+                $grniAccount = $this->mappingService->getAccount('grni_clearing');
+                if ($grniAccount->currency !== $bill->currency) {
+                    throw ValidationException::withMessages(['currency' => ['Mapped GRNI Clearing account currency must match bill currency.']]);
+                }
+            }
+
+            if ($apAccount->currency !== $bill->currency) {
+                throw ValidationException::withMessages(['currency' => ['Mapped AP Control account currency must match bill currency.']]);
             }
 
             // Allocate bill number sequence if missing
@@ -373,22 +401,39 @@ class SupplierBillService
                 'lock_version' => 1,
             ]);
 
-            // Dr Purchase Expense
-            $expenseLine = $journalEntry->lines()->create([
-                'line_no' => 1,
-                'account_id' => $expenseAccount->id,
-                'memo' => "Purchase Expense - Bill {$number}",
-                'debit_minor' => $billTotalMinor,
-                'credit_minor' => 0,
-                'debit_txn_minor' => $billTotalMinor,
-                'credit_txn_minor' => 0,
-                'currency' => $bill->currency,
-                'fx_rate_e6' => $bill->fx_rate_e6,
-            ]);
+            $lineNo = 1;
+
+            if ($stockTotalMinor > 0 && $grniAccount) {
+                $journalEntry->lines()->create([
+                    'line_no' => $lineNo++,
+                    'account_id' => $grniAccount->id,
+                    'memo' => "GRNI Clearing - Bill {$number}",
+                    'debit_minor' => $stockTotalMinor,
+                    'credit_minor' => 0,
+                    'debit_txn_minor' => $stockTotalMinor,
+                    'credit_txn_minor' => 0,
+                    'currency' => $bill->currency,
+                    'fx_rate_e6' => $bill->fx_rate_e6,
+                ]);
+            }
+
+            if ($expenseTotalMinor > 0 && $expenseAccount) {
+                $journalEntry->lines()->create([
+                    'line_no' => $lineNo++,
+                    'account_id' => $expenseAccount->id,
+                    'memo' => "Purchase Expense - Bill {$number}",
+                    'debit_minor' => $expenseTotalMinor,
+                    'credit_minor' => 0,
+                    'debit_txn_minor' => $expenseTotalMinor,
+                    'credit_txn_minor' => 0,
+                    'currency' => $bill->currency,
+                    'fx_rate_e6' => $bill->fx_rate_e6,
+                ]);
+            }
 
             // Cr AP Control
             $apLine = $journalEntry->lines()->create([
-                'line_no' => 2,
+                'line_no' => $lineNo++,
                 'account_id' => $apAccount->id,
                 'memo' => "AP Control - Bill {$number}",
                 'debit_minor' => 0,
@@ -608,7 +653,10 @@ class SupplierBillService
 
             // STOCK PRODUCT BOUNDARY CHECK
             if ($product->type === 'stock') {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ['Billing stock products requires inventory costing/valuation logic which is not enabled in this slice.']]);
+                $grlIdCheck = $line['goods_receipt_line_id'] ?? null;
+                if (! $grlIdCheck || ! $goodsReceipt) {
+                    throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} stock product must be sourced from a Goods Receipt."]]);
+                }
             }
 
             $uomId = $line['unit_of_measure_id'] ?? $product->unit_of_measure_id;
@@ -709,7 +757,14 @@ class SupplierBillService
                     ]);
                 }
 
-                $unitCostMinor = $grLine->purchaseOrderLine->unit_price_minor;
+                // Unit cost derived from linked PO line if available, else from input
+                if ($grLine->purchaseOrderLine) {
+                    $sourceUnitCost = $grLine->purchaseOrderLine->unit_price_minor;
+                    if ($product->type === 'stock' && $unitCostMinor !== $sourceUnitCost) {
+                        throw ValidationException::withMessages(["lines.{$index}.unit_cost" => ["Line {$lineIndex} stock product bill unit cost must match Goods Receipt source unit cost."]]);
+                    }
+                    $unitCostMinor = $sourceUnitCost;
+                }
             }
 
             $lineTotalMinor = $this->calculateLineTotalMinor($quantityE6, $unitCostMinor, $lineIndex);

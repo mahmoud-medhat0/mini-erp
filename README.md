@@ -111,7 +111,7 @@ If a relationship is not explicitly supported by owner requirements or a later o
 
 ## Not Implemented Yet
 
-- Inventory costing decision and stock-product posting behavior. The next prepared prompt is `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
+- Inventory costing implementation and stock-product posting behavior. The owner selected Moving Weighted Average Costing; implementation prompt is prepared in `PHASE_4_SLICE_8_GEMINI_PROMPT.md`.
 - Sales/Purchasing returns, credit notes, debit notes, and post-invoice corrections.
 - Inventory valuation, COGS, stock movement, and warehouse semantics.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -171,7 +171,7 @@ npm run build
 Latest verified result:
 
 - 342 PHPUnit tests / 340 passed / 2 skipped / 2675 assertions after Phase 4 Slice 6 hardening.
-- Phase 4 Slices 1-6 are complete for their agreed operational scope.
+- Phase 4 Slices 1-7 are complete for their agreed scope; Slice 8 prompt is ready for owner-selected Moving Weighted Average Costing.
 - Phase4Slice5CustomerInvoiceTest: 19 tests / 86 assertions passed after local source-line hardening.
 - Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
@@ -196,6 +196,8 @@ Use these first:
 - `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_8_GEMINI_PROMPT.md`
+- `PHASE_4_INVENTORY_COSTING_DECISION.md`
 - `NEXT_TASKS.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`
