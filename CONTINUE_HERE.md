@@ -82,16 +82,17 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slice 1, and Phase 5 Slice 2 (Balance Sheet & Income Statement Core Generation) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 3 is ready for bounded execution.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slices 1-3 (Financial Statement Mapping, Balance Sheet / Income Statement, Cash Flow Statement) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 4 is ready for bounded execution.
 
-Latest Phase 5 Slice 2 local correction notes:
+Latest Phase 5 Slice 3 local correction notes:
 
-- Balance Sheet and Income Statement services must filter posted ledger activity by `ledger_entry.entry_date`, not row `created_at`.
-- Unmapped statement warnings must include only active unmapped accounts with non-zero movement in the report range/as-of window.
-- New financial statement pages/nav entries must keep visible UI text dictionary-backed; do not add hardcoded visible English strings in TSX pages.
-- Viewing requires `reports.view` plus `view_financials`; CSV export requires `reports.export` plus `view_financials`.
-- Frontend statement amount formatting must remain integer-safe from minor units, without floating-point division.
-- Local targeted verification: `Phase5Slice2FinancialStatementsTest.php` 8/8 passing tests, 54 assertions; Pint, TypeScript typecheck, and Vite build all passed.
+- Cash Flow uses posted `ledger_entry.entry_date` for report ranges, not `created_at` / `updated_at`.
+- Cash-flow classifications are explicit: account override first, then `financial_statement_line.cash_flow_activity`, then unclassified.
+- Active cash/bank GL accounts cannot be assigned a direct cash-flow activity override; cash movement is classified from non-cash counterparties.
+- Mixed-activity cash journals are routed to unclassified warnings.
+- Warning payloads use codes/parameters so `CashFlow.tsx` localizes visible text through EN/AR dictionaries.
+- Phase 5 report money formatting is string-based from integer minor units and avoids JS floating-point division.
+- Local targeted verification: `Phase5Slice3CashFlowStatementTest.php` 9/9 passing tests, 46 assertions.
 
 Implemented:
 
@@ -105,15 +106,6 @@ Implemented:
 - M9 attachment registry + notification system.
 - M10 Spatie Activitylog audit backend, scheduler, and jobs baseline.
 - Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
-  - Main Reports Hub (`Reports/Index.tsx`) links.
-  - Returns / Credit Notes / Debit Notes owner decision pack `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
-  - Feature test suite `Phase4Slice9OperationalReportsTest.php` (7/7 passing tests, 85 assertions after local schema-alignment correction).
-- Phase 4 Slice 10 Sales Returns, Credit Notes, Supplier Adjustments & Operations Close-Out:
-  - Five document families: physical `sales_return`, financial `customer_credit_note`, immutable cumulative `customer_invoice_revision` print copies (`R01`/`R02`), physical `purchase_return`, and normalized `supplier_adjustment_note`.
-  - Services `SalesReturnService`, `CustomerCreditNoteService`, `CustomerInvoiceRevisionService`, `PurchaseReturnService`, `SupplierAdjustmentNoteService`; inventory service extended with `recordReturn`/`recordScrap`/`calculateIssueCostForReturn` (returns post as reversal stock movements; scrap disposition does not increase saleable stock).
-  - Posting through the existing PostingEngine, e.g. Sales Return + Credit Note posts Dr `sales_returns` (4200) / Cr `ar_control`; scrap posts Dr `inventory_scrap_loss` (5300); supplier adjustments post against `purchase_returns_allowances` (5400) with `input_tax_receivable` (1300) / `output_tax_payable` (2200) tax sides; mappings seeded idempotently in `AccountingCoreSeeder`.
-  - Invoice revisions are snapshot-based (`R01`/`R02` cumulative: original, returned, net quantities) with no GL effects.
-  - Purchase returns resolve GRNI vs AP impact by document path; AP-impacting corrections use a separate `supplier_adjustment_note` instead of mutating posted bills.
   - Manual tax stored in integer basis points with exact manual amount override; modes `none`/`manual_rate`/`manual_amount` computed as `intdiv(($baseMinor * $rateBps) + 5000, 10000)`.
   - Credit/debit settlement is manual/open only; explicit settlement/reversal actions create no extra GL and use dedicated `receivable_entry_settlement` / `payable_entry_settlement` rows.
   - Numbering keys/prefixes `SR-`, `CN-`, `PRT-`, `SAN-`; permissions `sales.returns`, `sales.credit_notes`, `sales.invoice_revisions`, `purchasing.returns`, `purchasing.adjustment_notes`; attachment registry entries for all five entities.
@@ -211,20 +203,34 @@ Implemented:
 
 Latest verified commands:
 
-Phase 5 Slice 2 correction pass:
+Phase 5 Slice 3 correction pass:
 
 ```powershell
 cd laravel
+php artisan migrate --force
+php artisan migrate:status
 vendor/bin/pint --test
+php artisan test --filter=Phase5Slice1FinancialStatementMappingTest
 php artisan test --filter=Phase5Slice2FinancialStatementsTest
+php artisan test --filter=Phase5Slice3CashFlowStatementTest
+php artisan test --testsuite=Concurrency
+php artisan test
+php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
 ```
 
-Latest Phase 5 Slice 2 correction results:
+Latest Phase 5 Slice 3 correction results:
 
+- `php artisan migrate --force`: applied `2026_08_23_011000_harden_phase5_slice3_cash_flow_activity_constraints`.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_23_011000_harden_phase5_slice3_cash_flow_activity_constraints`.
 - `vendor/bin/pint --test`: passed.
+- `php artisan test --filter=Phase5Slice1FinancialStatementMappingTest`: 9 tests / 30 assertions passed.
 - `php artisan test --filter=Phase5Slice2FinancialStatementsTest`: 8 tests / 8 passed / 0 skipped / 54 assertions.
+- `php artisan test --filter=Phase5Slice3CashFlowStatementTest`: 9 tests / 9 passed / 0 skipped / 46 assertions.
+- `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
+- `php artisan test`: 433 tests / 430 passed / 3 skipped / 3307 assertions.
+- `php artisan tokens:gc --batch=100`: deleted sessions=0 password_reset_tokens=0 idempotency_keys=0.
 - `npm run typecheck`: passed.
 - `npm run build`: passed (chunk size warning only).
 
@@ -254,7 +260,7 @@ npm run typecheck
 npm run build
 ```
 
-Latest results:
+Previous full-track baseline results:
 
 - `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 10 implementation.
 - `php artisan migrate:status`: all migrations Ran through `2026_08_22_200000_create_phase4_slice10_settlement_tables`.

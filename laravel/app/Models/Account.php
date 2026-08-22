@@ -23,6 +23,7 @@ class Account extends Model
         'nature',
         'account_group_id',
         'financial_statement_line_id',
+        'cash_flow_activity',
         'parent_id',
         'currency',
         'is_control',

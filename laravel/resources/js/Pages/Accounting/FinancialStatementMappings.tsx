@@ -14,6 +14,7 @@ type AccountItem = {
   type: string;
   nature: string;
   financial_statement_line_id?: string | null;
+  cash_flow_activity?: string | null;
   accountType?: { id: string; name: string | { en?: string; ar?: string }; statement_type?: string } | null;
   group?: { id: string; name: string | { en?: string; ar?: string } } | null;
 };
@@ -25,6 +26,7 @@ type StatementLineRow = {
   section_code: string;
   name: string | { en?: string; ar?: string };
   normal_balance: 'debit' | 'credit';
+  cash_flow_activity?: string | null;
   sort_order: number;
   is_system: boolean;
   is_active: boolean;
@@ -41,6 +43,7 @@ type MappingsProps = SharedPageProps & {
   statementTypes: OptionItem[];
   sectionOptions: OptionItem[];
   normalBalances: OptionItem[];
+  cashFlowActivities: OptionItem[];
 };
 
 export default function FinancialStatementMappings({
@@ -50,6 +53,7 @@ export default function FinancialStatementMappings({
   statementTypes = [],
   sectionOptions = [],
   normalBalances = [],
+  cashFlowActivities = [],
 }: MappingsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
@@ -62,6 +66,15 @@ export default function FinancialStatementMappings({
   const statementTypeShortLabel = (value: string) => (value === 'balance_sheet' ? accDict.balanceSheetShort : accDict.incomeStatementShort);
   const normalBalanceLabel = (value: string) => (value === 'debit' ? accDict.debitLabel : accDict.creditLabel);
   const normalBalanceBadge = (value: string) => (value === 'debit' ? accDict.debitBadge : accDict.creditBadge);
+  const cashFlowActivityLabel = (value?: string | null) => {
+    const labels: Record<string, string> = {
+      operating: accDict.operatingOption,
+      investing: accDict.investingOption,
+      financing: accDict.financingOption,
+    };
+
+    return value ? (labels[value] ?? value) : accDict.cashFlowActivityUnclassified;
+  };
   const accountTypeLabel = (value: string) => {
     const labels: Record<string, string> = {
       asset: accDict.assetOption,
@@ -108,6 +121,7 @@ export default function FinancialStatementMappings({
     name_en: '',
     name_ar: '',
     normal_balance: 'debit',
+    cash_flow_activity: '',
     sort_order: 0,
     is_active: true,
   });
@@ -135,6 +149,7 @@ export default function FinancialStatementMappings({
       name_en: enName,
       name_ar: arName,
       normal_balance: line.normal_balance,
+      cash_flow_activity: line.cash_flow_activity ?? '',
       sort_order: line.sort_order,
       is_active: line.is_active,
     });
@@ -197,6 +212,17 @@ export default function FinancialStatementMappings({
           }
         },
       }
+    );
+  }
+
+  function handleAccountCashFlowActivity(accountId: string, activity: string) {
+    router.post(
+      '/accounting/statement-mappings/account-cash-flow',
+      {
+        account_id: accountId,
+        cash_flow_activity: activity || null,
+      },
+      { preserveScroll: true }
     );
   }
 
@@ -360,6 +386,9 @@ export default function FinancialStatementMappings({
                     <StatusBadge tone={line.normal_balance === 'debit' ? 'muted' : 'warning'}>
                       {normalBalanceBadge(line.normal_balance)}
                     </StatusBadge>
+                    <StatusBadge tone={line.cash_flow_activity ? 'info' : 'muted'}>
+                      {cashFlowActivityLabel(line.cash_flow_activity)}
+                    </StatusBadge>
                     {line.is_system ? (
                       <span className="rounded bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
                         {accDict.systemBadge}
@@ -416,6 +445,7 @@ export default function FinancialStatementMappings({
                           <th className={tableClasses.th}>{accDict.accountName}</th>
                           <th className={tableClasses.th}>{accDict.accountType}</th>
                           <th className={tableClasses.th}>{accDict.accountGroup}</th>
+                          <th className={tableClasses.th}>{accDict.cashFlowActivity}</th>
                           {canManage ? <th className={`${tableClasses.th} text-end`}>{actionsDict.actionsTitle}</th> : null}
                         </tr>
                       </thead>
@@ -433,6 +463,24 @@ export default function FinancialStatementMappings({
                             </td>
                             <td className={tableClasses.td}>
                               {acc.group ? getLocalizedName(acc.group.name, locale) : accDict.notAssigned}
+                            </td>
+                            <td className={tableClasses.td}>
+                              {canManage ? (
+                                <select
+                                  value={acc.cash_flow_activity ?? ''}
+                                  onChange={(e) => handleAccountCashFlowActivity(acc.id, e.target.value)}
+                                  className="min-w-[150px] rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-[11px] text-[var(--text-primary)]"
+                                >
+                                  <option value="">{accDict.cashFlowActivityInherited}</option>
+                                  {cashFlowActivities.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {cashFlowActivityLabel(opt.value)}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span>{cashFlowActivityLabel(acc.cash_flow_activity ?? line.cash_flow_activity)}</span>
+                              )}
                             </td>
                             {canManage ? (
                               <td className={`${tableClasses.td} text-end`}>
@@ -552,6 +600,27 @@ export default function FinancialStatementMappings({
                       ))}
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                    {accDict.cashFlowActivity}
+                  </label>
+                  <select
+                    value={lineForm.data.cash_flow_activity}
+                    onChange={(e) => lineForm.setData('cash_flow_activity', e.target.value)}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
+                  >
+                    <option value="">{accDict.cashFlowActivityUnclassified}</option>
+                    {cashFlowActivities.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {cashFlowActivityLabel(opt.value)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                    {accDict.cashFlowActivityLineHelp}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

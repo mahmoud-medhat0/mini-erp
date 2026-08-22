@@ -14,6 +14,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'ASSET_CURRENT',
                 'statement_type' => 'balance_sheet',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'current_assets',
                 'name' => ['en' => 'Current Assets', 'ar' => 'أصول متداولة'],
                 'normal_balance' => 'debit',
@@ -24,6 +25,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'ASSET_NON_CURRENT',
                 'statement_type' => 'balance_sheet',
+                'cash_flow_activity' => 'investing',
                 'section_code' => 'non_current_assets',
                 'name' => ['en' => 'Non-Current Assets', 'ar' => 'أصول غير متداولة'],
                 'normal_balance' => 'debit',
@@ -34,6 +36,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'LIABILITY_CURRENT',
                 'statement_type' => 'balance_sheet',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'current_liabilities',
                 'name' => ['en' => 'Current Liabilities', 'ar' => 'التزامات متداولة'],
                 'normal_balance' => 'credit',
@@ -44,6 +47,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'LIABILITY_NON_CURRENT',
                 'statement_type' => 'balance_sheet',
+                'cash_flow_activity' => 'financing',
                 'section_code' => 'non_current_liabilities',
                 'name' => ['en' => 'Non-Current Liabilities', 'ar' => 'التزامات غير متداولة'],
                 'normal_balance' => 'credit',
@@ -54,6 +58,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'EQUITY',
                 'statement_type' => 'balance_sheet',
+                'cash_flow_activity' => 'financing',
                 'section_code' => 'equity',
                 'name' => ['en' => 'Equity', 'ar' => 'حقوق الملكية'],
                 'normal_balance' => 'credit',
@@ -64,6 +69,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'REVENUE',
                 'statement_type' => 'income_statement',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'revenue',
                 'name' => ['en' => 'Revenue', 'ar' => 'الإيرادات التشغيلية'],
                 'normal_balance' => 'credit',
@@ -74,6 +80,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'CONTRA_REVENUE',
                 'statement_type' => 'income_statement',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'contra_revenue',
                 'name' => ['en' => 'Sales Returns & Allowances', 'ar' => 'مردودات ومسموحات المبيعات'],
                 'normal_balance' => 'debit',
@@ -84,6 +91,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'COGS',
                 'statement_type' => 'income_statement',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'cogs',
                 'name' => ['en' => 'Cost of Goods Sold', 'ar' => 'تكلفة البضاعة المباعة'],
                 'normal_balance' => 'debit',
@@ -94,6 +102,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'EXPENSE_OPERATING',
                 'statement_type' => 'income_statement',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'operating_expenses',
                 'name' => ['en' => 'Operating Expenses', 'ar' => 'المصروفات التشغيلية'],
                 'normal_balance' => 'debit',
@@ -104,6 +113,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'INCOME_OTHER',
                 'statement_type' => 'income_statement',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'other_income',
                 'name' => ['en' => 'Other Income', 'ar' => 'إيرادات أخرى'],
                 'normal_balance' => 'credit',
@@ -114,6 +124,7 @@ class FinancialStatementLineSeeder extends Seeder
             [
                 'code' => 'EXPENSE_OTHER',
                 'statement_type' => 'income_statement',
+                'cash_flow_activity' => 'operating',
                 'section_code' => 'other_expenses',
                 'name' => ['en' => 'Other Expenses', 'ar' => 'مصروفات أخرى'],
                 'normal_balance' => 'debit',

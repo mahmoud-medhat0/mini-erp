@@ -71,10 +71,10 @@ type BalanceSheetProps = SharedPageProps & {
 };
 
 function formatAmount(minor: number): string {
-  const absolute = Math.abs(minor);
-  const major = Math.floor(absolute / 100);
-  const cents = String(absolute % 100).padStart(2, '0');
-  const formatted = `${major.toLocaleString('en-US')}.${cents}`;
+  const digits = String(Math.abs(minor)).padStart(3, '0');
+  const major = digits.slice(0, -2) || '0';
+  const cents = digits.slice(-2);
+  const formatted = `${major.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${cents}`;
 
   return minor < 0 ? `(${formatted})` : formatted;
 }

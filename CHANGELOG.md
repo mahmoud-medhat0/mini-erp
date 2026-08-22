@@ -3,6 +3,16 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 5 Slice 3 Cash Flow Statement Foundation (2026-08-23)
+- Created migration `2026_08_23_010000_create_phase5_slice3_cash_flow_activity_columns.php` adding nullable `cash_flow_activity` columns to `financial_statement_line` and `account`.
+- Created forward hardening migration `2026_08_23_011000_harden_phase5_slice3_cash_flow_activity_constraints.php` adding PostgreSQL check constraints for allowed stored values (`operating`, `investing`, `financing`).
+- Updated `FinancialStatementLineSeeder` with system default activities and kept unclassified as a derived/null state rather than a stored tenant/company scope.
+- Created `CashFlowReportService` deriving active cash-equivalent GL accounts from `CashAccount` and `BankAccount`, using `ledger_entry.entry_date` for date filtering, classifying non-cash counterparties with precedence `account.cash_flow_activity` > `financial_statement_line.cash_flow_activity` > unclassified, excluding internal cash transfers, and routing mixed/unclassified journals to localized warning codes.
+- Created `CashFlowReportController` with report and CSV export routes protected by `reports.view` + `view_financials` for viewing and `reports.export` + `view_financials` for export.
+- Added `CashFlow.tsx`, Reports Hub card, and AppLayout navigation entry with EN/AR dictionary-backed visible text and string-based integer minor-unit money formatting.
+- Extended `FinancialStatementMappings.tsx` with cash-flow activity controls for statement lines and account-level non-cash overrides; backend rejects direct activity assignment to active cash/bank GL accounts.
+- Verified with clean Pint, `Phase5Slice1FinancialStatementMappingTest` 9/9, `Phase5Slice2FinancialStatementsTest` 8/8, `Phase5Slice3CashFlowStatementTest` 9/9 (46 assertions), Concurrency suite 7/7, full suite 433 tests / 430 passed / 3 skipped / 3307 assertions, clean TypeScript typecheck, and Vite build.
+
 ### Corrected — Phase 5 Remaining Prompt Hardening (2026-08-23)
 - Tightened `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md` and remaining Slice 3-6 prompts with stricter acceptance rules for accounting date fields, integer money formatting, exact permissions, no hardcoded visible TSX text, no tenant/company/branch assumptions, source scans, and final reporting evidence.
 - Made Slice 3 Cash Flow rules explicit: cash-equivalent derivation from CashAccount/BankAccount GL links, `ledger_entry.entry_date` filtering, explicit cash-flow classifications only, internal cash transfer handling, mixed classification warnings, and exact reconciliation formula.

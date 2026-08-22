@@ -4,6 +4,8 @@ namespace App\Application\Accounting;
 
 use App\Domain\Audit\AuditLogger;
 use App\Models\Account;
+use App\Models\BankAccount;
+use App\Models\CashAccount;
 use App\Models\FinancialStatementLine;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -83,11 +85,17 @@ class FinancialStatementMappingService
             throw ValidationException::withMessages(['name' => ['Name is required in at least one locale.']]);
         }
 
-        return DB::transaction(function () use ($code, $statementType, $sectionCode, $normalBalance, $name, $data, $actorId): FinancialStatementLine {
+        $cashFlowActivity = isset($data['cash_flow_activity']) && $data['cash_flow_activity'] !== '' ? (string) $data['cash_flow_activity'] : null;
+        if ($cashFlowActivity !== null && ! in_array($cashFlowActivity, ['operating', 'investing', 'financing'], true)) {
+            throw ValidationException::withMessages(['cash_flow_activity' => ['Cash flow activity must be operating, investing, or financing.']]);
+        }
+
+        return DB::transaction(function () use ($code, $statementType, $sectionCode, $normalBalance, $cashFlowActivity, $name, $data, $actorId): FinancialStatementLine {
             /** @var FinancialStatementLine $line */
             $line = FinancialStatementLine::query()->create([
                 'code' => $code,
                 'statement_type' => $statementType,
+                'cash_flow_activity' => $cashFlowActivity,
                 'section_code' => $sectionCode,
                 'name' => $name,
                 'normal_balance' => $normalBalance,
@@ -145,6 +153,14 @@ class FinancialStatementMappingService
                     throw ValidationException::withMessages(['statement_type' => ['Cannot change statement type when line has assigned accounts.']]);
                 }
                 $line->statement_type = $newType;
+            }
+
+            if (array_key_exists('cash_flow_activity', $data)) {
+                $cfa = $data['cash_flow_activity'] !== null && $data['cash_flow_activity'] !== '' ? (string) $data['cash_flow_activity'] : null;
+                if ($cfa !== null && ! in_array($cfa, ['operating', 'investing', 'financing'], true)) {
+                    throw ValidationException::withMessages(['cash_flow_activity' => ['Cash flow activity must be operating, investing, or financing.']]);
+                }
+                $line->cash_flow_activity = $cfa;
             }
 
             if (isset($data['section_code'])) {
@@ -284,6 +300,51 @@ class FinancialStatementMappingService
                 $this->assignAccount($item['account_id'], $item['financial_statement_line_id'] ?? null, $actorId);
             }
         });
+    }
+
+    public function updateAccountCashFlowActivity(string $accountId, ?string $activity, int $actorId): Account
+    {
+        if ($activity !== null && $activity !== '' && ! in_array($activity, ['operating', 'investing', 'financing'], true)) {
+            throw ValidationException::withMessages(['cash_flow_activity' => ['Cash flow activity must be operating, investing, or financing.']]);
+        }
+
+        return DB::transaction(function () use ($accountId, $activity, $actorId): Account {
+            /** @var Account $account */
+            $account = Account::query()->where('id', $accountId)->lockForUpdate()->firstOrFail();
+            $before = $account->toArray();
+
+            if ($activity !== null && $activity !== '' && $this->isCashEquivalentAccount($account->id)) {
+                throw ValidationException::withMessages([
+                    'cash_flow_activity' => ['Cash and bank GL accounts are classified through their non-cash journal counterparties.'],
+                ]);
+            }
+
+            $account->cash_flow_activity = ($activity !== '' && $activity !== null) ? $activity : null;
+            $account->save();
+
+            $this->auditLogger->record(
+                actorId: $actorId,
+                action: 'account.cash_flow_activity_update',
+                entityType: 'account',
+                entityId: $account->id,
+                before: $before,
+                after: $account->fresh()->toArray()
+            );
+
+            return $account->fresh(['financialStatementLine', 'accountType', 'group']);
+        });
+    }
+
+    private function isCashEquivalentAccount(string $accountId): bool
+    {
+        return CashAccount::query()
+            ->where('is_active', true)
+            ->where('gl_account_id', $accountId)
+            ->exists()
+            || BankAccount::query()
+                ->where('is_active', true)
+                ->where('gl_account_id', $accountId)
+                ->exists();
     }
 
     public function resolveAccountStatementType(Account $account): ?string

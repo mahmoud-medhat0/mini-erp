@@ -37,6 +37,7 @@ use App\Http\Controllers\Reports\BalanceSheetReportController;
 use App\Http\Controllers\Reports\BankBookController;
 use App\Http\Controllers\Reports\BankReconciliationReportController;
 use App\Http\Controllers\Reports\CashBookController;
+use App\Http\Controllers\Reports\CashFlowReportController;
 use App\Http\Controllers\Reports\ChequeRegisterReportController;
 use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
@@ -148,6 +149,7 @@ Route::middleware('auth')->group(function (): void {
         Route::delete('/statement-mappings/lines/{id}', [FinancialStatementMappingController::class, 'destroyLine'])->name('accounting.statement_mappings.lines.destroy');
         Route::post('/statement-mappings/assign', [FinancialStatementMappingController::class, 'assign'])->name('accounting.statement_mappings.assign');
         Route::post('/statement-mappings/bulk-assign', [FinancialStatementMappingController::class, 'bulkAssign'])->name('accounting.statement_mappings.bulk_assign');
+        Route::post('/statement-mappings/account-cash-flow', [FinancialStatementMappingController::class, 'updateAccountCashFlow'])->name('accounting.statement_mappings.account_cash_flow');
     });
 
     // Phase 3 Operational Master Data & Accounting Routes
@@ -249,11 +251,13 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/supplier-bills', [SupplierBillReportController::class, 'index'])->name('reports.supplier-bills');
         Route::get('/stock-movements', [StockMovementReportController::class, 'index'])->name('reports.stock-movements');
 
-        // Phase 5 Slice 2 Financial Statements Reports
+        // Phase 5 Slice 2 & 3 Financial Statements Reports
         Route::get('/balance-sheet', [BalanceSheetReportController::class, 'index'])->name('reports.balance_sheet');
         Route::get('/balance-sheet/export', [BalanceSheetReportController::class, 'exportCsv'])->name('reports.balance_sheet.export');
         Route::get('/income-statement', [IncomeStatementReportController::class, 'index'])->name('reports.income_statement');
         Route::get('/income-statement/export', [IncomeStatementReportController::class, 'exportCsv'])->name('reports.income_statement.export');
+        Route::get('/cash-flow', [CashFlowReportController::class, 'index'])->name('reports.cash_flow');
+        Route::get('/cash-flow/export', [CashFlowReportController::class, 'exportCsv'])->name('reports.cash_flow.export');
     });
 
     // Phase 4 Slice 1 Catalog Routes

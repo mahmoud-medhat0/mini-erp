@@ -45,6 +45,11 @@ class FinancialStatementMappingController extends Controller
                 ['value' => 'debit'],
                 ['value' => 'credit'],
             ],
+            'cashFlowActivities' => [
+                ['value' => 'operating'],
+                ['value' => 'investing'],
+                ['value' => 'financing'],
+            ],
         ]);
     }
 
@@ -55,6 +60,7 @@ class FinancialStatementMappingController extends Controller
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:100'],
             'statement_type' => ['required', 'string', 'in:balance_sheet,income_statement'],
+            'cash_flow_activity' => ['nullable', 'string', 'in:operating,investing,financing'],
             'section_code' => ['required', 'string', 'max:100'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['nullable', 'string', 'max:255'],
@@ -71,6 +77,7 @@ class FinancialStatementMappingController extends Controller
         $this->mappingService->createStatementLine([
             'code' => $validated['code'],
             'statement_type' => $validated['statement_type'],
+            'cash_flow_activity' => $validated['cash_flow_activity'] ?? null,
             'section_code' => $validated['section_code'],
             'name' => $name,
             'normal_balance' => $validated['normal_balance'],
@@ -88,6 +95,7 @@ class FinancialStatementMappingController extends Controller
         $validated = $request->validate([
             'code' => ['nullable', 'string', 'max:100'],
             'statement_type' => ['nullable', 'string', 'in:balance_sheet,income_statement'],
+            'cash_flow_activity' => ['nullable', 'string', 'in:operating,investing,financing'],
             'section_code' => ['nullable', 'string', 'max:100'],
             'name_en' => ['nullable', 'string', 'max:255'],
             'name_ar' => ['nullable', 'string', 'max:255'],
@@ -102,6 +110,9 @@ class FinancialStatementMappingController extends Controller
         }
         if (! empty($validated['statement_type'])) {
             $payload['statement_type'] = $validated['statement_type'];
+        }
+        if (array_key_exists('cash_flow_activity', $validated)) {
+            $payload['cash_flow_activity'] = $validated['cash_flow_activity'];
         }
         if (! empty($validated['section_code'])) {
             $payload['section_code'] = $validated['section_code'];
@@ -170,5 +181,23 @@ class FinancialStatementMappingController extends Controller
         );
 
         return redirect()->back()->with('success', __('Bulk account mappings updated successfully.'));
+    }
+
+    public function updateAccountCashFlow(Request $request): RedirectResponse
+    {
+        Gate::authorize('accounting.mappings');
+
+        $validated = $request->validate([
+            'account_id' => ['required', 'uuid', 'exists:account,id'],
+            'cash_flow_activity' => ['nullable', 'string', 'in:operating,investing,financing'],
+        ]);
+
+        $this->mappingService->updateAccountCashFlowActivity(
+            $validated['account_id'],
+            $validated['cash_flow_activity'] ?? null,
+            (int) $request->user()?->id
+        );
+
+        return redirect()->back()->with('success', __('Account cash flow activity updated successfully.'));
     }
 }

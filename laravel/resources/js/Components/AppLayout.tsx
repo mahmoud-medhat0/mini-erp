@@ -75,6 +75,7 @@ export type NavKey =
   | 'reports.stock-movements'
   | 'reports.balance_sheet'
   | 'reports.income_statement'
+  | 'reports.cash_flow'
   | 'reports.ar-gl-reconciliation'
   | 'reports.ap-gl-reconciliation';
 
@@ -126,6 +127,7 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'reports.index': 'reports.view',
   'reports.balance_sheet': 'view_financials',
   'reports.income_statement': 'view_financials',
+  'reports.cash_flow': 'view_financials',
   'audit.view': 'audit.view',
 };
 
@@ -253,7 +255,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   };
 
   const showAccountingGroup =
-    can('accounting.view') || can('accounting.account_types') || can('accounting.account_categories');
+    can('accounting.view') || can('accounting.account_types') || can('accounting.account_categories') || can('accounting.mappings');
   const showArGroup = can('customers.view');
   const showApGroup = can('suppliers.view');
   const showCashBankGroup = can('cash.view') || can('banks.view') || can('cheques.view');
@@ -850,6 +852,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                          { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: dict.app.nav.layoutKeys.apToGlRecon },
                         { key: 'reports.balance_sheet' as NavKey, href: '/reports/balance-sheet', label: accDict.balanceSheet },
                         { key: 'reports.income_statement' as NavKey, href: '/reports/income-statement', label: accDict.incomeStatement },
+                        { key: 'reports.cash_flow' as NavKey, href: '/reports/cash-flow', label: accDict.cashFlowStatement },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}

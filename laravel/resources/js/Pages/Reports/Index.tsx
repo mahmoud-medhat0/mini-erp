@@ -27,6 +27,11 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
                 desc: accDict.incomeStatementDesc,
                 href: '/reports/income-statement',
               },
+              {
+                name: accDict.cashFlowStatement,
+                desc: accDict.cashFlowStatementDesc,
+                href: '/reports/cash-flow',
+              },
             ],
           },
         ]

@@ -19,6 +19,7 @@ class FinancialStatementLine extends Model
     protected $fillable = [
         'code',
         'statement_type',
+        'cash_flow_activity',
         'section_code',
         'name',
         'normal_balance',

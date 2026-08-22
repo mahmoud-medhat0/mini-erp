@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slice 1 Financial Statement Mapping Foundation and Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation are complete and locally corrected on 2026-08-23.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-3 are complete and locally corrected on 2026-08-23.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -50,24 +50,30 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Authorization: Strict server-side gates enforcing `reports.view` AND `view_financials` for report viewing, and `reports.export` AND `view_financials` for CSV export.
   - Inertia Pages & Navigation: `BalanceSheet.tsx` and `IncomeStatement.tsx` with date filter controls, period dropdowns, imbalance & unmapped warning banners, no emojis, full EN/AR dictionary translations, Reports Hub integration, sidebar navigation, no new hardcoded visible TSX fallbacks, and integer-safe money formatting.
   - Feature Suite: `Phase5Slice2FinancialStatementsTest.php` (8/8 passing tests, 54 assertions).
+- Phase 5 Slice 3 Cash Flow Statement Foundation (FULLY COMPLETE):
+  - Database schema: Added `cash_flow_activity` column to `financial_statement_line` and `account` (`2026_08_23_010000_create_phase5_slice3_cash_flow_activity_columns.php`) and PostgreSQL check constraints (`2026_08_23_011000_harden_phase5_slice3_cash_flow_activity_constraints.php`).
+  - Cash-Equivalent Derivation: Dynamically resolves active GL accounts from linked `CashAccount` and `BankAccount` records and returns structured warning codes for missing/invalid links so UI can localize messages.
+  - Query Service: `CashFlowReportService` classifying operating, investing, financing, and unclassified cash movements from posted `ledger_entry.entry_date` records using strict precedence (`account` -> `financial_statement_line` -> `unclassified`).
+  - Movement Rules: Opening/closing cash balance calculations, internal cash transfer detection & exclusion from activity totals, mixed-activity journals routed to unclassified warnings, and no `created_at`/`updated_at` financial filtering.
+  - Mapping Controls: `FinancialStatementMappings.tsx` now exposes line-level cash-flow activity and account-level non-cash overrides; backend rejects cash-flow activity assignment directly to active cash/bank GL accounts.
+  - Controller & Export: `CashFlowReportController` and streamed CSV exports (`exportCsv`).
+  - Authorization: Strict server-side gates enforcing `reports.view` AND `view_financials` for report viewing, and `reports.export` AND `view_financials` for CSV export.
+  - Inertia Pages & Navigation: `CashFlow.tsx` with date filter controls, period dropdowns, localized warning banners, no emojis, no hardcoded visible TSX fallback text, integer-safe string-based money formatting, full EN/AR dictionary translations, Reports Hub integration, and sidebar navigation.
+  - Feature Suite: `Phase5Slice3CashFlowStatementTest.php` (9/9 passing tests, 46 assertions).
 
-## Immediate Next Steps (Phase 5 Slice 3)
+## Immediate Next Steps (Phase 5 Slice 4)
 
-- Execute **Phase 5 Slice 3: Cash Flow Statement Foundation**:
-  - Read `PHASE_5_SLICE_3_GEMINI_PROMPT.md`.
-  - Use the hardened 2026-08-23 prompt rules: no timestamp-based financial filtering, no float money formatting, no hardcoded visible TSX text, exact permissions only, and mandatory source scans before reporting completion.
-  - Implement Cash Flow statement generation service (Indirect/Direct method foundation) categorizing operating, investing, and financing cash flows from posted ledger movements.
-  - Create report controller, routes under `reports.cash_flow`, and Inertia reporting page (`CashFlow.tsx`).
-  - Add feature tests for cash flow classification, date filtering, and permission guards.
+- Execute **Phase 5 Slice 4: Period Close Controls & Hardening**:
+  - Read `PHASE_5_SLICE_4_GEMINI_PROMPT.md`.
+  - Follow the hardened prompt exactly: service-level closed-period guards, PostingEngine final safety net, actual-schema blocker inspection, close/post race coverage, no `settings.configure` bypass, and no timestamp-based accounting filters.
 
 ## Next Execution
 
 Continue Phase 5 in bounded order:
 
-1. `PHASE_5_SLICE_3_GEMINI_PROMPT.md` - Cash Flow Statement Foundation.
-2. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
-3. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
-4. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+1. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
+2. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
+3. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
 
 Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
