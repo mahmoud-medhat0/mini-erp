@@ -206,5 +206,14 @@ return [
                 'delete' => ['purchasing.delete', 'purchasing.edit'],
             ],
         ],
+        'customer_invoice' => [
+            'table' => 'customer_invoice',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['sales.view'],
+                'attach' => ['sales.edit', 'sales.create'],
+                'delete' => ['sales.delete', 'sales.edit'],
+            ],
+        ],
     ],
 ];

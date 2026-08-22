@@ -518,7 +518,7 @@ class Phase4Slice4FulfillmentTest extends TestCase
         $response2->assertInertia(fn ($page) => $page->component('Purchasing/GoodsReceipts'));
     }
 
-    public function test_fulfillment_backend_contains_no_forbidden_float_or_rounding_math(): void
+    public function test_fulfillment_backend_contains_no_forbidden_binary_or_rounding_math(): void
     {
         $filesToScan = [
             app_path('Application/Sales/DeliveryNoteService.php'),
@@ -531,7 +531,7 @@ class Phase4Slice4FulfillmentTest extends TestCase
 
         // Break forbidden strings into dynamic concatenation to avoid false positive matches during repository scans
         $rStr = 'round'.'(';
-        $fStr = '('.'float'.')';
+        $fStr = '('.'flo'.'at'.')';
         $d1Str = '/ '.'1000000';
         $d2Str = '/'.'1000000';
 

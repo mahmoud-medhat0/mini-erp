@@ -12,6 +12,7 @@ use App\Http\Controllers\Catalog\ProductCategoryController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Catalog\UnitOfMeasureController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerInvoiceController;
 use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
 use App\Http\Controllers\DeliveryNoteController;
@@ -257,6 +258,15 @@ Route::middleware('auth')->group(function (): void {
     Route::put('/purchasing/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods-receipts.update');
     Route::post('/purchasing/goods-receipts/{goodsReceipt}/confirm', [GoodsReceiptController::class, 'confirm'])->name('goods-receipts.confirm');
     Route::post('/purchasing/goods-receipts/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel'])->name('goods-receipts.cancel');
+
+    // Phase 4 Slice 5 Customer Invoice Routes
+    Route::get('/sales/invoices', [CustomerInvoiceController::class, 'index'])->name('customer-invoices.index');
+    Route::post('/sales/invoices', [CustomerInvoiceController::class, 'store'])->name('customer-invoices.store');
+    Route::put('/sales/invoices/{customerInvoice}', [CustomerInvoiceController::class, 'update'])->name('customer-invoices.update');
+    Route::post('/sales/invoices/{customerInvoice}/submit', [CustomerInvoiceController::class, 'submit'])->name('customer-invoices.submit');
+    Route::post('/sales/invoices/{customerInvoice}/approve', [CustomerInvoiceController::class, 'approve'])->name('customer-invoices.approve');
+    Route::post('/sales/invoices/{customerInvoice}/post', [CustomerInvoiceController::class, 'post'])->name('customer-invoices.post');
+    Route::post('/sales/invoices/{customerInvoice}/cancel', [CustomerInvoiceController::class, 'cancel'])->name('customer-invoices.cancel');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

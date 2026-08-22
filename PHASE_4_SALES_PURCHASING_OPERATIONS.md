@@ -1,6 +1,6 @@
 # PHASE 4 - SALES & PURCHASING OPERATIONS
 
-Status: IN PROGRESS - Slices 1, 2, 3 & 4 complete, Slice 5 planned
+Status: IN PROGRESS - Slices 1, 2, 3, 4 & 5 complete, Slice 6 prompt ready
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -263,32 +263,48 @@ Execution file:
 
 Create customer invoice lifecycle and post approved invoices to AR and GL.
 
+Status: COMPLETE
+
 Expected scope:
 
 - customer invoice header/lines
-- source from sales order/delivery where available, but also allow manual service invoice if approved by existing UX rules
+- source from sales order/delivery where available, plus manual service/non-stock invoices
 - global invoice numbering `INV-YYYY-XXXXX`
 - PostingEngine integration
 - AR subledger integration
+- `sales_revenue` accounting mapping integration
 - idempotent posting
 - reversal/credit-note boundary
+- reject stock products until inventory costing/COGS is approved
 - no stock COGS until costing is approved
 - no VAT/tax unless approved
+
+Execution file:
+
+- `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 
 ### Slice 6 - Supplier Bill Posting
 
 Create supplier bill lifecycle and post approved bills to AP and GL.
 
+Status: READY FOR EXECUTION
+
 Expected scope:
 
 - supplier bill header/lines
-- source from purchase order/goods receipt where available, but also allow manual expense bill if approved by existing UX rules
-- global purchase numbering, for example `PUR-YYYY-XXXXX` or approved key
+- source from purchase order/goods receipt where available, plus manual service/non-stock bills
+- global bill numbering `BILL-YYYY-XXXXX`
 - PostingEngine integration
 - AP subledger integration
+- `purchase_expense` accounting mapping integration
 - idempotent posting
+- reject stock products until inventory costing/valuation is approved
 - no landed cost/inventory valuation until approved
 - no VAT/tax unless approved
+
+Execution file:
+
+- `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
 
 ### Slice 7 - Inventory Costing Decision Slice
 

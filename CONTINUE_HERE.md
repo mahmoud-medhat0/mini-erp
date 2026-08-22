@@ -22,6 +22,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -67,7 +68,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), and Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation) is complete and locally verified on PostgreSQL. Phase 4 Slice 5 Customer Invoice Posting to AR/GL is planned.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), and Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation) is complete and locally verified on PostgreSQL. Phase 4 Slice 5 Customer Invoice Posting to AR/GL is prepared in `PHASE_4_SLICE_5_GEMINI_PROMPT.md`.
 
 Implemented:
 
@@ -185,9 +186,9 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate:status`: not included in the attached Slice 3 summary; re-run in Slice 4 verification.
-- `php artisan test`: 285 passing tests / 2311 assertions reported after Phase 4 Slice 3.
-- `php artisan test --filter=Phase4Slice3PurchaseOrderTest`: 16 tests / 74 assertions passed locally after source-scan cleanup.
+- `php artisan migrate --force`: completed during Phase 4 Slice 4 verification.
+- `php artisan test`: 302 passing tests / 2469 assertions reported after Phase 4 Slice 4.
+- `php artisan test --filter=Phase4Slice4FulfillmentTest`: 17 tests / 138 assertions passed locally after source-scan cleanup.
 - `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
@@ -199,7 +200,7 @@ Latest results:
 - `php artisan accounting:phase3-integrity-check`: passed.
 - `php artisan accounting:phase3-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
-- `vendor/bin/pint --test`: passed after local Slice 3 source-scan cleanup.
+- `vendor/bin/pint --test`: passed after local Slice 4 source-scan cleanup.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
 
@@ -293,19 +294,20 @@ Phase 4 planning is prepared:
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 
 Next prepared execution step:
 
-1. **Phase 4 Slice 4: Delivery Notes & Goods Receipts**
-   - Delivery Notes from confirmed Sales Orders and Goods Receipts from confirmed Purchase Orders, with exact integer fulfillment quantities and cumulative over-fulfillment prevention.
-   - No Customer Invoices, Supplier Bills, AR/AP/GL posting, Inventory Valuation, stock balance ledger, COGS, VAT, Returns, Reports, E2E hardening, or deployment work.
+1. **Phase 4 Slice 5: Customer Invoice Posting to AR/GL**
+   - Customer Invoice lifecycle, exact integer invoice totals, `INV-YYYY-XXXXX` numbering, `sales_revenue` mapping, PostingEngine integration, and AR `receivable_entry` debit.
+   - No Supplier Bills, AP posting, stock products, Inventory Valuation, stock movement, COGS, VAT/tax, discounts, Returns, Credit Notes, Reports, E2E hardening, or deployment work.
 
 Other possible owner choices:
 
 - **Optional: E2E Browser Testing** (Playwright / Dusk smoke testing).
 - **Optional: Production Deployment Readiness** (Nginx, Supervisor, Redis, Backup strategies).
 
-Do not start Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested through a bounded prompt.
+Do not start any new Sales/Purchasing slice, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements unless explicitly requested through a bounded prompt.
 
 Going forward, keep these invariants:
 

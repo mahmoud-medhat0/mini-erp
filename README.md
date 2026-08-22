@@ -98,13 +98,15 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Phase 4 Slice 3 Purchase Order Backend & UX:
   - Purchase Order header/lines, lifecycle, `PO-YYYY-XXXXX` numbering, attachment registry, audit, and Inertia UX.
   - exact integer line-total math with overflow checks and fractional-minor rejection.
+- Phase 4 Slice 4 Delivery Notes & Goods Receipts:
+  - Delivery Note and Goods Receipt header/line tables, lifecycle, `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` numbering, attachment registry, audit, and Inertia UX.
+  - exact integer fulfillment quantities with cumulative over-delivery and over-receipt prevention.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Sales and Purchasing workflows.
-- Delivery Notes and Goods Receipts. The execution prompt is prepared in `PHASE_4_SLICE_4_GEMINI_PROMPT.md`.
-- Customer Invoices and Supplier Bills.
+- Customer Invoices and Supplier Bills. Customer Invoice execution is prepared in `PHASE_4_SLICE_5_GEMINI_PROMPT.md`.
+- Sales/Purchasing returns, credit notes, debit notes, and post-invoice corrections.
 - Inventory valuation, COGS, stock movement, and warehouse semantics.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
 - Full financial statements such as Balance Sheet, Income Statement, Cash Flow, and Equity Statement.
@@ -162,8 +164,9 @@ npm run build
 
 Latest verified result:
 
-- 285 PHPUnit tests passing / 2311 assertions reported after Phase 4 Slice 3.
-- Phase 4 Slices 1-3 are complete for their agreed operational scope.
+- 302 PHPUnit tests passing / 2469 assertions reported after Phase 4 Slice 4.
+- Phase 4 Slices 1-4 are complete for their agreed operational scope.
+- Phase4Slice4FulfillmentTest: 17 tests / 138 assertions passed after local source-scan cleanup.
 - Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
@@ -184,6 +187,7 @@ Use these first:
 - `PHASE_4_SLICE_2_CORRECTION_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 - `NEXT_TASKS.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`

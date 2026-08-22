@@ -3,6 +3,15 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 4 Slice 5 Customer Invoice Posting Prompt
+- Added `PHASE_4_SLICE_5_GEMINI_PROMPT.md` as the bounded execution contract for Customer Invoice lifecycle and AR/GL posting through the existing `PostingEngine`.
+- Scope is limited to `customer_invoice` / `customer_invoice_line`, `sales_revenue` accounting mapping, AR `receivable_entry` debit creation, idempotent `INV-YYYY-XXXXX` posting, attachment registry, RBAC, audit, and Inertia UX.
+- Explicitly excludes Supplier Bills, AP posting, stock-product invoicing, inventory valuation, stock movement, COGS, VAT/tax, discounts, returns, credit notes, debit notes, reports, and tenant/company/branch scope.
+
+### Fixed — Phase 4 Slice 4 Source-Scan False Positive
+- Renamed the Slice 4 backend scan test and split the literal `(float)` string construction in `Phase4Slice4FulfillmentTest.php` so repository-level forbidden-pattern scans no longer report false positives from the test source itself.
+- Re-ran `php artisan test --filter=Phase4Slice4FulfillmentTest` (17 tests / 138 assertions), the Delivery/Goods Receipt forbidden-pattern source scan (no results), and `vendor/bin/pint --test` (passed).
+
 ### Added — Phase 4 Slice 4 Delivery Notes & Goods Receipts Operational Foundation
 - Created migration `2026_08_22_050000_create_phase4_slice4_fulfillment_tables.php` defining `delivery_note`, `delivery_note_line`, `goods_receipt`, and `goods_receipt_line` tables with UUID primary keys, optimistic locking (`lock_version`), integer quantity scaling (`quantity_e6`), foreign keys, and zero prohibited tenancy/company/accounting columns.
 - Created Eloquent models `DeliveryNote`, `DeliveryNoteLine`, `GoodsReceipt`, and `GoodsReceiptLine` with proper relationships to SalesOrder, PurchaseOrder, Product, UnitOfMeasure, and User.
