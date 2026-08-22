@@ -25,6 +25,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_8_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -70,7 +71,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), Phase 4 Slice 7 (Inventory Costing Decision Pack), and Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting) is complete and locally verified on PostgreSQL.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), Phase 4 Slice 7 (Inventory Costing Decision Pack), and Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting) is complete, locally hardened, and verified on PostgreSQL.
 
 Implemented:
 

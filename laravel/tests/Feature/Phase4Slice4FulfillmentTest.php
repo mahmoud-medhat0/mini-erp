@@ -97,9 +97,9 @@ class Phase4Slice4FulfillmentTest extends TestCase
             'lock_version' => 1,
         ]);
 
-        $invAcc = Account::query()->create(['code' => '1300-S4', 'name' => 'Inv Asset', 'type' => 'asset', 'nature' => 'debit', 'currency' => 'EGP', 'is_active' => true]);
-        $grniAcc = Account::query()->create(['code' => '2200-S4', 'name' => 'GRNI', 'type' => 'liability', 'nature' => 'credit', 'currency' => 'EGP', 'is_active' => true]);
-        $cogsAcc = Account::query()->create(['code' => '5200-S4', 'name' => 'COGS', 'type' => 'expense', 'nature' => 'debit', 'currency' => 'EGP', 'is_active' => true]);
+        $invAcc = Account::query()->create(['code' => '1300-S4', 'name' => 'Inv Asset', 'type' => 'asset', 'nature' => 'debit', 'currency' => 'USD', 'is_active' => true]);
+        $grniAcc = Account::query()->create(['code' => '2200-S4', 'name' => 'GRNI', 'type' => 'liability', 'nature' => 'credit', 'currency' => 'USD', 'is_active' => true]);
+        $cogsAcc = Account::query()->create(['code' => '5200-S4', 'name' => 'COGS', 'type' => 'expense', 'nature' => 'debit', 'currency' => 'USD', 'is_active' => true]);
 
         AccountingAccountMapping::query()->updateOrCreate(['key' => 'inventory_asset'], ['account_id' => $invAcc->id]);
         AccountingAccountMapping::query()->updateOrCreate(['key' => 'grni_clearing'], ['account_id' => $grniAcc->id]);
@@ -135,7 +135,7 @@ class Phase4Slice4FulfillmentTest extends TestCase
         StockBalance::query()->create([
             'product_id' => $this->salesProduct->id,
             'unit_of_measure_id' => $this->uom->id,
-            'currency' => 'EGP',
+            'currency' => 'USD',
             'quantity_e6' => 1000000000,
             'valuation_amount_minor' => 10000000,
             'avg_unit_cost_e6' => 10000,
@@ -521,6 +521,41 @@ class Phase4Slice4FulfillmentTest extends TestCase
 
     public function test_fulfillment_operations_create_zero_accounting_or_subledger_entries(): void
     {
+        $cat = ProductCategory::query()->first();
+        $serviceProduct = Product::query()->create([
+            'code' => 'PRD-SERVICE-TEST',
+            'name' => ['en' => 'Service Item'],
+            'type' => 'service',
+            'unit_of_measure_id' => $this->uom->id,
+            'product_category_id' => $cat->id,
+            'status' => 'active',
+            'is_sales_enabled' => true,
+            'is_purchase_enabled' => true,
+            'lock_version' => 1,
+        ]);
+
+        /** @var SalesOrderService $soService */
+        $soService = app(SalesOrderService::class);
+        $so = $soService->create([
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'lines' => [['product_id' => $serviceProduct->id, 'unit_of_measure_id' => $this->uom->id, 'quantity_e6' => 1000000, 'unit_price_minor' => 1000]],
+        ], $this->adminUser->id);
+        $soService->submit($so->id, $this->adminUser->id);
+        $soService->confirm($so->id, $this->adminUser->id);
+
+        /** @var PurchaseOrderService $poService */
+        $poService = app(PurchaseOrderService::class);
+        $po = $poService->create([
+            'supplier_id' => $this->supplier->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'lines' => [['product_id' => $serviceProduct->id, 'unit_of_measure_id' => $this->uom->id, 'quantity_e6' => 1000000, 'unit_price_minor' => 1000]],
+        ], $this->adminUser->id);
+        $poService->submit($po->id, $this->adminUser->id);
+        $poService->confirm($po->id, $this->adminUser->id);
+
         $journalsBefore = JournalEntry::count();
         $ledgersBefore = LedgerEntry::count();
         $receivablesBefore = ReceivableEntry::count();
@@ -528,23 +563,19 @@ class Phase4Slice4FulfillmentTest extends TestCase
 
         /** @var DeliveryNoteService $dnService */
         $dnService = app(DeliveryNoteService::class);
-        $soLine = $this->confirmedSalesOrder->lines->first();
-
         $dn = $dnService->create([
-            'sales_order_id' => $this->confirmedSalesOrder->id,
+            'sales_order_id' => $so->id,
             'delivery_date' => '2026-08-22',
-            'lines' => [['sales_order_line_id' => $soLine->id, 'quantity_e6' => 1000000]],
+            'lines' => [['sales_order_line_id' => $so->lines[0]->id, 'quantity_e6' => 1000000]],
         ], $this->adminUser->id);
         $dnService->confirm($dn->id, $this->adminUser->id);
 
         /** @var GoodsReceiptService $grService */
         $grService = app(GoodsReceiptService::class);
-        $poLine = $this->confirmedPurchaseOrder->lines->first();
-
         $gr = $grService->create([
-            'purchase_order_id' => $this->confirmedPurchaseOrder->id,
+            'purchase_order_id' => $po->id,
             'receipt_date' => '2026-08-22',
-            'lines' => [['purchase_order_line_id' => $poLine->id, 'quantity_e6' => 1000000]],
+            'lines' => [['purchase_order_line_id' => $po->lines[0]->id, 'quantity_e6' => 1000000]],
         ], $this->adminUser->id);
         $grService->confirm($gr->id, $this->adminUser->id);
 

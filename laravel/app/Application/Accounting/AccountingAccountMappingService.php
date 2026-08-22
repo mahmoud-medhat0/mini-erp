@@ -6,7 +6,6 @@ use App\Domain\Audit\AuditLogger;
 use App\Models\Account;
 use App\Models\AccountingAccountMapping;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 
 class AccountingAccountMappingService
 {
@@ -30,7 +29,9 @@ class AccountingAccountMappingService
     public function getMapping(string $key): ?AccountingAccountMapping
     {
         if (! in_array($key, self::ALLOWED_KEYS, true)) {
-            throw new InvalidArgumentException("Invalid account mapping key: {$key}");
+            throw ValidationException::withMessages([
+                'key' => ["Mapping key [{$key}] is not allowed."],
+            ]);
         }
 
         /** @var AccountingAccountMapping|null $mapping */
@@ -69,7 +70,9 @@ class AccountingAccountMappingService
     public function setMapping(string $key, string $accountId, ?string $description = null, int|string|null $actorId = null): AccountingAccountMapping
     {
         if (! in_array($key, self::ALLOWED_KEYS, true)) {
-            throw new InvalidArgumentException("Invalid account mapping key: {$key}");
+            throw ValidationException::withMessages([
+                'key' => ["Mapping key [{$key}] is not allowed."],
+            ]);
         }
 
         /** @var Account $account */

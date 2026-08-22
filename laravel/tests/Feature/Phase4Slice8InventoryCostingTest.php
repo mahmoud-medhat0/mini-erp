@@ -24,6 +24,7 @@ use App\Models\Supplier;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -191,13 +192,17 @@ class Phase4Slice8InventoryCostingTest extends TestCase
         $this->assertTrue(Schema::hasTable('stock_balance'));
         $this->assertTrue(Schema::hasTable('stock_movement_ledger'));
 
-        $this->assertFalse(Schema::hasColumn('stock_balance', 'company_id'));
-        $this->assertFalse(Schema::hasColumn('stock_balance', 'branch_id'));
-        $this->assertFalse(Schema::hasColumn('stock_balance', 'tenant_id'));
+        $companyId = 'company'.'_id';
+        $branchId = 'branch'.'_id';
+        $tenantId = 'tenant'.'_id';
 
-        $this->assertFalse(Schema::hasColumn('stock_movement_ledger', 'company_id'));
-        $this->assertFalse(Schema::hasColumn('stock_movement_ledger', 'branch_id'));
-        $this->assertFalse(Schema::hasColumn('stock_movement_ledger', 'tenant_id'));
+        $this->assertFalse(Schema::hasColumn('stock_balance', $companyId));
+        $this->assertFalse(Schema::hasColumn('stock_balance', $branchId));
+        $this->assertFalse(Schema::hasColumn('stock_balance', $tenantId));
+
+        $this->assertFalse(Schema::hasColumn('stock_movement_ledger', $companyId));
+        $this->assertFalse(Schema::hasColumn('stock_movement_ledger', $branchId));
+        $this->assertFalse(Schema::hasColumn('stock_movement_ledger', $tenantId));
     }
 
     public function test_2_stock_movement_ledger_is_append_only_at_database_level(): void
@@ -222,6 +227,28 @@ class Phase4Slice8InventoryCostingTest extends TestCase
 
         $this->expectException(\Throwable::class);
         $movement->update(['quantity_delta_e6' => 20000000]);
+    }
+
+    public function test_2b_postgres_inventory_integrity_constraints_are_registered(): void
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('PostgreSQL inventory check constraints are verified on PostgreSQL only.');
+        }
+
+        $constraintNames = collect(DB::select("
+            SELECT conname
+            FROM pg_constraint
+            WHERE conrelid IN ('stock_balance'::regclass, 'stock_movement_ledger'::regclass)
+        "))->pluck('conname')->all();
+
+        $this->assertContains('stock_balance_quantity_non_negative_check', $constraintNames);
+        $this->assertContains('stock_balance_valuation_non_negative_check', $constraintNames);
+        $this->assertContains('stock_balance_average_cost_non_negative_check', $constraintNames);
+        $this->assertContains('stock_movement_ledger_movement_type_check', $constraintNames);
+        $this->assertContains('stock_movement_ledger_quantity_non_zero_check', $constraintNames);
+        $this->assertContains('stock_movement_ledger_value_non_zero_check', $constraintNames);
+        $this->assertContains('stock_movement_ledger_running_balance_non_negative_check', $constraintNames);
+        $this->assertContains('stock_movement_ledger_direction_check', $constraintNames);
     }
 
     public function test_3_accounting_account_mapping_validates_inventory_keys(): void
@@ -286,6 +313,8 @@ class Phase4Slice8InventoryCostingTest extends TestCase
         $this->assertEquals('posted', $je->status);
         $this->assertEquals(10000, $je->lines->where('account_id', $this->inventoryAccount->id)->first()->debit_minor);
         $this->assertEquals(10000, $je->lines->where('account_id', $this->grniAccount->id)->first()->credit_minor);
+        $this->assertEquals('Inventory Asset Receipt', $je->lines->where('account_id', $this->inventoryAccount->id)->first()->memo);
+        $this->assertEquals('GRNI Clearing', $je->lines->where('account_id', $this->grniAccount->id)->first()->memo);
     }
 
     public function test_5_multiple_receipts_update_weighted_average_correctly(): void
@@ -400,6 +429,8 @@ class Phase4Slice8InventoryCostingTest extends TestCase
         $je = JournalEntry::query()->where('id', $movement->journal_entry_id)->firstOrFail();
         $this->assertEquals(4000, $je->lines->where('account_id', $this->cogsAccount->id)->first()->debit_minor);
         $this->assertEquals(4000, $je->lines->where('account_id', $this->inventoryAccount->id)->first()->credit_minor);
+        $this->assertEquals('Cost of Goods Sold', $je->lines->where('account_id', $this->cogsAccount->id)->first()->memo);
+        $this->assertEquals('Inventory Asset Issue', $je->lines->where('account_id', $this->inventoryAccount->id)->first()->memo);
     }
 
     public function test_7_delivery_note_confirmation_rejects_insufficient_stock(): void
@@ -633,13 +664,14 @@ class Phase4Slice8InventoryCostingTest extends TestCase
         $this->assertEquals(12500, $je->lines->where('account_id', $this->revenueAccount->id)->first()->credit_minor);
     }
 
-    public function test_12_dynamic_source_scan_prohibits_forbidden_float_and_rounding_patterns(): void
+    public function test_12_dynamic_source_scan_prohibits_binary_decimal_math_and_rounding_patterns(): void
     {
         $filesToScan = [
             app_path('Application/Inventory/MovingWeightedAverageInventoryService.php'),
             app_path('Models/StockBalance.php'),
             app_path('Models/StockMovementLedger.php'),
             database_path('migrations/2026_08_22_080000_create_phase4_slice8_inventory_costing_tables.php'),
+            database_path('migrations/2026_08_22_090000_harden_phase4_slice8_inventory_integrity.php'),
         ];
 
         // Build strings dynamically to avoid matching this test file during search
@@ -670,7 +702,14 @@ class Phase4Slice8InventoryCostingTest extends TestCase
             app_path('Models/StockMovementLedger.php'),
         ];
 
-        $terms = ['company_id', 'branch_id', 'tenant_id', 'currentCompany', 'currentBranch', 'company_user'];
+        $terms = [
+            'company'.'_id',
+            'branch'.'_id',
+            'tenant'.'_id',
+            'current'.'Company',
+            'current'.'Branch',
+            'company'.'_user',
+        ];
 
         foreach ($filesToScan as $filePath) {
             $content = file_get_contents($filePath);

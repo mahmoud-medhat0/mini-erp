@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 7 (Inventory Costing Decision Pack) is complete, and the owner selected **Option 1: Moving Weighted Average Costing**. Phase 4 Slice 8 execution prompt is ready in `PHASE_4_SLICE_8_GEMINI_PROMPT.md`.
+Current status: Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting) is complete and locally hardened after the owner selected **Option 1: Moving Weighted Average Costing**.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -68,17 +68,22 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Integrated Supplier Bill posting to clear GRNI Clearing for stock lines sourced from Goods Receipts.
   - Integrated Customer Invoice posting for stock lines sourced from Delivery Notes.
   - Created read-only Inertia page `resources/js/Pages/Inventory/StockBalances.tsx`.
-  - Implemented `Phase4Slice8InventoryCostingTest` (13/13 passing tests, 89 assertions).
-  - Implemented `accounting:inventory-concurrency-stress --workers=50` command passing 100% cleanly.
+  - Added PostgreSQL integrity constraints for stock balances and stock movements in `2026_08_22_090000_harden_phase4_slice8_inventory_integrity.php`.
+  - Fixed inventory-generated journal lines to use `memo`, not the non-existent `description` fillable field.
+  - Implemented `Phase4Slice8InventoryCostingTest` (14 tests, 13 passed, 1 PostgreSQL-only check skipped under the current test driver, 100 assertions).
+  - Implemented and hardened `accounting:inventory-concurrency-stress --workers=50`; it now respects append-only `stock_movement_ledger` and passes cleanly.
 
 Latest verified baseline:
 
 ```text
-php artisan migrate --force: Nothing to migrate
-php artisan migrate:status: all migrations Ran through 2026_08_22_080000_create_phase4_slice8_inventory_costing_tables
-php artisan test --filter=Phase4Slice8InventoryCostingTest: 13 passing tests / 89 assertions
-php artisan test: 355 tests, 353 passed, 2 skipped / 2761 assertions
+php artisan migrate --force: applied 2026_08_22_090000_harden_phase4_slice8_inventory_integrity
+php artisan migrate:status: all migrations Ran through 2026_08_22_090000_harden_phase4_slice8_inventory_integrity
+php artisan test --filter=Phase4Slice8InventoryCostingTest: 14 tests, 13 passed, 1 skipped / 100 assertions
+php artisan test: 356 tests, 353 passed, 3 skipped / 2785 assertions
 php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
+php artisan concurrency:stress --workers=100: PASSED CLEANLY
+php artisan accounting:concurrency-stress --workers=50: PASSED CLEANLY
+php artisan tokens:gc --batch=100: PASSED CLEANLY
 vendor/bin/pint --test: passed
 npm run typecheck: passed (0 TS errors)
 npm run build: passed

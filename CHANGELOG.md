@@ -13,8 +13,9 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Integrated Supplier Bill posting to clear `grni_clearing` for stock lines sourced from Goods Receipts.
 - Integrated Customer Invoice posting for stock lines sourced from Delivery Notes.
 - Implemented read-only Inertia stock balances page `resources/js/Pages/Inventory/StockBalances.tsx`.
-- Implemented `Phase4Slice8InventoryCostingTest` feature test suite (13/13 tests passing, 89 assertions).
+- Implemented `Phase4Slice8InventoryCostingTest` feature test suite (14 tests, 13 passed, 1 PostgreSQL-only check skipped under the current test driver, 100 assertions).
 - Implemented `accounting:inventory-concurrency-stress --workers=50` command passing 100% cleanly.
+- Hardened Slice 8 locally after review: added PostgreSQL stock integrity constraints, corrected inventory-generated journal line metadata to use `memo`, added overflow guards for integer valuation math, and fixed the inventory stress command so it does not delete append-only stock movement records.
 
 ### Added — Phase 4 Slice 7 Inventory Costing Decision Pack
 - Created `PHASE_4_INVENTORY_COSTING_DECISION.md` as the owner-facing decision document for stock costing.

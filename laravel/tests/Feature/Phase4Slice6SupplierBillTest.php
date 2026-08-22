@@ -267,7 +267,7 @@ class Phase4Slice6SupplierBillTest extends TestCase
         $service = app(SupplierBillService::class);
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Billing stock products requires inventory costing/valuation logic which is not enabled in this slice.');
+        $this->expectExceptionMessage('Line 1 stock product must be sourced from a Goods Receipt.');
 
         $service->create([
             'supplier_id' => $this->supplier->id,

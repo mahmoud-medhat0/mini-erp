@@ -11,7 +11,6 @@ use App\Models\FiscalYear;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\StockBalance;
-use App\Models\StockMovementLedger;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use Illuminate\Console\Command;
@@ -21,12 +20,12 @@ class AccountingInventoryConcurrencyStressCommand extends Command
 {
     protected $signature = 'accounting:inventory-concurrency-stress {--workers=50}';
 
-    protected $description = 'Stress test Moving Weighted Average Inventory Costing under high concurrency';
+    protected $description = 'Stress test Moving Weighted Average Inventory Costing integrity';
 
     public function handle(): int
     {
         $workers = (int) $this->option('workers');
-        $this->info("Starting Inventory Concurrency Stress Test with {$workers} workers...");
+        $this->info("Starting Inventory Integrity Stress Test with {$workers} iterations...");
 
         // Setup test user & baseline data
         /** @var User $user */
@@ -65,19 +64,25 @@ class AccountingInventoryConcurrencyStressCommand extends Command
         $uom = UnitOfMeasure::query()->firstOrCreate(['code' => 'PCS-STR'], ['name' => ['en' => 'Pieces'], 'symbol' => 'pcs', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
         $cat = ProductCategory::query()->firstOrCreate(['code' => 'CAT-STR'], ['name' => ['en' => 'Stress Cat'], 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
 
-        $product = Product::query()->firstOrCreate(['code' => 'PROD-STRESS-INV'], [
-            'name' => ['en' => 'Stress Inventory Product'], 'type' => 'stock', 'category_id' => $cat->id, 'unit_of_measure_id' => $uom->id, 'status' => 'active', 'is_sales_enabled' => true, 'is_purchase_enabled' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+        $runId = now()->format('YmdHis').'-'.Str::lower(Str::random(8));
+        $product = Product::query()->create([
+            'code' => "PROD-STRESS-INV-{$runId}",
+            'name' => ['en' => "Stress Inventory Product {$runId}"],
+            'type' => 'stock',
+            'product_category_id' => $cat->id,
+            'unit_of_measure_id' => $uom->id,
+            'status' => 'active',
+            'is_sales_enabled' => true,
+            'is_purchase_enabled' => true,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+            'lock_version' => 1,
         ]);
 
         /** @var MovingWeightedAverageInventoryService $inventoryService */
         $inventoryService = app(MovingWeightedAverageInventoryService::class);
 
-        // Clear previous test balance for this product if present
-        StockMovementLedger::query()->where('product_id', $product->id)->delete();
-        StockBalance::query()->where('product_id', $product->id)->delete();
-
-        // Perform parallel receipt operations
-        $this->info("Executing {$workers} parallel receipts...");
+        $this->info("Executing {$workers} receipt iterations...");
         $receiptQtyE6 = 1000000; // 1 unit
         $unitCostMinor = 1000; // 10.00 USD
 
@@ -113,8 +118,7 @@ class AccountingInventoryConcurrencyStressCommand extends Command
             return 1;
         }
 
-        // Perform parallel issue operations
-        $this->info("Executing {$workers} parallel issues...");
+        $this->info("Executing {$workers} issue iterations...");
         for ($i = 0; $i < $workers; $i++) {
             $sourceId = (string) Str::uuid();
             $sourceLineId = (string) Str::uuid();
@@ -141,7 +145,7 @@ class AccountingInventoryConcurrencyStressCommand extends Command
             return 1;
         }
 
-        $this->info('Inventory Concurrency Stress Test completed successfully!');
+        $this->info('Inventory Integrity Stress Test completed successfully!');
 
         return 0;
     }

@@ -14,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 class MovingWeightedAverageInventoryService
 {
+    private const QUANTITY_SCALE = 1000000;
+
     public function __construct(
         private readonly AccountingAccountMappingService $mappingService,
         private readonly PostingEngine $postingEngine,
@@ -36,8 +38,7 @@ class MovingWeightedAverageInventoryService
     ): StockMovementLedger {
         return DB::transaction(function () use (
             $sourceType, $sourceId, $sourceLineId, $movementDate, $productId,
-            $unitOfMeasureId, $currency, $quantityE6, $unitCostMinor,
-            $fiscalYearId, $financialPeriodId, $actorId
+            $unitOfMeasureId, $currency, $quantityE6, $unitCostMinor, $financialPeriodId, $actorId
         ): StockMovementLedger {
             // Idempotency check
             /** @var StockMovementLedger|null $existing */
@@ -55,16 +56,11 @@ class MovingWeightedAverageInventoryService
                 throw ValidationException::withMessages(['quantity' => ['Receipt quantity must be greater than zero.']]);
             }
 
-            if ($unitCostMinor < 0) {
-                throw ValidationException::withMessages(['unit_cost' => ['Receipt unit cost cannot be negative.']]);
+            if ($unitCostMinor <= 0) {
+                throw ValidationException::withMessages(['unit_cost' => ['Receipt unit cost must be greater than zero.']]);
             }
 
-            // Exact integer multiplication check
-            $product = $quantityE6 * $unitCostMinor;
-            if ($product % 1000000 !== 0) {
-                throw ValidationException::withMessages(['unit_cost' => ['Quantity and unit cost result in fractional minor units.']]);
-            }
-            $lineValueMinor = intdiv($product, 1000000);
+            $lineValueMinor = $this->receiptValueMinor($quantityE6, $unitCostMinor);
 
             // Fetch mapped GL Accounts
             $inventoryAccount = $this->mappingService->getAccount('inventory_asset');
@@ -103,9 +99,9 @@ class MovingWeightedAverageInventoryService
                 ]);
             }
 
-            $newQtyE6 = $balance->quantity_e6 + $quantityE6;
-            $newValueMinor = $balance->valuation_amount_minor + $lineValueMinor;
-            $avgCostE6 = intdiv($newValueMinor * 1000000, $newQtyE6);
+            $newQtyE6 = $this->checkedAdd($balance->quantity_e6, $quantityE6, 'quantity');
+            $newValueMinor = $this->checkedAdd($balance->valuation_amount_minor, $lineValueMinor, 'valuation');
+            $avgCostE6 = $this->averageUnitCostE6($newValueMinor, $newQtyE6);
 
             $balance->update([
                 'quantity_e6' => $newQtyE6,
@@ -117,9 +113,7 @@ class MovingWeightedAverageInventoryService
             // Create Journal Entry: Dr Inventory Asset / Cr GRNI Clearing
             /** @var JournalEntry $journalEntry */
             $journalEntry = JournalEntry::query()->create([
-                'journal_number' => null,
                 'entry_date' => $movementDate,
-                'fiscal_year_id' => $fiscalYearId,
                 'financial_period_id' => $financialPeriodId,
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,
@@ -138,7 +132,7 @@ class MovingWeightedAverageInventoryService
             $journalEntry->lines()->create([
                 'line_no' => 1,
                 'account_id' => $inventoryAccount->id,
-                'description' => 'Inventory Asset Receipt',
+                'memo' => 'Inventory Asset Receipt',
                 'debit_minor' => $lineValueMinor,
                 'credit_minor' => 0,
                 'debit_txn_minor' => $lineValueMinor,
@@ -151,7 +145,7 @@ class MovingWeightedAverageInventoryService
             $journalEntry->lines()->create([
                 'line_no' => 2,
                 'account_id' => $grniAccount->id,
-                'description' => 'GRNI Clearing',
+                'memo' => 'GRNI Clearing',
                 'debit_minor' => 0,
                 'credit_minor' => $lineValueMinor,
                 'debit_txn_minor' => 0,
@@ -209,8 +203,7 @@ class MovingWeightedAverageInventoryService
     ): StockMovementLedger {
         return DB::transaction(function () use (
             $sourceType, $sourceId, $sourceLineId, $movementDate, $productId,
-            $unitOfMeasureId, $currency, $quantityE6,
-            $fiscalYearId, $financialPeriodId, $actorId
+            $unitOfMeasureId, $currency, $quantityE6, $financialPeriodId, $actorId
         ): StockMovementLedger {
             // Idempotency check
             /** @var StockMovementLedger|null $existing */
@@ -253,16 +246,11 @@ class MovingWeightedAverageInventoryService
                 ]);
             }
 
-            // Residual-safe issue valuation math
-            if ($quantityE6 === $balance->quantity_e6) {
-                $issueCostMinor = $balance->valuation_amount_minor;
-            } else {
-                $issueCostMinor = intdiv($quantityE6 * $balance->valuation_amount_minor, $balance->quantity_e6);
-            }
+            $issueCostMinor = $this->issueValueMinor($quantityE6, $balance);
 
             $newQtyE6 = $balance->quantity_e6 - $quantityE6;
             $newValueMinor = $balance->valuation_amount_minor - $issueCostMinor;
-            $avgCostE6 = $newQtyE6 > 0 ? intdiv($newValueMinor * 1000000, $newQtyE6) : 0;
+            $avgCostE6 = $this->averageUnitCostE6($newValueMinor, $newQtyE6);
 
             $balance->update([
                 'quantity_e6' => $newQtyE6,
@@ -274,9 +262,7 @@ class MovingWeightedAverageInventoryService
             // Create Journal Entry: Dr COGS / Cr Inventory Asset
             /** @var JournalEntry $journalEntry */
             $journalEntry = JournalEntry::query()->create([
-                'journal_number' => null,
                 'entry_date' => $movementDate,
-                'fiscal_year_id' => $fiscalYearId,
                 'financial_period_id' => $financialPeriodId,
                 'source_type' => $sourceType,
                 'source_id' => $sourceId,
@@ -295,7 +281,7 @@ class MovingWeightedAverageInventoryService
             $journalEntry->lines()->create([
                 'line_no' => 1,
                 'account_id' => $cogsAccount->id,
-                'description' => 'Cost of Goods Sold',
+                'memo' => 'Cost of Goods Sold',
                 'debit_minor' => $issueCostMinor,
                 'credit_minor' => 0,
                 'debit_txn_minor' => $issueCostMinor,
@@ -308,7 +294,7 @@ class MovingWeightedAverageInventoryService
             $journalEntry->lines()->create([
                 'line_no' => 2,
                 'account_id' => $inventoryAccount->id,
-                'description' => 'Inventory Asset Issue',
+                'memo' => 'Inventory Asset Issue',
                 'debit_minor' => 0,
                 'credit_minor' => $issueCostMinor,
                 'debit_txn_minor' => 0,
@@ -349,5 +335,55 @@ class MovingWeightedAverageInventoryService
 
             return $movement;
         });
+    }
+
+    private function receiptValueMinor(int $quantityE6, int $unitCostMinor): int
+    {
+        $this->assertProductWithinIntegerRange($quantityE6, $unitCostMinor, 'unit_cost');
+
+        $product = $quantityE6 * $unitCostMinor;
+        if ($product % self::QUANTITY_SCALE !== 0) {
+            throw ValidationException::withMessages(['unit_cost' => ['Quantity and unit cost result in fractional minor units.']]);
+        }
+
+        return intdiv($product, self::QUANTITY_SCALE);
+    }
+
+    private function issueValueMinor(int $quantityE6, StockBalance $balance): int
+    {
+        if ($quantityE6 === $balance->quantity_e6) {
+            return $balance->valuation_amount_minor;
+        }
+
+        $this->assertProductWithinIntegerRange($quantityE6, $balance->valuation_amount_minor, 'stock');
+
+        return intdiv($quantityE6 * $balance->valuation_amount_minor, $balance->quantity_e6);
+    }
+
+    private function averageUnitCostE6(int $valuationAmountMinor, int $quantityE6): int
+    {
+        if ($quantityE6 <= 0) {
+            return 0;
+        }
+
+        $this->assertProductWithinIntegerRange($valuationAmountMinor, self::QUANTITY_SCALE, 'valuation');
+
+        return intdiv($valuationAmountMinor * self::QUANTITY_SCALE, $quantityE6);
+    }
+
+    private function checkedAdd(int $left, int $right, string $field): int
+    {
+        if ($right > 0 && $left > PHP_INT_MAX - $right) {
+            throw ValidationException::withMessages([$field => ['Inventory calculation exceeds supported integer range.']]);
+        }
+
+        return $left + $right;
+    }
+
+    private function assertProductWithinIntegerRange(int $left, int $right, string $field): void
+    {
+        if ($left !== 0 && $right !== 0 && $left > intdiv(PHP_INT_MAX, $right)) {
+            throw ValidationException::withMessages([$field => ['Inventory calculation exceeds supported integer range.']]);
+        }
     }
 }
