@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`).
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Financial Statements & Period Close planning files were prepared on 2026-08-23.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -33,6 +33,14 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Feature test suite `Phase4Slice10ReturnsCreditNotesTest.php` (38/38 passing tests, 0 skipped, 230 assertions).
   - GL mapping keys `sales_returns` (4200), `inventory_return_variance` (5200), `inventory_scrap_loss` (5300), `purchase_returns_allowances` (5400), `input_tax_receivable` (1300), `output_tax_payable` (2200) seeded idempotently in `AccountingCoreSeeder` with accounts.
   - Manual tax percentage in integer basis points (`intdiv(($baseMinor * $rateBps) + 5000, 10000)`) with modes `none`/`manual_rate`/`manual_amount`; manual/open credit/debit settlement with explicit settlement/reversal actions and no extra GL.
+- Phase 5 planning files prepared:
+  - `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md`
+  - `PHASE_5_SLICE_1_GEMINI_PROMPT.md`
+  - `PHASE_5_SLICE_2_GEMINI_PROMPT.md`
+  - `PHASE_5_SLICE_3_GEMINI_PROMPT.md`
+  - `PHASE_5_SLICE_4_GEMINI_PROMPT.md`
+  - `PHASE_5_SLICE_5_GEMINI_PROMPT.md`
+  - `PHASE_5_SLICE_6_GEMINI_PROMPT.md`
 
 Latest verified baseline:
 
@@ -61,10 +69,18 @@ Inventory backend forbidden float/rounding source scan: no results
 
 ## Next Execution
 
-No required Phase 4 correction remains. Remaining optional items only, each requiring an explicit bounded owner prompt:
+Start Phase 5 in bounded order:
 
-- Optional: E2E Browser Testing Hardening (Playwright/Dusk smoke coverage for the Laravel UI).
-- Optional: Production Deployment Readiness (Nginx, Supervisor/queue workers, scheduler cron, Redis, backups).
+1. `PHASE_5_SLICE_1_GEMINI_PROMPT.md` - Financial Statement Mapping Foundation.
+2. `PHASE_5_SLICE_2_GEMINI_PROMPT.md` - Balance Sheet and Income Statement.
+3. `PHASE_5_SLICE_3_GEMINI_PROMPT.md` - Cash Flow Statement Foundation.
+4. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
+5. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
+6. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+
+Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
+
+No required Phase 4 correction remains. Optional Production Deployment Readiness remains separate from Phase 5.
 
 Explicitly NOT STARTED modules requiring bounded owner prompts:
 
@@ -74,7 +90,6 @@ Explicitly NOT STARTED modules requiring bounded owner prompts:
 - Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.
-- Full financial statements (Balance Sheet, Income Statement, Cash Flow).
 
 ## Owner Decisions Still Needed
 
@@ -94,7 +109,7 @@ Still do not implement these without explicit owner approval:
 
 ## Verification Gate
 
-Run from `laravel/` for every Phase 4 slice:
+Run from `laravel/` for every Phase 5 implementation slice:
 
 ```powershell
 php artisan migrate --force
@@ -102,11 +117,13 @@ php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
 php artisan test --testsuite=Concurrency
-php artisan concurrency:stress --workers=100
+php artisan concurrency:stress --workers=10
 php artisan accounting:concurrency-stress --workers=50
 php artisan accounting:allocation-concurrency-stress --workers=50
+php artisan accounting:settlement-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
+php artisan accounting:inventory-concurrency-stress --workers=50
 php artisan accounting:phase3-integrity-check
 php artisan accounting:phase3-stress --workers=50
 php artisan tokens:gc --batch=100

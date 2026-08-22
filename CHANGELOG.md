@@ -3,6 +3,17 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 5 Financial Statements & Period Close Planning (2026-08-23)
+- Added `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md` as the master planning contract for Financial Statements and Period Close.
+- Added six bounded Gemini execution prompts:
+  - `PHASE_5_SLICE_1_GEMINI_PROMPT.md` Financial Statement Mapping Foundation.
+  - `PHASE_5_SLICE_2_GEMINI_PROMPT.md` Balance Sheet and Income Statement.
+  - `PHASE_5_SLICE_3_GEMINI_PROMPT.md` Cash Flow Statement Foundation.
+  - `PHASE_5_SLICE_4_GEMINI_PROMPT.md` Period Close Controls and Posting Guards.
+  - `PHASE_5_SLICE_5_GEMINI_PROMPT.md` Year-End Close and Retained Earnings Decision Pack.
+  - `PHASE_5_SLICE_6_GEMINI_PROMPT.md` UX, Export/Print, E2E Smoke, and Close-Out.
+- Updated `CONTINUE_HERE.md`, `NEXT_TASKS.md`, and `IMPLEMENTATION_STATUS.md` so Phase 5 starts from Slice 1 with exact permission checks and no hardcoded visible UI text/team/tenant assumptions.
+
 ### Added — Phase 4 Slice 10 Manual AR/AP Settlement Pass (2026-08-22)
 - Implemented manual settlement schema and models for note-created AR/AP entries: `receivable_entry_settlement` and `payable_entry_settlement` (`2026_08_22_200000_create_phase4_slice10_settlement_tables.php`).
 - Implemented domain services: `ReceivableEntrySettlementService` (credit note settlement against invoice debits) and `PayableEntrySettlementService` (supplier adjustment note settlement against bill credits) with deterministic ID row-locking (`orderBy('id', 'asc')->lockForUpdate()`), capacity & match validation, `AuditLogger` integration, and idempotency store protection.
