@@ -25,6 +25,7 @@ Inspect:
 - all services that create/post/reverse documents into `financial_period_id`
 - current `/accounting/periods` page/actions
 - current RBAC config
+- actual migrations/models for every document table touched by close blockers; do not reference guessed number/status/date columns
 
 ## Objective
 
@@ -43,8 +44,10 @@ Do not introduce:
 - mutation of posted ledger entries
 - hardcoded UI text in TSX
 - broad permission shortcuts for close/reopen
+- posting guards based on `created_at` / `updated_at`
 
 Preserve single-ERP FinancialPeriod/FiscalYear context.
+Posting and close logic must use accounting/document dates and `financial_period_id`, not row timestamps.
 
 ## Required Scope
 
@@ -53,6 +56,16 @@ Period status:
 - preserve allowed statuses: `open`, `closed`, `reopened`
 - if adding metadata, use fields such as `closed_by`, `closed_at`, `reopened_by`, `reopened_at`, and `close_note`
 - do not add company/branch fields
+- closed means no new accounting/stock/subledger financial impact may be posted into that period
+- reopened must behave as postable/open for guards, but must keep audit metadata showing that the period was reopened
+
+Guard design:
+
+- Prefer a central application service such as `FinancialPeriodGuard` / `PeriodGuard` reused by posting services. If an existing service is extended instead, document the exact method and every caller.
+- Guard method must lock/read the target FinancialPeriod by id where appropriate and reject statuses other than `open` or `reopened`.
+- Guard method must validate that the posting/accounting date falls inside the selected period start/end bounds.
+- Guard failures must throw a typed/domain exception or validation exception already used by the app; do not silently redirect or rely only on controller dropdown filtering.
+- PostingEngine must be protected as a final safety net. Service-level guards must also exist so domain services fail before partial side effects.
 
 Close readiness checks:
 
@@ -60,6 +73,8 @@ Close readiness checks:
 - report blockers with entity type, number/reference, status, and route if available
 - include at minimum journal entries, opening balances, customer/supplier opening balances, receipts/payments, cheques with pending posting impact, bank reconciliations, sales/purchase documents that post, returns, credit notes, supplier adjustment notes, and inventory-impacting documents
 - do not delete, auto-cancel, auto-post, or mutate blockers
+- use actual table columns and states after inspection; if a module has no postable pending state for the selected period, explicitly report "covered by design" with reason
+- close blockers must be calculated from explicit `financial_period_id` and/or accounting/document date fields, never `created_at`
 
 Posting guards:
 
@@ -67,12 +82,15 @@ Posting guards:
 - apply to manual journals, reversals, opening balances, AR/AP documents, receipts/payments, cheque lifecycle postings, bank reconciliation finalization if it posts, invoices, bills, returns, credit notes, supplier adjustments, goods receipts/delivery notes inventory postings, and inventory costing movements
 - controller period dropdown filtering is not enough
 - service-level/server-side checks are mandatory
+- every service inspected must be listed in the final report as `guard added`, `already guarded`, or `not period-impacting`, with file/method reference
 
 Concurrency:
 
 - close must use a transaction and deterministic locking on the selected financial period
 - concurrent close and post attempts must not both succeed when they conflict
 - reopen must be explicit and audited
+- if PostgreSQL advisory locks or row locks are used, explain the lock key/order and prove no deadlock-prone mixed ordering is introduced
+- close/readiness must re-check blockers inside the same transaction after acquiring the period lock
 
 ## RBAC
 
@@ -96,6 +114,7 @@ Frontend requirements:
 - show close blockers clearly
 - do not add a landing page
 - no currentCompany/currentBranch props
+- close/reopen modals/forms must not contain hardcoded visible strings; use dictionaries for titles, button text, blockers, statuses, empty states, and validation messages
 
 ## Audit
 
@@ -122,8 +141,25 @@ Add tests for:
 - close requires `close_period`
 - concurrent close/post race safety
 - no company/branch/tenant fields
+- date-in-period validation rejects mismatched `financial_period_id` and posting date
+- PostingEngine final safety net rejects closed period even if called directly
+- period close does not mutate or auto-post blockers
+- TSX pages do not introduce new hardcoded visible English labels for close/reopen UI
 
 Add a stress command or concurrency test if the current suite lacks close/post race coverage.
+
+## Mandatory Source Scans Before Completion
+
+Run and report the results:
+
+```powershell
+rg -n "created_at|updated_at" laravel/app/Application laravel/app/Http/Controllers laravel/tests/Feature
+rg -n "settings\\.configure|Gate::authorize\\('settings\\.configure'|can\\('settings\\.configure'" laravel/app laravel/resources/js laravel/tests
+rg -n "Close Period|Reopen Period|Closed|Reopened|Blockers|Close readiness|Posting period" laravel/resources/js/Pages laravel/resources/js/Components
+rg -n "company_id|branch_id|tenant_id|currentCompany|currentBranch|Spatie Teams" laravel/database/migrations laravel/app laravel/resources/js laravel/tests
+```
+
+Investigate every match. Timestamp matches are acceptable only for audit metadata such as `closed_at`/`reopened_at`, never for accounting period filtering. `settings.configure` must not bypass close/reopen permissions.
 
 ## Required Verification
 

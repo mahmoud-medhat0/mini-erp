@@ -3,6 +3,13 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Corrected — Phase 5 Remaining Prompt Hardening (2026-08-23)
+- Tightened `PHASE_5_FINANCIAL_STATEMENTS_PERIOD_CLOSE.md` and remaining Slice 3-6 prompts with stricter acceptance rules for accounting date fields, integer money formatting, exact permissions, no hardcoded visible TSX text, no tenant/company/branch assumptions, source scans, and final reporting evidence.
+- Made Slice 3 Cash Flow rules explicit: cash-equivalent derivation from CashAccount/BankAccount GL links, `ledger_entry.entry_date` filtering, explicit cash-flow classifications only, internal cash transfer handling, mixed classification warnings, and exact reconciliation formula.
+- Made Slice 4 Period Close rules explicit: service-level closed-period guards, PostingEngine final safety net, blocker inspection by actual schema columns, close/post race protection, and no `settings.configure` bypass.
+- Made Slice 5 docs-only by default and marked year-end close/retained earnings as `OWNER DECISION REQUIRED` with no migrations/models/services/routes/pages allowed.
+- Made Slice 6 close-out stricter for UI/export/print consistency, E2E smoke evidence, source scans, and final verification report requirements.
+
 ### Added — Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation (2026-08-22)
 - Implemented `BalanceSheetReportService` generating read-only Balance Sheet financial position as of a specified date from immutable posted `ledger_entry` records and statement line taxonomy mappings; compares Total Assets to Liabilities + Equity, calculates `is_balanced` status and imbalance amount, and handles contra-asset/contra-liability display signs.
 - Implemented `IncomeStatementReportService` generating read-only Income Statement profit and loss over a date range or fiscal period; calculates Net Revenue (Gross Revenue less Sales Returns & Allowances), Gross Profit, Operating Income, and Net Income / (Loss).

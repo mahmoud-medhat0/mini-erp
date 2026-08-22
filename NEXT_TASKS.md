@@ -55,6 +55,7 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 - Execute **Phase 5 Slice 3: Cash Flow Statement Foundation**:
   - Read `PHASE_5_SLICE_3_GEMINI_PROMPT.md`.
+  - Use the hardened 2026-08-23 prompt rules: no timestamp-based financial filtering, no float money formatting, no hardcoded visible TSX text, exact permissions only, and mandatory source scans before reporting completion.
   - Implement Cash Flow statement generation service (Indirect/Direct method foundation) categorizing operating, investing, and financing cash flows from posted ledger movements.
   - Create report controller, routes under `reports.cash_flow`, and Inertia reporting page (`CashFlow.tsx`).
   - Add feature tests for cash flow classification, date filtering, and permission guards.

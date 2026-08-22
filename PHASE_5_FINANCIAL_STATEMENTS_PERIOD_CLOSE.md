@@ -1,6 +1,6 @@
 # PHASE 5 - FINANCIAL STATEMENTS & PERIOD CLOSE
 
-Status: PLANNED
+Status: PARTIAL
 
 This document is the Phase 5 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -13,6 +13,8 @@ The Laravel target is complete and locally verified through:
 - M10 Spatie Activitylog audit backend, scheduler, and jobs baseline.
 - Phase 3 Slices 1-10 AR/AP + Cash/Bank/Cheques.
 - Phase 4 Slices 1-10 Sales, Purchasing, Moving Weighted Average Inventory, Returns, Credit Notes, Supplier Adjustments, and Manual AR/AP Note Settlement.
+- Phase 5 Slice 1 Financial Statement Mapping Foundation.
+- Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation, including the local correction pass that requires report filtering by `ledger_entry.entry_date` and not row `created_at`.
 
 Read first:
 
@@ -65,6 +67,21 @@ Preserve:
 - immutable posted accounting records
 - immutable stock movement ledger
 - corrections through reversal/credit/debit documents, not mutation of posted ledgers
+
+## Strict Review-Avoidance Contract
+
+Every remaining Phase 5 slice must satisfy these rules before reporting completion:
+
+- Inspect the actual migrations/models/services before coding and do not reference columns that do not exist.
+- Report date filters must use accounting dates (`ledger_entry.entry_date`, `journal_entry.entry_date`, or explicit document/period dates as appropriate), never audit timestamps such as `created_at` unless the feature is explicitly about creation timestamps.
+- Financial reporting must read immutable posted accounting records only. Draft/submitted documents may appear as close blockers, but not as statement balances.
+- Money/report totals must use integer minor units end-to-end. Frontend formatting must avoid floating-point division; split minor units with integer math.
+- Unmapped/unclassified warnings must include only records that materially affect the selected report period/range. Do not show noisy warnings for inactive records or zero-movement accounts.
+- Server-side authorization must be tested for every route/action/export/print endpoint. UI `useCan` checks are not a substitute.
+- New TSX pages/components must not contain hardcoded visible English/Arabic strings. Translation keys/import names are allowed; visible labels, titles, statuses, empty states, table headers, button text, and warnings must come from dictionaries or backend multilingual payloads.
+- New report/export output must be reconciled against the service totals in tests; UI, CSV, and service calculations must not diverge.
+- Add regression tests for the exact mistakes likely in this slice, especially date-field misuse, non-existent columns, permission bypass, float math, and hidden unclassified/unmapped records.
+- Run targeted source scans before final report and classify every result as acceptable or fixed.
 
 ## Permission & UI Contract
 
@@ -148,15 +165,19 @@ Use existing systems:
 
 3. `PHASE_5_SLICE_3_GEMINI_PROMPT.md`
    - Cash Flow Statement Foundation.
+   - Must implement explicit cash-flow classification only; no guessed operating/investing/financing logic.
 
 4. `PHASE_5_SLICE_4_GEMINI_PROMPT.md`
    - Period Close Controls and Posting Guards.
+   - Must centrally or consistently enforce service-level closed-period posting guards.
 
 5. `PHASE_5_SLICE_5_GEMINI_PROMPT.md`
    - Year-End Close and Retained Earnings Decision Pack.
+   - Documentation/decision slice unless the owner has explicitly approved a retained earnings posting model.
 
 6. `PHASE_5_SLICE_6_GEMINI_PROMPT.md`
    - Phase 5 UX, Export/Print, E2E Smoke, and Close-Out Verification.
+   - Must verify no hardcoded visible Phase 5 UI text remains and produce the final Phase 5 verification report.
 
 ## Verification Gate
 
