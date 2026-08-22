@@ -1,10 +1,11 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type CustomerReceiptRow = {
@@ -50,8 +51,8 @@ export default function CustomerReceiptsIndex({
   periods = [],
   currencies = [],
 }: CustomerReceiptProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<'cash' | 'bank'>('cash');
@@ -92,7 +93,7 @@ export default function CustomerReceiptsIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(isAr ? 'هل أنت تأكد من ترحيل سند القبض؟' : 'Are you sure you want to post this customer receipt?')) {
+    if (confirm(dict.app.pages.customerReceipts.areYouSureYouWantTo)) {
       post(`/customer-receipts/${id}/post`);
     }
   };
@@ -105,43 +106,45 @@ export default function CustomerReceiptsIndex({
 
   return (
     <AppLayout active="customer-receipts.index">
-      <Head title={isAr ? 'سندات القبض - Mini ERP' : 'Customer Receipts - Mini ERP'} />
+      <Head title={dict.app.pages.customerReceipts.customerReceiptsMiniErp} />
 
       <PageHeader
-        title={isAr ? 'سندات القبض من العملاء' : 'Customer Receipts'}
-        description={isAr ? 'إنشاء وتتبع سندات القبض النقدية والبنكية من العملاء وترحيلها لخصم المستحقات.' : 'Record and post customer cash/bank receipts.'}
+        title={dict.app.pages.customerReceipts.customerReceipts}
+        description={dict.app.pages.customerReceipts.recordAndPostCustomerCashBank}
         actions={
-          <button
-            type="button"
-            onClick={() => {
-              reset();
-              setShowModal(true);
-            }}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ سند قبض جديد' : '+ New Customer Receipt'}
-          </button>
+          can('customers.receipts') ? (
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                setShowModal(true);
+              }}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.customerReceipts.newCustomerReceipt}
+            </button>
+          ) : null
         }
       />
 
       {receipts.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد سندات قبض' : 'No Customer Receipts Found'}
-          description={isAr ? 'قم بإضافة اول سند قبض بالضغط على الزر اعلاه.' : 'Get started by creating your first customer receipt.'}
+          title={dict.app.pages.customerReceipts.noCustomerReceiptsFound}
+          description={dict.app.pages.customerReceipts.getStartedByCreatingYourFirst}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'رقم السند' : 'Receipt No.'}</th>
-                <th className={tableClasses.th}>{isAr ? 'العميل' : 'Customer'}</th>
-                <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحساب المستلم' : 'Destination'}</th>
-                <th className={tableClasses.th}>{isAr ? 'المبلغ الإجمالي' : 'Total Amount'}</th>
-                <th className={tableClasses.th}>{isAr ? 'غير مسوى (متبقي)' : 'Unapplied'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.receiptNo}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.customer}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.date}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.destination}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.totalAmount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.unapplied}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.status}</th>
+                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -163,24 +166,26 @@ export default function CustomerReceiptsIndex({
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={row.status === 'posted' ? 'ok' : 'warning'}>
-                      {row.status === 'posted' ? (isAr ? 'رحل' : 'Posted') : (isAr ? 'مسودة' : 'Draft')}
+                      {row.status === 'posted' ? dict.app.pages.customerReceipts.posted : dict.app.pages.customerReceipts.draft}
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
                     {row.status === 'draft' ? (
-                      <button
-                        type="button"
-                        onClick={() => handlePost(row.id)}
-                        className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                      >
-                        {isAr ? 'ترحيل' : 'Post'}
-                      </button>
+                      can('customers.receipts') ? (
+                        <button
+                          type="button"
+                          onClick={() => handlePost(row.id)}
+                          className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          {dict.app.pages.customerReceipts.post}
+                        </button>
+                      ) : null
                     ) : (
                       <a
                         href={`/receivable-allocations?receipt_id=${row.id}`}
                         className="text-xs font-bold text-[var(--primary)] hover:underline"
                       >
-                        {isAr ? 'تسوية' : 'Allocate'}
+                        {dict.app.pages.customerReceipts.allocate}
                       </a>
                     )}
                   </td>
@@ -196,13 +201,13 @@ export default function CustomerReceiptsIndex({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {isAr ? 'إنشاء سند قبض جديد' : 'Create New Customer Receipt'}
+              {dict.app.pages.customerReceipts.createNewCustomerReceipt}
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اختر العميل' : 'Customer'} *
+                  {dict.app.pages.customerReceipts.customer_2} *
                 </label>
                 <SearchableSelect
                   options={customerSelectOptions}
@@ -216,22 +221,22 @@ export default function CustomerReceiptsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'جهة الاستلام' : 'Destination Type'}
+                    {dict.app.pages.customerReceipts.destinationType}
                   </label>
                   <select
                     value={destinationType}
                     onChange={(e) => setDestinationType(e.target.value as any)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
                   >
-                    <option value="cash">{isAr ? 'خزينة نقدية' : 'Cash Account'}</option>
-                    <option value="bank">{isAr ? 'حساب بنكي' : 'Bank Account'}</option>
+                    <option value="cash">{dict.app.pages.customerReceipts.cashAccount}</option>
+                    <option value="bank">{dict.app.pages.customerReceipts.bankAccount}</option>
                   </select>
                 </div>
                 <div>
                   {destinationType === 'cash' ? (
                     <div>
                       <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                        {isAr ? 'اختر الخزينة' : 'Cash Account'} *
+                        {dict.app.pages.customerReceipts.cashAccount_2} *
                       </label>
                       <SearchableSelect
                         options={cashSelectOptions}
@@ -243,7 +248,7 @@ export default function CustomerReceiptsIndex({
                   ) : (
                     <div>
                       <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                        {isAr ? 'اختر الحساب البنكي' : 'Bank Account'} *
+                        {dict.app.pages.customerReceipts.bankAccount_2} *
                       </label>
                       <SearchableSelect
                         options={bankSelectOptions}
@@ -259,7 +264,7 @@ export default function CustomerReceiptsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <DatePicker
-                    label={isAr ? 'تاريخ السند' : 'Receipt Date'}
+                    label={dict.app.pages.customerReceipts.receiptDate}
                     value={data.receipt_date}
                     onChange={(val) => setData('receipt_date', val || '')}
                     required
@@ -267,7 +272,7 @@ export default function CustomerReceiptsIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'الفترة المالية' : 'Financial Period'} *
+                    {dict.app.pages.customerReceipts.financialPeriod} *
                   </label>
                   <SearchableSelect
                     options={periodSelectOptions}
@@ -281,7 +286,7 @@ export default function CustomerReceiptsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'العملة' : 'Currency'} *
+                    {dict.app.pages.customerReceipts.currency} *
                   </label>
                   <SearchableSelect
                     options={currencyOptions}
@@ -292,7 +297,7 @@ export default function CustomerReceiptsIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'المبلغ' : 'Amount'} *
+                    {dict.app.pages.customerReceipts.amount} *
                   </label>
                   <input
                     type="number"
@@ -309,7 +314,7 @@ export default function CustomerReceiptsIndex({
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'المرجع المستندي / البيان' : 'Reference / Description'}
+                  {dict.app.pages.customerReceipts.referenceDescription}
                 </label>
                 <input
                   type="text"
@@ -326,14 +331,14 @@ export default function CustomerReceiptsIndex({
                   onClick={() => setShowModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.customerReceipts.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {processing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ مسودة' : 'Save Draft')}
+                  {processing ? dict.app.pages.customerReceipts.saving : dict.app.pages.customerReceipts.saveDraft}
                 </button>
               </div>
             </form>

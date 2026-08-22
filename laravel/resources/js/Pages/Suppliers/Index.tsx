@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type SupplierRow = {
@@ -30,8 +31,8 @@ type SuppliersProps = SharedPageProps & {
 };
 
 export default function SuppliersIndex({ locale, suppliers, filters }: SuppliersProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<SupplierRow | null>(null);
@@ -89,19 +90,21 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
 
   return (
     <AppLayout active="suppliers.index">
-      <Head title={isAr ? 'إدارة الموردين - Mini ERP' : 'Suppliers - Mini ERP'} />
+      <Head title={dict.app.pages.suppliers.suppliersMiniErp} />
 
       <PageHeader
-        title={isAr ? 'إدارة الموردين' : 'Supplier Master Data'}
-        description={isAr ? 'إدارة سجلات الموردين والبيانات الأساسية وتفاصيل الاتصال.' : 'Manage supplier records, tax numbers, and contact details.'}
+        title={dict.app.pages.suppliers.supplierMasterData}
+        description={dict.app.pages.suppliers.manageSupplierRecordsTaxNumbersAnd}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ إضافة مورد جديد' : '+ Create Supplier'}
-          </button>
+          can('suppliers.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.suppliers.createSupplier}
+            </button>
+          ) : null
         }
       />
 
@@ -109,7 +112,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="text"
-            placeholder={isAr ? 'بحث بالكود أو الاسم أو الهاتـف...' : 'Search by code, name, phone...'}
+            placeholder={dict.app.pages.suppliers.searchByCodeNamePhone}
             defaultValue={filters.search || ''}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -124,21 +127,21 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
 
       {suppliers.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد موردين' : 'No Suppliers Found'}
-          description={isAr ? 'قم بإضافة اول مورد بالضغط على زر الإنشاء اعلاه.' : 'Get started by creating your first supplier.'}
+          title={dict.app.pages.suppliers.noSuppliersFound}
+          description={dict.app.pages.suppliers.getStartedByCreatingYourFirst}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'الكود' : 'Code'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الاسم' : 'Name'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الهاتف' : 'Phone'}</th>
-                <th className={tableClasses.th}>{isAr ? 'البريد الإلكتروني' : 'Email'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الرقم الضريبي' : 'Tax Number'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.code}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.name}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.phone}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.email}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.taxNumber}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.status}</th>
+                <th className={tableClasses.th}>{dict.app.pages.suppliers.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -151,17 +154,19 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                   <td className={`${tableClasses.td} font-mono text-xs`}>{supplier.tax_number || '—'}</td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={supplier.status === 'active' ? 'ok' : 'muted'}>
-                      {supplier.status === 'active' ? (isAr ? 'نشط' : 'Active') : (isAr ? 'غير نشط' : 'Inactive')}
+                      {supplier.status === 'active' ? dict.app.pages.suppliers.active_2 : dict.app.pages.suppliers.inactive_2}
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(supplier)}
-                      className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                    >
-                      {isAr ? 'تعديل' : 'Edit'}
-                    </button>
+                    {can('suppliers.edit') ? (
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(supplier)}
+                        className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+                      >
+                        {dict.app.pages.suppliers.edit}
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -175,14 +180,14 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {editingSupplier ? (isAr ? 'تعديل بيانات المورد' : 'Edit Supplier') : (isAr ? 'إضافة مورد جديد' : 'Create New Supplier')}
+              {editingSupplier ? dict.app.pages.suppliers.editSupplier : dict.app.pages.suppliers.createNewSupplier}
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'كود المورد' : 'Code'} *
+                    {dict.app.pages.suppliers.code_2} *
                   </label>
                   <input
                     type="text"
@@ -195,22 +200,22 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'الحالة' : 'Status'} *
+                    {dict.app.pages.suppliers.status_2} *
                   </label>
                   <select
                     value={data.status}
                     onChange={(e) => setData('status', e.target.value as any)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
                   >
-                    <option value="active">{isAr ? 'نشط' : 'Active'}</option>
-                    <option value="inactive">{isAr ? 'غير نشط' : 'Inactive'}</option>
+                    <option value="active">{dict.app.pages.suppliers.active}</option>
+                    <option value="inactive">{dict.app.pages.suppliers.inactive}</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اسم المورد' : 'Supplier Name'} *
+                  {dict.app.pages.suppliers.supplierName} *
                 </label>
                 <input
                   type="text"
@@ -225,7 +230,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'الهاتف' : 'Phone'}
+                    {dict.app.pages.suppliers.phone_2}
                   </label>
                   <input
                     type="text"
@@ -236,7 +241,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'البريد الإلكتروني' : 'Email'}
+                    {dict.app.pages.suppliers.email_2}
                   </label>
                   <input
                     type="email"
@@ -249,7 +254,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'الرقم الضريبي' : 'Tax Number'}
+                  {dict.app.pages.suppliers.taxNumber_2}
                 </label>
                 <input
                   type="text"
@@ -261,7 +266,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'العنوان' : 'Address'}
+                  {dict.app.pages.suppliers.address}
                 </label>
                 <textarea
                   value={data.address}
@@ -277,14 +282,14 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                   onClick={() => setShowModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.suppliers.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {processing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ البيانات' : 'Save Supplier')}
+                  {processing ? dict.app.pages.suppliers.saving : dict.app.pages.suppliers.saveSupplier}
                 </button>
               </div>
             </form>

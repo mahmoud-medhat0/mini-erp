@@ -6,6 +6,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type ChequeRegisterProps = SharedPageProps & {
   report: {
@@ -54,7 +55,7 @@ type ChequeRegisterProps = SharedPageProps & {
 };
 
 export default function ChequeRegister({ locale, report, customers, suppliers, bankAccounts, currencies, filters }: ChequeRegisterProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [direction, setDirection] = useState(filters.direction || 'all');
   const [status, setStatus] = useState(filters.status || '');
@@ -85,14 +86,14 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
 
   return (
     <AppLayout active="reports.cheque-register">
-      <Head title={isAr ? 'سجل ومتابعة الشيكات - Mini ERP' : 'Cheque Register Report - Mini ERP'} />
+      <Head title={dict.app.pages.reportsChequeRegister.chequeRegisterReportMiniErp} />
 
       <PageHeader
-        title={isAr ? 'سجل ومتابعة الشيكات' : 'Cheque Register Report'}
-        description={isAr ? 'تقرير تجميعي وقراءات الشيكات الواردة والصادرة وحالات الاستحقاق والصرف.' : 'Read-only tracking register for incoming and outgoing cheques across all lifecycle states.'}
+        title={dict.app.pages.reportsChequeRegister.chequeRegisterReport}
+        description={dict.app.pages.reportsChequeRegister.readOnlyTrackingRegisterForIncoming}
         actions={
           <Button variant="secondary" onClick={handleExport}>
-            {isAr ? 'تصدير CSV' : 'Export CSV'}
+            {dict.app.pages.reportsChequeRegister.exportCsv}
           </Button>
         }
       />
@@ -102,13 +103,13 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'اتجاه الشيك' : 'Cheque Direction'}
+                {dict.app.pages.reportsChequeRegister.chequeDirection}
               </label>
               <SearchableSelect
                 options={[
-                  { value: 'all', label: isAr ? 'الكل (وارد وصادر)' : 'All (Incoming & Outgoing)' },
-                  { value: 'incoming', label: isAr ? 'شيكات واردة فقط' : 'Incoming Only' },
-                  { value: 'outgoing', label: isAr ? 'شيكات صادرة فقط' : 'Outgoing Only' },
+                  { value: 'all', label: dict.app.pages.reportsChequeRegister.allIncomingOutgoing },
+                  { value: 'incoming', label: dict.app.pages.reportsChequeRegister.incomingOnly },
+                  { value: 'outgoing', label: dict.app.pages.reportsChequeRegister.outgoingOnly },
                 ]}
                 value={direction}
                 onChange={(val) => setDirection(val || 'all')}
@@ -116,11 +117,11 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'العميل' : 'Customer'}
+                {dict.app.pages.reportsChequeRegister.customer}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع العملاء' : 'All Customers' },
+                  { value: '', label: dict.app.pages.reportsChequeRegister.allCustomers },
                   ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
                 ]}
                 value={customerId}
@@ -129,11 +130,11 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'المورد' : 'Supplier'}
+                {dict.app.pages.reportsChequeRegister.supplier}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع الموردين' : 'All Suppliers' },
+                  { value: '', label: dict.app.pages.reportsChequeRegister.allSuppliers },
                   ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` })),
                 ]}
                 value={supplierId}
@@ -142,11 +143,11 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'الحساب البنكي' : 'Bank Account'}
+                {dict.app.pages.reportsChequeRegister.bankAccount}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع الحسابات' : 'All Bank Accounts' },
+                  { value: '', label: dict.app.pages.reportsChequeRegister.allBankAccounts },
                   ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` })),
                 ]}
                 value={bankAccountId}
@@ -155,11 +156,11 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حالة الشيك' : 'Status'}
+                {dict.app.pages.reportsChequeRegister.status}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع الحالات' : 'All Statuses' },
+                  { value: '', label: dict.app.pages.reportsChequeRegister.allStatuses },
                   { value: 'received', label: 'Received' },
                   { value: 'deposited', label: 'Deposited' },
                   { value: 'issued', label: 'Issued' },
@@ -174,11 +175,11 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حساب البنك' : 'Bank Account'}
+                {dict.app.pages.reportsChequeRegister.bankAccount_2}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع البنوك' : 'All Banks' },
+                  { value: '', label: dict.app.pages.reportsChequeRegister.allBanks },
                   ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` })),
                 ]}
                 value={bankAccountId}
@@ -187,7 +188,7 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'تطبيق الفلتر' : 'Apply Filters'}
+                {dict.app.pages.reportsChequeRegister.applyFilters}
               </Button>
             </div>
           </div>
@@ -195,23 +196,23 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'عدد الشيكات' : 'Cheque Count'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsChequeRegister.chequeCount}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">{report.total_count}</div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي الوارد' : 'Total Incoming'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsChequeRegister.totalIncoming}</div>
             <div className="text-sm font-bold text-emerald-600">
               {formatMoney(report.incoming_total_minor, report.filters.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي الصادر' : 'Total Outgoing'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsChequeRegister.totalOutgoing}</div>
             <div className="text-sm font-bold text-rose-600">
               {formatMoney(report.outgoing_total_minor, report.filters.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي قيمة الشيكات' : 'Grand Total'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsChequeRegister.grandTotal}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
               {formatMoney(report.total_amount_minor, report.filters.currency)}
             </div>
@@ -222,12 +223,12 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'الاطراف/الجهة' : 'Direction / Party'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'رقم الشيك' : 'Cheque No.'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'تاريخ الاستحقاق' : 'Due Date'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'حساب البنك' : 'Bank Account'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'الحالة' : 'Status'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'المبلغ' : 'Amount'}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.directionParty}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.chequeNo}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.dueDate}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.bankAccount_3}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.status_2}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.amount}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
@@ -255,7 +256,7 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
               {report.items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-[var(--text-muted)]">
-                    {isAr ? 'لا توجد شيكات تطابق الفلتر المحدد.' : 'No cheques found matching the specified filters.'}
+                    {dict.app.pages.reportsChequeRegister.noChequesFoundMatchingTheSpecified}
                   </td>
                 </tr>
               ) : null}

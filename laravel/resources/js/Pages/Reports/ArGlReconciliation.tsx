@@ -6,6 +6,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type ArGlReconciliationProps = SharedPageProps & {
   report: {
@@ -29,7 +30,7 @@ type ArGlReconciliationProps = SharedPageProps & {
 };
 
 export default function ArGlReconciliation({ locale, report, currencies, filters }: ArGlReconciliationProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date);
   const [currency, setCurrency] = useState(filters.currency);
@@ -48,14 +49,14 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
 
   return (
     <AppLayout active="reports.ar-gl-reconciliation">
-      <Head title={isAr ? 'مطابقة العملاء بالأستاذ - Mini ERP' : 'AR to GL Recon - Mini ERP'} />
+      <Head title={dict.app.pages.reportsArGlReconciliation.arToGlReconMiniErp} />
 
       <PageHeader
-        title={isAr ? 'مطابقة ميزان الذمم المدينة مع حساب الأستاذ العام' : 'AR to GL Control Reconciliation'}
-        description={isAr ? 'مقارنة رصيد ميزان مبيعات/ذمم العملاء الفرعي مع رصيد حساب مراقبة العملاء بالأستاذ.' : 'Reconciles total active customer subledger balances against the GL AR control account.'}
+        title={dict.app.pages.reportsArGlReconciliation.arToGlControlReconciliation}
+        description={dict.app.pages.reportsArGlReconciliation.reconcilesTotalActiveCustomerSubledgerBalances}
         actions={
           <Button variant="secondary" onClick={handleExport}>
-            {isAr ? 'تصدير CSV' : 'Export CSV'}
+            {dict.app.pages.reportsArGlReconciliation.exportCsv}
           </Button>
         }
       />
@@ -65,13 +66,13 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حتى تاريخ' : 'As of Date'}
+                {dict.app.pages.reportsArGlReconciliation.asOfDate}
               </label>
               <DatePicker value={asOfDate} onChange={(val) => setAsOfDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'العملة' : 'Currency'}
+                {dict.app.pages.reportsArGlReconciliation.currency}
               </label>
               <SearchableSelect
                 options={currencies.map((c) => ({ value: c.code, label: c.code }))}
@@ -81,7 +82,7 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'تحديث التقرير' : 'Update Report'}
+                {dict.app.pages.reportsArGlReconciliation.updateReport}
               </Button>
             </div>
           </div>
@@ -89,22 +90,20 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
 
         {!report.mapping_configured ? (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-medium">
-            {isAr
-              ? 'تنبيه: حساب مراقبة العملاء (ar_control) غير معين في جدول التعيينات الحسابية. يرجى ضبط التعيين أولاً.'
-              : 'Warning: AR Control account (ar_control) mapping is missing. Please configure accounting account mappings.'}
+            {dict.app.pages.reportsArGlReconciliation.warningArControlAccountArControl}
           </div>
         ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي ميزان العملاء الفرعي' : 'AR Subledger Total'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsArGlReconciliation.arSubledgerTotal}</div>
             <div className="text-base font-bold text-[var(--text-primary)]">
               {formatMoney(report.subledger_total_minor, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
             <div className="text-xs text-[var(--text-secondary)] mb-1">
-              {isAr ? 'رصيد حساب مراقبة العملاء (الأستاذ)' : 'AR Control Account (GL)'}
+              {dict.app.pages.reportsArGlReconciliation.arControlAccountGl}
               {report.ar_control_account ? ` (${report.ar_control_account.code})` : ''}
             </div>
             <div className="text-base font-bold text-blue-600">
@@ -112,20 +111,20 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
             </div>
           </div>
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'الفارق بين الفرعي والأستاذ' : 'Reconciliation Difference'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsArGlReconciliation.reconciliationDifference}</div>
             <div className={`text-base font-bold ${report.difference_minor === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {formatMoney(report.difference_minor, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
             <div>
-              <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'حالة المطابقة' : 'Reconciliation Status'}</div>
+              <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsArGlReconciliation.reconciliationStatus}</div>
               <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
                 report.is_reconciled
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                   : 'bg-rose-100 text-rose-800 border border-rose-300'
               }`}>
-                {report.is_reconciled ? (isAr ? 'مطابق تماماً' : 'RECONCILED') : (isAr ? 'يوجد فارق' : 'UNRECONCILED')}
+                {report.is_reconciled ? dict.app.pages.reportsArGlReconciliation.reconciled : dict.app.pages.reportsArGlReconciliation.unreconciled}
               </span>
             </div>
           </div>
@@ -133,14 +132,14 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
 
         <Card className="overflow-hidden p-0">
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
-            {isAr ? 'تفاصيل أرصدة العملاء المساهمة في الميزان الفرعي' : 'Customer Subledger Balance Breakdown'}
+            {dict.app.pages.reportsArGlReconciliation.customerSubledgerBalanceBreakdown}
           </div>
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'كود العميل' : 'Customer Code'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'اسم العميل' : 'Customer Name'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'الرصيد الفرعي المتبقي' : 'Subledger Open Balance'}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerCode}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerName}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.subledgerOpenBalance}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
@@ -156,7 +155,7 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
               {report.customer_breakdown.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="p-6 text-center text-[var(--text-muted)]">
-                    {isAr ? 'لا توجد أرصدة مفتوحة للعملاء.' : 'No open customer subledger balances.'}
+                    {dict.app.pages.reportsArGlReconciliation.noOpenCustomerSubledgerBalances}
                   </td>
                 </tr>
               ) : null}

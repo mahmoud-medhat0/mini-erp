@@ -2,6 +2,7 @@ import { Link, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 
 import { changeLocale, getDictionary } from '../lib/i18n';
+import { useCan } from '../lib/permissions';
 import type { SharedPageProps } from '../Types/page';
 
 export type NavKey =
@@ -45,8 +46,14 @@ export type NavKey =
   | 'sales-orders.index'
   | 'delivery-notes.index'
   | 'customer-invoices.index'
+  | 'sales-returns.index'
+  | 'customer-credit-notes.index'
+  | 'invoice-revisions.index'
+  | 'invoice-revisions.show'
   | 'purchase-orders.index'
   | 'goods-receipts.index'
+  | 'purchase-returns.index'
+  | 'supplier-adjustment-notes.index'
   | 'supplier-bills.index'
   | 'inventory-balances.index'
   | 'reports.index'
@@ -73,6 +80,53 @@ type AppLayoutProps = {
   children: ReactNode;
 };
 
+const NAV_PERMS: Partial<Record<NavKey, string>> = {
+  'accounting.index': 'accounting.view',
+  'accounting.coa': 'accounting.view',
+  'accounting.journal': 'accounting.view',
+  'accounting.ledger': 'accounting.view',
+  'accounting.trial_balance': 'accounting.view',
+  'accounting.opening_balances': 'accounting.view',
+  'accounting.fx_rates': 'accounting.view',
+  'accounting.currencies': 'accounting.view',
+  'accounting.periods': 'settings.configure',
+  'accounting.account_types': 'accounting.account_types',
+  'accounting.account_categories': 'accounting.account_categories',
+  'customers.index': 'customers.view',
+  'customer-opening-balances.index': 'customers.view',
+  'customer-receipts.index': 'customers.view',
+  'receivable-allocations.index': 'customers.view',
+  'suppliers.index': 'suppliers.view',
+  'supplier-opening-balances.index': 'suppliers.view',
+  'supplier-payments.index': 'suppliers.view',
+  'payable-allocations.index': 'suppliers.view',
+  'cash-accounts.index': 'cash.view',
+  'bank-accounts.index': 'banks.view',
+  'incoming-cheques.index': 'cheques.view',
+  'outgoing-cheques.index': 'cheques.view',
+  'bank-reconciliations.index': 'banks.view',
+  'products.index': 'products.view',
+  'product-categories.index': 'products.view',
+  'uoms.index': 'uom.view',
+  'sales-orders.index': 'sales.view',
+  'delivery-notes.index': 'sales.view',
+  'customer-invoices.index': 'sales.view',
+  'sales-returns.index': 'sales.view',
+  'customer-credit-notes.index': 'sales.view',
+  'invoice-revisions.index': 'sales.view',
+  'purchase-orders.index': 'purchasing.view',
+  'goods-receipts.index': 'purchasing.view',
+  'purchase-returns.index': 'purchasing.view',
+  'supplier-adjustment-notes.index': 'purchasing.view',
+  'supplier-bills.index': 'purchasing.view',
+  'reports.index': 'reports.view',
+  'audit.view': 'audit.view',
+};
+
+const NAV_PERMS_FALLBACK: Partial<Record<NavKey, string>> = {
+  'audit.view': 'settings.configure',
+};
+
 export default function AppLayout({ active, children }: AppLayoutProps) {
   const { props } = usePage<SharedPageProps>();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -92,6 +146,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const locale = props.locale === 'ar' ? 'ar' : 'en';
   const isRtl = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
   const accDict = (dict.app as any).accounting || {};
   const { post, processing } = useForm({});
 
@@ -179,6 +234,23 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
     : 'ERP';
 
   const isSettingsActive = active.startsWith('settings');
+
+  const navAllowed = (key: NavKey): boolean => {
+    const primary = NAV_PERMS[key];
+    if (!primary) return true;
+    if (can(primary)) return true;
+    const fallback = NAV_PERMS_FALLBACK[key];
+    return !!fallback && can(fallback);
+  };
+
+  const showAccountingGroup =
+    can('accounting.view') || can('accounting.account_types') || can('accounting.account_categories');
+  const showArGroup = can('customers.view');
+  const showApGroup = can('suppliers.view');
+  const showCashBankGroup = can('cash.view') || can('banks.view') || can('cheques.view');
+  const showCatalogGroup =
+    can('products.view') || can('uom.view') || can('sales.view') || can('purchasing.view');
+  const showReportsGroup = can('reports.view');
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200">
@@ -273,7 +345,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
             <div className="space-y-1">
               {!sidebarCollapsed ? (
                 <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
-                  {dict.app.nav.groups.overview || (locale === 'ar' ? 'الصفحات الرئيسية' : 'Overview')}
+                  {dict.app.nav.groups.overview || dict.app.nav.layoutKeys.overview}
                 </p>
               ) : (
                 <div className="my-1 border-t border-[var(--border)]" />
@@ -387,7 +459,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
             <div className="space-y-3 pt-2 border-t border-[var(--border)]">
               {!sidebarCollapsed ? (
                 <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
-                  {dict.app.nav.groups.modules || (locale === 'ar' ? 'الوحدات والإدارة' : 'Modules & Administration')}
+                  {dict.app.nav.groups.modules || dict.app.nav.layoutKeys.modulesAdministration}
                 </p>
               ) : (
                 <div className="my-1 border-t border-[var(--border)]" />
@@ -395,7 +467,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
 
               <div className="space-y-2">
                 {/* 1. Accounting Core Dropdown Group */}
-                <div className="space-y-1">
+                <div className={`space-y-1 ${showAccountingGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -447,7 +519,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa || 'Chart of Accounts', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
-                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories || (locale === 'ar' ? 'تصنيفات الحسابات' : 'Account Categories'), icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories || dict.app.nav.layoutKeys.accountCategories, icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
                         { key: 'accounting.account_types' as NavKey, href: '/accounting/account-types', label: accDict.accountTypes || 'Account Types', icon: 'M7 7h10M7 12h10M7 17h10' },
                         { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal || 'General Journal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
                         { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger || 'General Ledger', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -455,8 +527,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods || 'Fiscal Periods', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
                         { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances || 'Opening Balances', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
                         { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates || 'Exchange Rates', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
-                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                      ].map((subItem) => {
+                         { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -492,7 +564,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 </div>
 
                 {/* 2. AR / Customers Dropdown Group */}
-                <div className="space-y-1">
+                <div className={`space-y-1 ${showArGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -505,13 +577,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/customers"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (locale === 'ar' ? 'العملاء والقبض' : 'Customers & AR') : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.customersAr_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('customer') || active.startsWith('receivable') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'العملاء والقبض' : 'Customers & AR'}</span> : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.customersAr}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button type="button" onClick={() => setArExpanded(!arExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
@@ -525,11 +597,11 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   {(arExpanded || sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
-                        { key: 'customers.index' as NavKey, href: '/customers', label: locale === 'ar' ? 'العملاء' : 'Customers' },
-                        { key: 'customer-opening-balances.index' as NavKey, href: '/customer-opening-balances', label: locale === 'ar' ? 'أرصدة افتتاحية عملاء' : 'Customer Opening Balances' },
-                        { key: 'customer-receipts.index' as NavKey, href: '/customer-receipts', label: locale === 'ar' ? 'سندات القبض' : 'Customer Receipts' },
-                        { key: 'receivable-allocations.index' as NavKey, href: '/receivable-allocations', label: locale === 'ar' ? 'تسوية المستحقات' : 'AR Allocations' },
-                      ].map((subItem) => (
+                        { key: 'customers.index' as NavKey, href: '/customers', label: dict.app.nav.layoutKeys.customers },
+                        { key: 'customer-opening-balances.index' as NavKey, href: '/customer-opening-balances', label: dict.app.nav.layoutKeys.customerOpeningBalances },
+                        { key: 'customer-receipts.index' as NavKey, href: '/customer-receipts', label: dict.app.nav.layoutKeys.customerReceipts },
+                         { key: 'receivable-allocations.index' as NavKey, href: '/receivable-allocations', label: dict.app.nav.layoutKeys.arAllocations },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -547,7 +619,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 </div>
 
                 {/* 3. AP / Suppliers Dropdown Group */}
-                <div className="space-y-1">
+                <div className={`space-y-1 ${showApGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -560,13 +632,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/suppliers"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (locale === 'ar' ? 'الموردين والصرف' : 'Suppliers & AP') : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.suppliersAp_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('supplier') || active.startsWith('payable') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'الموردين والصرف' : 'Suppliers & AP'}</span> : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.suppliersAp}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button type="button" onClick={() => setApExpanded(!apExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
@@ -580,11 +652,11 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   {(apExpanded || sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
-                        { key: 'suppliers.index' as NavKey, href: '/suppliers', label: locale === 'ar' ? 'الموردين' : 'Suppliers' },
-                        { key: 'supplier-opening-balances.index' as NavKey, href: '/supplier-opening-balances', label: locale === 'ar' ? 'أرصدة افتتاحية موردين' : 'Supplier Opening Balances' },
-                        { key: 'supplier-payments.index' as NavKey, href: '/supplier-payments', label: locale === 'ar' ? 'سندات الصرف' : 'Supplier Payments' },
-                        { key: 'payable-allocations.index' as NavKey, href: '/payable-allocations', label: locale === 'ar' ? 'تسوية المستحقات' : 'AP Allocations' },
-                      ].map((subItem) => (
+                        { key: 'suppliers.index' as NavKey, href: '/suppliers', label: dict.app.nav.layoutKeys.suppliers },
+                        { key: 'supplier-opening-balances.index' as NavKey, href: '/supplier-opening-balances', label: dict.app.nav.layoutKeys.supplierOpeningBalances },
+                        { key: 'supplier-payments.index' as NavKey, href: '/supplier-payments', label: dict.app.nav.layoutKeys.supplierPayments },
+                         { key: 'payable-allocations.index' as NavKey, href: '/payable-allocations', label: dict.app.nav.layoutKeys.apAllocations },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -602,7 +674,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 </div>
 
                 {/* 4. Cash, Bank & Cheques Dropdown Group */}
-                <div className="space-y-1">
+                <div className={`space-y-1 ${showCashBankGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -615,13 +687,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/cash-accounts"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (locale === 'ar' ? 'النقدية والبنوك بالشيكات' : 'Cash, Bank & Cheques') : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.cashBankCheques_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('cash') || active.includes('bank') || active.includes('cheque') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'النقدية والبنوك' : 'Cash, Bank & Cheques'}</span> : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.cashBankCheques}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button type="button" onClick={() => setCashBankExpanded(!cashBankExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
@@ -635,12 +707,12 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   {(cashBankExpanded || sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
-                        { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: locale === 'ar' ? 'حسابات الخزينة' : 'Cash Accounts' },
-                        { key: 'bank-accounts.index' as NavKey, href: '/bank-accounts', label: locale === 'ar' ? 'حسابات البنوك' : 'Bank Accounts' },
-                        { key: 'incoming-cheques.index' as NavKey, href: '/incoming-cheques', label: locale === 'ar' ? 'الشيكات الواردة' : 'Incoming Cheques' },
-                        { key: 'outgoing-cheques.index' as NavKey, href: '/outgoing-cheques', label: locale === 'ar' ? 'الشيكات الصادرة' : 'Outgoing Cheques' },
-                        { key: 'bank-reconciliations.index' as NavKey, href: '/bank-reconciliations', label: locale === 'ar' ? 'تسوية البنك' : 'Bank Reconciliations' },
-                      ].map((subItem) => (
+                        { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: dict.app.nav.layoutKeys.cashAccounts },
+                        { key: 'bank-accounts.index' as NavKey, href: '/bank-accounts', label: dict.app.nav.layoutKeys.bankAccounts },
+                        { key: 'incoming-cheques.index' as NavKey, href: '/incoming-cheques', label: dict.app.nav.layoutKeys.incomingCheques },
+                        { key: 'outgoing-cheques.index' as NavKey, href: '/outgoing-cheques', label: dict.app.nav.layoutKeys.outgoingCheques },
+                         { key: 'bank-reconciliations.index' as NavKey, href: '/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconciliations },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -658,7 +730,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 </div>
 
                 {/* 5. Catalog Dropdown Group */}
-                <div className="space-y-1">
+                <div className={`space-y-1 ${showCatalogGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -671,13 +743,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/catalog/products"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (locale === 'ar' ? 'كتالوج المنتجات والخدمات' : 'Catalog') : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.catalog_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('product') || active.includes('uom') || active.startsWith('catalog') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'الكتالوج' : 'Catalog'}</span> : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.catalog}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button type="button" onClick={() => setCatalogExpanded(!catalogExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
@@ -691,15 +763,20 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   {(catalogExpanded || sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
-                        { key: 'products.index' as NavKey, href: '/catalog/products', label: locale === 'ar' ? 'المنتجات والخدمات' : 'Products & Services' },
-                        { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: locale === 'ar' ? 'أوامر البيع' : 'Sales Orders' },
-                        { key: 'delivery-notes.index' as NavKey, href: '/sales/delivery-notes', label: locale === 'ar' ? 'أذون التسليم' : 'Delivery Notes' },
-                        { key: 'customer-invoices.index' as NavKey, href: '/sales/invoices', label: locale === 'ar' ? 'فواتير العملاء' : 'Customer Invoices' },
-                        { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: locale === 'ar' ? 'أوامر الشراء' : 'Purchase Orders' },
-                        { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: locale === 'ar' ? 'أذون الإستلام' : 'Goods Receipts' },
-                        { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: locale === 'ar' ? 'تصنيفات المنتجات' : 'Product Categories' },
-                        { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: locale === 'ar' ? 'وحدات القياس' : 'Units of Measure' },
-                      ].map((subItem) => (
+                        { key: 'products.index' as NavKey, href: '/catalog/products', label: dict.app.nav.layoutKeys.productsServices },
+                        { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: dict.app.nav.layoutKeys.salesOrders },
+                        { key: 'delivery-notes.index' as NavKey, href: '/sales/delivery-notes', label: dict.app.nav.layoutKeys.deliveryNotes },
+                        { key: 'customer-invoices.index' as NavKey, href: '/sales/invoices', label: dict.app.nav.layoutKeys.customerInvoices },
+                        { key: 'sales-returns.index' as NavKey, href: '/sales/returns', label: dict.app.nav.layoutKeys.salesReturns },
+                        { key: 'customer-credit-notes.index' as NavKey, href: '/sales/credit-notes', label: dict.app.nav.layoutKeys.creditNotes },
+                        { key: 'invoice-revisions.index' as NavKey, href: '/sales/invoice-revisions', label: dict.app.nav.layoutKeys.invoiceRevisions },
+                        { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: dict.app.nav.layoutKeys.purchaseOrders },
+                        { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: dict.app.nav.layoutKeys.goodsReceipts },
+                        { key: 'purchase-returns.index' as NavKey, href: '/purchasing/returns', label: dict.app.nav.layoutKeys.purchaseReturns },
+                        { key: 'supplier-adjustment-notes.index' as NavKey, href: '/purchasing/adjustment-notes', label: dict.app.nav.layoutKeys.adjustmentNotes },
+                        { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: dict.app.nav.layoutKeys.productCategories },
+                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: dict.app.nav.layoutKeys.unitsOfMeasure },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -717,7 +794,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 </div>
 
                 {/* 6. Reports & Subledgers Dropdown Group */}
-                <div className="space-y-1">
+                <div className={`space-y-1 ${showReportsGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -730,13 +807,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/reports"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (locale === 'ar' ? 'التقارير الفرعية' : 'Reports & Subledgers') : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.reportsSubledgers_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('reports') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{locale === 'ar' ? 'التقارير الفرعية' : 'Reports & Subledgers'}</span> : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.reportsSubledgers}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button type="button" onClick={() => setReportsExpanded(!reportsExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
@@ -750,18 +827,18 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   {(reportsExpanded || sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
-                        { key: 'reports.index' as NavKey, href: '/reports', label: locale === 'ar' ? 'مركز التقارير' : 'Reports Hub' },
-                        { key: 'reports.customer-statement' as NavKey, href: '/reports/customer-statement', label: locale === 'ar' ? 'كشف حساب عميل' : 'Customer Statement' },
-                        { key: 'reports.supplier-statement' as NavKey, href: '/reports/supplier-statement', label: locale === 'ar' ? 'كشف حساب مورد' : 'Supplier Statement' },
-                        { key: 'reports.ar-aging' as NavKey, href: '/reports/ar-aging', label: locale === 'ar' ? 'أعمار ديون العملاء' : 'AR Aging' },
-                        { key: 'reports.ap-aging' as NavKey, href: '/reports/ap-aging', label: locale === 'ar' ? 'أعمار ديون الموردين' : 'AP Aging' },
-                        { key: 'reports.cash-book' as NavKey, href: '/reports/cash-book', label: locale === 'ar' ? 'دفتر الخزينة' : 'Cash Book' },
-                        { key: 'reports.bank-book' as NavKey, href: '/reports/bank-book', label: locale === 'ar' ? 'دفتر البنك' : 'Bank Book' },
-                        { key: 'reports.cheque-register' as NavKey, href: '/reports/cheque-register', label: locale === 'ar' ? 'سجل الشيكات' : 'Cheque Register' },
-                        { key: 'reports.bank-reconciliations' as NavKey, href: '/reports/bank-reconciliations', label: locale === 'ar' ? 'تقرير تسوية البنك' : 'Bank Recon Report' },
-                        { key: 'reports.ar-gl-reconciliation' as NavKey, href: '/reports/ar-gl-reconciliation', label: locale === 'ar' ? 'مطابقة العملاء بالأستاذ' : 'AR to GL Recon' },
-                        { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: locale === 'ar' ? 'مطابقة الموردين بالأستاذ' : 'AP to GL Recon' },
-                      ].map((subItem) => (
+                        { key: 'reports.index' as NavKey, href: '/reports', label: dict.app.nav.layoutKeys.reportsHub },
+                        { key: 'reports.customer-statement' as NavKey, href: '/reports/customer-statement', label: dict.app.nav.layoutKeys.customerStatement },
+                        { key: 'reports.supplier-statement' as NavKey, href: '/reports/supplier-statement', label: dict.app.nav.layoutKeys.supplierStatement },
+                        { key: 'reports.ar-aging' as NavKey, href: '/reports/ar-aging', label: dict.app.nav.layoutKeys.arAging },
+                        { key: 'reports.ap-aging' as NavKey, href: '/reports/ap-aging', label: dict.app.nav.layoutKeys.apAging },
+                        { key: 'reports.cash-book' as NavKey, href: '/reports/cash-book', label: dict.app.nav.layoutKeys.cashBook },
+                        { key: 'reports.bank-book' as NavKey, href: '/reports/bank-book', label: dict.app.nav.layoutKeys.bankBook },
+                        { key: 'reports.cheque-register' as NavKey, href: '/reports/cheque-register', label: dict.app.nav.layoutKeys.chequeRegister },
+                        { key: 'reports.bank-reconciliations' as NavKey, href: '/reports/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconReport },
+                        { key: 'reports.ar-gl-reconciliation' as NavKey, href: '/reports/ar-gl-reconciliation', label: dict.app.nav.layoutKeys.arToGlRecon },
+                         { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: dict.app.nav.layoutKeys.apToGlRecon },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -862,8 +939,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'settings.branches' as NavKey, href: '/settings/branches', label: dict.app.settings.sections.branches.title, icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
                         { key: 'settings.numbering' as NavKey, href: '/settings/numbering', label: dict.app.settings.sections.numbering.title, icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
                         { key: 'settings.users' as NavKey, href: '/settings/users', label: dict.app.settings.sections.users.title, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-                        { key: 'audit.view' as NavKey, href: '/audit-log', label: dict.app.nav.auditLog, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                      ].map((subItem) => {
+                         { key: 'audit.view' as NavKey, href: '/audit-log', label: dict.app.nav.auditLog, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
 
                         return (
@@ -1077,10 +1154,10 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
               <button
                 type="button"
                 onClick={() => changeLocale(locale === 'ar' ? 'en' : 'ar')}
-                title="Switch Language"
+                title={dict.app.header.switchLanguage}
                 className="flex size-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-extrabold text-[var(--text-primary)] shadow-xs transition-all hover:border-[var(--primary)]"
               >
-                {locale === 'ar' ? 'EN' : 'عربي'}
+                {locale === 'ar' ? 'EN' : 'ع'}
               </button>
 
               {/* Theme Toggle Icon */}

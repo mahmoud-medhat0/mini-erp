@@ -75,28 +75,28 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
   function handleDelete(cat: AccountCategoryItem) {
     if (cat.is_system) return;
     if ((cat.account_types_count ?? 0) > 0) return;
-    if (confirm(actionsDict.confirmDelete || (locale === 'ar' ? 'هل أنت متاكد من رغبتك في حذف هذا العنصر؟' : 'Are you sure you want to delete this Account Category?'))) {
+    if (confirm(actionsDict.confirmDelete || dict.app.pages.accountingAccountCategories.areYouSureYouWantTo)) {
       router.delete(`/accounting/account-categories/${cat.id}`);
     }
   }
 
   const normalBalanceOptions = [
-    { value: 'debit', label: accDict.debitOption || (locale === 'ar' ? 'مدين' : 'Debit') },
-    { value: 'credit', label: accDict.creditOption || (locale === 'ar' ? 'دائن' : 'Credit') },
+    { value: 'debit', label: accDict.debitOption || dict.app.pages.accountingAccountCategories.debit },
+    { value: 'credit', label: accDict.creditOption || dict.app.pages.accountingAccountCategories.credit },
   ];
 
   const statementTypeOptions = [
-    { value: 'balance_sheet', label: accDict.balanceSheet || (locale === 'ar' ? 'الميزانية العمومية' : 'Balance Sheet') },
-    { value: 'income_statement', label: accDict.incomeStatement || (locale === 'ar' ? 'قائمة الدخل' : 'Income Statement') },
+    { value: 'balance_sheet', label: accDict.balanceSheet || dict.app.pages.accountingAccountCategories.balanceSheet },
+    { value: 'income_statement', label: accDict.incomeStatement || dict.app.pages.accountingAccountCategories.incomeStatement },
   ];
 
   return (
     <AppLayout active="accounting.account_categories">
-      <Head title={accDict.accountCategories || (locale === 'ar' ? 'تصنيفات الحسابات' : 'Account Categories')} />
+      <Head title={accDict.accountCategories || dict.app.pages.accountingAccountCategories.accountCategories} />
 
       <PageHeader
-        title={accDict.accountCategories || (locale === 'ar' ? 'تصنيفات الحسابات' : 'Account Categories')}
-        description={accDict.accountCategoriesDesc || (locale === 'ar' ? 'إدارة التصنيفات الرئيسية للأنواع والمجموعات المحاسبية System Taxonomy.' : 'Manage root accounting classification taxonomy.')}
+        title={accDict.accountCategories || dict.app.pages.accountingAccountCategories.accountCategories_2}
+        description={accDict.accountCategoriesDesc || dict.app.pages.accountingAccountCategories.manageRootAccountingClassificationTaxonomy}
         actions={
           <button
             type="button"
@@ -106,7 +106,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>{accDict.addAccountCategory || (locale === 'ar' ? 'إضافة تصنيف حساب' : 'Add Account Category')}</span>
+            <span>{accDict.addAccountCategory || dict.app.pages.accountingAccountCategories.addAccountCategory}</span>
           </button>
         }
       />
@@ -117,8 +117,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
             <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
               {editingCategory
-                ? (accDict.editAccountCategory || (locale === 'ar' ? 'تعديل تصنيف حساب' : 'Edit Account Category'))
-                : (accDict.addAccountCategory || (locale === 'ar' ? 'إضافة تصنيف حساب' : 'Add Account Category'))}
+                ? (accDict.editAccountCategory || dict.app.pages.accountingAccountCategories.editAccountCategory)
+                : (accDict.addAccountCategory || dict.app.pages.accountingAccountCategories.addAccountCategory_2)}
             </h3>
             <button
               type="button"
@@ -202,7 +202,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.sortOrder || (locale === 'ar' ? 'ترتيب العرض' : 'Sort Order')}
+                {accDict.sortOrder || dict.app.pages.accountingAccountCategories.sortOrder}
               </label>
               <input
                 type="number"
@@ -216,7 +216,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
               <ToggleSwitch
                 checked={form.data.is_contra}
                 onChange={(chk) => form.setData('is_contra', chk)}
-                label={accDict.isContraCategory || accDict.isContra || (locale === 'ar' ? 'تصنيف مقابل (Contra)' : 'Contra Category')}
+                label={accDict.isContraCategory || accDict.isContra || dict.app.pages.accountingAccountCategories.contraCategory}
               />
 
               <ToggleSwitch
@@ -251,14 +251,14 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{fieldsDict.code || (locale === 'ar' ? 'الكود' : 'Code')}</th>
-              <th className={tableClasses.th}>{fieldsDict.name || (locale === 'ar' ? 'الاسم' : 'Name')}</th>
-              <th className={tableClasses.th}>{accDict.normalBalance || (locale === 'ar' ? 'الرصيد الطبيعي' : 'Normal Balance')}</th>
-              <th className={tableClasses.th}>{accDict.statementType || (locale === 'ar' ? 'القائمة' : 'Statement')}</th>
-              <th className={tableClasses.th}>{accDict.accountTypesCount || (locale === 'ar' ? 'عدد الأنواع' : 'Account Types')}</th>
-              <th className={tableClasses.th}>{fieldsDict.status || (locale === 'ar' ? 'الحالة' : 'Status')}</th>
+              <th className={tableClasses.th}>{fieldsDict.code || dict.app.pages.accountingAccountCategories.code}</th>
+              <th className={tableClasses.th}>{fieldsDict.name || dict.app.pages.accountingAccountCategories.name}</th>
+              <th className={tableClasses.th}>{accDict.normalBalance || dict.app.pages.accountingAccountCategories.normalBalance}</th>
+              <th className={tableClasses.th}>{accDict.statementType || dict.app.pages.accountingAccountCategories.statement}</th>
+              <th className={tableClasses.th}>{accDict.accountTypesCount || dict.app.pages.accountingAccountCategories.accountTypes}</th>
+              <th className={tableClasses.th}>{fieldsDict.status || dict.app.pages.accountingAccountCategories.status}</th>
               <th className={`${tableClasses.th} text-right`}>
-                {actionsDict.actionsTitle || actionsDict.actions || (locale === 'ar' ? 'الإجراءات' : 'Actions')}
+                {actionsDict.actionsTitle || actionsDict.actions || dict.app.pages.accountingAccountCategories.actions}
               </th>
             </tr>
           </thead>
@@ -289,19 +289,19 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                   <td className={tableClasses.td}>
                     {cat.normal_balance === 'debit' ? (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                        {accDict.debitBadge || (locale === 'ar' ? 'مدين' : 'DEBIT')}
+                        {accDict.debitBadge || dict.app.pages.accountingAccountCategories.debit_2}
                       </span>
                     ) : (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                        {accDict.creditBadge || (locale === 'ar' ? 'دائن' : 'CREDIT')}
+                        {accDict.creditBadge || dict.app.pages.accountingAccountCategories.credit_2}
                       </span>
                     )}
                   </td>
                   <td className={tableClasses.td}>
                     <span className="text-xs text-[var(--text-secondary)]">
                       {cat.statement_type === 'balance_sheet'
-                        ? (accDict.balanceSheet || (locale === 'ar' ? 'الميزانية العمومية' : 'Balance Sheet'))
-                        : (accDict.incomeStatement || (locale === 'ar' ? 'قائمة الدخل' : 'Income Statement'))}
+                        ? (accDict.balanceSheet || dict.app.pages.accountingAccountCategories.balanceSheet_2)
+                        : (accDict.incomeStatement || dict.app.pages.accountingAccountCategories.incomeStatement_2)}
                     </span>
                   </td>
                   <td className={tableClasses.td}>
@@ -309,7 +309,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                       type="button"
                       onClick={() => setSelectedCategoryDetails(cat)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 active:scale-95 border border-indigo-500/20"
-                      title={locale === 'ar' ? 'عرض تفاصيل الأنواع المحاسبية' : 'View Account Types Details'}
+                      title={dict.app.pages.accountingAccountCategories.viewAccountTypesDetails}
                     >
                       <span>{cat.account_types_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -343,9 +343,9 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                         }`}
                         title={
                           cat.is_system
-                            ? (accDict.systemCannotDelete || (locale === 'ar' ? 'لا يمكن حذف السجلات النظامية الخاصة بالنظام.' : 'System account categories cannot be deleted.'))
+                            ? (accDict.systemCannotDelete || dict.app.pages.accountingAccountCategories.systemAccountCategoriesCannotBeDeleted)
                             : !isDeletable
-                            ? (accDict.inUseCategoryCannotDelete || (locale === 'ar' ? 'لا يمكن حذف تصنيف حساب مستخدم بواسطة أنواع حسابات.' : 'Cannot delete account category in use by account types.'))
+                            ? (accDict.inUseCategoryCannotDelete || dict.app.pages.accountingAccountCategories.cannotDeleteAccountCategoryInUse)
                             : undefined
                         }
                       >
@@ -395,7 +395,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
             <div className="overflow-y-auto flex-1">
               {(selectedCategoryDetails.account_types?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
-                  {locale === 'ar' ? 'لا توجد أنواع حسابات مرتبطة بهذا التصنيف حالياً.' : 'No Account Types linked to this category.'}
+                  {dict.app.pages.accountingAccountCategories.noAccountTypesLinkedToThis}
                 </div>
               ) : (
                 <table className={tableClasses.table}>
@@ -420,19 +420,19 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                         <td className={tableClasses.td}>
                           {type.normal_balance === 'debit' ? (
                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                              {accDict.debitBadge || (locale === 'ar' ? 'مدين' : 'DEBIT')}
+                              {accDict.debitBadge || dict.app.pages.accountingAccountCategories.debit_3}
                             </span>
                           ) : (
                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                              {accDict.creditBadge || (locale === 'ar' ? 'دائن' : 'CREDIT')}
+                              {accDict.creditBadge || dict.app.pages.accountingAccountCategories.credit_3}
                             </span>
                           )}
                         </td>
                         <td className={tableClasses.td}>
                           <span className="text-xs text-[var(--text-secondary)]">
                             {type.statement_type === 'balance_sheet'
-                              ? (accDict.balanceSheet || (locale === 'ar' ? 'الميزانية العمومية' : 'Balance Sheet'))
-                              : (accDict.incomeStatement || (locale === 'ar' ? 'قائمة الدخل' : 'Income Statement'))}
+                              ? (accDict.balanceSheet || dict.app.pages.accountingAccountCategories.balanceSheet_3)
+                              : (accDict.incomeStatement || dict.app.pages.accountingAccountCategories.incomeStatement_3)}
                           </span>
                         </td>
                         <td className={tableClasses.td}>

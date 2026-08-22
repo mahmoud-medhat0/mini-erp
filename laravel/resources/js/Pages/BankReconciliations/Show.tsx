@@ -1,10 +1,11 @@
-import { Head, router, useForm } from '@inertiajs/react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
-import { getDictionary } from '../../lib/i18n';
+import { getDictionary, interpolate } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type ReconciliationLine = {
@@ -68,6 +69,7 @@ export default function BankReconciliationShow({
 }: BankReconciliationShowProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showAddLineModal, setShowAddLineModal] = useState(false);
   const [selectedLineForMatch, setSelectedLineForMatch] = useState<ReconciliationLine | null>(null);
@@ -103,7 +105,7 @@ export default function BankReconciliationShow({
   };
 
   const handleDeleteLine = (lineId: string) => {
-    if (confirm(isAr ? 'هل أنت تأكد من حذف هذا السطر من كشف البنك؟' : 'Are you sure you want to delete this statement line?')) {
+    if (confirm(dict.app.pages.bankReconciliationsShow.areYouSureYouWantTo)) {
       router.delete(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}`);
     }
   };
@@ -123,7 +125,7 @@ export default function BankReconciliationShow({
   };
 
   const handleFinalize = () => {
-    if (confirm(isAr ? 'هل أنت تأكد من إغلاق واكتمال تسوية البنك؟' : 'Are you sure you want to finalize this bank reconciliation?')) {
+    if (confirm(dict.app.pages.bankReconciliationsShow.areYouSureYouWantTo_2)) {
       router.post(`/bank-reconciliations/${reconciliation.id}/finalize`);
     }
   };
@@ -132,21 +134,21 @@ export default function BankReconciliationShow({
 
   return (
     <AppLayout active="bank-reconciliations.show">
-      <Head title={isAr ? 'شاشة مطابقة كشف البنك - Mini ERP' : 'Bank Reconciliation Workspace - Mini ERP'} />
+      <Head title={dict.app.pages.bankReconciliationsShow.bankReconciliationWorkspaceMiniErp} />
 
       <PageHeader
-        title={isAr ? `مطابقة كشف البنك: ${reconciliation.bankAccount?.name || ''}` : `Bank Reconciliation Workspace: ${reconciliation.bankAccount?.name || ''}`}
-        description={isAr ? `الفترة من ${reconciliation.date_from} إلى ${reconciliation.date_to}` : `Period from ${reconciliation.date_from} to ${reconciliation.date_to}`}
+        title={interpolate(dict.app.pages.bankReconciliationsShow.workspaceTitle, { name: reconciliation.bankAccount?.name || '' })}
+        description={interpolate(dict.app.pages.bankReconciliationsShow.periodRange, { from: reconciliation.date_from, to: reconciliation.date_to })}
         actions={
           <div className="flex items-center gap-2">
-            {reconciliation.status === 'draft' ? (
+            {reconciliation.status === 'draft' && can('banks.reconcile') ? (
               <>
                 <button
                   type="button"
                   onClick={() => setShowAddLineModal(true)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
                 >
-                  {isAr ? '+ إضافة حظر/سطر كشف' : '+ Add Statement Line'}
+                  {dict.app.pages.bankReconciliationsShow.addStatementLine}
                 </button>
                 <button
                   type="button"
@@ -154,12 +156,12 @@ export default function BankReconciliationShow({
                   disabled={!summary.is_reconciled}
                   className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {isAr ? 'اعتماد وإغلاق التسوية' : 'Finalize Reconciliation'}
+                  {dict.app.pages.bankReconciliationsShow.finalizeReconciliation}
                 </button>
               </>
-            ) : (
-              <StatusBadge tone="ok">{isAr ? 'مُعتمد ومُقفل' : 'Finalized'}</StatusBadge>
-            )}
+            ) : reconciliation.status !== 'draft' ? (
+              <StatusBadge tone="ok">{dict.app.pages.bankReconciliationsShow.finalized}</StatusBadge>
+            ) : null}
           </div>
         }
       />
@@ -167,28 +169,28 @@ export default function BankReconciliationShow({
       {/* KPI Cards Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card className="p-4">
-          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{isAr ? 'رخص كشف البنك' : 'Statement Closing'}</p>
+          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.statementClosing}</p>
           <p className="text-base font-mono font-bold text-[var(--text-primary)] mt-1">
             {formatMoney(summary.statement_closing_balance_minor, currency)}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{isAr ? 'رصيد الأستاذ العام' : 'GL Book Closing'}</p>
+          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.glBookClosing}</p>
           <p className="text-base font-mono font-bold text-[var(--text-primary)] mt-1">
             {formatMoney(summary.ledger_closing_balance_minor, currency)}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{isAr ? 'فرق التسوية' : 'Reconciled Difference'}</p>
+          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.reconciledDifference}</p>
           <p className={`text-base font-mono font-bold mt-1 ${summary.reconciled_difference_minor === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
             {formatMoney(summary.reconciled_difference_minor, currency)}
           </p>
         </Card>
         <Card className="p-4">
-          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{isAr ? 'حالة المطابقة' : 'Reconciliation Status'}</p>
+          <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.reconciliationStatus}</p>
           <div className="mt-1">
             <StatusBadge tone={summary.is_reconciled ? 'ok' : 'warning'}>
-              {summary.is_reconciled ? (isAr ? 'متطابق بالكامل (0.00)' : 'Fully Balanced (0.00)') : (isAr ? 'غير متطابق' : 'Unbalanced')}
+              {summary.is_reconciled ? dict.app.pages.bankReconciliationsShow.fullyBalanced000 : dict.app.pages.bankReconciliationsShow.unbalanced}
             </StatusBadge>
           </div>
         </Card>
@@ -197,26 +199,26 @@ export default function BankReconciliationShow({
       {/* Reconciliation Main Workspace Table */}
       <Card className="p-5 mb-8">
         <h2 className="text-sm font-bold text-[var(--text-primary)] mb-4">
-          {isAr ? 'سطور كشف البنك المسجلة والمطابقة' : 'Bank Statement Lines & Matching'}
+          {dict.app.pages.bankReconciliationsShow.bankStatementLinesMatching}
         </h2>
 
         {reconciliation.lines.length === 0 ? (
           <EmptyState
-            title={isAr ? 'لا يوجد سطور كشف' : 'No Statement Lines'}
-            description={isAr ? 'أضف سطور كشف البنك للبدء في المطابقة مع الأستاذ العام.' : 'Add statement lines to start matching with GL entries.'}
+            title={dict.app.pages.bankReconciliationsShow.noStatementLines}
+            description={dict.app.pages.bankReconciliationsShow.addStatementLinesToStartMatching}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'المرجع' : 'Reference'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'البيان' : 'Description'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'سحب (مدين)' : 'Debit (Out)'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'إيداع (دائن)' : 'Credit (In)'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الحركة المطابقة بالأستاذ' : 'Matched GL Entry'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.date}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.reference}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.description}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.debitOut}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.creditIn}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.matchedGlEntry}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,11 +241,11 @@ export default function BankReconciliationShow({
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-amber-600 italic font-medium">{isAr ? 'غير مطابقة' : 'Unmatched'}</span>
+                        <span className="text-xs text-amber-600 italic font-medium">{dict.app.pages.bankReconciliationsShow.unmatched}</span>
                       )}
                     </td>
                     <td className={tableClasses.td}>
-                      {reconciliation.status === 'draft' ? (
+                      {reconciliation.status === 'draft' && can('banks.reconcile') ? (
                         <div className="flex items-center gap-2">
                           {line.matchedLedgerEntry ? (
                             <button
@@ -251,7 +253,7 @@ export default function BankReconciliationShow({
                               onClick={() => handleUnmatch(line.id)}
                               className="text-xs font-bold text-amber-600 hover:underline cursor-pointer"
                             >
-                              {isAr ? 'إلغاء المطابقة' : 'Unmatch'}
+                              {dict.app.pages.bankReconciliationsShow.unmatch}
                             </button>
                           ) : (
                             <button
@@ -259,7 +261,7 @@ export default function BankReconciliationShow({
                               onClick={() => setSelectedLineForMatch(line)}
                               className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
                             >
-                              {isAr ? 'مطابقة مع قيد' : 'Match GL'}
+                              {dict.app.pages.bankReconciliationsShow.matchGl}
                             </button>
                           )}
                           {!line.matchedLedgerEntry ? (
@@ -268,7 +270,7 @@ export default function BankReconciliationShow({
                               onClick={() => handleDeleteLine(line.id)}
                               className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
                             >
-                              {isAr ? 'حذف' : 'Delete'}
+                              {dict.app.pages.bankReconciliationsShow.delete}
                             </button>
                           ) : null}
                         </div>
@@ -289,12 +291,12 @@ export default function BankReconciliationShow({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-base font-bold text-[var(--text-primary)] mb-4">
-              {isAr ? 'إضافة سطر كشف بنك جديد' : 'Add Statement Line'}
+              {dict.app.pages.bankReconciliationsShow.addStatementLine_2}
             </h2>
 
             <form onSubmit={submitAddLine} className="space-y-4">
               <DatePicker
-                label={isAr ? 'تاريخ السطر' : 'Statement Date'}
+                label={dict.app.pages.bankReconciliationsShow.statementDate}
                 value={addLineForm.data.statement_date}
                 onChange={(val) => addLineForm.setData('statement_date', val || '')}
                 required
@@ -303,7 +305,7 @@ export default function BankReconciliationShow({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'سحب (مدين)' : 'Debit (Money Out)'}
+                    {dict.app.pages.bankReconciliationsShow.debitMoneyOut}
                   </label>
                   <input
                     type="number"
@@ -315,7 +317,7 @@ export default function BankReconciliationShow({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'إيداع (دائن)' : 'Credit (Money In)'}
+                    {dict.app.pages.bankReconciliationsShow.creditMoneyIn}
                   </label>
                   <input
                     type="number"
@@ -329,7 +331,7 @@ export default function BankReconciliationShow({
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'المرجع البنكي' : 'Reference'}
+                  {dict.app.pages.bankReconciliationsShow.reference_2}
                 </label>
                 <input
                   type="text"
@@ -341,7 +343,7 @@ export default function BankReconciliationShow({
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'البيان / الشرح' : 'Description'}
+                  {dict.app.pages.bankReconciliationsShow.description_2}
                 </label>
                 <input
                   type="text"
@@ -357,14 +359,14 @@ export default function BankReconciliationShow({
                   onClick={() => setShowAddLineModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.bankReconciliationsShow.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={addLineForm.processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  {addLineForm.processing ? (isAr ? 'جاري الإضافة...' : 'Adding...') : (isAr ? 'إضافة السطر' : 'Add Line')}
+                  {addLineForm.processing ? dict.app.pages.bankReconciliationsShow.adding : dict.app.pages.bankReconciliationsShow.addLine}
                 </button>
               </div>
             </form>
@@ -377,26 +379,31 @@ export default function BankReconciliationShow({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-base font-bold text-[var(--text-primary)] mb-2">
-              {isAr ? 'اختر القيد البنكي المطابق لسطر الكشف' : 'Select Matching GL Entry'}
+              {dict.app.pages.bankReconciliationsShow.selectMatchingGlEntry}
             </h2>
             <p className="text-xs text-[var(--text-secondary)] mb-4">
-              {isAr ? `سطر الكشف: ${selectedLineForMatch.statement_date} - ${selectedLineForMatch.description || 'بدون بيان'} (مدين: ${formatMoney(selectedLineForMatch.debit_minor, currency)} / دائن: ${formatMoney(selectedLineForMatch.credit_minor, currency)})` : `Line: ${selectedLineForMatch.statement_date} - ${selectedLineForMatch.description || 'No desc'}`}
+              {interpolate(dict.app.pages.bankReconciliationsShow.matchLineLabel, {
+                date: selectedLineForMatch.statement_date,
+                desc: selectedLineForMatch.description || dict.app.pages.bankReconciliationsShow.noDesc,
+                debit: formatMoney(selectedLineForMatch.debit_minor, currency),
+                credit: formatMoney(selectedLineForMatch.credit_minor, currency),
+              })}
             </p>
 
             {candidates.length === 0 ? (
               <div className="py-8 text-center text-xs text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-xl">
-                {isAr ? 'لا يوجد قيود أستاذ عام بنكية غير مطابقة في هذه الفترة.' : 'No candidate unmatched GL entries found for this period.'}
+                {dict.app.pages.bankReconciliationsShow.noCandidateUnmatchedGlEntriesFound}
               </div>
             ) : (
               <div className="max-h-80 overflow-y-auto rounded-xl border border-[var(--border)] mb-4">
                 <table className={tableClasses.table}>
                   <thead>
                     <tr>
-                      <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'رقم القيد' : 'Entry No.'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'البيان' : 'Description'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'مدين / دائن' : 'Amount'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'مطابقة' : 'Select'}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.date_2}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.entryNo}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.description_3}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.amount}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.select}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -414,7 +421,7 @@ export default function BankReconciliationShow({
                             onClick={() => handleMatch(selectedLineForMatch.id, cand.id)}
                             className="rounded-lg bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer"
                           >
-                            {isAr ? 'اختر للمطابقة' : 'Match'}
+                            {dict.app.pages.bankReconciliationsShow.match}
                           </button>
                         </td>
                       </tr>
@@ -430,7 +437,7 @@ export default function BankReconciliationShow({
                 onClick={() => setSelectedLineForMatch(null)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
               >
-                {isAr ? 'إغلاق' : 'Close'}
+                {dict.app.pages.bankReconciliationsShow.close}
               </button>
             </div>
           </div>

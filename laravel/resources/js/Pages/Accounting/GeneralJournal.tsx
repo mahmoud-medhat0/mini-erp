@@ -164,8 +164,8 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
 
       {journals.data.length === 0 ? (
         <EmptyState
-          title={accDict.noJournals || (locale === 'ar' ? 'لا توجد قيود يومية حالياً.' : 'No journal vouchers yet.')}
-          description={accDict.noJournalsDesc || (locale === 'ar' ? 'يمكنك إنشاء قيد يومية يدوي جديد لبدء تسجيل المعاملات المالية.' : 'Create a new journal voucher to begin recording financial transactions.')}
+          title={accDict.noJournals || dict.app.pages.accountingGeneralJournal.noJournalVouchersYet}
+          description={accDict.noJournalsDesc || dict.app.pages.accountingGeneralJournal.createANewJournalVoucherTo}
         />
       ) : (
         <div className={tableClasses.wrap}>

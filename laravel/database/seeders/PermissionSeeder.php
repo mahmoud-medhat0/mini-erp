@@ -58,6 +58,12 @@ class PermissionSeeder extends Seeder
             } else {
                 $assignedPermissions = $definition['permissions'] ?? [];
 
+                if ($definition['view_all'] ?? false) {
+                    foreach (array_keys(config('erp_rbac.modules')) as $mod) {
+                        $assignedPermissions[] = "{$mod}.view";
+                    }
+                }
+
                 if ($definition['modules_all'] ?? false) {
                     foreach ($definition['modules_all'] as $mod) {
                         foreach (config("erp_rbac.modules.{$mod}", []) as $act) {
@@ -65,6 +71,16 @@ class PermissionSeeder extends Seeder
                         }
                     }
                 }
+
+                foreach ($definition['modules_except'] ?? [] as $mod => $excludedActions) {
+                    foreach (config("erp_rbac.modules.{$mod}", []) as $act) {
+                        if (! in_array($act, $excludedActions, true)) {
+                            $assignedPermissions[] = "{$mod}.{$act}";
+                        }
+                    }
+                }
+
+                $assignedPermissions = array_values(array_unique($assignedPermissions));
             }
 
             $permissionIds = Permission::query()

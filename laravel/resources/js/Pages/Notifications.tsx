@@ -113,7 +113,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
   const dict = getDictionary(locale);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
 
-  const formatter = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-US', {
+  const formatter = new Intl.DateTimeFormat(dict.app.pages.notifications.enUs, {
     dateStyle: 'medium',
     timeStyle: 'short',
   });

@@ -513,7 +513,7 @@ class AccountingController extends Controller
 
     public function updateCurrency(Request $request, Currency $currency): RedirectResponse
     {
-        $this->authorizePermission($request, 'accounting.create');
+        $this->authorizePermission($request, 'accounting.edit');
 
         $validated = $request->validate([
             'name_en' => ['required', 'string', 'max:255'],
@@ -533,7 +533,7 @@ class AccountingController extends Controller
 
     public function destroyCurrency(Request $request, Currency $currency): RedirectResponse
     {
-        $this->authorizePermission($request, 'accounting.create');
+        $this->authorizePermission($request, 'accounting.delete');
 
         $linkedAccountsCount = $currency->accounts()->count();
         $linkedJournalLinesCount = $currency->journalLines()->count();
@@ -647,7 +647,7 @@ class AccountingController extends Controller
 
     public function destroyAccountType(Request $request, AccountType $accountType): RedirectResponse
     {
-        $this->authorizePermission($request, 'accounting.account_types');
+        $this->authorizePermission($request, 'accounting.delete');
 
         if ($accountType->is_system) {
             return redirect()->back()->withErrors(['account_type' => __('System account types cannot be deleted.')]);
@@ -744,7 +744,7 @@ class AccountingController extends Controller
 
     public function destroyAccountCategory(Request $request, AccountCategory $accountCategory): RedirectResponse
     {
-        $this->authorizePermission($request, 'accounting.account_categories');
+        $this->authorizePermission($request, 'accounting.delete');
 
         if ($accountCategory->is_system) {
             return redirect()->back()->withErrors(['account_category' => __('System account categories cannot be deleted.')]);

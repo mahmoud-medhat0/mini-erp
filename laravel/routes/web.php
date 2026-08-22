@@ -12,7 +12,9 @@ use App\Http\Controllers\Catalog\ProductCategoryController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Catalog\UnitOfMeasureController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerCreditNoteController;
 use App\Http\Controllers\CustomerInvoiceController;
+use App\Http\Controllers\CustomerInvoiceRevisionController;
 use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
 use App\Http\Controllers\DeliveryNoteController;
@@ -21,8 +23,11 @@ use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
 use App\Http\Controllers\OutgoingChequeController;
 use App\Http\Controllers\PayableAllocationController;
+use App\Http\Controllers\PayableEntrySettlementController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\ReceivableAllocationController;
+use App\Http\Controllers\ReceivableEntrySettlementController;
 use App\Http\Controllers\Reports\ApAgingController;
 use App\Http\Controllers\Reports\ApToGlReconciliationController;
 use App\Http\Controllers\Reports\ArAgingController;
@@ -42,8 +47,10 @@ use App\Http\Controllers\Reports\StockMovementReportController;
 use App\Http\Controllers\Reports\SupplierBillReportController;
 use App\Http\Controllers\Reports\SupplierStatementController;
 use App\Http\Controllers\SalesOrderController;
+use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SettingsActionController;
 use App\Http\Controllers\StockBalanceController;
+use App\Http\Controllers\SupplierAdjustmentNoteController;
 use App\Http\Controllers\SupplierBillController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
@@ -133,70 +140,70 @@ Route::middleware('auth')->group(function (): void {
     });
 
     // Phase 3 Operational Master Data & Accounting Routes
-    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
-    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
-    Route::patch('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
+    Route::get('/customers', [CustomerController::class, 'index'])->middleware('can:customers.view')->name('customers.index');
+    Route::post('/customers', [CustomerController::class, 'store'])->middleware('can:customers.create')->name('customers.store');
+    Route::patch('/customers/{id}', [CustomerController::class, 'update'])->middleware('can:customers.edit')->name('customers.update');
 
-    Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
-    Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
-    Route::patch('/suppliers/{id}', [SupplierController::class, 'update'])->name('suppliers.update');
+    Route::get('/suppliers', [SupplierController::class, 'index'])->middleware('can:suppliers.view')->name('suppliers.index');
+    Route::post('/suppliers', [SupplierController::class, 'store'])->middleware('can:suppliers.create')->name('suppliers.store');
+    Route::patch('/suppliers/{id}', [SupplierController::class, 'update'])->middleware('can:suppliers.edit')->name('suppliers.update');
 
-    Route::get('/cash-accounts', [CashAccountController::class, 'index'])->name('cash-accounts.index');
-    Route::post('/cash-accounts', [CashAccountController::class, 'store'])->name('cash-accounts.store');
-    Route::patch('/cash-accounts/{id}', [CashAccountController::class, 'update'])->name('cash-accounts.update');
+    Route::get('/cash-accounts', [CashAccountController::class, 'index'])->middleware('can:cash.view')->name('cash-accounts.index');
+    Route::post('/cash-accounts', [CashAccountController::class, 'store'])->middleware('can:cash.create')->name('cash-accounts.store');
+    Route::patch('/cash-accounts/{id}', [CashAccountController::class, 'update'])->middleware('can:cash.edit')->name('cash-accounts.update');
 
-    Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts.index');
-    Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
-    Route::patch('/bank-accounts/{id}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
+    Route::get('/bank-accounts', [BankAccountController::class, 'index'])->middleware('can:banks.view')->name('bank-accounts.index');
+    Route::post('/bank-accounts', [BankAccountController::class, 'store'])->middleware('can:banks.create')->name('bank-accounts.store');
+    Route::patch('/bank-accounts/{id}', [BankAccountController::class, 'update'])->middleware('can:banks.edit')->name('bank-accounts.update');
 
-    Route::get('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'index'])->name('customer-opening-balances.index');
-    Route::post('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'store'])->name('customer-opening-balances.store');
-    Route::post('/customer-opening-balances/{id}/post', [CustomerOpeningBalanceController::class, 'post'])->name('customer-opening-balances.post');
+    Route::get('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'index'])->middleware('can:customers.view')->name('customer-opening-balances.index');
+    Route::post('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'store'])->middleware('can:customers.opening_balances')->name('customer-opening-balances.store');
+    Route::post('/customer-opening-balances/{id}/post', [CustomerOpeningBalanceController::class, 'post'])->middleware('can:customers.opening_balances')->name('customer-opening-balances.post');
 
-    Route::get('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'index'])->name('supplier-opening-balances.index');
-    Route::post('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'store'])->name('supplier-opening-balances.store');
-    Route::post('/supplier-opening-balances/{id}/post', [SupplierOpeningBalanceController::class, 'post'])->name('supplier-opening-balances.post');
+    Route::get('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'index'])->middleware('can:suppliers.view')->name('supplier-opening-balances.index');
+    Route::post('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'store'])->middleware('can:suppliers.opening_balances')->name('supplier-opening-balances.store');
+    Route::post('/supplier-opening-balances/{id}/post', [SupplierOpeningBalanceController::class, 'post'])->middleware('can:suppliers.opening_balances')->name('supplier-opening-balances.post');
 
-    Route::get('/customer-receipts', [CustomerReceiptController::class, 'index'])->name('customer-receipts.index');
-    Route::post('/customer-receipts', [CustomerReceiptController::class, 'store'])->name('customer-receipts.store');
-    Route::post('/customer-receipts/{id}/post', [CustomerReceiptController::class, 'post'])->name('customer-receipts.post');
+    Route::get('/customer-receipts', [CustomerReceiptController::class, 'index'])->middleware('can:customers.view')->name('customer-receipts.index');
+    Route::post('/customer-receipts', [CustomerReceiptController::class, 'store'])->middleware('can:customers.receipts')->name('customer-receipts.store');
+    Route::post('/customer-receipts/{id}/post', [CustomerReceiptController::class, 'post'])->middleware('can:customers.receipts')->name('customer-receipts.post');
 
-    Route::get('/supplier-payments', [SupplierPaymentController::class, 'index'])->name('supplier-payments.index');
-    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->name('supplier-payments.store');
-    Route::post('/supplier-payments/{id}/post', [SupplierPaymentController::class, 'post'])->name('supplier-payments.post');
+    Route::get('/supplier-payments', [SupplierPaymentController::class, 'index'])->middleware('can:suppliers.view')->name('supplier-payments.index');
+    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->middleware('can:suppliers.payments')->name('supplier-payments.store');
+    Route::post('/supplier-payments/{id}/post', [SupplierPaymentController::class, 'post'])->middleware('can:suppliers.payments')->name('supplier-payments.post');
 
-    Route::get('/receivable-allocations', [ReceivableAllocationController::class, 'index'])->name('receivable-allocations.index');
-    Route::post('/receivable-allocations', [ReceivableAllocationController::class, 'store'])->name('receivable-allocations.store');
-    Route::post('/receivable-allocations/{id}/reverse', [ReceivableAllocationController::class, 'reverse'])->name('receivable-allocations.reverse');
+    Route::get('/receivable-allocations', [ReceivableAllocationController::class, 'index'])->middleware('can:customers.view')->name('receivable-allocations.index');
+    Route::post('/receivable-allocations', [ReceivableAllocationController::class, 'store'])->middleware('can:customers.allocations')->name('receivable-allocations.store');
+    Route::post('/receivable-allocations/{id}/reverse', [ReceivableAllocationController::class, 'reverse'])->middleware('can:customers.allocations')->name('receivable-allocations.reverse');
 
-    Route::get('/payable-allocations', [PayableAllocationController::class, 'index'])->name('payable-allocations.index');
-    Route::post('/payable-allocations', [PayableAllocationController::class, 'store'])->name('payable-allocations.store');
-    Route::post('/payable-allocations/{id}/reverse', [PayableAllocationController::class, 'reverse'])->name('payable-allocations.reverse');
+    Route::get('/payable-allocations', [PayableAllocationController::class, 'index'])->middleware('can:suppliers.view')->name('payable-allocations.index');
+    Route::post('/payable-allocations', [PayableAllocationController::class, 'store'])->middleware('can:suppliers.allocations')->name('payable-allocations.store');
+    Route::post('/payable-allocations/{id}/reverse', [PayableAllocationController::class, 'reverse'])->middleware('can:suppliers.allocations')->name('payable-allocations.reverse');
 
-    Route::get('/incoming-cheques', [IncomingChequeController::class, 'index'])->name('incoming-cheques.index');
-    Route::post('/incoming-cheques', [IncomingChequeController::class, 'store'])->name('incoming-cheques.store');
-    Route::post('/incoming-cheques/{id}/receive', [IncomingChequeController::class, 'receive'])->name('incoming-cheques.receive');
-    Route::post('/incoming-cheques/{id}/deposit', [IncomingChequeController::class, 'deposit'])->name('incoming-cheques.deposit');
-    Route::post('/incoming-cheques/{id}/clear', [IncomingChequeController::class, 'clear'])->name('incoming-cheques.clear');
-    Route::post('/incoming-cheques/{id}/bounce', [IncomingChequeController::class, 'bounce'])->name('incoming-cheques.bounce');
-    Route::post('/incoming-cheques/{id}/return', [IncomingChequeController::class, 'return'])->name('incoming-cheques.return');
+    Route::get('/incoming-cheques', [IncomingChequeController::class, 'index'])->middleware('can:cheques.view')->name('incoming-cheques.index');
+    Route::post('/incoming-cheques', [IncomingChequeController::class, 'store'])->middleware('can:cheques.create')->name('incoming-cheques.store');
+    Route::post('/incoming-cheques/{id}/receive', [IncomingChequeController::class, 'receive'])->middleware('can:cheques.receive')->name('incoming-cheques.receive');
+    Route::post('/incoming-cheques/{id}/deposit', [IncomingChequeController::class, 'deposit'])->middleware('can:cheques.deposit')->name('incoming-cheques.deposit');
+    Route::post('/incoming-cheques/{id}/clear', [IncomingChequeController::class, 'clear'])->middleware('can:cheques.clear')->name('incoming-cheques.clear');
+    Route::post('/incoming-cheques/{id}/bounce', [IncomingChequeController::class, 'bounce'])->middleware('can:cheques.bounce')->name('incoming-cheques.bounce');
+    Route::post('/incoming-cheques/{id}/return', [IncomingChequeController::class, 'return'])->middleware('can:cheques.return')->name('incoming-cheques.return');
 
-    Route::get('/outgoing-cheques', [OutgoingChequeController::class, 'index'])->name('outgoing-cheques.index');
-    Route::post('/outgoing-cheques', [OutgoingChequeController::class, 'store'])->name('outgoing-cheques.store');
-    Route::post('/outgoing-cheques/{id}/issue', [OutgoingChequeController::class, 'issue'])->name('outgoing-cheques.issue');
-    Route::post('/outgoing-cheques/{id}/clear', [OutgoingChequeController::class, 'clear'])->name('outgoing-cheques.clear');
-    Route::post('/outgoing-cheques/{id}/return', [OutgoingChequeController::class, 'return'])->name('outgoing-cheques.return');
-    Route::post('/outgoing-cheques/{id}/cancel', [OutgoingChequeController::class, 'cancel'])->name('outgoing-cheques.cancel');
+    Route::get('/outgoing-cheques', [OutgoingChequeController::class, 'index'])->middleware('can:cheques.view')->name('outgoing-cheques.index');
+    Route::post('/outgoing-cheques', [OutgoingChequeController::class, 'store'])->middleware('can:cheques.create')->name('outgoing-cheques.store');
+    Route::post('/outgoing-cheques/{id}/issue', [OutgoingChequeController::class, 'issue'])->middleware('can:cheques.issue')->name('outgoing-cheques.issue');
+    Route::post('/outgoing-cheques/{id}/clear', [OutgoingChequeController::class, 'clear'])->middleware('can:cheques.clear')->name('outgoing-cheques.clear');
+    Route::post('/outgoing-cheques/{id}/return', [OutgoingChequeController::class, 'return'])->middleware('can:cheques.return')->name('outgoing-cheques.return');
+    Route::post('/outgoing-cheques/{id}/cancel', [OutgoingChequeController::class, 'cancel'])->middleware('can:cheques.cancel')->name('outgoing-cheques.cancel');
 
-    Route::get('/bank-reconciliations', [BankReconciliationController::class, 'index'])->name('bank-reconciliations.index');
-    Route::post('/bank-reconciliations', [BankReconciliationController::class, 'store'])->name('bank-reconciliations.store');
-    Route::get('/bank-reconciliations/{id}', [BankReconciliationController::class, 'show'])->name('bank-reconciliations.show');
-    Route::post('/bank-reconciliations/{id}/lines', [BankReconciliationController::class, 'addLine'])->name('bank-reconciliations.lines.store');
-    Route::patch('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'updateLine'])->name('bank-reconciliations.lines.update');
-    Route::delete('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'deleteLine'])->name('bank-reconciliations.lines.delete');
-    Route::post('/bank-reconciliations/{id}/lines/{lineId}/match', [BankReconciliationController::class, 'matchLine'])->name('bank-reconciliations.lines.match');
-    Route::post('/bank-reconciliations/{id}/lines/{lineId}/unmatch', [BankReconciliationController::class, 'unmatchLine'])->name('bank-reconciliations.lines.unmatch');
-    Route::post('/bank-reconciliations/{id}/finalize', [BankReconciliationController::class, 'finalize'])->name('bank-reconciliations.finalize');
+    Route::get('/bank-reconciliations', [BankReconciliationController::class, 'index'])->middleware('can:banks.view')->name('bank-reconciliations.index');
+    Route::post('/bank-reconciliations', [BankReconciliationController::class, 'store'])->middleware('can:banks.reconcile')->name('bank-reconciliations.store');
+    Route::get('/bank-reconciliations/{id}', [BankReconciliationController::class, 'show'])->middleware('can:banks.view')->name('bank-reconciliations.show');
+    Route::post('/bank-reconciliations/{id}/lines', [BankReconciliationController::class, 'addLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.store');
+    Route::patch('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'updateLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.update');
+    Route::delete('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'deleteLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.delete');
+    Route::post('/bank-reconciliations/{id}/lines/{lineId}/match', [BankReconciliationController::class, 'matchLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.match');
+    Route::post('/bank-reconciliations/{id}/lines/{lineId}/unmatch', [BankReconciliationController::class, 'unmatchLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.unmatch');
+    Route::post('/bank-reconciliations/{id}/finalize', [BankReconciliationController::class, 'finalize'])->middleware('can:banks.reconcile')->name('bank-reconciliations.finalize');
 
     // Phase 3 Slice 8 Reports & Subledgers Routes
     Route::prefix('reports')->middleware('can:reports.view')->group(function (): void {
@@ -233,70 +240,115 @@ Route::middleware('auth')->group(function (): void {
     });
 
     // Phase 4 Slice 1 Catalog Routes
-    Route::get('/catalog/uoms', [UnitOfMeasureController::class, 'index'])->name('uoms.index');
-    Route::post('/catalog/uoms', [UnitOfMeasureController::class, 'store'])->name('uoms.store');
-    Route::put('/catalog/uoms/{uom}', [UnitOfMeasureController::class, 'update'])->name('uoms.update');
-    Route::delete('/catalog/uoms/{uom}', [UnitOfMeasureController::class, 'destroy'])->name('uoms.destroy');
+    Route::get('/catalog/uoms', [UnitOfMeasureController::class, 'index'])->middleware('can:uom.view')->name('uoms.index');
+    Route::post('/catalog/uoms', [UnitOfMeasureController::class, 'store'])->middleware('can:uom.create')->name('uoms.store');
+    Route::put('/catalog/uoms/{uom}', [UnitOfMeasureController::class, 'update'])->middleware('can:uom.edit')->name('uoms.update');
+    Route::delete('/catalog/uoms/{uom}', [UnitOfMeasureController::class, 'destroy'])->middleware('can:uom.delete')->name('uoms.destroy');
 
-    Route::get('/catalog/categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
-    Route::post('/catalog/categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
-    Route::put('/catalog/categories/{category}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
-    Route::delete('/catalog/categories/{category}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+    Route::get('/catalog/categories', [ProductCategoryController::class, 'index'])->middleware('can:products.view')->name('product-categories.index');
+    Route::post('/catalog/categories', [ProductCategoryController::class, 'store'])->middleware('can:products.create')->name('product-categories.store');
+    Route::put('/catalog/categories/{category}', [ProductCategoryController::class, 'update'])->middleware('can:products.edit')->name('product-categories.update');
+    Route::delete('/catalog/categories/{category}', [ProductCategoryController::class, 'destroy'])->middleware('can:products.delete')->name('product-categories.destroy');
 
-    Route::get('/catalog/products', [ProductController::class, 'index'])->name('products.index');
-    Route::post('/catalog/products', [ProductController::class, 'store'])->name('products.store');
-    Route::put('/catalog/products/{product}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/catalog/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::get('/catalog/products', [ProductController::class, 'index'])->middleware('can:products.view')->name('products.index');
+    Route::post('/catalog/products', [ProductController::class, 'store'])->middleware('can:products.create')->name('products.store');
+    Route::put('/catalog/products/{product}', [ProductController::class, 'update'])->middleware('can:products.edit')->name('products.update');
+    Route::delete('/catalog/products/{product}', [ProductController::class, 'destroy'])->middleware('can:products.delete')->name('products.destroy');
 
     // Phase 4 Slice 2 Sales Order Routes
-    Route::get('/sales/orders', [SalesOrderController::class, 'index'])->name('sales-orders.index');
-    Route::post('/sales/orders', [SalesOrderController::class, 'store'])->name('sales-orders.store');
-    Route::put('/sales/orders/{salesOrder}', [SalesOrderController::class, 'update'])->name('sales-orders.update');
-    Route::post('/sales/orders/{salesOrder}/submit', [SalesOrderController::class, 'submit'])->name('sales-orders.submit');
-    Route::post('/sales/orders/{salesOrder}/confirm', [SalesOrderController::class, 'confirm'])->name('sales-orders.confirm');
-    Route::post('/sales/orders/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->name('sales-orders.cancel');
+    Route::get('/sales/orders', [SalesOrderController::class, 'index'])->middleware('can:sales.view')->name('sales-orders.index');
+    Route::post('/sales/orders', [SalesOrderController::class, 'store'])->middleware('can:sales.create')->name('sales-orders.store');
+    Route::put('/sales/orders/{salesOrder}', [SalesOrderController::class, 'update'])->middleware('can:sales.edit')->name('sales-orders.update');
+    Route::post('/sales/orders/{salesOrder}/submit', [SalesOrderController::class, 'submit'])->middleware('can:sales.submit')->name('sales-orders.submit');
+    Route::post('/sales/orders/{salesOrder}/confirm', [SalesOrderController::class, 'confirm'])->middleware('can:sales.approve')->name('sales-orders.confirm');
+    Route::post('/sales/orders/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->middleware('can:sales.cancel')->name('sales-orders.cancel');
 
     // Phase 4 Slice 3 Purchase Order Routes
-    Route::get('/purchasing/orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
-    Route::post('/purchasing/orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
-    Route::put('/purchasing/orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
-    Route::post('/purchasing/orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->name('purchase-orders.submit');
-    Route::post('/purchasing/orders/{purchaseOrder}/confirm', [PurchaseOrderController::class, 'confirm'])->name('purchase-orders.confirm');
-    Route::post('/purchasing/orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+    Route::get('/purchasing/orders', [PurchaseOrderController::class, 'index'])->middleware('can:purchasing.view')->name('purchase-orders.index');
+    Route::post('/purchasing/orders', [PurchaseOrderController::class, 'store'])->middleware('can:purchasing.create')->name('purchase-orders.store');
+    Route::put('/purchasing/orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->middleware('can:purchasing.edit')->name('purchase-orders.update');
+    Route::post('/purchasing/orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->middleware('can:purchasing.submit')->name('purchase-orders.submit');
+    Route::post('/purchasing/orders/{purchaseOrder}/confirm', [PurchaseOrderController::class, 'confirm'])->middleware('can:purchasing.approve')->name('purchase-orders.confirm');
+    Route::post('/purchasing/orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->middleware('can:purchasing.cancel')->name('purchase-orders.cancel');
 
     // Phase 4 Slice 4 Fulfillment Routes (Delivery Notes & Goods Receipts)
-    Route::get('/sales/delivery-notes', [DeliveryNoteController::class, 'index'])->name('delivery-notes.index');
-    Route::post('/sales/delivery-notes', [DeliveryNoteController::class, 'store'])->name('delivery-notes.store');
-    Route::put('/sales/delivery-notes/{deliveryNote}', [DeliveryNoteController::class, 'update'])->name('delivery-notes.update');
-    Route::post('/sales/delivery-notes/{deliveryNote}/confirm', [DeliveryNoteController::class, 'confirm'])->name('delivery-notes.confirm');
-    Route::post('/sales/delivery-notes/{deliveryNote}/cancel', [DeliveryNoteController::class, 'cancel'])->name('delivery-notes.cancel');
+    Route::get('/sales/delivery-notes', [DeliveryNoteController::class, 'index'])->middleware('can:sales.view')->name('delivery-notes.index');
+    Route::post('/sales/delivery-notes', [DeliveryNoteController::class, 'store'])->middleware('can:sales.create')->name('delivery-notes.store');
+    Route::put('/sales/delivery-notes/{deliveryNote}', [DeliveryNoteController::class, 'update'])->middleware('can:sales.edit')->name('delivery-notes.update');
+    Route::post('/sales/delivery-notes/{deliveryNote}/confirm', [DeliveryNoteController::class, 'confirm'])->middleware('can:sales.approve')->name('delivery-notes.confirm');
+    Route::post('/sales/delivery-notes/{deliveryNote}/cancel', [DeliveryNoteController::class, 'cancel'])->middleware('can:sales.cancel')->name('delivery-notes.cancel');
 
-    Route::get('/purchasing/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods-receipts.index');
-    Route::post('/purchasing/goods-receipts', [GoodsReceiptController::class, 'store'])->name('goods-receipts.store');
-    Route::put('/purchasing/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods-receipts.update');
-    Route::post('/purchasing/goods-receipts/{goodsReceipt}/confirm', [GoodsReceiptController::class, 'confirm'])->name('goods-receipts.confirm');
-    Route::post('/purchasing/goods-receipts/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel'])->name('goods-receipts.cancel');
+    Route::get('/purchasing/goods-receipts', [GoodsReceiptController::class, 'index'])->middleware('can:purchasing.view')->name('goods-receipts.index');
+    Route::post('/purchasing/goods-receipts', [GoodsReceiptController::class, 'store'])->middleware('can:purchasing.create')->name('goods-receipts.store');
+    Route::put('/purchasing/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->middleware('can:purchasing.edit')->name('goods-receipts.update');
+    Route::post('/purchasing/goods-receipts/{goodsReceipt}/confirm', [GoodsReceiptController::class, 'confirm'])->middleware('can:purchasing.approve')->name('goods-receipts.confirm');
+    Route::post('/purchasing/goods-receipts/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel'])->middleware('can:purchasing.cancel')->name('goods-receipts.cancel');
 
     // Phase 4 Slice 5 Customer Invoice Routes
-    Route::get('/sales/invoices', [CustomerInvoiceController::class, 'index'])->name('customer-invoices.index');
-    Route::post('/sales/invoices', [CustomerInvoiceController::class, 'store'])->name('customer-invoices.store');
-    Route::put('/sales/invoices/{customerInvoice}', [CustomerInvoiceController::class, 'update'])->name('customer-invoices.update');
-    Route::post('/sales/invoices/{customerInvoice}/submit', [CustomerInvoiceController::class, 'submit'])->name('customer-invoices.submit');
-    Route::post('/sales/invoices/{customerInvoice}/approve', [CustomerInvoiceController::class, 'approve'])->name('customer-invoices.approve');
-    Route::post('/sales/invoices/{customerInvoice}/post', [CustomerInvoiceController::class, 'post'])->name('customer-invoices.post');
-    Route::post('/sales/invoices/{customerInvoice}/cancel', [CustomerInvoiceController::class, 'cancel'])->name('customer-invoices.cancel');
+    Route::get('/sales/invoices', [CustomerInvoiceController::class, 'index'])->middleware('can:sales.view')->name('customer-invoices.index');
+    Route::post('/sales/invoices', [CustomerInvoiceController::class, 'store'])->middleware('can:sales.create')->name('customer-invoices.store');
+    Route::put('/sales/invoices/{customerInvoice}', [CustomerInvoiceController::class, 'update'])->middleware('can:sales.edit')->name('customer-invoices.update');
+    Route::post('/sales/invoices/{customerInvoice}/submit', [CustomerInvoiceController::class, 'submit'])->middleware('can:sales.submit')->name('customer-invoices.submit');
+    Route::post('/sales/invoices/{customerInvoice}/approve', [CustomerInvoiceController::class, 'approve'])->middleware('can:sales.approve')->name('customer-invoices.approve');
+    Route::post('/sales/invoices/{customerInvoice}/post', [CustomerInvoiceController::class, 'post'])->middleware('can:sales.post')->name('customer-invoices.post');
+    Route::post('/sales/invoices/{customerInvoice}/cancel', [CustomerInvoiceController::class, 'cancel'])->middleware('can:sales.cancel')->name('customer-invoices.cancel');
 
     // Phase 4 Slice 8 Inventory Costing Routes
-    Route::get('/inventory/stock-balances', [StockBalanceController::class, 'index'])->name('stock-balances.index');
+    Route::get('/inventory/stock-balances', [StockBalanceController::class, 'index'])->middleware('can:inventory.view')->name('stock-balances.index');
 
     // Phase 4 Slice 6 Supplier Bill Routes
-    Route::get('/purchasing/bills', [SupplierBillController::class, 'index'])->name('supplier-bills.index');
-    Route::post('/purchasing/bills', [SupplierBillController::class, 'store'])->name('supplier-bills.store');
-    Route::put('/purchasing/bills/{supplierBill}', [SupplierBillController::class, 'update'])->name('supplier-bills.update');
-    Route::post('/purchasing/bills/{supplierBill}/submit', [SupplierBillController::class, 'submit'])->name('supplier-bills.submit');
-    Route::post('/purchasing/bills/{supplierBill}/approve', [SupplierBillController::class, 'approve'])->name('supplier-bills.approve');
-    Route::post('/purchasing/bills/{supplierBill}/post', [SupplierBillController::class, 'post'])->name('supplier-bills.post');
-    Route::post('/purchasing/bills/{supplierBill}/cancel', [SupplierBillController::class, 'cancel'])->name('supplier-bills.cancel');
+    Route::get('/purchasing/bills', [SupplierBillController::class, 'index'])->middleware('can:purchasing.view')->name('supplier-bills.index');
+    Route::post('/purchasing/bills', [SupplierBillController::class, 'store'])->middleware('can:purchasing.create')->name('supplier-bills.store');
+    Route::put('/purchasing/bills/{supplierBill}', [SupplierBillController::class, 'update'])->middleware('can:purchasing.edit')->name('supplier-bills.update');
+    Route::post('/purchasing/bills/{supplierBill}/submit', [SupplierBillController::class, 'submit'])->middleware('can:purchasing.submit')->name('supplier-bills.submit');
+    Route::post('/purchasing/bills/{supplierBill}/approve', [SupplierBillController::class, 'approve'])->middleware('can:purchasing.approve')->name('supplier-bills.approve');
+    Route::post('/purchasing/bills/{supplierBill}/post', [SupplierBillController::class, 'post'])->middleware('can:purchasing.post')->name('supplier-bills.post');
+    Route::post('/purchasing/bills/{supplierBill}/cancel', [SupplierBillController::class, 'cancel'])->middleware('can:purchasing.cancel')->name('supplier-bills.cancel');
+
+    // Phase 4 Slice 10 Returns & Adjustment Notes Routes
+    Route::get('/sales/returns/returnable-lines/{invoiceId}', [SalesReturnController::class, 'returnableInvoiceLines'])->middleware('can:sales.returns')->name('sales-returns.returnable-lines');
+    Route::get('/sales/returns', [SalesReturnController::class, 'index'])->middleware('can:sales.returns')->name('sales-returns.index');
+    Route::post('/sales/returns', [SalesReturnController::class, 'store'])->middleware('can:sales.returns')->name('sales-returns.store');
+    Route::put('/sales/returns/{id}', [SalesReturnController::class, 'update'])->middleware('can:sales.returns')->name('sales-returns.update');
+    Route::post('/sales/returns/{id}/submit', [SalesReturnController::class, 'submit'])->middleware('can:sales.returns')->name('sales-returns.submit');
+    Route::post('/sales/returns/{id}/approve', [SalesReturnController::class, 'approve'])->middleware('can:sales.returns')->name('sales-returns.approve');
+    Route::post('/sales/returns/{id}/post', [SalesReturnController::class, 'post'])->middleware('can:sales.returns')->name('sales-returns.post');
+    Route::post('/sales/returns/{id}/cancel', [SalesReturnController::class, 'cancel'])->middleware('can:sales.returns')->name('sales-returns.cancel');
+
+    Route::get('/sales/credit-notes', [CustomerCreditNoteController::class, 'index'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.index');
+    Route::post('/sales/credit-notes', [CustomerCreditNoteController::class, 'store'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.store');
+    Route::put('/sales/credit-notes/{id}', [CustomerCreditNoteController::class, 'update'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.update');
+    Route::post('/sales/credit-notes/{id}/submit', [CustomerCreditNoteController::class, 'submit'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.submit');
+    Route::post('/sales/credit-notes/{id}/approve', [CustomerCreditNoteController::class, 'approve'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.approve');
+    Route::post('/sales/credit-notes/{id}/post', [CustomerCreditNoteController::class, 'post'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.post');
+    Route::post('/sales/credit-notes/{id}/cancel', [CustomerCreditNoteController::class, 'cancel'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.cancel');
+
+    Route::get('/sales/invoice-revisions', [CustomerInvoiceRevisionController::class, 'index'])->middleware('can:sales.invoice_revisions')->name('invoice-revisions.index');
+    Route::get('/sales/invoice-revisions/{id}', [CustomerInvoiceRevisionController::class, 'show'])->middleware('can:sales.invoice_revisions')->name('invoice-revisions.show');
+
+    Route::get('/purchasing/returns', [PurchaseReturnController::class, 'index'])->middleware('can:purchasing.returns')->name('purchase-returns.index');
+    Route::post('/purchasing/returns', [PurchaseReturnController::class, 'store'])->middleware('can:purchasing.returns')->name('purchase-returns.store');
+    Route::put('/purchasing/returns/{id}', [PurchaseReturnController::class, 'update'])->middleware('can:purchasing.returns')->name('purchase-returns.update');
+    Route::post('/purchasing/returns/{id}/submit', [PurchaseReturnController::class, 'submit'])->middleware('can:purchasing.returns')->name('purchase-returns.submit');
+    Route::post('/purchasing/returns/{id}/approve', [PurchaseReturnController::class, 'approve'])->middleware('can:purchasing.returns')->name('purchase-returns.approve');
+    Route::post('/purchasing/returns/{id}/post', [PurchaseReturnController::class, 'post'])->middleware('can:purchasing.returns')->name('purchase-returns.post');
+    Route::post('/purchasing/returns/{id}/cancel', [PurchaseReturnController::class, 'cancel'])->middleware('can:purchasing.returns')->name('purchase-returns.cancel');
+
+    Route::get('/purchasing/adjustment-notes', [SupplierAdjustmentNoteController::class, 'index'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.index');
+    Route::post('/purchasing/adjustment-notes', [SupplierAdjustmentNoteController::class, 'store'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.store');
+    Route::put('/purchasing/adjustment-notes/{id}', [SupplierAdjustmentNoteController::class, 'update'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.update');
+    Route::post('/purchasing/adjustment-notes/{id}/submit', [SupplierAdjustmentNoteController::class, 'submit'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.submit');
+    Route::post('/purchasing/adjustment-notes/{id}/approve', [SupplierAdjustmentNoteController::class, 'approve'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.approve');
+    Route::post('/purchasing/adjustment-notes/{id}/post', [SupplierAdjustmentNoteController::class, 'post'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.post');
+    Route::post('/purchasing/adjustment-notes/{id}/cancel', [SupplierAdjustmentNoteController::class, 'cancel'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.cancel');
+
+    Route::get('/sales/receivable-settlements', [ReceivableEntrySettlementController::class, 'index'])->middleware('can:sales.credit_notes')->name('receivable-settlements.index');
+    Route::post('/sales/receivable-settlements', [ReceivableEntrySettlementController::class, 'store'])->middleware('can:sales.credit_notes')->name('receivable-settlements.store');
+    Route::post('/sales/receivable-settlements/{id}/reverse', [ReceivableEntrySettlementController::class, 'reverse'])->middleware('can:sales.credit_notes')->name('receivable-settlements.reverse');
+
+    Route::get('/purchasing/payable-settlements', [PayableEntrySettlementController::class, 'index'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.index');
+    Route::post('/purchasing/payable-settlements', [PayableEntrySettlementController::class, 'store'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.store');
+    Route::post('/purchasing/payable-settlements/{id}/reverse', [PayableEntrySettlementController::class, 'reverse'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.reverse');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

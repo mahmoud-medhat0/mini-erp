@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 
 import AppLayout from '../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge } from '../Components/Primitives';
-import { getDictionary } from '../lib/i18n';
+import { getDictionary, interpolate } from '../lib/i18n';
 import type { NotificationItem, SharedPageProps } from '../Types';
 
 type DashboardProps = SharedPageProps & {
@@ -60,7 +60,7 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
   const isAr = locale === 'ar';
   const userName = auth?.user?.name || 'User';
 
-  const formatter = new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', {
+  const formatter = new Intl.DateTimeFormat(dict.app.pages.dashboard.enUs, {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
@@ -91,7 +91,7 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h2 className="m-0 text-xl font-extrabold text-[var(--text-primary)]">
-                {isAr ? `مرحباً، ${userName}` : `Welcome back, ${userName}`}
+                {interpolate(dict.app.pages.dashboard.welcomeBack, { name: userName })}
               </h2>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -99,13 +99,13 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
               </span>
             </div>
             <p className="m-0 text-xs text-[var(--text-secondary)]">
-              {isAr ? 'مركز قيادة النظام والمعاملات المالية وإدارة الصلاحيات والمؤسسة.' : 'Unified ERP core command center for financial ledgers, scopes, and administration.'}
+              {dict.app.pages.dashboard.unifiedErpCoreCommandCenterFor}
             </p>
           </div>
 
           <div className="flex items-center gap-3 self-start sm:self-center">
             <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs font-bold text-[var(--text-secondary)]">
-              <span className="text-[var(--text-muted)] font-normal">{isAr ? 'المحرك: ' : 'Engine: '}</span>
+              <span className="text-[var(--text-muted)] font-normal">{dict.app.pages.dashboard.engine}</span>
               <span className="font-mono text-[var(--primary)]">PostgreSQL 16</span>
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
           <div className="border-t border-[var(--border)] pt-5 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="m-0 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {isAr ? 'أحدث التنبيهات والأنشطة' : 'Recent Activity Feed'}
+                {dict.app.pages.dashboard.recentActivityFeed}
               </h4>
               <Link
                 href="/notifications"
@@ -246,35 +246,35 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
                 {
                   href: '/settings/company',
                   label: dict.app.settings.sections.company.title,
-                  desc: isAr ? 'إدارة الشركات والعملة الأساسية' : 'Corporate entities & base currency',
+                  desc: dict.app.pages.dashboard.corporateEntitiesBaseCurrency,
                   icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1 M14 7h1m-1 4h1m-1 4h1',
                   badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
                 },
                 {
                   href: '/settings/branches',
                   label: dict.app.settings.sections.branches.title,
-                  desc: isAr ? 'إدارة الفروع وتخصيص المقرات' : 'Operational branch locations',
+                  desc: dict.app.pages.dashboard.operationalBranchLocations,
                   icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z',
                   badgeColor: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
                 },
                 {
                   href: '/settings/numbering',
                   label: dict.app.settings.sections.numbering.title,
-                  desc: isAr ? 'ضبط المتتابعات وبادئات المستندات' : 'Sequence formats & document keys',
+                  desc: dict.app.pages.dashboard.sequenceFormatsDocumentKeys,
                   icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14',
                   badgeColor: 'bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20',
                 },
                 {
                   href: '/settings/users',
                   label: dict.app.settings.sections.users.title,
-                  desc: isAr ? 'إدارة المستخدمين والأدوار والصلاحيات' : 'Users, roles & Spatie permissions',
+                  desc: dict.app.pages.dashboard.usersRolesSpatiePermissions,
                   icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
                   badgeColor: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
                 },
                 {
                   href: '/notifications',
                   label: dict.app.nav.notifications,
-                  desc: isAr ? 'مركز التنبيهات وسجل النشاط' : 'Real-time alerts & activity stream',
+                  desc: dict.app.pages.dashboard.realTimeAlertsActivityStream,
                   icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
                   badgeColor: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
                 },

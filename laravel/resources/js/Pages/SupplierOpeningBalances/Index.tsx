@@ -1,10 +1,11 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type SupplierOBRow = {
@@ -41,8 +42,8 @@ export default function SupplierOpeningBalancesIndex({
   periods = [],
   currencies = [],
 }: SupplierOBProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
 
@@ -79,7 +80,7 @@ export default function SupplierOpeningBalancesIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(isAr ? 'هل أنت تأكد من رحيل الرصيد الافتتاحي؟ لا يمكن تعديله بعد الترحيل.' : 'Are you sure you want to post this opening balance? This action is permanent.')) {
+    if (confirm(dict.app.pages.supplierOpeningBalances.areYouSureYouWantTo)) {
       post(`/supplier-opening-balances/${id}/post`);
     }
   };
@@ -101,42 +102,44 @@ export default function SupplierOpeningBalancesIndex({
 
   return (
     <AppLayout active="supplier-opening-balances.index">
-      <Head title={isAr ? 'أرصدة افتتاحية للموردين - Mini ERP' : 'Supplier Opening Balances - Mini ERP'} />
+      <Head title={dict.app.pages.supplierOpeningBalances.supplierOpeningBalancesMiniErp} />
 
       <PageHeader
-        title={isAr ? 'أرصدة افتتاحية للموردين' : 'Supplier Opening Balances'}
-        description={isAr ? 'إدراج وتوثيق الأرصدة الدائنة الافتتاحية للموردين وترحيلها لإنشاء قيود ومستحقات الموردين.' : 'Record and post opening accounts payable balances for suppliers.'}
+        title={dict.app.pages.supplierOpeningBalances.supplierOpeningBalances}
+        description={dict.app.pages.supplierOpeningBalances.recordAndPostOpeningAccountsPayable}
         actions={
-          <button
-            type="button"
-            onClick={() => {
-              reset();
-              setShowModal(true);
-            }}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ رصيد افتتاحي جديد' : '+ New Opening Balance'}
-          </button>
+          can('suppliers.opening_balances') ? (
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                setShowModal(true);
+              }}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.supplierOpeningBalances.newOpeningBalance}
+            </button>
+          ) : null
         }
       />
 
       {balances.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد أرصدة افتتاحية' : 'No Opening Balances Found'}
-          description={isAr ? 'قم بإنشاء أول رصيد افتتاحي للموردين بالضغط على الزر أعلاه.' : 'Get started by recording supplier opening balances.'}
+          title={dict.app.pages.supplierOpeningBalances.noOpeningBalancesFound}
+          description={dict.app.pages.supplierOpeningBalances.getStartedByRecordingSupplierOpening}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'المورد' : 'Supplier'}</th>
-                <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                <th className={tableClasses.th}>{isAr ? 'المرجع' : 'Reference'}</th>
-                <th className={tableClasses.th}>{isAr ? 'العملة' : 'Currency'}</th>
-                <th className={tableClasses.th}>{isAr ? 'المبلغ' : 'Amount'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.supplier}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.date}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.reference}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.currency}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.amount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.status}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierOpeningBalances.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -153,20 +156,22 @@ export default function SupplierOpeningBalancesIndex({
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={row.status === 'posted' ? 'ok' : 'warning'}>
-                      {row.status === 'posted' ? (isAr ? 'رحل' : 'Posted') : (isAr ? 'مسودة' : 'Draft')}
+                      {row.status === 'posted' ? dict.app.pages.supplierOpeningBalances.posted : dict.app.pages.supplierOpeningBalances.draft}
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
                     {row.status === 'draft' ? (
-                      <button
-                        type="button"
-                        onClick={() => handlePost(row.id)}
-                        className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                      >
-                        {isAr ? 'ترحيل' : 'Post'}
-                      </button>
+                      can('suppliers.opening_balances') ? (
+                        <button
+                          type="button"
+                          onClick={() => handlePost(row.id)}
+                          className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          {dict.app.pages.supplierOpeningBalances.post}
+                        </button>
+                      ) : null
                     ) : (
-                      <span className="text-xs text-[var(--text-muted)] font-mono">{isAr ? 'مُقفل' : 'Immutable'}</span>
+                      <span className="text-xs text-[var(--text-muted)] font-mono">{dict.app.pages.supplierOpeningBalances.immutable}</span>
                     )}
                   </td>
                 </tr>
@@ -181,13 +186,13 @@ export default function SupplierOpeningBalancesIndex({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {isAr ? 'إنشاء رصيد افتتاحي لمورد' : 'New Supplier Opening Balance'}
+              {dict.app.pages.supplierOpeningBalances.newSupplierOpeningBalance}
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اختر المورد' : 'Supplier'} *
+                  {dict.app.pages.supplierOpeningBalances.supplier_2} *
                 </label>
                 <SearchableSelect
                   options={supplierSelectOptions}
@@ -201,7 +206,7 @@ export default function SupplierOpeningBalancesIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <DatePicker
-                    label={isAr ? 'تاريخ الرصيد' : 'Entry Date'}
+                    label={dict.app.pages.supplierOpeningBalances.entryDate}
                     value={data.entry_date}
                     onChange={(val) => setData('entry_date', val || '')}
                     required
@@ -209,7 +214,7 @@ export default function SupplierOpeningBalancesIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'الفترة المالية' : 'Financial Period'} *
+                    {dict.app.pages.supplierOpeningBalances.financialPeriod} *
                   </label>
                   <SearchableSelect
                     options={periodSelectOptions}
@@ -223,7 +228,7 @@ export default function SupplierOpeningBalancesIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'العملة' : 'Currency'} *
+                    {dict.app.pages.supplierOpeningBalances.currency_2} *
                   </label>
                   <SearchableSelect
                     options={currencyOptions}
@@ -234,7 +239,7 @@ export default function SupplierOpeningBalancesIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'المبلغ (مثال 1500.50)' : 'Amount'} *
+                    {dict.app.pages.supplierOpeningBalances.amount_2} *
                   </label>
                   <input
                     type="number"
@@ -251,7 +256,7 @@ export default function SupplierOpeningBalancesIndex({
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'المرجع المستندي' : 'Reference'}
+                  {dict.app.pages.supplierOpeningBalances.reference_2}
                 </label>
                 <input
                   type="text"
@@ -268,14 +273,14 @@ export default function SupplierOpeningBalancesIndex({
                   onClick={() => setShowModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.supplierOpeningBalances.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {processing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ مسودة' : 'Save Draft')}
+                  {processing ? dict.app.pages.supplierOpeningBalances.saving : dict.app.pages.supplierOpeningBalances.saveDraft}
                 </button>
               </div>
             </form>

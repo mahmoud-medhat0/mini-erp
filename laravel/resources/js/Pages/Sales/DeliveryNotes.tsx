@@ -1,8 +1,9 @@
-import { Head, useForm, router } from '@inertiajs/react';
+﻿import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type CustomerOption = {
@@ -91,8 +92,8 @@ type DeliveryNotesProps = SharedPageProps & {
 };
 
 export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSalesOrders, filters }: DeliveryNotesProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<DeliveryNoteRow | null>(null);
@@ -197,8 +198,8 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
   const handleAction = (noteId: string, action: 'confirm' | 'cancel') => {
     let confirmMsg = '';
-    if (action === 'confirm') confirmMsg = isAr ? 'هل أنت تأكد من تأكيد إذن التسليم؟' : 'Confirm this Delivery Note?';
-    if (action === 'cancel') confirmMsg = isAr ? 'هل أنت تأكد من إلغاء إذن التسليم؟' : 'Cancel this Delivery Note?';
+    if (action === 'confirm') confirmMsg = dict.app.pages.salesDeliveryNotes.confirmThisDeliveryNote;
+    if (action === 'cancel') confirmMsg = dict.app.pages.salesDeliveryNotes.cancelThisDeliveryNote;
 
     if (confirm(confirmMsg)) {
       router.post(`/sales/delivery-notes/${noteId}/${action}`);
@@ -221,11 +222,11 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'draft':
-        return isAr ? 'مسودة' : 'Draft';
+        return dict.app.pages.salesDeliveryNotes.draft;
       case 'confirmed':
-        return isAr ? 'مؤكد' : 'Confirmed';
+        return dict.app.pages.salesDeliveryNotes.confirmed;
       case 'cancelled':
-        return isAr ? 'ملغى' : 'Cancelled';
+        return dict.app.pages.salesDeliveryNotes.cancelled;
       default:
         return status;
     }
@@ -233,23 +234,25 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
   return (
     <AppLayout active="delivery-notes.index">
-      <Head title={isAr ? 'أذون التسليم' : 'Delivery Notes'} />
+      <Head title={dict.app.pages.salesDeliveryNotes.deliveryNotes} />
 
       <PageHeader
-        title={isAr ? 'أذون التسليم' : 'Delivery Notes'}
-        description={isAr ? 'إدارة أذون تسليم مبيعات العملاء' : 'Manage customer sales delivery notes'}
+        title={dict.app.pages.salesDeliveryNotes.deliveryNotes_2}
+        description={dict.app.pages.salesDeliveryNotes.manageCustomerSalesDeliveryNotes}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            disabled={confirmedSalesOrders.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 disabled:opacity-50 transition-all"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{isAr ? 'إنشاء إذن تسليم' : 'Create Delivery Note'}</span>
-          </button>
+          can('sales.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              disabled={confirmedSalesOrders.length === 0}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 disabled:opacity-50 transition-all"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{dict.app.pages.salesDeliveryNotes.createDeliveryNote}</span>
+            </button>
+          ) : null
         }
       />
 
@@ -258,7 +261,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={isAr ? 'بحث بالرقم، المرجع، أو العميل...' : 'Search number, reference, or customer...'}
+              placeholder={dict.app.pages.salesDeliveryNotes.searchNumberReferenceOrCustomer}
               defaultValue={filters.search || ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -279,37 +282,37 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
               onChange={(e) => router.get('/sales/delivery-notes', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
             >
-              <option value="">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
-              <option value="draft">{isAr ? 'مسودة' : 'Draft'}</option>
-              <option value="confirmed">{isAr ? 'مؤكد' : 'Confirmed'}</option>
-              <option value="cancelled">{isAr ? 'ملغى' : 'Cancelled'}</option>
+              <option value="">{dict.app.pages.salesDeliveryNotes.allStatuses}</option>
+              <option value="draft">{dict.app.pages.salesDeliveryNotes.draft}</option>
+              <option value="confirmed">{dict.app.pages.salesDeliveryNotes.confirmed}</option>
+              <option value="cancelled">{dict.app.pages.salesDeliveryNotes.cancelled}</option>
             </select>
           </div>
         </div>
 
         {deliveryNotes.data.length === 0 ? (
           <EmptyState
-            title={isAr ? 'لا توجد أذون تسليم' : 'No Delivery Notes found'}
-            description={isAr ? 'قم بإنشاء أمر بيع مؤكد أولاً ثم أنشئ إذن تسليم' : 'Confirm a sales order first then create a delivery note'}
+            title={dict.app.pages.salesDeliveryNotes.noDeliveryNotesFound}
+            description={dict.app.pages.salesDeliveryNotes.confirmASalesOrderFirstThen}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{isAr ? 'رقم الإذن' : 'Delivery Note #'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'رقم أمر البيع' : 'Sales Order #'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'العميل' : 'Customer'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'تاريخ التسليم' : 'Delivery Date'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                  <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.deliveryNote}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.salesOrder}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.customer}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.deliveryDate}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.status}</th>
+                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesDeliveryNotes.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {deliveryNotes.data.map((note) => (
                   <tr key={note.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {note.number || (isAr ? '(مسودة)' : '(Draft)')}
+                      {note.number || dict.app.pages.salesDeliveryNotes.draft_2}
                     </td>
                     <td className={`${tableClasses.td} font-mono`}>{note.salesOrder?.number || '-'}</td>
                     <td className={`${tableClasses.td} font-medium`}>{note.salesOrder?.customer?.name || '-'}</td>
@@ -322,27 +325,33 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
                       {note.status === 'draft' ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(note)}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                          >
-                            {isAr ? 'تعديل' : 'Edit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(note.id, 'confirm')}
-                            className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                          >
-                            {isAr ? 'تأكيد' : 'Confirm'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(note.id, 'cancel')}
-                            className="text-xs font-semibold text-red-600 hover:text-red-800"
-                          >
-                            {isAr ? 'إلغاء' : 'Cancel'}
-                          </button>
+                          {can('sales.edit') ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(note)}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                            >
+                              {dict.app.pages.salesDeliveryNotes.edit}
+                            </button>
+                          ) : null}
+                          {can('sales.approve') ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note.id, 'confirm')}
+                              className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                            >
+                              {dict.app.pages.salesDeliveryNotes.confirm}
+                            </button>
+                          ) : null}
+                          {can('sales.cancel') ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note.id, 'cancel')}
+                              className="text-xs font-semibold text-red-600 hover:text-red-800"
+                            >
+                              {dict.app.pages.salesDeliveryNotes.cancel}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
                     </td>
@@ -360,15 +369,15 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
           <div className="w-full max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
             <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
               {editingNote
-                ? isAr ? 'تعديل إذن التسليم' : 'Edit Delivery Note'
-                : isAr ? 'إنشاء إذن تسليم جديد' : 'Create Delivery Note'}
+                ? dict.app.pages.salesDeliveryNotes.editDeliveryNote
+                : dict.app.pages.salesDeliveryNotes.createDeliveryNote_2}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'أمر البيع المؤكد' : 'Confirmed Sales Order'} *
+                    {dict.app.pages.salesDeliveryNotes.confirmedSalesOrder} *
                   </label>
                   <select
                     disabled={Boolean(editingNote)}
@@ -377,7 +386,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                     required
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
                   >
-                    <option value="">{isAr ? 'اختر أمر البيع' : 'Select Sales Order'}</option>
+                    <option value="">{dict.app.pages.salesDeliveryNotes.selectSalesOrder}</option>
                     {confirmedSalesOrders.map((so) => (
                       <option key={so.id} value={so.id}>
                         {so.number} - {so.customer?.name}
@@ -389,7 +398,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'تاريخ التسليم' : 'Delivery Date'} *
+                    {dict.app.pages.salesDeliveryNotes.deliveryDate_2} *
                   </label>
                   <input
                     type="date"
@@ -404,7 +413,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'المرجع' : 'Reference'}
+                  {dict.app.pages.salesDeliveryNotes.reference}
                 </label>
                 <input
                   type="text"
@@ -418,7 +427,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
               {/* Delivery Note Lines */}
               <div className="pt-4 border-t border-[var(--border)]">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] mb-3">
-                  {isAr ? 'بنود إذن التسليم' : 'Delivery Lines'}
+                  {dict.app.pages.salesDeliveryNotes.deliveryLines}
                 </h4>
 
                 <div className="space-y-3">
@@ -426,7 +435,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                     <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-xl border border-[var(--border)] bg-[var(--background)]/50">
                       <div className="flex-1 w-full sm:w-auto">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                          {isAr ? 'المنتج' : 'Product'}
+                          {dict.app.pages.salesDeliveryNotes.product}
                         </label>
                         <input
                           type="text"
@@ -438,7 +447,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
                       <div className="w-full sm:w-24">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                          {isAr ? 'الوحدة' : 'UOM'}
+                          {dict.app.pages.salesDeliveryNotes.uom}
                         </label>
                         <input
                           type="text"
@@ -450,7 +459,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
                       <div className="w-full sm:w-32">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                          {isAr ? 'الكمية المسلمة' : 'Delivered Qty'}
+                          {dict.app.pages.salesDeliveryNotes.deliveredQty}
                         </label>
                         <input
                           type="number"
@@ -476,7 +485,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'ملاحظات' : 'Notes'}
+                  {dict.app.pages.salesDeliveryNotes.notes}
                 </label>
                 <textarea
                   rows={2}
@@ -492,7 +501,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                   onClick={closeModal}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.salesDeliveryNotes.cancel_2}
                 </button>
                 <button
                   type="submit"
@@ -500,8 +509,8 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {processing
-                    ? isAr ? 'جاري الحفظ...' : 'Saving...'
-                    : isAr ? 'حفظ المسودة' : 'Save Draft'}
+                    ? dict.app.pages.salesDeliveryNotes.saving
+                    : dict.app.pages.salesDeliveryNotes.saveDraft}
                 </button>
               </div>
             </form>

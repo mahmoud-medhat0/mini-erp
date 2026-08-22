@@ -6,6 +6,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type SupplierStatementProps = SharedPageProps & {
   report: {
@@ -31,7 +32,7 @@ type SupplierStatementProps = SharedPageProps & {
 };
 
 export default function SupplierStatement({ locale, report, suppliers, currencies, filters }: SupplierStatementProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [supplierId, setSupplierId] = useState(filters.supplier_id || '');
   const [dateFrom, setDateFrom] = useState(filters.date_from);
@@ -55,15 +56,15 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
 
   return (
     <AppLayout active="reports.supplier-statement">
-      <Head title={isAr ? 'كشف حساب مورد - Mini ERP' : 'Supplier Statement - Mini ERP'} />
+      <Head title={dict.app.pages.reportsSupplierStatement.supplierStatementMiniErp} />
 
       <PageHeader
-        title={isAr ? 'كشف حساب مورد' : 'Supplier Statement'}
-        description={isAr ? 'عرض كشف الحساب التفصيلي للمورد شامل الرصيد الافتتاحي والحركات والرصيد الختامي.' : 'Detailed subledger statement showing opening balance, debit/credit transactions, and running balance.'}
+        title={dict.app.pages.reportsSupplierStatement.supplierStatement}
+        description={dict.app.pages.reportsSupplierStatement.detailedSubledgerStatementShowingOpeningBalance}
         actions={
           report ? (
             <Button variant="secondary" onClick={handleExport}>
-              {isAr ? 'تصدير CSV' : 'Export CSV'}
+              {dict.app.pages.reportsSupplierStatement.exportCsv}
             </Button>
           ) : undefined
         }
@@ -74,30 +75,30 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'المورد' : 'Supplier'}
+                {dict.app.pages.reportsSupplierStatement.supplier}
               </label>
               <SearchableSelect
                 options={suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` }))}
                 value={supplierId}
                 onChange={(val) => setSupplierId(val || '')}
-                placeholder={isAr ? 'اختر المورد...' : 'Select supplier...'}
+                placeholder={dict.app.pages.reportsSupplierStatement.selectSupplier}
               />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'من تاريخ' : 'From Date'}
+                {dict.app.pages.reportsSupplierStatement.fromDate}
               </label>
               <DatePicker value={dateFrom} onChange={(val) => setDateFrom(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'إلى تاريخ' : 'To Date'}
+                {dict.app.pages.reportsSupplierStatement.toDate}
               </label>
               <DatePicker value={dateTo} onChange={(val) => setDateTo(val || '')} />
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'عرض التقرير' : 'View Report'}
+                {dict.app.pages.reportsSupplierStatement.viewReport}
               </Button>
             </div>
           </div>
@@ -107,25 +108,25 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'الرصيد الافتتاحي' : 'Opening Balance'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsSupplierStatement.openingBalance}</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
                   {formatMoney(report.opening_balance_minor, report.filters.currency)}
                 </div>
               </div>
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي السدادات (مدين)' : 'Total Debit (Payments)'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsSupplierStatement.totalDebitPayments}</div>
                 <div className="text-sm font-bold text-blue-600">
                   {formatMoney(report.total_debit_minor, report.filters.currency)}
                 </div>
               </div>
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي الزيادات (دائن)' : 'Total Credit (Increase)'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsSupplierStatement.totalCreditIncrease}</div>
                 <div className="text-sm font-bold text-emerald-600">
                   {formatMoney(report.total_credit_minor, report.filters.currency)}
                 </div>
               </div>
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'الرصيد الختامي' : 'Closing Balance'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsSupplierStatement.closingBalance}</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
                   {formatMoney(report.closing_balance_minor, report.filters.currency)}
                 </div>
@@ -136,18 +137,18 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
                   <tr>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'التاريخ' : 'Date'}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'النوع' : 'Type'}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'المرجع' : 'Reference'}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'البيان' : 'Description'}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'مدين (سداد)' : 'Debit (Payment)'}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'دائن (زيادة)' : 'Credit (Increase)'}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'الرصيد التراكمي' : 'Running Balance'}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.date}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.type}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.reference}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.description}</th>
+                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.debitPayment}</th>
+                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.creditIncrease}</th>
+                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.runningBalance}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
                   <tr className="bg-[var(--background)]/50 font-bold">
-                    <td colSpan={6} className="p-3">{isAr ? 'الرصيد الافتتاحي قبل الفترة' : 'Opening Balance Prior to Range'}</td>
+                    <td colSpan={6} className="p-3">{dict.app.pages.reportsSupplierStatement.openingBalancePriorToRange}</td>
                     <td className="p-3 text-end">{formatMoney(report.opening_balance_minor, report.filters.currency)}</td>
                   </tr>
                   {report.lines.map((line, idx) => (
@@ -170,7 +171,7 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
                   {report.lines.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-6 text-center text-[var(--text-muted)]">
-                        {isAr ? 'لا توجد حركات خاضعة للفترة المحددة.' : 'No movements found for the selected period.'}
+                        {dict.app.pages.reportsSupplierStatement.noMovementsFoundForTheSelected}
                       </td>
                     </tr>
                   ) : null}
@@ -180,7 +181,7 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
           </div>
         ) : (
           <Card className="p-12 text-center text-[var(--text-muted)]">
-            {isAr ? 'يرجى اختيار المورد وتحديد الفترة لعرض كشف الحساب.' : 'Please select a supplier and period to generate the statement.'}
+            {dict.app.pages.reportsSupplierStatement.pleaseSelectASupplierAndPeriod}
           </Card>
         )}
       </div>

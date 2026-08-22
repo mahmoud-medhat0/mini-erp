@@ -4,6 +4,7 @@ namespace App\Application\Reports;
 
 use App\Models\PayableAllocation;
 use App\Models\PayableEntry;
+use App\Models\PayableEntrySettlement;
 use Illuminate\Support\Carbon;
 
 class ApAgingReportService
@@ -16,7 +17,7 @@ class ApAgingReportService
         $query = PayableEntry::query()
             ->with('supplier')
             ->where('currency', $targetCurrency)
-            ->where('entry_date', '<=', $asOfDate);
+            ->where('entry_date', '<=', $asOfDate.' 23:59:59');
 
         if ($supplierId) {
             $query->where('supplier_id', $supplierId);
@@ -46,7 +47,13 @@ class ApAgingReportService
                 ->where('created_at', '<=', $asOfDate.' 23:59:59')
                 ->sum('amount_minor');
 
-            $unappliedMinor = $origNet - $allocatedSum;
+            $settledSum = (int) PayableEntrySettlement::query()
+                ->where('target_payable_entry_id', $entry->id)
+                ->where('status', 'active')
+                ->where('settled_at', '<=', Carbon::parse($asOfDate)->endOfDay())
+                ->sum('amount_minor');
+
+            $unappliedMinor = $origNet - $allocatedSum - $settledSum;
 
             if ($unappliedMinor <= 0) {
                 continue;

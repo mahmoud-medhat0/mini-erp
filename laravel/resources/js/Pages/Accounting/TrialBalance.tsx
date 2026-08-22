@@ -91,8 +91,8 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
 
       {rows.length === 0 ? (
         <EmptyState
-          title={accDict.noTrialBalanceRows || (locale === 'ar' ? 'لا توجد حركة حركات تطابق الفلاتر المحددة.' : 'No posted movements match the selected filters.')}
-          description={accDict.noTrialBalanceRowsDesc || (locale === 'ar' ? 'يتكون ميزان المراجعة من الأرصدة التراكمية الناتجة عن قيود دفتر الاستاد المرحّلة.' : 'The trial balance calculates cumulative debit and credit totals directly from posted ledger entries.')}
+          title={accDict.noTrialBalanceRows || dict.app.pages.accountingTrialBalance.noPostedMovementsMatchTheSelected}
+          description={accDict.noTrialBalanceRowsDesc || dict.app.pages.accountingTrialBalance.theTrialBalanceCalculatesCumulativeDebit}
         />
       ) : (
         <div className={tableClasses.wrap}>

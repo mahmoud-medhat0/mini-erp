@@ -32,10 +32,11 @@ class AccountCategoryTest extends TestCase
 
         $viewPerm = Permission::firstOrCreate(['name' => 'accounting.view', 'guard_name' => 'web']);
         $createPerm = Permission::firstOrCreate(['name' => 'accounting.create', 'guard_name' => 'web']);
+        $deletePerm = Permission::firstOrCreate(['name' => 'accounting.delete', 'guard_name' => 'web']);
         $accTypesPerm = Permission::firstOrCreate(['name' => 'accounting.account_types', 'guard_name' => 'web']);
         $accCatPerm = Permission::firstOrCreate(['name' => 'accounting.account_categories', 'guard_name' => 'web']);
 
-        $this->user->givePermissionTo([$viewPerm, $createPerm, $accTypesPerm, $accCatPerm]);
+        $this->user->givePermissionTo([$viewPerm, $createPerm, $deletePerm, $accTypesPerm, $accCatPerm]);
     }
 
     public function test_account_category_table_exists_and_system_categories_are_seeded(): void

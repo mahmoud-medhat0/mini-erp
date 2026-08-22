@@ -1,9 +1,10 @@
-import { Head, useForm, router } from '@inertiajs/react';
+﻿import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
@@ -93,6 +94,7 @@ export default function SupplierBillsIndex({
 }: SupplierBillsProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingBill, setEditingBill] = useState<SupplierBillRow | null>(null);
@@ -362,10 +364,10 @@ export default function SupplierBillsIndex({
 
   const handleAction = (billId: string, action: 'submit' | 'approve' | 'post' | 'cancel') => {
     let confirmMsg = '';
-    if (action === 'submit') confirmMsg = isAr ? 'هل أنت تأكد من تقديم الفاتورة؟' : 'Submit this bill?';
-    if (action === 'approve') confirmMsg = isAr ? 'هل أنت تأكد من اعتماد الفاتورة؟' : 'Approve this bill?';
-    if (action === 'post') confirmMsg = isAr ? 'هل أنت تأكد من ترحيل الفاتورة إلى القيود وحسابات الموردين؟' : 'Post this bill to AP/GL?';
-    if (action === 'cancel') confirmMsg = isAr ? 'هل أنت تأكد من إلغاء الفاتورة؟' : 'Cancel this bill?';
+    if (action === 'submit') confirmMsg = dict.app.pages.purchasingSupplierBills.submitThisBill;
+    if (action === 'approve') confirmMsg = dict.app.pages.purchasingSupplierBills.approveThisBill;
+    if (action === 'post') confirmMsg = dict.app.pages.purchasingSupplierBills.postThisBillToApGl;
+    if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierBills.cancelThisBill;
 
     if (confirm(confirmMsg)) {
       router.post(`/purchasing/bills/${billId}/${action}`);
@@ -392,15 +394,15 @@ export default function SupplierBillsIndex({
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'draft':
-        return isAr ? 'مسودة' : 'Draft';
+        return dict.app.pages.purchasingSupplierBills.draft;
       case 'submitted':
-        return isAr ? 'مقدمة' : 'Submitted';
+        return dict.app.pages.purchasingSupplierBills.submitted;
       case 'approved':
-        return isAr ? 'معتمدة' : 'Approved';
+        return dict.app.pages.purchasingSupplierBills.approved;
       case 'posted':
-        return isAr ? 'رحلت' : 'Posted';
+        return dict.app.pages.purchasingSupplierBills.posted;
       case 'cancelled':
-        return isAr ? 'ملغاة' : 'Cancelled';
+        return dict.app.pages.purchasingSupplierBills.cancelled;
       default:
         return status;
     }
@@ -424,23 +426,25 @@ export default function SupplierBillsIndex({
 
   return (
     <AppLayout active="supplier-bills.index">
-      <Head title={isAr ? 'فواتير الموردين' : 'Supplier Bills'} />
+      <Head title={dict.app.pages.purchasingSupplierBills.supplierBills} />
 
       <div className="space-y-6">
         <PageHeader
-          title={isAr ? 'فواتير الموردين' : 'Supplier Bills'}
-          description={isAr ? 'إدارة فواتير المشتريات وترحيلها لحسابات الموردين والشراء' : 'Manage purchasing supplier bills and AP/GL posting.'}
+          title={dict.app.pages.purchasingSupplierBills.supplierBills_2}
+          description={dict.app.pages.purchasingSupplierBills.managePurchasingSupplierBillsAndAp}
           actions={
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
-            >
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              <span>{isAr ? 'إنشاء فاتورة توريد' : 'Create Supplier Bill'}</span>
-            </button>
+            can('purchasing.create') ? (
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>{dict.app.pages.purchasingSupplierBills.createSupplierBill}</span>
+              </button>
+            ) : null
           }
         />
 
@@ -450,7 +454,7 @@ export default function SupplierBillsIndex({
             <div className="flex-1 min-w-[200px]">
               <input
                 type="text"
-                placeholder={isAr ? 'بحث برقم الفاتورة أو المورد...' : 'Search by bill number, supplier, or ref...'}
+                placeholder={dict.app.pages.purchasingSupplierBills.searchByBillNumberSupplierOr}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
@@ -462,19 +466,19 @@ export default function SupplierBillsIndex({
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
               >
-                <option value="">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
-                <option value="draft">{isAr ? 'مسودة' : 'Draft'}</option>
-                <option value="submitted">{isAr ? 'مقدمة' : 'Submitted'}</option>
-                <option value="approved">{isAr ? 'معتمدة' : 'Approved'}</option>
-                <option value="posted">{isAr ? 'رحلت' : 'Posted'}</option>
-                <option value="cancelled">{isAr ? 'ملغاة' : 'Cancelled'}</option>
+                <option value="">{dict.app.pages.purchasingSupplierBills.allStatuses}</option>
+                <option value="draft">{dict.app.pages.purchasingSupplierBills.draft}</option>
+                <option value="submitted">{dict.app.pages.purchasingSupplierBills.submitted}</option>
+                <option value="approved">{dict.app.pages.purchasingSupplierBills.approved}</option>
+                <option value="posted">{dict.app.pages.purchasingSupplierBills.posted}</option>
+                <option value="cancelled">{dict.app.pages.purchasingSupplierBills.cancelled}</option>
               </select>
             </div>
             <button
               type="submit"
               className="rounded-md border border-[var(--border)] px-4 py-1.5 text-sm font-medium hover:bg-[var(--background)]"
             >
-              {isAr ? 'تصفية' : 'Filter'}
+              {dict.app.pages.purchasingSupplierBills.filter}
             </button>
           </form>
         </Card>
@@ -483,27 +487,27 @@ export default function SupplierBillsIndex({
         <Card className="overflow-hidden">
           {supplierBills.data.length === 0 ? (
             <EmptyState
-              title={isAr ? 'لا توجد فواتير توريد' : 'No supplier bills found'}
-              description={isAr ? 'قم بإنشاء فاتورة توريد جديدة للبدء.' : 'Create a new supplier bill to get started.'}
+              title={dict.app.pages.purchasingSupplierBills.noSupplierBillsFound}
+              description={dict.app.pages.purchasingSupplierBills.createANewSupplierBillTo}
             />
           ) : (
             <div className={tableClasses.wrap}>
               <table className={tableClasses.table}>
                 <thead>
                   <tr>
-                    <th className={tableClasses.th}>{isAr ? 'رقم الفاتورة' : 'Bill Number'}</th>
-                    <th className={tableClasses.th}>{isAr ? 'المورد' : 'Supplier'}</th>
-                    <th className={tableClasses.th}>{isAr ? 'تاريخ الفاتورة' : 'Bill Date'}</th>
-                    <th className={tableClasses.th}>{isAr ? 'الإجمالي' : 'Total'}</th>
-                    <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                    <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.billNumber}</th>
+                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.supplier}</th>
+                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.billDate}</th>
+                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.total}</th>
+                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.status}</th>
+                    <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingSupplierBills.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {supplierBills.data.map((bill) => (
                     <tr key={bill.id}>
                       <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {bill.number || <span className="text-[var(--text-muted)]">{isAr ? 'مسودة' : 'Draft'}</span>}
+                        {bill.number || <span className="text-[var(--text-muted)]">{dict.app.pages.purchasingSupplierBills.draft_2}</span>}
                       </td>
                       <td className={`${tableClasses.td} font-medium`}>{bill.supplier?.name || '-'}</td>
                       <td className={tableClasses.td}>{bill.bill_date}</td>
@@ -518,50 +522,54 @@ export default function SupplierBillsIndex({
                       <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
                         {bill.status === 'draft' ? (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(bill)}
-                              className="text-xs font-semibold text-blue-600 hover:underline"
-                            >
-                              {isAr ? 'تعديل' : 'Edit'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAction(bill.id, 'submit')}
-                              className="text-xs font-semibold text-indigo-600 hover:underline"
-                            >
-                              {isAr ? 'تقديم' : 'Submit'}
-                            </button>
+                            {can('purchasing.edit') ? (
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(bill)}
+                                className="text-xs font-semibold text-blue-600 hover:underline"
+                              >
+                                {dict.app.pages.purchasingSupplierBills.edit}
+                              </button>
+                            ) : null}
+                            {can('purchasing.submit') ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAction(bill.id, 'submit')}
+                                className="text-xs font-semibold text-indigo-600 hover:underline"
+                              >
+                                {dict.app.pages.purchasingSupplierBills.submit}
+                              </button>
+                            ) : null}
                           </>
                         ) : null}
 
-                        {bill.status === 'submitted' ? (
+                        {bill.status === 'submitted' && can('purchasing.approve') ? (
                           <button
                             type="button"
                             onClick={() => handleAction(bill.id, 'approve')}
                             className="text-xs font-semibold text-amber-600 hover:underline"
                           >
-                            {isAr ? 'اعتماد' : 'Approve'}
+                            {dict.app.pages.purchasingSupplierBills.approve}
                           </button>
                         ) : null}
 
-                        {bill.status === 'approved' ? (
+                        {bill.status === 'approved' && can('purchasing.post') ? (
                           <button
                             type="button"
                             onClick={() => handleAction(bill.id, 'post')}
                             className="text-xs font-semibold text-emerald-600 hover:underline"
                           >
-                            {isAr ? 'ترحيل' : 'Post'}
+                            {dict.app.pages.purchasingSupplierBills.post}
                           </button>
                         ) : null}
 
-                        {bill.status !== 'posted' && bill.status !== 'cancelled' ? (
+                        {bill.status !== 'posted' && bill.status !== 'cancelled' && can('purchasing.cancel') ? (
                           <button
                             type="button"
                             onClick={() => handleAction(bill.id, 'cancel')}
                             className="text-xs font-semibold text-rose-600 hover:underline"
                           >
-                            {isAr ? 'إلغاء' : 'Cancel'}
+                            {dict.app.pages.purchasingSupplierBills.cancel}
                           </button>
                         ) : null}
                       </td>
@@ -579,19 +587,15 @@ export default function SupplierBillsIndex({
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-[var(--background)] p-6 shadow-xl border border-[var(--border)]">
               <h2 className="text-lg font-bold mb-4">
                 {editingBill
-                  ? isAr
-                    ? 'تعديل فاتورة التوريد'
-                    : 'Edit Supplier Bill'
-                  : isAr
-                  ? 'إنشاء فاتورة توريد جديدة'
-                  : 'Create Supplier Bill'}
+                  ? dict.app.pages.purchasingSupplierBills.editSupplierBill
+                  : dict.app.pages.purchasingSupplierBills.createSupplierBill_2}
               </h2>
 
               <form onSubmit={handleSubmitForm} className="space-y-4">
                 {/* Source Selection Mode */}
                 {!editingBill && (
                   <div className="space-y-2">
-                    <label className="block text-sm font-semibold">{isAr ? 'مصدر الفاتورة' : 'Bill Source'}</label>
+                    <label className="block text-sm font-semibold">{dict.app.pages.purchasingSupplierBills.billSource}</label>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
@@ -600,7 +604,7 @@ export default function SupplierBillsIndex({
                           checked={sourceMode === 'manual'}
                           onChange={() => handleSourceModeChange('manual')}
                         />
-                        {isAr ? 'يدوي (خدمات ومواد غير مخزنية)' : 'Manual (Service/Non-stock)'}
+                        {dict.app.pages.purchasingSupplierBills.manualServiceNonStock}
                       </label>
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
@@ -609,7 +613,7 @@ export default function SupplierBillsIndex({
                           checked={sourceMode === 'purchase_order'}
                           onChange={() => handleSourceModeChange('purchase_order')}
                         />
-                        {isAr ? 'من أمر شراء مؤكد' : 'From Purchase Order'}
+                        {dict.app.pages.purchasingSupplierBills.fromPurchaseOrder}
                       </label>
                       <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
@@ -618,7 +622,7 @@ export default function SupplierBillsIndex({
                           checked={sourceMode === 'goods_receipt'}
                           onChange={() => handleSourceModeChange('goods_receipt')}
                         />
-                        {isAr ? 'من سند استلام مؤكد' : 'From Goods Receipt'}
+                        {dict.app.pages.purchasingSupplierBills.fromGoodsReceipt}
                       </label>
                     </div>
                   </div>
@@ -626,13 +630,13 @@ export default function SupplierBillsIndex({
 
                 {sourceMode === 'purchase_order' && !editingBill && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'اختر أمر الشراء' : 'Select Purchase Order'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.selectPurchaseOrder}</label>
                     <select
                       value={data.purchase_order_id}
                       onChange={(e) => handlePurchaseOrderSelect(e.target.value)}
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
                     >
-                      <option value="">{isAr ? '-- اختر امر شراء --' : '-- Select PO --'}</option>
+                      <option value="">{dict.app.pages.purchasingSupplierBills.selectPo}</option>
                       {confirmedPurchaseOrders.map((po) => (
                         <option key={po.id} value={po.id}>
                           {po.number} ({po.supplier?.name}) - {po.currency}
@@ -644,13 +648,13 @@ export default function SupplierBillsIndex({
 
                 {sourceMode === 'goods_receipt' && !editingBill && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'اختر سند الاستلام' : 'Select Goods Receipt'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.selectGoodsReceipt}</label>
                     <select
                       value={data.goods_receipt_id}
                       onChange={(e) => handleGoodsReceiptSelect(e.target.value)}
                       className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
                     >
-                      <option value="">{isAr ? '-- اختر سند استلام --' : '-- Select GR --'}</option>
+                      <option value="">{dict.app.pages.purchasingSupplierBills.selectGr}</option>
                       {confirmedGoodsReceipts.map((gr) => (
                         <option key={gr.id} value={gr.id}>
                           {gr.number} ({gr.supplier?.name})
@@ -662,7 +666,7 @@ export default function SupplierBillsIndex({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'المورد' : 'Supplier'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.supplier_2}</label>
                     <select
                       disabled={!!editingBill || sourceMode !== 'manual'}
                       value={data.supplier_id}
@@ -679,7 +683,7 @@ export default function SupplierBillsIndex({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'تاريخ الفاتورة' : 'Bill Date'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.billDate_2}</label>
                     <input
                       type="date"
                       value={data.bill_date}
@@ -690,7 +694,7 @@ export default function SupplierBillsIndex({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'تاريخ الاستحقاق' : 'Due Date'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.dueDate}</label>
                     <input
                       type="date"
                       value={data.due_date}
@@ -703,7 +707,7 @@ export default function SupplierBillsIndex({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'مرجع المورد' : 'Supplier Ref'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.supplierRef}</label>
                     <input
                       type="text"
                       value={data.supplier_reference}
@@ -713,7 +717,7 @@ export default function SupplierBillsIndex({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'العملة' : 'Currency'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.currency}</label>
                     <input
                       type="text"
                       disabled
@@ -723,7 +727,7 @@ export default function SupplierBillsIndex({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">{isAr ? 'المرجع' : 'Reference'}</label>
+                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.reference}</label>
                     <input
                       type="text"
                       value={data.reference}
@@ -736,14 +740,14 @@ export default function SupplierBillsIndex({
                 {/* Line Items Table */}
                 <div className="space-y-2 pt-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold">{isAr ? 'بنود الفاتورة' : 'Bill Line Items'}</h3>
+                    <h3 className="text-sm font-bold">{dict.app.pages.purchasingSupplierBills.billLineItems}</h3>
                     {sourceMode === 'manual' && (
                       <button
                         type="button"
                         onClick={addLine}
                         className="text-xs font-semibold text-blue-600 hover:underline"
                       >
-                        {isAr ? '+ إضافة بند' : '+ Add Line'}
+                        {dict.app.pages.purchasingSupplierBills.addLine}
                       </button>
                     )}
                   </div>
@@ -752,11 +756,11 @@ export default function SupplierBillsIndex({
                     <table className="w-full text-xs">
                       <thead className="bg-[var(--background)] border-b border-[var(--border)]">
                         <tr>
-                          <th className="p-2 text-start">{isAr ? 'المنتج / الخدمة' : 'Product/Service'}</th>
-                          <th className="p-2 text-start">{isAr ? 'الوصف' : 'Description'}</th>
-                          <th className="p-2 text-start w-24">{isAr ? 'الكمية' : 'Qty'}</th>
-                          <th className="p-2 text-start w-28">{isAr ? 'تكلفة الوحدة' : 'Unit Cost'}</th>
-                          <th className="p-2 text-end w-32">{isAr ? 'الإجمالي' : 'Total'}</th>
+                          <th className="p-2 text-start">{dict.app.pages.purchasingSupplierBills.productService}</th>
+                          <th className="p-2 text-start">{dict.app.pages.purchasingSupplierBills.description}</th>
+                          <th className="p-2 text-start w-24">{dict.app.pages.purchasingSupplierBills.qty}</th>
+                          <th className="p-2 text-start w-28">{dict.app.pages.purchasingSupplierBills.unitCost}</th>
+                          <th className="p-2 text-end w-32">{dict.app.pages.purchasingSupplierBills.total_2}</th>
                           {sourceMode === 'manual' && <th className="p-2 w-10"></th>}
                         </tr>
                       </thead>
@@ -835,7 +839,7 @@ export default function SupplierBillsIndex({
 
                 <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
                   <div className="text-base font-bold">
-                    {isAr ? 'الإجمالي العام: ' : 'Grand Total: '}
+                    {dict.app.pages.purchasingSupplierBills.grandTotal}
                     <span className="font-mono">{formatMoney(previewTotalMinor, data.currency)}</span>
                   </div>
 
@@ -845,7 +849,7 @@ export default function SupplierBillsIndex({
                       onClick={closeModal}
                       className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--background)]"
                     >
-                      {isAr ? 'إلغاء' : 'Cancel'}
+                      {dict.app.pages.purchasingSupplierBills.cancel_2}
                     </button>
                     <button
                       type="submit"
@@ -853,12 +857,8 @@ export default function SupplierBillsIndex({
                       className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50"
                     >
                       {editingBill
-                        ? isAr
-                          ? 'حفظ التعديلات'
-                          : 'Save Changes'
-                        : isAr
-                        ? 'إنشاء الفاتورة'
-                        : 'Create Bill'}
+                        ? dict.app.pages.purchasingSupplierBills.saveChanges
+                        : dict.app.pages.purchasingSupplierBills.createBill}
                     </button>
                   </div>
                 </div>

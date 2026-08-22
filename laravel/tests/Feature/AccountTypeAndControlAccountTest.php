@@ -40,13 +40,14 @@ class AccountTypeAndControlAccountTest extends TestCase
 
         $this->user = User::factory()->create();
 
-        // Give view, create, & account_types permissions for accounting
+        // Give view, create, delete, & account_types permissions for accounting
         $viewPerm = Permission::firstOrCreate(['name' => 'accounting.view', 'guard_name' => 'web']);
         $createPerm = Permission::firstOrCreate(['name' => 'accounting.create', 'guard_name' => 'web']);
+        $deletePerm = Permission::firstOrCreate(['name' => 'accounting.delete', 'guard_name' => 'web']);
         $postPerm = Permission::firstOrCreate(['name' => 'accounting.post', 'guard_name' => 'web']);
         $accTypesPerm = Permission::firstOrCreate(['name' => 'accounting.account_types', 'guard_name' => 'web']);
 
-        $this->user->givePermissionTo([$viewPerm, $createPerm, $postPerm, $accTypesPerm]);
+        $this->user->givePermissionTo([$viewPerm, $createPerm, $deletePerm, $postPerm, $accTypesPerm]);
 
         $periodService = app(PeriodService::class);
         $this->fiscalYear = $periodService->createFiscalYear(2026, '2026-01-01', '2026-12-31');

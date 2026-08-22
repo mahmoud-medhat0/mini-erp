@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
 
 type BankAccountRow = {
@@ -35,8 +36,8 @@ type BankAccountsProps = SharedPageProps & {
 };
 
 export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [], currencies = [], filters }: BankAccountsProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccountRow | null>(null);
@@ -110,19 +111,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
 
   return (
     <AppLayout active="bank-accounts.index">
-      <Head title={isAr ? 'حسابات البنوك - Mini ERP' : 'Bank Accounts - Mini ERP'} />
+      <Head title={dict.app.pages.bankAccounts.bankAccountsMiniErp} />
 
       <PageHeader
-        title={isAr ? 'حسابات البنوك' : 'Bank Accounts'}
-        description={isAr ? 'إدارة الحسابات البنكية وأرقام الحسابات وتفاصيل IBAN وربطها بالأستاذ العام.' : 'Manage bank accounts, IBAN numbers, and linked GL asset accounts.'}
+        title={dict.app.pages.bankAccounts.bankAccounts}
+        description={dict.app.pages.bankAccounts.manageBankAccountsIbanNumbersAnd}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ إضافة حساب بنكي' : '+ Create Bank Account'}
-          </button>
+          can('banks.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.bankAccounts.createBankAccount}
+            </button>
+          ) : null
         }
       />
 
@@ -130,7 +133,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="text"
-            placeholder={isAr ? 'بحث بالكود، اسم البنك، أو رقم الحساب...' : 'Search by code, bank, account number...'}
+            placeholder={dict.app.pages.bankAccounts.searchByCodeBankAccountNumber}
             defaultValue={filters.search || ''}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -145,21 +148,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
 
       {bankAccounts.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد حسابات بنكية' : 'No Bank Accounts Found'}
-          description={isAr ? 'قم بإضافة اول حساب بنكي بالضغط على زر الإنشاء اعلاه.' : 'Get started by creating your first bank account.'}
+          title={dict.app.pages.bankAccounts.noBankAccountsFound}
+          description={dict.app.pages.bankAccounts.getStartedByCreatingYourFirst}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'الكود' : 'Code'}</th>
-                <th className={tableClasses.th}>{isAr ? 'اسم البنك' : 'Bank Name'}</th>
-                <th className={tableClasses.th}>{isAr ? 'رقم الحساب' : 'Account Number'}</th>
-                <th className={tableClasses.th}>{isAr ? 'العملة' : 'Currency'}</th>
-                <th className={tableClasses.th}>{isAr ? 'حساب الأستاذ المربوط' : 'Linked GL Account'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.code}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.bankName}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.accountNumber}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.currency}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.linkedGlAccount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.status}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -174,17 +177,19 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={acc.is_active ? 'ok' : 'muted'}>
-                      {acc.is_active ? (isAr ? 'نشط' : 'Active') : (isAr ? 'غير نشط' : 'Inactive')}
+                      {acc.is_active ? dict.app.pages.bankAccounts.active : dict.app.pages.bankAccounts.inactive}
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(acc)}
-                      className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                    >
-                      {isAr ? 'تعديل' : 'Edit'}
-                    </button>
+                    {can('banks.edit') ? (
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(acc)}
+                        className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+                      >
+                        {dict.app.pages.bankAccounts.edit}
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -198,14 +203,14 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {editingAccount ? (isAr ? 'تعديل الحساب البنكي' : 'Edit Bank Account') : (isAr ? 'إضافة حساب بنكي جديد' : 'Create Bank Account')}
+              {editingAccount ? dict.app.pages.bankAccounts.editBankAccount : dict.app.pages.bankAccounts.createBankAccount_2}
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'كود الحساب' : 'Code'} *
+                    {dict.app.pages.bankAccounts.code_2} *
                   </label>
                   <input
                     type="text"
@@ -218,7 +223,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'العملة' : 'Currency'} *
+                    {dict.app.pages.bankAccounts.currency_2} *
                   </label>
                   <SearchableSelect
                     options={currencyOptions}
@@ -231,7 +236,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اسم الحساب البنكي' : 'Account Label'} *
+                  {dict.app.pages.bankAccounts.accountLabel} *
                 </label>
                 <input
                   type="text"
@@ -246,7 +251,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'اسم البنك' : 'Bank Name'} *
+                    {dict.app.pages.bankAccounts.bankName_2} *
                   </label>
                   <input
                     type="text"
@@ -258,7 +263,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'رقم الحساب البنكي' : 'Account Number'} *
+                    {dict.app.pages.bankAccounts.accountNumber_2} *
                   </label>
                   <input
                     type="text"
@@ -272,7 +277,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'حساب الأستاذ العام المربوط' : 'Linked Asset GL Account'} *
+                  {dict.app.pages.bankAccounts.linkedAssetGlAccount} *
                 </label>
                 <SearchableSelect
                   options={glSelectOptions}
@@ -317,7 +322,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                   className="rounded-md border-[var(--border)] text-[var(--primary)]"
                 />
                 <label htmlFor="is_active" className="text-xs font-semibold text-[var(--text-primary)]">
-                  {isAr ? 'الحساب البنكي نشط' : 'Bank Account Active'}
+                  {dict.app.pages.bankAccounts.bankAccountActive}
                 </label>
               </div>
 
@@ -327,14 +332,14 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                   onClick={() => setShowModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.bankAccounts.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {processing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ البيانات' : 'Save Account')}
+                  {processing ? dict.app.pages.bankAccounts.saving : dict.app.pages.bankAccounts.saveAccount}
                 </button>
               </div>
             </form>

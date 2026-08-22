@@ -350,14 +350,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{dict.app.fields.code || (locale === 'ar' ? 'الكود' : 'Code')}</th>
-              <th className={tableClasses.th}>{accDict.accountName || (locale === 'ar' ? 'اسم الحساب' : 'Account Name')}</th>
-              <th className={tableClasses.th}>{accDict.accountGroup || (locale === 'ar' ? 'المجموعة' : 'Group')}</th>
-              <th className={tableClasses.th}>{accDict.accountType || (locale === 'ar' ? 'النوع' : 'Type')}</th>
-              <th className={tableClasses.th}>{accDict.currency || (locale === 'ar' ? 'العملة' : 'Currency')}</th>
-              <th className={tableClasses.th}>{accDict.accountNature || (locale === 'ar' ? 'الطبيعة' : 'Nature')}</th>
-              <th className={tableClasses.th}>{accDict.controlAccountHeader || (locale === 'ar' ? 'حساب مراقبة' : 'Control Account')}</th>
-              <th className={tableClasses.th}>{dict.app.fields.status || (locale === 'ar' ? 'الحالة' : 'Status')}</th>
+              <th className={tableClasses.th}>{dict.app.fields.code || dict.app.pages.accountingChartOfAccounts.code}</th>
+              <th className={tableClasses.th}>{accDict.accountName || dict.app.pages.accountingChartOfAccounts.accountName}</th>
+              <th className={tableClasses.th}>{accDict.accountGroup || dict.app.pages.accountingChartOfAccounts.group}</th>
+              <th className={tableClasses.th}>{accDict.accountType || dict.app.pages.accountingChartOfAccounts.type}</th>
+              <th className={tableClasses.th}>{accDict.currency || dict.app.pages.accountingChartOfAccounts.currency}</th>
+              <th className={tableClasses.th}>{accDict.accountNature || dict.app.pages.accountingChartOfAccounts.nature}</th>
+              <th className={tableClasses.th}>{accDict.controlAccountHeader || dict.app.pages.accountingChartOfAccounts.controlAccount}</th>
+              <th className={tableClasses.th}>{dict.app.fields.status || dict.app.pages.accountingChartOfAccounts.status}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -393,9 +393,9 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 </td>
                 <td className={tableClasses.td}>
                   {acc.is_control ? (
-                    <StatusBadge tone="warning">{accDict.controlBadge || (locale === 'ar' ? 'حساب مراقبة' : 'Control Account')}</StatusBadge>
+                    <StatusBadge tone="warning">{accDict.controlBadge || dict.app.pages.accountingChartOfAccounts.controlAccount_2}</StatusBadge>
                   ) : (
-                    <span className="text-xs text-[var(--text-muted)]">{accDict.standardBadge || (locale === 'ar' ? 'عادي' : 'Standard')}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{accDict.standardBadge || dict.app.pages.accountingChartOfAccounts.standard}</span>
                   )}
                 </td>
                 <td className={tableClasses.td}>

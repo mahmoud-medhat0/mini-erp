@@ -4,6 +4,7 @@ namespace App\Application\Reports;
 
 use App\Models\ReceivableAllocation;
 use App\Models\ReceivableEntry;
+use App\Models\ReceivableEntrySettlement;
 use Illuminate\Support\Carbon;
 
 class ArAgingReportService
@@ -16,7 +17,7 @@ class ArAgingReportService
         $query = ReceivableEntry::query()
             ->with('customer')
             ->where('currency', $targetCurrency)
-            ->where('entry_date', '<=', $asOfDate);
+            ->where('entry_date', '<=', $asOfDate.' 23:59:59');
 
         if ($customerId) {
             $query->where('customer_id', $customerId);
@@ -46,7 +47,13 @@ class ArAgingReportService
                 ->where('created_at', '<=', $asOfDate.' 23:59:59')
                 ->sum('amount_minor');
 
-            $unappliedMinor = $origNet - $allocatedSum;
+            $settledSum = (int) ReceivableEntrySettlement::query()
+                ->where('target_receivable_entry_id', $entry->id)
+                ->where('status', 'active')
+                ->where('settled_at', '<=', Carbon::parse($asOfDate)->endOfDay())
+                ->sum('amount_minor');
+
+            $unappliedMinor = $origNet - $allocatedSum - $settledSum;
 
             if ($unappliedMinor <= 0) {
                 continue;

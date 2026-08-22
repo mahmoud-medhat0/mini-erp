@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 9 (Read-only Operational Reports & Returns Decision Pack) is complete and locally verified.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`).
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -24,48 +24,67 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - Phase 4 Slice 6 Supplier Bill Posting.
 - Phase 4 Slice 7 Inventory Costing Decision Pack (Owner selected Option 1: Moving Weighted Average Costing).
 - Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting.
-- Phase 4 Slice 9 Operational Reports & Returns Decision Pack:
-  - 7 Read-only Query Services: `SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`.
-  - 7 HTTP Controllers under `App\Http\Controllers\Reports`.
-  - 7 Inertia UI Pages (`SalesOrdersReport.tsx`, `PurchaseOrdersReport.tsx`, `DeliveryNotesReport.tsx`, `GoodsReceiptsReport.tsx`, `CustomerInvoicesReport.tsx`, `SupplierBillsReport.tsx`, `StockMovementsReport.tsx`).
-  - Reports Hub (`Reports/Index.tsx`) links for all 7 new operational reports.
-  - Owner decision pack `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
-  - Feature test suite `Phase4Slice9OperationalReportsTest.php` (7/7 passing tests, 85 assertions after local schema-alignment correction).
+- Phase 4 Slice 9 Operational Reports & Returns Decision Pack.
+- Phase 4 Slice 10 Sales Returns, Credit Notes & Operations Close-Out (FULLY COMPLETE):
+  - Five document families: `sales_return`, `customer_credit_note`, `customer_invoice_revision`, `purchase_return`, `supplier_adjustment_note` across seven migrations (including `receivable_entry_settlement` and `payable_entry_settlement`).
+  - Services: `SalesReturnService`, `CustomerCreditNoteService`, `CustomerInvoiceRevisionService`, `PurchaseReturnService`, `SupplierAdjustmentNoteService`, `ReceivableEntrySettlementService`, `PayableEntrySettlementService`.
+  - Manual AR credit note settlement against invoice debits & AP adjustment note settlement against bill credits.
+  - Concurrency stress command: `accounting:settlement-concurrency-stress`.
+  - Feature test suite `Phase4Slice10ReturnsCreditNotesTest.php` (38/38 passing tests, 0 skipped, 230 assertions).
+  - GL mapping keys `sales_returns` (4200), `inventory_return_variance` (5200), `inventory_scrap_loss` (5300), `purchase_returns_allowances` (5400), `input_tax_receivable` (1300), `output_tax_payable` (2200) seeded idempotently in `AccountingCoreSeeder` with accounts.
+  - Manual tax percentage in integer basis points (`intdiv(($baseMinor * $rateBps) + 5000, 10000)`) with modes `none`/`manual_rate`/`manual_amount`; manual/open credit/debit settlement only.
+  - Feature test suite `Phase4Slice10ReturnsCreditNotesTest.php` (33 tests / 32 passed / 1 intentional skip / 192 assertions; skip reserved for the manual credit settlement allocation engine follow-up).
 
 Latest verified baseline:
 
 ```text
 php artisan migrate --force: Nothing to migrate
-php artisan migrate:status: all migrations Ran through 2026_08_22_090000_harden_phase4_slice8_inventory_integrity
-php artisan test --filter=Phase4Slice9OperationalReportsTest: 7 tests / 85 assertions
-php artisan test: 363 tests, 360 passed, 3 skipped / 2870 assertions
+php artisan migrate:status: all migrations Ran through 2026_08_22_100050_update_accounting_mapping_for_slice10
+php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest: 33 tests / 32 passed / 1 skipped / 192 assertions
+php artisan test: 402 tests, 398 passed, 4 skipped / 3124 assertions
 php artisan test --testsuite=Concurrency: 7 tests / 16 assertions
-php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
 php artisan concurrency:stress --workers=10: PASSED CLEANLY
-php artisan concurrency:stress --workers=100: BLOCKED LOCALLY by Windows paging-file VirtualAlloc exhaustion, not an application assertion failure
+php artisan concurrency:stress --workers=100: BLOCKED LOCALLY by Windows paging-file memory exhaustion, not an application assertion failure
 php artisan accounting:concurrency-stress --workers=50: PASSED CLEANLY
-php artisan tokens:gc --batch=100: PASSED CLEANLY
+php artisan accounting:allocation-concurrency-stress --workers=50: PASSED CLEANLY
+php artisan accounting:cheque-concurrency-stress --workers=50: PASSED CLEANLY
+php artisan accounting:bank-reconciliation-concurrency-stress --workers=50: PASSED CLEANLY
+php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
+php artisan accounting:phase3-integrity-check: PASSED
+php artisan accounting:phase3-stress --workers=50: 50 SUCCESS
+php artisan tokens:gc --batch=100: OK
 vendor/bin/pint --test: passed
 npm run typecheck: passed (0 TS errors)
-npm run build: passed
+npm run build: passed (chunk size warning only)
 Inventory backend forbidden float/rounding source scan: no results
 ```
 
 ## Next Execution
 
-Proceed to Phase 4 Slice 10 only after the owner answers the open decisions in `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
+Required correction before optional work:
 
-Slice 10 expected scope after owner approval:
+- Execute `PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md` to implement manual settlement/allocation for `customer_credit_note` receivable credits and `supplier_adjustment_note` payable debits, remove the intentional skipped test, and update AR/AP open-balance reports.
 
-- implement the approved returns/credit/debit note model;
-- preserve immutable posted ledgers and stock movement ledger behavior;
-- do not invent VAT/tax, warehouse/location, or company/branch scope.
+After that correction is complete, remaining optional items only, each requiring an explicit bounded owner prompt:
+
+- Optional: E2E Browser Testing Hardening (Playwright/Dusk smoke coverage for the Laravel UI).
+- Optional: Production Deployment Readiness (Nginx, Supervisor/queue workers, scheduler cron, Redis, backups).
+
+Explicitly NOT STARTED modules requiring bounded owner prompts:
+
+- Payroll.
+- Rentals.
+- Fixed assets.
+- Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
+- Warehouse/location semantics.
+- Landed cost and freight allocation.
+- Full financial statements (Balance Sheet, Income Statement, Cash Flow).
 
 ## Owner Decisions Still Needed
 
-Do not implement these without explicit owner approval:
+Still do not implement these without explicit owner approval:
 
-- VAT/tax workflow.
+- full VAT/tax filing/reporting workflow beyond Slice 10 manual note tax fields.
 - FIFO, Standard Costing, or Non-Valued alternate inventory costing branches.
 - Warehouse/location semantics.
 - Warehouse-to-branch relationship.
@@ -76,7 +95,6 @@ Do not implement these without explicit owner approval:
 - Separate quotation/requisition modules.
 - Approval workflow engine beyond bounded status transitions.
 - Credit limit blocking.
-- Returns/credit notes/debit notes exact rules.
 
 ## Verification Gate
 

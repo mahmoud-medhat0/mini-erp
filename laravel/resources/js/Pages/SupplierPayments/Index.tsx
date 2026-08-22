@@ -1,10 +1,11 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type SupplierPaymentRow = {
@@ -50,8 +51,8 @@ export default function SupplierPaymentsIndex({
   periods = [],
   currencies = [],
 }: SupplierPaymentProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<'cash' | 'bank'>('cash');
@@ -92,7 +93,7 @@ export default function SupplierPaymentsIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(isAr ? 'هل أنت تأكد من ترحيل سند الصرف؟' : 'Are you sure you want to post this supplier payment?')) {
+    if (confirm(dict.app.pages.supplierPayments.areYouSureYouWantTo)) {
       post(`/supplier-payments/${id}/post`);
     }
   };
@@ -105,43 +106,45 @@ export default function SupplierPaymentsIndex({
 
   return (
     <AppLayout active="supplier-payments.index">
-      <Head title={isAr ? 'سندات الصرف - Mini ERP' : 'Supplier Payments - Mini ERP'} />
+      <Head title={dict.app.pages.supplierPayments.supplierPaymentsMiniErp} />
 
       <PageHeader
-        title={isAr ? 'سندات الصرف للموردين' : 'Supplier Payments'}
-        description={isAr ? 'إنشاء وتتبع سندات الصرف النقدية والبنكية للموردين وترحيلها لخصم المستحقات.' : 'Record and post supplier cash/bank payments.'}
+        title={dict.app.pages.supplierPayments.supplierPayments}
+        description={dict.app.pages.supplierPayments.recordAndPostSupplierCashBank}
         actions={
-          <button
-            type="button"
-            onClick={() => {
-              reset();
-              setShowModal(true);
-            }}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ سند صرف جديد' : '+ New Supplier Payment'}
-          </button>
+          can('suppliers.payments') ? (
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                setShowModal(true);
+              }}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.supplierPayments.newSupplierPayment}
+            </button>
+          ) : null
         }
       />
 
       {payments.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد سندات صرف' : 'No Supplier Payments Found'}
-          description={isAr ? 'قم بإضافة اول سند صرف بالضغط على الزر اعلاه.' : 'Get started by creating your first supplier payment.'}
+          title={dict.app.pages.supplierPayments.noSupplierPaymentsFound}
+          description={dict.app.pages.supplierPayments.getStartedByCreatingYourFirst}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'رقم السند' : 'Payment No.'}</th>
-                <th className={tableClasses.th}>{isAr ? 'المورد' : 'Supplier'}</th>
-                <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحساب المنصرف منه' : 'Source Account'}</th>
-                <th className={tableClasses.th}>{isAr ? 'المبلغ الإجمالي' : 'Total Amount'}</th>
-                <th className={tableClasses.th}>{isAr ? 'غير مسوى (متبقي)' : 'Unapplied'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.paymentNo}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.supplier}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.date}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.sourceAccount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.totalAmount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.unapplied}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.status}</th>
+                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -163,24 +166,26 @@ export default function SupplierPaymentsIndex({
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={row.status === 'posted' ? 'ok' : 'warning'}>
-                      {row.status === 'posted' ? (isAr ? 'رحل' : 'Posted') : (isAr ? 'مسودة' : 'Draft')}
+                      {row.status === 'posted' ? dict.app.pages.supplierPayments.posted : dict.app.pages.supplierPayments.draft}
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
                     {row.status === 'draft' ? (
-                      <button
-                        type="button"
-                        onClick={() => handlePost(row.id)}
-                        className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                      >
-                        {isAr ? 'ترحيل' : 'Post'}
-                      </button>
+                      can('suppliers.payments') ? (
+                        <button
+                          type="button"
+                          onClick={() => handlePost(row.id)}
+                          className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                        >
+                          {dict.app.pages.supplierPayments.post}
+                        </button>
+                      ) : null
                     ) : (
                       <a
                         href={`/payable-allocations?payment_id=${row.id}`}
                         className="text-xs font-bold text-[var(--primary)] hover:underline"
                       >
-                        {isAr ? 'تسوية' : 'Allocate'}
+                        {dict.app.pages.supplierPayments.allocate}
                       </a>
                     )}
                   </td>
@@ -196,13 +201,13 @@ export default function SupplierPaymentsIndex({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {isAr ? 'إنشاء سند صرف جديد' : 'Create New Supplier Payment'}
+              {dict.app.pages.supplierPayments.createNewSupplierPayment}
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اختر المورد' : 'Supplier'} *
+                  {dict.app.pages.supplierPayments.supplier_2} *
                 </label>
                 <SearchableSelect
                   options={supplierSelectOptions}
@@ -216,22 +221,22 @@ export default function SupplierPaymentsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'جهة الصرف' : 'Source Type'}
+                    {dict.app.pages.supplierPayments.sourceType}
                   </label>
                   <select
                     value={destinationType}
                     onChange={(e) => setDestinationType(e.target.value as any)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
                   >
-                    <option value="cash">{isAr ? 'خزينة نقدية' : 'Cash Account'}</option>
-                    <option value="bank">{isAr ? 'حساب بنكي' : 'Bank Account'}</option>
+                    <option value="cash">{dict.app.pages.supplierPayments.cashAccount}</option>
+                    <option value="bank">{dict.app.pages.supplierPayments.bankAccount}</option>
                   </select>
                 </div>
                 <div>
                   {destinationType === 'cash' ? (
                     <div>
                       <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                        {isAr ? 'اختر الخزينة' : 'Cash Account'} *
+                        {dict.app.pages.supplierPayments.cashAccount_2} *
                       </label>
                       <SearchableSelect
                         options={cashSelectOptions}
@@ -243,7 +248,7 @@ export default function SupplierPaymentsIndex({
                   ) : (
                     <div>
                       <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                        {isAr ? 'اختر الحساب البنكي' : 'Bank Account'} *
+                        {dict.app.pages.supplierPayments.bankAccount_2} *
                       </label>
                       <SearchableSelect
                         options={bankSelectOptions}
@@ -259,7 +264,7 @@ export default function SupplierPaymentsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <DatePicker
-                    label={isAr ? 'تاريخ السند' : 'Payment Date'}
+                    label={dict.app.pages.supplierPayments.paymentDate}
                     value={data.payment_date}
                     onChange={(val) => setData('payment_date', val || '')}
                     required
@@ -267,7 +272,7 @@ export default function SupplierPaymentsIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'الفترة المالية' : 'Financial Period'} *
+                    {dict.app.pages.supplierPayments.financialPeriod} *
                   </label>
                   <SearchableSelect
                     options={periodSelectOptions}
@@ -281,7 +286,7 @@ export default function SupplierPaymentsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'العملة' : 'Currency'} *
+                    {dict.app.pages.supplierPayments.currency} *
                   </label>
                   <SearchableSelect
                     options={currencyOptions}
@@ -292,7 +297,7 @@ export default function SupplierPaymentsIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'المبلغ' : 'Amount'} *
+                    {dict.app.pages.supplierPayments.amount} *
                   </label>
                   <input
                     type="number"
@@ -309,7 +314,7 @@ export default function SupplierPaymentsIndex({
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'المرجع المستندي / البيان' : 'Reference / Description'}
+                  {dict.app.pages.supplierPayments.referenceDescription}
                 </label>
                 <input
                   type="text"
@@ -326,14 +331,14 @@ export default function SupplierPaymentsIndex({
                   onClick={() => setShowModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.supplierPayments.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {processing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ مسودة' : 'Save Draft')}
+                  {processing ? dict.app.pages.supplierPayments.saving : dict.app.pages.supplierPayments.saveDraft}
                 </button>
               </div>
             </form>

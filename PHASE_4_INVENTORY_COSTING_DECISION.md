@@ -197,11 +197,11 @@ The project lead/business owner explicitly chose **Option 1: Moving Weighted Ave
 
 ---
 
-## 7. Next Slice Contract (Phase 4 Slice 8)
+## 7. Implemented Slice Contract (Phase 4 Slice 8)
 
-Upon owner decision, **Phase 4 Slice 8: Moving Weighted Average Inventory Costing & Stock Product Posting** will be executed only for the selected model.
+After owner decision, **Phase 4 Slice 8: Moving Weighted Average Inventory Costing & Stock Product Posting** was executed only for the selected model.
 
-The details below are now constrained to Moving Weighted Average Costing.
+The details below remain the bounded contract for the implemented Moving Weighted Average Costing path.
 
 ### Slice 8 Bounded Scope
 1. **Common Scope For All Options**:

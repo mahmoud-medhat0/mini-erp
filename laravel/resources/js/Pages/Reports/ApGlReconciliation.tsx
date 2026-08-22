@@ -6,6 +6,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type ApGlReconciliationProps = SharedPageProps & {
   report: {
@@ -29,7 +30,7 @@ type ApGlReconciliationProps = SharedPageProps & {
 };
 
 export default function ApGlReconciliation({ locale, report, currencies, filters }: ApGlReconciliationProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date);
   const [currency, setCurrency] = useState(filters.currency);
@@ -48,14 +49,14 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
 
   return (
     <AppLayout active="reports.ap-gl-reconciliation">
-      <Head title={isAr ? 'مطابقة الموردين بالأستاذ - Mini ERP' : 'AP to GL Recon - Mini ERP'} />
+      <Head title={dict.app.pages.reportsApGlReconciliation.apToGlReconMiniErp} />
 
       <PageHeader
-        title={isAr ? 'مطابقة ميزان الذمم الدائنة مع حساب الأستاذ العام' : 'AP to GL Control Reconciliation'}
-        description={isAr ? 'مقارنة رصيد ميزان مشتريات/ذمم الموردين الفرعي مع رصيد حساب مراقبة الموردين بالأستاذ.' : 'Reconciles total active supplier subledger balances against the GL AP control account.'}
+        title={dict.app.pages.reportsApGlReconciliation.apToGlControlReconciliation}
+        description={dict.app.pages.reportsApGlReconciliation.reconcilesTotalActiveSupplierSubledgerBalances}
         actions={
           <Button variant="secondary" onClick={handleExport}>
-            {isAr ? 'تصدير CSV' : 'Export CSV'}
+            {dict.app.pages.reportsApGlReconciliation.exportCsv}
           </Button>
         }
       />
@@ -65,13 +66,13 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حتى تاريخ' : 'As of Date'}
+                {dict.app.pages.reportsApGlReconciliation.asOfDate}
               </label>
               <DatePicker value={asOfDate} onChange={(val) => setAsOfDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'العملة' : 'Currency'}
+                {dict.app.pages.reportsApGlReconciliation.currency}
               </label>
               <SearchableSelect
                 options={currencies.map((c) => ({ value: c.code, label: c.code }))}
@@ -81,7 +82,7 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'تحديث التقرير' : 'Update Report'}
+                {dict.app.pages.reportsApGlReconciliation.updateReport}
               </Button>
             </div>
           </div>
@@ -89,22 +90,20 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
 
         {!report.mapping_configured ? (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-medium">
-            {isAr
-              ? 'تنبيه: حساب مراقبة الموردين (ap_control) غير معين في جدول التعيينات الحسابية. يرجى ضبط التعيين أولاً.'
-              : 'Warning: AP Control account (ap_control) mapping is missing. Please configure accounting account mappings.'}
+            {dict.app.pages.reportsApGlReconciliation.warningApControlAccountApControl}
           </div>
         ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي ميزان الموردين الفرعي' : 'AP Subledger Total'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsApGlReconciliation.apSubledgerTotal}</div>
             <div className="text-base font-bold text-[var(--text-primary)]">
               {formatMoney(report.subledger_total_minor, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
             <div className="text-xs text-[var(--text-secondary)] mb-1">
-              {isAr ? 'رصيد حساب مراقبة الموردين (الأستاذ)' : 'AP Control Account (GL)'}
+              {dict.app.pages.reportsApGlReconciliation.apControlAccountGl}
               {report.ap_control_account ? ` (${report.ap_control_account.code})` : ''}
             </div>
             <div className="text-base font-bold text-blue-600">
@@ -112,20 +111,20 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
             </div>
           </div>
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'الفارق بين الفرعي والأستاذ' : 'Reconciliation Difference'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsApGlReconciliation.reconciliationDifference}</div>
             <div className={`text-base font-bold ${report.difference_minor === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {formatMoney(report.difference_minor, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)] flex items-center justify-between">
             <div>
-              <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'حالة المطابقة' : 'Reconciliation Status'}</div>
+              <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsApGlReconciliation.reconciliationStatus}</div>
               <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
                 report.is_reconciled
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                   : 'bg-rose-100 text-rose-800 border border-rose-300'
               }`}>
-                {report.is_reconciled ? (isAr ? 'مطابق تماماً' : 'RECONCILED') : (isAr ? 'يوجد فارق' : 'UNRECONCILED')}
+                {report.is_reconciled ? dict.app.pages.reportsApGlReconciliation.reconciled : dict.app.pages.reportsApGlReconciliation.unreconciled}
               </span>
             </div>
           </div>
@@ -133,14 +132,14 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
 
         <Card className="overflow-hidden p-0">
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
-            {isAr ? 'تفاصيل أرصدة الموردين المساهمة في الميزان الفرعي' : 'Supplier Subledger Balance Breakdown'}
+            {dict.app.pages.reportsApGlReconciliation.supplierSubledgerBalanceBreakdown}
           </div>
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'كود المورد' : 'Supplier Code'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'اسم المورد' : 'Supplier Name'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'الرصيد الفرعي المتبقي' : 'Subledger Open Balance'}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsApGlReconciliation.supplierCode}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsApGlReconciliation.supplierName}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsApGlReconciliation.subledgerOpenBalance}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
@@ -156,7 +155,7 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
               {report.supplier_breakdown.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="p-6 text-center text-[var(--text-muted)]">
-                    {isAr ? 'لا توجد أرصدة مفتوحة للموردين.' : 'No open supplier subledger balances.'}
+                    {dict.app.pages.reportsApGlReconciliation.noOpenSupplierSubledgerBalances}
                   </td>
                 </tr>
               ) : null}

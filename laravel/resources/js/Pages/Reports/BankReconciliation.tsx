@@ -5,6 +5,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type BankReconciliationReportProps = SharedPageProps & {
   report: {
@@ -35,7 +36,7 @@ type BankReconciliationReportProps = SharedPageProps & {
 };
 
 export default function BankReconciliationReport({ locale, report, bankAccounts, filters }: BankReconciliationReportProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [bankAccountId, setBankAccountId] = useState(filters.bank_account_id || '');
   const [status, setStatus] = useState(filters.status || '');
@@ -49,11 +50,11 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
 
   return (
     <AppLayout active="reports.bank-reconciliations">
-      <Head title={isAr ? 'تقرير تسويات البنك - Mini ERP' : 'Bank Reconciliation Report - Mini ERP'} />
+      <Head title={dict.app.pages.reportsBankReconciliation.bankReconciliationReportMiniErp} />
 
       <PageHeader
-        title={isAr ? 'تقرير ومتابعة تسويات البنك' : 'Bank Reconciliation Report'}
-        description={isAr ? 'عرض تقارير ومطابقات كشوف الحسابات البنكية وحالات اكتمال التسوية.' : 'Read-only overview and audit reports for bank reconciliation statements.'}
+        title={dict.app.pages.reportsBankReconciliation.bankReconciliationReport}
+        description={dict.app.pages.reportsBankReconciliation.readOnlyOverviewAndAuditReports}
       />
 
       <div className="space-y-6">
@@ -61,11 +62,11 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حساب البنك' : 'Bank Account'}
+                {dict.app.pages.reportsBankReconciliation.bankAccount}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع الحسابات' : 'All Bank Accounts' },
+                  { value: '', label: dict.app.pages.reportsBankReconciliation.allBankAccounts },
                   ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` })),
                 ]}
                 value={bankAccountId}
@@ -74,13 +75,13 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حالة المطابقة' : 'Status'}
+                {dict.app.pages.reportsBankReconciliation.status}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع الحالات' : 'All Statuses' },
-                  { value: 'draft', label: isAr ? 'مسودة' : 'Draft' },
-                  { value: 'reconciled', label: isAr ? 'معتمدة / مطابقة' : 'Reconciled' },
+                  { value: '', label: dict.app.pages.reportsBankReconciliation.allStatuses },
+                  { value: 'draft', label: dict.app.pages.reportsBankReconciliation.draft },
+                  { value: 'reconciled', label: dict.app.pages.reportsBankReconciliation.reconciled },
                 ]}
                 value={status}
                 onChange={(val) => setStatus(val || '')}
@@ -88,7 +89,7 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'عرض التسويات' : 'View Reconciliations'}
+                {dict.app.pages.reportsBankReconciliation.viewReconciliations}
               </Button>
             </div>
           </div>
@@ -98,13 +99,13 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'حساب البنك' : 'Bank Account'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'مرجع الكشف' : 'Statement Ref'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'فترة الكشف' : 'Period'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'الحالة' : 'Status'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'المطابق / الإجمالي' : 'Matched / Total'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'الفارق' : 'Difference'}</th>
-                <th className="p-3 font-semibold text-center text-[var(--text-secondary)]">{isAr ? 'التفاصيل' : 'Actions'}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.bankAccount_2}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.statementRef}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.period}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.status_2}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.matchedTotal}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.difference}</th>
+                <th className="p-3 font-semibold text-center text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
@@ -133,7 +134,7 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
                       href={`/reports/bank-reconciliations/${recon.id}`}
                       className="text-xs font-bold text-[var(--primary)] hover:underline"
                     >
-                      {isAr ? 'عرض الكشف ←' : 'View Detail →'}
+                      {dict.app.pages.reportsBankReconciliation.viewDetail}
                     </Link>
                   </td>
                 </tr>
@@ -141,7 +142,7 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
               {report.reconciliations.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-[var(--text-muted)]">
-                    {isAr ? 'لا توجد تسويات بنكية مطابقة للبحث.' : 'No bank reconciliations found.'}
+                    {dict.app.pages.reportsBankReconciliation.noBankReconciliationsFound}
                   </td>
                 </tr>
               ) : null}

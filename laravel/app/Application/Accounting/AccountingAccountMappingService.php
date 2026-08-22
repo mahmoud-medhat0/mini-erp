@@ -16,10 +16,16 @@ class AccountingAccountMappingService
         'cheques_under_collection',
         'cheques_payable',
         'sales_revenue',
+        'sales_returns',
         'purchase_expense',
+        'purchase_returns_allowances',
         'inventory_asset',
         'grni_clearing',
         'cogs',
+        'inventory_return_variance',
+        'inventory_scrap_loss',
+        'output_tax_payable',
+        'input_tax_receivable',
     ];
 
     public function __construct(
@@ -108,11 +114,11 @@ class AccountingAccountMappingService
     private function assertAccountMatchesKey(string $key, Account $account): void
     {
         $expectedTypes = match ($key) {
-            'ar_control', 'cheques_under_collection', 'inventory_asset' => ['asset'],
-            'ap_control', 'cheques_payable', 'grni_clearing' => ['liability'],
+            'ar_control', 'cheques_under_collection', 'inventory_asset', 'input_tax_receivable' => ['asset'],
+            'ap_control', 'cheques_payable', 'grni_clearing', 'output_tax_payable' => ['liability'],
             'opening_balance_offset' => ['equity'],
-            'sales_revenue' => ['revenue'],
-            'purchase_expense', 'cogs' => ['expense'],
+            'sales_revenue', 'sales_returns' => ['revenue'],
+            'purchase_expense', 'cogs', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss' => ['expense'],
         };
 
         if (! in_array($account->type, $expectedTypes, true)) {
@@ -122,8 +128,11 @@ class AccountingAccountMappingService
         }
 
         $expectedNature = match ($key) {
-            'ar_control', 'cheques_under_collection', 'purchase_expense', 'inventory_asset', 'cogs' => 'debit',
-            'ap_control', 'cheques_payable', 'sales_revenue', 'grni_clearing' => 'credit',
+            'ar_control', 'cheques_under_collection', 'purchase_expense', 'inventory_asset', 'cogs',
+            'sales_returns', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss',
+            'input_tax_receivable' => 'debit',
+            'ap_control', 'cheques_payable', 'sales_revenue', 'grni_clearing',
+            'output_tax_payable' => 'credit',
             'opening_balance_offset' => null,
         };
 

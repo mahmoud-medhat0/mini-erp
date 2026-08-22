@@ -6,6 +6,8 @@ use App\Models\AccountingAccountMapping;
 use App\Models\LedgerEntry;
 use App\Models\PayableAllocation;
 use App\Models\PayableEntry;
+use App\Models\PayableEntrySettlement;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ApToGlReconciliationReportService
@@ -31,7 +33,7 @@ class ApToGlReconciliationReportService
         $entries = PayableEntry::query()
             ->with('supplier')
             ->where('currency', $targetCurrency)
-            ->where('entry_date', '<=', $asOfDate)
+            ->where('entry_date', '<=', $asOfDate.' 23:59:59')
             ->get();
 
         $subledgerTotalMinor = 0;
@@ -40,13 +42,29 @@ class ApToGlReconciliationReportService
         foreach ($entries as $entry) {
             $origNet = (int) $entry->credit_minor - (int) $entry->debit_minor;
 
-            $allocatedSum = (int) PayableAllocation::query()
-                ->where('payable_entry_id', $entry->id)
-                ->where('status', 'active')
-                ->where('created_at', '<=', $asOfDate.' 23:59:59')
-                ->sum('amount_minor');
+            if ($entry->credit_minor >= $entry->debit_minor) {
+                $allocatedSum = (int) PayableAllocation::query()
+                    ->where('payable_entry_id', $entry->id)
+                    ->where('status', 'active')
+                    ->where('created_at', '<=', $asOfDate.' 23:59:59')
+                    ->sum('amount_minor');
 
-            $netOpen = $origNet - $allocatedSum;
+                $targetSettledSum = (int) PayableEntrySettlement::query()
+                    ->where('target_payable_entry_id', $entry->id)
+                    ->where('status', 'active')
+                    ->where('settled_at', '<=', Carbon::parse($asOfDate)->endOfDay())
+                    ->sum('amount_minor');
+
+                $netOpen = $origNet - $allocatedSum - $targetSettledSum;
+            } else {
+                $sourceSettledSum = (int) PayableEntrySettlement::query()
+                    ->where('source_payable_entry_id', $entry->id)
+                    ->where('status', 'active')
+                    ->where('settled_at', '<=', Carbon::parse($asOfDate)->endOfDay())
+                    ->sum('amount_minor');
+
+                $netOpen = $origNet + $sourceSettledSum;
+            }
 
             if ($netOpen != 0) {
                 $subledgerTotalMinor += $netOpen;
@@ -71,7 +89,7 @@ class ApToGlReconciliationReportService
             $glTotalMinor = (int) LedgerEntry::query()
                 ->where('account_id', $mapping->account_id)
                 ->where('currency', $targetCurrency)
-                ->where('entry_date', '<=', $asOfDate)
+                ->where('entry_date', '<=', $asOfDate.' 23:59:59')
                 ->sum(DB::raw('credit_minor - debit_minor'));
         }
 

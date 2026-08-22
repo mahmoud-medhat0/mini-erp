@@ -77,11 +77,11 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
 
   return (
     <AppLayout active="accounting.journal">
-      <Head title={accDict.createVoucher || (locale === 'ar' ? 'إنشاء قيد يومية' : 'Create Journal Voucher')} />
+      <Head title={accDict.createVoucher || dict.app.pages.accountingJournalForm.createJournalVoucher} />
 
       <PageHeader
-        title={accDict.createVoucher || (locale === 'ar' ? 'إنشاء قيد يومية' : 'Create Journal Voucher')}
-        description={accDict.createVoucherDesc || (locale === 'ar' ? 'إنشاء قيد يومية يدوي مزدوج الإدخال مع التحقق من توازن المدين والدائن.' : 'Draft a double-entry manual journal voucher with line item debit/credit validation.')}
+        title={accDict.createVoucher || dict.app.pages.accountingJournalForm.createJournalVoucher_2}
+        description={accDict.createVoucherDesc || dict.app.pages.accountingJournalForm.draftADoubleEntryManualJournal}
         actions={
           <Link
             href="/accounting/journal"
@@ -90,7 +90,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            <span>{accDict.journal || (locale === 'ar' ? 'قيود اليومية' : 'General Journal')}</span>
+            <span>{accDict.journal || dict.app.pages.accountingJournalForm.generalJournal}</span>
           </Link>
         }
       />
@@ -100,7 +100,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
           <svg className="size-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span>{accDict.noOpenPeriodsWarning || (locale === 'ar' ? 'لا توجد فترة مالية مفتوحة. يرجى فتح فترة مالية أولاً.' : 'No open financial period found. Please open a fiscal period first.')}</span>
+          <span>{accDict.noOpenPeriodsWarning || dict.app.pages.accountingJournalForm.noOpenFinancialPeriodFoundPlease}</span>
         </div>
       )}
 
@@ -109,19 +109,19 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-6 font-mono text-xs">
             <div>
-              <span className="text-[var(--text-muted)] uppercase me-2 font-sans font-bold">{accDict.totalDebit || (locale === 'ar' ? 'إجمالي المدين' : 'Total Debit')}:</span>
+              <span className="text-[var(--text-muted)] uppercase me-2 font-sans font-bold">{accDict.totalDebit || dict.app.pages.accountingJournalForm.totalDebit}:</span>
               <span className="font-bold text-lg text-blue-600 dark:text-blue-400">{totalDebit.toLocaleString()}</span>
             </div>
             <div className="h-6 w-px bg-[var(--border)]" />
             <div>
-              <span className="text-[var(--text-muted)] uppercase me-2 font-sans font-bold">{accDict.totalCredit || (locale === 'ar' ? 'إجمالي الدائن' : 'Total Credit')}:</span>
+              <span className="text-[var(--text-muted)] uppercase me-2 font-sans font-bold">{accDict.totalCredit || dict.app.pages.accountingJournalForm.totalCredit}:</span>
               <span className="font-bold text-lg text-indigo-600 dark:text-indigo-400">{totalCredit.toLocaleString()}</span>
             </div>
             {difference > 0 ? (
               <>
                 <div className="h-6 w-px bg-[var(--border)]" />
                 <div>
-                  <span className="text-red-500 uppercase me-2 font-sans font-bold">{accDict.difference || (locale === 'ar' ? 'الفرق' : 'Difference')}:</span>
+                  <span className="text-red-500 uppercase me-2 font-sans font-bold">{accDict.difference || dict.app.pages.accountingJournalForm.difference}:</span>
                   <span className="font-bold text-lg text-red-500">{difference.toLocaleString()}</span>
                 </div>
               </>
@@ -135,7 +135,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                 : 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 animate-pulse'
             }`}>
               <div className={`size-2 rounded-full ${isBalanced ? 'bg-emerald-500' : 'bg-red-500'}`} />
-              <span>{isBalanced ? (accDict.balanced || (locale === 'ar' ? 'متوازن' : 'BALANCED')) : (accDict.unbalanced || (locale === 'ar' ? 'غير متوازن' : 'UNBALANCED'))}</span>
+              <span>{isBalanced ? (accDict.balanced || dict.app.pages.accountingJournalForm.balanced) : (accDict.unbalanced || dict.app.pages.accountingJournalForm.unbalanced)}</span>
             </span>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             <div>
               <DatePicker
-                label={accDict.entryDate || (locale === 'ar' ? 'تاريخ القيد' : 'Entry Date')}
+                label={accDict.entryDate || dict.app.pages.accountingJournalForm.entryDate}
                 value={data.entry_date}
                 onChange={(val) => setData('entry_date', val || '')}
                 error={errors.entry_date}
@@ -156,7 +156,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
 
             <div className="sm:col-span-1 lg:col-span-2">
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.financialPeriod || (locale === 'ar' ? 'الفترة المالية' : 'Financial Period')}
+                {accDict.financialPeriod || dict.app.pages.accountingJournalForm.financialPeriod}
               </label>
               <SearchableSelect
                 options={periodSelectOptions}
@@ -169,7 +169,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.reference || (locale === 'ar' ? 'المرجع' : 'Reference')}
+                {accDict.reference || dict.app.pages.accountingJournalForm.reference}
               </label>
               <input
                 type="text"
@@ -183,7 +183,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.currency || (locale === 'ar' ? 'العملة' : 'Currency')}
+                {accDict.currency || dict.app.pages.accountingJournalForm.currency}
               </label>
               <SearchableSelect
                 options={currencySelectOptions}
@@ -196,13 +196,13 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
 
             <div className="sm:col-span-2 lg:col-span-4">
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.descriptionMemo || (locale === 'ar' ? 'الوصف / البيان' : 'Description / Memo')}
+                {accDict.descriptionMemo || dict.app.pages.accountingJournalForm.descriptionMemo}
               </label>
               <input
                 type="text"
                 value={data.description}
                 onChange={(e) => setData('description', e.target.value)}
-                placeholder={locale === 'ar' ? 'ملخص مختصر لغرض المعاملة...' : 'Brief summary of transaction purpose...'}
+                placeholder={dict.app.pages.accountingJournalForm.briefSummaryOfTransactionPurpose}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
               />
               {errors.description && <p className="mt-1 text-xs text-red-500">{errors.description}</p>}
@@ -212,7 +212,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
             <div className="flex items-center gap-2">
               <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                {accDict.journalLines || (locale === 'ar' ? 'بنود القيد' : 'Journal Lines')}
+                {accDict.journalLines || dict.app.pages.accountingJournalForm.journalLines}
               </h3>
               <span className="font-mono text-xs text-[var(--text-muted)]">({data.lines.length})</span>
             </div>
@@ -224,7 +224,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span>{accDict.addLine || (locale === 'ar' ? 'إضافة بند' : 'Add Line')}</span>
+              <span>{accDict.addLine || dict.app.pages.accountingJournalForm.addLine}</span>
             </button>
           </div>
 
@@ -238,7 +238,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                 </div>
                 <div className="sm:col-span-4">
                   <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1 sm:hidden">
-                    {accDict.account || (locale === 'ar' ? 'الحساب' : 'Account')}
+                    {accDict.account || dict.app.pages.accountingJournalForm.account}
                   </label>
                   <SearchableSelect
                     options={accountSelectOptions}
@@ -249,7 +249,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1 sm:hidden">
-                    {accDict.debitLabel || (locale === 'ar' ? 'مدين' : 'Debit')}
+                    {accDict.debitLabel || dict.app.pages.accountingJournalForm.debit}
                   </label>
                   <input
                     type="number"
@@ -261,7 +261,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1 sm:hidden">
-                    {accDict.creditLabel || (locale === 'ar' ? 'دائن' : 'Credit')}
+                    {accDict.creditLabel || dict.app.pages.accountingJournalForm.credit}
                   </label>
                   <input
                     type="number"
@@ -273,13 +273,13 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1 sm:hidden">
-                    {accDict.lineMemo || (locale === 'ar' ? 'ملاحظات البند' : 'Line Memo')}
+                    {accDict.lineMemo || dict.app.pages.accountingJournalForm.lineMemo}
                   </label>
                   <input
                     type="text"
                     value={line.memo || ''}
                     onChange={(e) => updateLine(idx, 'memo', e.target.value)}
-                    placeholder={locale === 'ar' ? 'ملاحظات...' : 'Memo...'}
+                    placeholder={dict.app.pages.accountingJournalForm.memo}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-xs text-[var(--text-primary)]"
                   />
                 </div>
@@ -304,14 +304,14 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
               href="/accounting/journal"
               className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors no-underline"
             >
-              {actionsDict.cancel || (locale === 'ar' ? 'إلغاء' : 'Cancel')}
+              {actionsDict.cancel || dict.app.pages.accountingJournalForm.cancel}
             </Link>
             <button
               type="submit"
               disabled={processing || !isBalanced || periods.length === 0}
               className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3 text-xs font-bold text-white shadow-lg shadow-blue-500/25 disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
             >
-              {accDict.saveDraftJournal || accDict.saveDraft || (locale === 'ar' ? 'حفظ مسودة القيد' : 'Save Draft Journal')}
+              {accDict.saveDraftJournal || accDict.saveDraft || dict.app.pages.accountingJournalForm.saveDraftJournal}
             </button>
           </div>
         </Card>

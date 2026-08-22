@@ -1,10 +1,11 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type BankReconciliationRow = {
@@ -44,8 +45,8 @@ export default function BankReconciliationsIndex({
   currencies = [],
   filters,
 }: BankReconciliationsProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
 
@@ -85,22 +86,24 @@ export default function BankReconciliationsIndex({
 
   return (
     <AppLayout active="bank-reconciliations.index">
-      <Head title={isAr ? 'تسوية كشوف البنوك - Mini ERP' : 'Bank Reconciliations - Mini ERP'} />
+      <Head title={dict.app.pages.bankReconciliations.bankReconciliationsMiniErp} />
 
       <PageHeader
-        title={isAr ? 'تسوية كشوف الحسابات البنكية' : 'Bank Reconciliations'}
-        description={isAr ? 'إدراج كشوف الحسابات البنكية وتطبيق المطابقة الإلكترونية مع قيود حركة البنك بالأستاذ العام.' : 'Match bank statement lines with general ledger entries.'}
+        title={dict.app.pages.bankReconciliations.bankReconciliations}
+        description={dict.app.pages.bankReconciliations.matchBankStatementLinesWithGeneral}
         actions={
-          <button
-            type="button"
-            onClick={() => {
-              reset();
-              setShowModal(true);
-            }}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ إنشاء كشف تسوية بنك' : '+ New Bank Reconciliation'}
-          </button>
+          can('banks.reconcile') ? (
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                setShowModal(true);
+              }}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.bankReconciliations.newBankReconciliation}
+            </button>
+          ) : null
         }
       />
 
@@ -113,7 +116,7 @@ export default function BankReconciliationsIndex({
             }}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
           >
-            <option value="">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
+            <option value="">{dict.app.pages.bankReconciliations.allStatuses}</option>
             <option value="draft">Draft</option>
             <option value="finalized">Finalized</option>
           </select>
@@ -122,21 +125,21 @@ export default function BankReconciliationsIndex({
 
       {reconciliations.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد كشوف تسوية بنك' : 'No Bank Reconciliations Found'}
-          description={isAr ? 'قم بإنشاء أول كشف تسوية بالضغط على الزر أعلاه.' : 'Get started by creating your first bank reconciliation statement.'}
+          title={dict.app.pages.bankReconciliations.noBankReconciliationsFound}
+          description={dict.app.pages.bankReconciliations.getStartedByCreatingYourFirst}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'الحساب البنكي' : 'Bank Account'}</th>
-                <th className={tableClasses.th}>{isAr ? 'مرجع الكشف' : 'Statement Ref'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الفترة' : 'Period Range'}</th>
-                <th className={tableClasses.th}>{isAr ? 'رصيد بداية الكشف' : 'Opening Balance'}</th>
-                <th className={tableClasses.th}>{isAr ? 'رصيد نهاية الكشف' : 'Closing Balance'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.bankAccount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.statementRef}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.periodRange}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.openingBalance}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.closingBalance}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.status}</th>
+                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -157,7 +160,7 @@ export default function BankReconciliationsIndex({
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={row.status === 'finalized' ? 'ok' : 'warning'}>
-                      {row.status === 'finalized' ? (isAr ? 'مُعتمد ومُقفل' : 'Finalized') : (isAr ? 'مسودة' : 'Draft')}
+                      {row.status === 'finalized' ? dict.app.pages.bankReconciliations.finalized : dict.app.pages.bankReconciliations.draft}
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
@@ -165,7 +168,7 @@ export default function BankReconciliationsIndex({
                       href={`/bank-reconciliations/${row.id}`}
                       className="text-xs font-bold text-[var(--primary)] hover:underline"
                     >
-                      {row.status === 'draft' ? (isAr ? 'فتح الشاشة والمطابقة' : 'Open Workspace') : (isAr ? 'عرض الكشف' : 'View Statement')}
+                      {row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
                     </a>
                   </td>
                 </tr>
@@ -180,13 +183,13 @@ export default function BankReconciliationsIndex({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {isAr ? 'إنشاء كشف تسوية بنك جديد' : 'New Bank Reconciliation'}
+              {dict.app.pages.bankReconciliations.newBankReconciliation_2}
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اختر الحساب البنكي' : 'Bank Account'} *
+                  {dict.app.pages.bankReconciliations.bankAccount_2} *
                 </label>
                 <SearchableSelect
                   options={bankSelectOptions}
@@ -199,7 +202,7 @@ export default function BankReconciliationsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'الفترة المالية' : 'Financial Period'} *
+                    {dict.app.pages.bankReconciliations.financialPeriod} *
                   </label>
                   <SearchableSelect
                     options={periodSelectOptions}
@@ -210,7 +213,7 @@ export default function BankReconciliationsIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'مرجع الكشف البنكي' : 'Statement Reference'}
+                    {dict.app.pages.bankReconciliations.statementReference}
                   </label>
                   <input
                     type="text"
@@ -225,7 +228,7 @@ export default function BankReconciliationsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <DatePicker
-                    label={isAr ? 'من تاريخ' : 'Date From'}
+                    label={dict.app.pages.bankReconciliations.dateFrom}
                     value={data.date_from}
                     onChange={(val) => setData('date_from', val || '')}
                     required
@@ -233,7 +236,7 @@ export default function BankReconciliationsIndex({
                 </div>
                 <div>
                   <DatePicker
-                    label={isAr ? 'إلى تاريخ' : 'Date To'}
+                    label={dict.app.pages.bankReconciliations.dateTo}
                     value={data.date_to}
                     onChange={(val) => setData('date_to', val || '')}
                     required
@@ -244,7 +247,7 @@ export default function BankReconciliationsIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'رصيد بداية الكشف البنكي' : 'Opening Statement Balance'} *
+                    {dict.app.pages.bankReconciliations.openingStatementBalance} *
                   </label>
                   <input
                     type="number"
@@ -258,7 +261,7 @@ export default function BankReconciliationsIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'رصيد نهاية الكشف البنكي' : 'Closing Statement Balance'} *
+                    {dict.app.pages.bankReconciliations.closingStatementBalance} *
                   </label>
                   <input
                     type="number"
@@ -278,14 +281,14 @@ export default function BankReconciliationsIndex({
                   onClick={() => setShowModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.bankReconciliations.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {processing ? (isAr ? 'جاري الإنشاء...' : 'Creating...') : (isAr ? 'إنشاء وفتح الشاشة' : 'Create & Open Workspace')}
+                  {processing ? dict.app.pages.bankReconciliations.creating : dict.app.pages.bankReconciliations.createOpenWorkspace}
                 </button>
               </div>
             </form>

@@ -367,7 +367,7 @@ export default function DatePicker({
                   }
                 }}
                 className="rounded-full p-0.5 text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-red-500 transition-colors"
-                title={locale === 'ar' ? 'مسح' : 'Clear'}
+                title={dict.app.components.datepicker.clear}
               >
                 <svg className="size-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -429,7 +429,7 @@ export default function DatePicker({
               type="button"
               onClick={viewMode === 'years' ? handlePrevDecade : handlePrevMonth}
               className="flex size-7 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--background)] hover:text-[var(--text-primary)]"
-              title={viewMode === 'years' ? (locale === 'ar' ? 'العقد السابق' : 'Previous Decade') : (locale === 'ar' ? 'الشهر السابق' : 'Previous Month')}
+              title={viewMode === 'years' ? dict.app.components.datepicker.prevDecade : dict.app.components.datepicker.prevMonth}
             >
               <svg className="size-4 rtl:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -483,7 +483,7 @@ export default function DatePicker({
               type="button"
               onClick={viewMode === 'years' ? handleNextDecade : handleNextMonth}
               className="flex size-7 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--background)] hover:text-[var(--text-primary)]"
-              title={viewMode === 'years' ? (locale === 'ar' ? 'العقد التالي' : 'Next Decade') : (locale === 'ar' ? 'الشهر التالي' : 'Next Month')}
+              title={viewMode === 'years' ? dict.app.components.datepicker.nextDecade : dict.app.components.datepicker.nextMonth}
             >
               <svg className="size-4 rtl:rotate-180" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -647,7 +647,7 @@ export default function DatePicker({
               onClick={handleSelectToday}
               className="font-semibold text-[var(--primary)] hover:underline"
             >
-              {locale === 'ar' ? 'اليوم' : 'Today'}
+              {dict.app.components.datepicker.today}
             </button>
 
             {viewMode !== 'days' ? (
@@ -656,7 +656,7 @@ export default function DatePicker({
                 onClick={() => setViewMode('days')}
                 className="font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
               >
-                {locale === 'ar' ? 'العودة للأيام' : 'Back to Days'}
+                {dict.app.components.datepicker.backToDays}
               </button>
             ) : isClearable && value ? (
               <button
@@ -664,7 +664,7 @@ export default function DatePicker({
                 onClick={handleClear}
                 className="font-medium text-[var(--text-secondary)] hover:text-red-500 hover:underline"
               >
-                {locale === 'ar' ? 'مسح' : 'Clear'}
+                {dict.app.components.datepicker.clear}
               </button>
             ) : null}
           </div>

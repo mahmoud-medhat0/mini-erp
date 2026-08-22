@@ -1,4 +1,4 @@
-Status: IN PROGRESS - Slices 1, 2, 3, 4, 5, 6, 7, 8 & 9 complete (Read-only Operational Reports + Returns Decision Pack)
+Status: FULLY IMPLEMENTED & VERIFIED THROUGH SLICE 10 (INCLUDING MANUAL AR/AP SETTLEMENT PASS)
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -70,7 +70,7 @@ Target capabilities across the whole phase:
 - Goods receipt note foundation.
 - Customer invoice posting to AR and GL through the existing PostingEngine.
 - Supplier bill posting to AP and GL through the existing PostingEngine.
-- Returns / credit notes / debit notes after owner decision.
+- Returns / credit notes / supplier adjustment notes using the approved Slice 10 operating model.
 - Operational reports for Sales and Purchasing after durable documents exist.
 - Inertia pages/actions after backend behavior is stable.
 
@@ -78,9 +78,8 @@ Target capabilities across the whole phase:
 
 Do not implement these until explicitly approved:
 
-- VAT/tax workflow.
-- Inventory valuation method.
-- COGS posting for stock items.
+- full VAT/tax filing or reporting workflow beyond Slice 10 manual note tax fields.
+- FIFO, Standard Costing, Non-Valued Stock Tracking, or any inventory valuation method other than the owner-selected Moving Weighted Average path.
 - warehouse-to-branch relationship.
 - branch/location authorization.
 - multi-warehouse costing assumptions.
@@ -89,7 +88,7 @@ Do not implement these until explicitly approved:
 - purchase requisitions if the owner chooses to start directly from purchase orders.
 - approval workflow engine.
 - credit limit blocking rules.
-- post-invoice return semantics.
+- return/credit/debit semantics outside the approved Slice 10 model.
 - automatic invoice generation from delivery/receipt.
 - 2-way/3-way match enforcement rules.
 - full financial statements.
@@ -126,21 +125,21 @@ Only posting services may create:
 - `receivable_entry`
 - `payable_entry`
 
-Customer Invoice posting must eventually create:
+Customer Invoice posting creates:
 
 - AR subledger debit.
 - GL debit to AR control.
 - GL credit to revenue.
-- optional discount/return/tax effects only after owner-approved rules.
+- returns, credits, and bounded manual note tax effects must be handled through separate Slice 10 documents, not by mutating posted invoices.
 
-Supplier Bill posting must eventually create:
+Supplier Bill posting creates:
 
 - AP subledger credit.
 - GL credit to AP control.
 - GL debit to expense or inventory/clearing.
-- optional tax/landed-cost/inventory valuation effects only after owner-approved rules.
+- purchase returns, supplier adjustments, and bounded manual note tax effects must be handled through separate Slice 10 documents, not by mutating posted bills.
 
-Stock COGS must not be posted until inventory costing method is approved and implemented.
+Stock COGS is implemented only through the owner-selected Moving Weighted Average inventory path. Do not add alternate costing branches without a new owner decision.
 
 ## Phase 4 Data Modeling Guardrails
 
@@ -162,6 +161,14 @@ Allowed Phase 4 concepts, subject to slice-specific prompts:
 - customer invoice line
 - supplier bill
 - supplier bill line
+- sales return
+- sales return line
+- customer credit note
+- customer credit note line
+- purchase return
+- purchase return line
+- supplier adjustment note
+- supplier adjustment note line
 
 Do not add `company_id`, `branch_id`, or `tenant_id` to these tables unless a later explicit owner decision changes the model.
 
@@ -325,15 +332,15 @@ Decision pack:
 
 - `PHASE_4_INVENTORY_COSTING_DECISION.md`
 
-Owner selected Moving Weighted Average Costing. Next step is Slice 8 implementation for that model only.
+Owner selected Moving Weighted Average Costing, and Slice 8 implemented that model only.
 
 ### Slice 8 - Moving Weighted Average Inventory Costing & Stock Product Posting
 
 Implement the owner-selected Moving Weighted Average inventory valuation/tracking path.
 
-Status: READY FOR EXECUTION
+Status: COMPLETE
 
-This slice must follow `PHASE_4_INVENTORY_COSTING_DECISION.md` and implement only:
+This slice followed `PHASE_4_INVENTORY_COSTING_DECISION.md` and implemented only:
 
 - Moving Weighted Average Costing
 
@@ -341,7 +348,7 @@ Execution file:
 
 - `PHASE_4_SLICE_8_GEMINI_PROMPT.md`
 
-Expected scope must explicitly define:
+Implemented scope:
 
 - stock balance / stock ledger behavior
 - goods receipt stock effect
@@ -351,19 +358,19 @@ Expected scope must explicitly define:
 - COGS / inventory asset / GRNI impact where applicable
 - deterministic locks, idempotency, and stress tests
 
-Do not implement FIFO layers, Standard Costing, or Non-Valued alternate branches.
+FIFO layers, Standard Costing, and Non-Valued alternate branches were not implemented.
 
 ### Slice 9 - Operational Reports + Returns/Credit/Debit Decision Pack
 
-Status: READY FOR EXECUTION
+Status: COMPLETE
 
 Execution file:
 
 - `PHASE_4_SLICE_9_GEMINI_PROMPT.md`
 
-Implement read-only operational reports for existing durable documents, and create an owner-ready decision pack for returns, credit notes, and debit notes.
+Implemented read-only operational reports for existing durable documents, and created an owner decision pack for returns, credit notes, and debit notes.
 
-This slice must implement reports for:
+This slice implemented reports for:
 
 - sales orders
 - purchase orders
@@ -373,7 +380,7 @@ This slice must implement reports for:
 - goods receipts
 - stock movements
 
-This slice must document, but not implement, return/credit/debit note decisions:
+This slice documented, but did not implement, return/credit/debit note decisions:
 
 - relation to original invoice/bill
 - inventory effect
@@ -382,18 +389,42 @@ This slice must document, but not implement, return/credit/debit note decisions:
 - tax effect if tax exists
 - posting/reversal invariants
 
-Do not implement returns, credit notes, debit notes, or tax until the owner approves the exact rules.
+The owner selected the safe operating model after Slice 9. Implement it in Slice 10 only.
 
-### Slice 10 - UX Gaps, Stress, Docs, Final Verification
+### Slice 10 - Sales Returns, Credit Notes, Supplier Adjustments & Close-Out
 
-Expected scope:
+Status: COMPLETE (2026-08-22)
 
-- remaining Phase 4 UX gaps after Slice 9
-- permission-aware action review
-- empty state and validation feedback review
-- AR/AP reconciliation checks extended to invoices/bills
-- PostgreSQL stress tests for sequence allocation, posting, and lifecycle races
-- full docs/status close-out
+Execution file:
+
+- `PHASE_4_SLICE_10_GEMINI_PROMPT.md`
+
+Decision file:
+
+- `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`
+
+Selected scope:
+
+- physical `sales_return` documents for customer goods returned after confirmed delivery, optionally linked to posted customer invoice lines;
+- `customer_credit_note` documents for revenue/AR reduction and manual/open customer credits;
+- immutable corrected customer invoice revisions/print copies after posted-invoice returns, showing original quantities, returned quantities, and net remaining quantities without creating a second accounting invoice;
+- physical `purchase_return` documents for supplier goods returned after confirmed goods receipt, optionally linked to posted supplier bill lines;
+- normalized `supplier_adjustment_note` documents for supplier credit/debit style AP adjustments;
+- original issue cost as the default sales return stock valuation, with manual inspected value allowed and variance posted explicitly;
+- original receipt cost for purchase return stock valuation, with explicit variance/adjustment posting when needed;
+- damaged/scrap sales return disposition without increasing saleable stock;
+- manual tax rate stored in integer basis points and optional exact tax amount override;
+- manual allocation only for created AR/AP credit/debit entries;
+- full feature tests, PostgreSQL stress tests, docs sync, and close-out report.
+
+Do not implement:
+
+- full VAT/tax filing or reporting module;
+- warehouse/location semantics;
+- FIFO, Standard Costing, or Non-Valued costing branches;
+- landed cost/freight allocation;
+- automatic credit/debit note allocation;
+- mutation of posted invoices, bills, journals, ledgers, AR/AP entries, or stock movement ledger rows.
 
 ## Verification Gate For Every Slice
 
@@ -434,3 +465,30 @@ Gemini must report:
 9. Test results.
 10. Stress results.
 11. Remaining risks.
+
+## Phase 4 Slice 10 Implementation Record
+
+Status: IMPLEMENTED (verified 2026-08-22) with required settlement correction follow-up
+
+Implemented the owner-selected model from `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md` using `PHASE_4_SLICE_10_GEMINI_PROMPT.md`. Six migrations: sales return tables (2026_08_22_100000), customer credit note tables (...100010), customer invoice revision tables (...100020), purchase return tables (...100030), supplier adjustment note tables (...100040), and the accounting mapping update (...100050).
+
+Implemented document families:
+
+| Document | Nature | Numbering key / prefix | Primary posting flow |
+|---|---|---|---|
+| `sales_return` | physical goods return | `sales.return` / `SR-` | reversal stock movement; Dr `inventory_return_variance` (5200) when manual inspected value differs from original issue cost |
+| `customer_credit_note` | financial AR/revenue reduction | `customer.credit_note` / `CN-` | Dr `sales_returns` (4200) + tax side / Cr `ar_control`; AR credit entry |
+| `customer_invoice_revision` | immutable corrected print copy | revision sequence `R01`/`R02` | none - no GL effects |
+| `purchase_return` | physical goods return to supplier | `purchase.return` / `PRT-` | reversal stock movement; GRNI vs post-bill path chosen per case |
+| `supplier_adjustment_note` | normalized AP adjustment | `supplier.adjustment_note` / `SAN-` | AP impact through separate note: Cr `purchase_returns_allowances` (5400) + tax side / Dr `ap_control`; AP debit entry |
+
+Key behaviors:
+
+- Sales Return + Customer Credit Note posting flows use the existing PostingEngine (Dr `sales_returns` / Cr `ar_control`, etc.); scrap dispositions post Dr `inventory_scrap_loss` (5300) without increasing saleable stock.
+- Invoice revisions are cumulative snapshots (`R01` original, `R02` after first return, showing original/returned/net quantities) and create no GL effects.
+- Purchase returns choose between GRNI clearing and post-bill correction per case; where an AP impact is required after bill posting, a separate `supplier_adjustment_note` carries it instead of mutating posted bills.
+- Manual tax is stored in integer basis points with modes `none`/`manual_rate`/`manual_amount`; computed exactly as `intdiv(($baseMinor * $rateBps) + 5000, 10000)` with optional exact manual amount override. Tax sides map to `input_tax_receivable` (1300) / `output_tax_payable` (2200).
+- Credit/debit settlement allocation is manual/open only. The implementation currently leaves note-created entry settlement as a required correction follow-up; execute `PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md` so explicit settlement actions exist and create no extra GL.
+- New mapping keys (`sales_returns`, `inventory_return_variance`, `inventory_scrap_loss`, `purchase_returns_allowances`, `input_tax_receivable`, `output_tax_payable`) seeded idempotently in `AccountingCoreSeeder`.
+- Permissions: `sales.returns`, `sales.credit_notes`, `sales.invoice_revisions`, `purchasing.returns`, `purchasing.adjustment_notes`. Attachment entities registered for all five families. Routes: `sales-returns.*`, `customer-credit-notes.*`, `invoice-revisions.*`, `purchase-returns.*`, `supplier-adjustment-notes.*`, plus `GET /sales/returns/returnable-lines/{invoiceId}`.
+- Verification: full suite 402 tests / 398 passed / 4 skipped (3 pre-existing + 1 intentional) / 3124 assertions; `Phase4Slice10ReturnsCreditNotesTest` 33 tests / 32 passed / 1 skipped / 192 assertions; Concurrency suite 7 tests / 16 assertions; all accounting stress commands pass at 50 workers; Pint, typecheck, and build pass. `concurrency:stress --workers=100` remains blocked locally by Windows paging-file memory exhaustion; `--workers=10` passes.

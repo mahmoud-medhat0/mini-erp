@@ -11,6 +11,7 @@ use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
 use App\Models\Supplier;
 use App\Models\User;
+use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -33,7 +34,17 @@ class Phase3Slice7UiTest extends TestCase
     {
         parent::setUp();
 
+        $this->seed(RbacSeeder::class);
+
         $this->user = User::factory()->create();
+
+        $this->user->givePermissionTo([
+            'customers.view',
+            'suppliers.view',
+            'cash.view',
+            'banks.view',
+            'cheques.view',
+        ]);
 
         $this->currency = Currency::query()->firstOrCreate(
             ['code' => 'EGP'],

@@ -3,6 +3,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary, interpolate } from '../../lib/i18n';
 
 type BankReconciliationDetailProps = SharedPageProps & {
   detail: {
@@ -49,18 +50,19 @@ type BankReconciliationDetailProps = SharedPageProps & {
 
 export default function BankReconciliationDetail({ locale, detail }: BankReconciliationDetailProps) {
   const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
   const { reconciliation, summary } = detail;
 
   return (
     <AppLayout active="reports.bank-reconciliations">
-      <Head title={isAr ? `تقرير تسوية - ${reconciliation.statement_reference}` : `Recon Detail - ${reconciliation.statement_reference}`} />
+      <Head title={interpolate(dict.app.pages.bankReconciliationDetail.headTitle, { ref: reconciliation.statement_reference })} />
 
       <PageHeader
-        title={isAr ? `تقرير تسوية بنك: ${reconciliation.statement_reference}` : `Bank Reconciliation Report: ${reconciliation.statement_reference}`}
+        title={interpolate(dict.app.pages.bankReconciliationDetail.reportTitle, { ref: reconciliation.statement_reference })}
         description={`${reconciliation.bank_account.code} - ${reconciliation.bank_account.name} (${reconciliation.date_from} → ${reconciliation.date_to})`}
         actions={
           <Link href="/reports/bank-reconciliations" className="inline-flex items-center text-xs font-bold text-[var(--primary)] hover:underline">
-            {isAr ? '← العودة للقائمة' : '← Back to List'}
+            {dict.app.pages.reportsBankReconciliationDetail.backToList}
           </Link>
         }
       />
@@ -68,25 +70,25 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'حركة كشف البنك' : 'Statement Movement'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankReconciliationDetail.statementMovement}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
               {formatMoney(summary.statement_movement_minor, reconciliation.bank_account.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'حركة المطابقة بالأستاذ' : 'Matched System Movement'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankReconciliationDetail.matchedSystemMovement}</div>
             <div className="text-sm font-bold text-blue-600">
               {formatMoney(summary.matched_movement_minor, reconciliation.bank_account.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'فارق التسوية' : 'Reconciliation Difference'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankReconciliationDetail.reconciliationDifference}</div>
             <div className={`text-sm font-bold ${summary.difference_minor === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               {formatMoney(summary.difference_minor, reconciliation.bank_account.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'حالة الكشف' : 'Recon Status'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankReconciliationDetail.reconStatus}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
                 reconciliation.status === 'reconciled'
@@ -101,16 +103,16 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
 
         <Card className="overflow-hidden p-0">
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
-            {isAr ? 'سطور كشف البنك والمطابقات المقابلة' : 'Bank Statement Lines & Matched System Entries'}
+            {dict.app.pages.reportsBankReconciliationDetail.bankStatementLinesMatchedSystemEntries}
           </div>
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'تاريخ الكشف' : 'Statement Date'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'المرجع والبيان' : 'Ref & Description'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'مبلغ الكشف' : 'Statement Amount'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'القيد المطابق بالأستاذ' : 'Matched GL Entry'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'مبلغ الأستاذ' : 'GL Amount'}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementDate}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.refDescription}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementAmount}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.matchedGlEntry}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.glAmount}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
@@ -135,7 +137,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
                           <span className="text-[var(--text-secondary)] ms-2">({line.matched_ledger_entry.entry_date})</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 italic">{isAr ? 'غير مطابق' : 'Unmatched'}</span>
+                        <span className="text-slate-400 italic">{dict.app.pages.reportsBankReconciliationDetail.unmatched}</span>
                       )}
                     </td>
                     <td className="p-3 text-end font-mono">
@@ -147,7 +149,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
               {reconciliation.lines.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-[var(--text-muted)]">
-                    {isAr ? 'لا توجد سطور بكشف الحساب.' : 'No statement lines in this reconciliation.'}
+                    {dict.app.pages.reportsBankReconciliationDetail.noStatementLinesInThisReconciliation}
                   </td>
                 </tr>
               ) : null}

@@ -224,5 +224,50 @@ return [
                 'delete' => ['purchasing.delete', 'purchasing.edit'],
             ],
         ],
+        'sales_return' => [
+            'table' => 'sales_return',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['sales.view'],
+                'attach' => ['sales.returns'],
+                'delete' => ['sales.returns'],
+            ],
+        ],
+        'customer_credit_note' => [
+            'table' => 'customer_credit_note',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['sales.view'],
+                'attach' => ['sales.credit_notes'],
+                'delete' => ['sales.credit_notes'],
+            ],
+        ],
+        'customer_invoice_revision' => [
+            'table' => 'customer_invoice_revision',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['sales.view'],
+                'attach' => ['sales.invoice_revisions'],
+                'delete' => ['sales.invoice_revisions'],
+            ],
+        ],
+        'purchase_return' => [
+            'table' => 'purchase_return',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['purchasing.view'],
+                'attach' => ['purchasing.returns'],
+                'delete' => ['purchasing.returns'],
+            ],
+        ],
+        'supplier_adjustment_note' => [
+            'table' => 'supplier_adjustment_note',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['purchasing.view'],
+                'attach' => ['purchasing.adjustment_notes'],
+                'delete' => ['purchasing.adjustment_notes'],
+            ],
+        ],
     ],
 ];

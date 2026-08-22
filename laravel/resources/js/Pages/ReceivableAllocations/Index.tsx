@@ -1,9 +1,10 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type CustomerReceiptRow = {
@@ -60,8 +61,8 @@ export default function ReceivableAllocationsIndex({
   customers = [],
   filters,
 }: ReceivableAllocationsProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
 
@@ -97,7 +98,7 @@ export default function ReceivableAllocationsIndex({
       .filter((line) => line.amount_minor > 0);
 
     if (lines.length === 0) {
-      alert(isAr ? 'برجاء إدخال مبلغ تسوية واحد على الأقل.' : 'Please enter at least one valid allocation amount.');
+      alert(dict.app.pages.receivableAllocations.pleaseEnterAtLeastOneValid);
       return;
     }
 
@@ -114,7 +115,7 @@ export default function ReceivableAllocationsIndex({
   };
 
   const handleReverse = (id: string) => {
-    if (confirm(isAr ? 'هل أنت تأكد من إلغاء وتفكيك التسوية؟' : 'Are you sure you want to reverse this allocation?')) {
+    if (confirm(dict.app.pages.receivableAllocations.areYouSureYouWantTo)) {
       post(`/receivable-allocations/${id}/reverse`);
     }
   };
@@ -126,49 +127,49 @@ export default function ReceivableAllocationsIndex({
 
   return (
     <AppLayout active="receivable-allocations.index">
-      <Head title={isAr ? 'تسوية مستحقات العملاء - Mini ERP' : 'AR Allocations - Mini ERP'} />
+      <Head title={dict.app.pages.receivableAllocations.arAllocationsMiniErp} />
 
       <PageHeader
-        title={isAr ? 'تسوية مستحقات العملاء' : 'Receivable Allocations'}
-        description={isAr ? 'تسوية سندات القبض مع قيود ومستحقات العملاء المفتوحة.' : 'Allocate posted receipts against open customer receivable entries.'}
+        title={dict.app.pages.receivableAllocations.receivableAllocations}
+        description={dict.app.pages.receivableAllocations.allocatePostedReceiptsAgainstOpenCustomer}
       />
 
       {/* Workspace Area */}
       <div className="grid gap-6 lg:grid-cols-3 mb-8">
         <Card className="p-5 lg:col-span-1">
           <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3">
-            {isAr ? '1. اختر سند القبض غير المسوى' : '1. Select Unapplied Receipt'}
+            {dict.app.pages.receivableAllocations.text1SelectUnappliedReceipt}
           </h2>
 
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {isAr ? 'سند القبض' : 'Receipt Number'}
+                {dict.app.pages.receivableAllocations.receiptNumber}
               </label>
               <SearchableSelect
                 options={receiptSelectOptions}
                 value={selectedReceipt?.id || null}
                 onChange={(val) => handleReceiptSelect(val)}
-                placeholder={isAr ? 'اختر سند القبض...' : 'Select receipt...'}
+                placeholder={dict.app.pages.receivableAllocations.selectReceipt}
               />
             </div>
 
             {selectedReceipt ? (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">{isAr ? 'رقم السند:' : 'Receipt:'}</span>
+                  <span className="text-[var(--text-secondary)]">{dict.app.pages.receivableAllocations.receipt}</span>
                   <span className="font-mono font-bold">{selectedReceipt.number}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">{isAr ? 'العميل:' : 'Customer:'}</span>
+                  <span className="text-[var(--text-secondary)]">{dict.app.pages.receivableAllocations.customer}</span>
                   <span className="font-semibold">{selectedReceipt.customer?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[var(--text-secondary)]">{isAr ? 'المبلغ الإجمالي:' : 'Total Amount:'}</span>
+                  <span className="text-[var(--text-secondary)]">{dict.app.pages.receivableAllocations.totalAmount}</span>
                   <span className="font-mono font-bold">{formatMoney(selectedReceipt.amount_minor, selectedReceipt.currency)}</span>
                 </div>
                 <div className="flex justify-between border-t border-[var(--border)] pt-2">
-                  <span className="text-[var(--text-secondary)]">{isAr ? 'غير مسوى (المتاح للربط):' : 'Unapplied Amount:'}</span>
+                  <span className="text-[var(--text-secondary)]">{dict.app.pages.receivableAllocations.unappliedAmount}</span>
                   <span className="font-mono font-bold text-amber-600">{formatMoney(selectedReceipt.unapplied_minor, selectedReceipt.currency)}</span>
                 </div>
               </div>
@@ -178,16 +179,16 @@ export default function ReceivableAllocationsIndex({
 
         <Card className="p-5 lg:col-span-2">
           <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3">
-            {isAr ? '2. المستحقات والقيود المفتوحة للعميل' : '2. Open Receivable Entries'}
+            {dict.app.pages.receivableAllocations.text2OpenReceivableEntries}
           </h2>
 
           {!selectedReceipt ? (
             <div className="py-12 text-center text-xs text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-xl">
-              {isAr ? 'قم باختيار سند قبض من اليسار لعرض المستحقات المتاحة.' : 'Select a receipt on the left to view matching open receivables.'}
+              {dict.app.pages.receivableAllocations.selectAReceiptOnTheLeft}
             </div>
           ) : openReceivables.length === 0 ? (
             <div className="py-12 text-center text-xs text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-xl">
-              {isAr ? 'لا يوجد مستحقات مفتوحة لهذا العميل بنفس العملة.' : 'No open receivable entries found for this customer and currency.'}
+              {dict.app.pages.receivableAllocations.noOpenReceivableEntriesFoundFor}
             </div>
           ) : (
             <form onSubmit={submitAllocation}>
@@ -195,11 +196,11 @@ export default function ReceivableAllocationsIndex({
                 <table className={tableClasses.table}>
                   <thead>
                     <tr>
-                      <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'تاريخ الاستحقاق' : 'Due Date'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'المبلغ الأصلي' : 'Original Amount'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'المتبقي' : 'Open Balance'}</th>
-                      <th className={tableClasses.th}>{isAr ? 'مبلغ التسوية' : 'Allocate Amount'}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.date}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.dueDate}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.originalAmount}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.openBalance}</th>
+                      <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.allocateAmount}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -227,13 +228,15 @@ export default function ReceivableAllocationsIndex({
               </div>
 
               <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
-                >
-                  {processing ? (isAr ? 'جاري الربط والتسوية...' : 'Processing...') : (isAr ? 'إجراء التسوية الآن' : 'Execute Allocation')}
-                </button>
+                {can('customers.allocations') ? (
+                  <button
+                    type="submit"
+                    disabled={processing}
+                    className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
+                  >
+                    {processing ? dict.app.pages.receivableAllocations.processing : dict.app.pages.receivableAllocations.executeAllocation}
+                  </button>
+                ) : null}
               </div>
             </form>
           )}
@@ -242,24 +245,24 @@ export default function ReceivableAllocationsIndex({
 
       {/* Existing Allocations Log Table */}
       <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3">
-        {isAr ? 'سجل التسويات المنفذة' : 'Executed Allocations History'}
+        {dict.app.pages.receivableAllocations.executedAllocationsHistory}
       </h2>
 
       {existingAllocations.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد تسويات سابقة' : 'No Previous Allocations'}
-          description={isAr ? 'سوف تظهر التسويات المكتملة هنا عند تنفيذها.' : 'Executed allocations will appear here.'}
+          title={dict.app.pages.receivableAllocations.noPreviousAllocations}
+          description={dict.app.pages.receivableAllocations.executedAllocationsWillAppearHere}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'سند القبض' : 'Receipt'}</th>
-                <th className={tableClasses.th}>{isAr ? 'العميل' : 'Customer'}</th>
-                <th className={tableClasses.th}>{isAr ? 'مبلغ التسوية' : 'Allocated Amount'}</th>
-                <th className={tableClasses.th}>{isAr ? 'تاريخ التسوية' : 'Date'}</th>
-                <th className={tableClasses.th}>{isAr ? 'إجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.receipt_2}</th>
+                <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.customer_2}</th>
+                <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.allocatedAmount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.date_2}</th>
+                <th className={tableClasses.th}>{dict.app.pages.receivableAllocations.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -272,13 +275,15 @@ export default function ReceivableAllocationsIndex({
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{new Date(row.created_at).toLocaleString()}</td>
                   <td className={tableClasses.td}>
-                    <button
-                      type="button"
-                      onClick={() => handleReverse(row.id)}
-                      className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
-                    >
-                      {isAr ? 'إلغاء التسوية' : 'Reverse'}
-                    </button>
+                    {can('customers.allocations') ? (
+                      <button
+                        type="button"
+                        onClick={() => handleReverse(row.id)}
+                        className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                      >
+                        {dict.app.pages.receivableAllocations.reverse}
+                      </button>
+                    ) : null}
                   </td>
                 </tr>
               ))}

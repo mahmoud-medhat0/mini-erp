@@ -42,7 +42,7 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
   ];
 
   const periodSelectOptions = [
-    { value: '', label: accDict.allPeriods || (locale === 'ar' ? 'جميع الفترات' : 'All Periods') },
+    { value: '', label: accDict.allPeriods || dict.app.pages.accountingGeneralLedger.allPeriods },
     ...periods.map((p) => ({
       value: p.id,
       label: formatPeriodLabel(p, locale),
@@ -119,8 +119,8 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
 
       {ledger.data.length === 0 ? (
         <EmptyState
-          title={accDict.noLedgerEntries || (locale === 'ar' ? 'لا توجد قيود مرحلة في دفتر الاستاد حالياً.' : 'No posted ledger entries yet.')}
-          description={accDict.noLedgerEntriesDesc || (locale === 'ar' ? 'تظهر قيود دفتر الاستاد تلقائياً بمجرد ترحيل قيود اليومية المعتمدة.' : 'General Ledger entries stream automatically when journal vouchers are approved and posted.')}
+          title={accDict.noLedgerEntries || dict.app.pages.accountingGeneralLedger.noPostedLedgerEntriesYet}
+          description={accDict.noLedgerEntriesDesc || dict.app.pages.accountingGeneralLedger.generalLedgerEntriesStreamAutomaticallyWhen}
         />
       ) : (
         <div className={tableClasses.wrap}>

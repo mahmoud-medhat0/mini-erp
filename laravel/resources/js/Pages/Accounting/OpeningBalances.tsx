@@ -88,20 +88,18 @@ export default function OpeningBalances({
 
   const fiscalYearOptions = fiscalYears.map((fy) => ({
     value: fy.id,
-    label: `${accDict.fiscalYear || (locale === 'ar' ? 'السنة المالية' : 'Fiscal Year')} ${fy.year}`,
+    label: `${accDict.fiscalYear || dict.app.pages.accountingOpeningBalances.fiscalYear} ${fy.year}`,
   }));
 
   return (
     <AppLayout active="accounting.opening_balances">
-      <Head title={accDict.openingBalances || (locale === 'ar' ? 'الأرصدة الافتتاحية' : 'Opening Balances')} />
+      <Head title={accDict.openingBalances || dict.app.pages.accountingOpeningBalances.openingBalances} />
 
       <PageHeader
-        title={accDict.openingBalances || (locale === 'ar' ? 'الأرصدة الافتتاحية' : 'Opening Balances')}
+        title={accDict.openingBalances || dict.app.pages.accountingOpeningBalances.openingBalances_2}
         description={
           accDict.openingBalancesDesc ||
-          (locale === 'ar'
-            ? 'تعيين الأرصدة الافتتاحية على مستوى الحسابات للسنوات المالية الجديدة وترحيل قيد التأسيس الافتتاحي.'
-            : 'Set account-level initial balances for new fiscal years and post opening journal entry.')
+          dict.app.pages.accountingOpeningBalances.setAccountLevelInitialBalancesFor
         }
         actions={
           <button
@@ -114,7 +112,7 @@ export default function OpeningBalances({
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             <span>
-              {accDict.postOpeningJournal || (locale === 'ar' ? 'ترحيل الأرصدة الافتتاحية' : 'Post Opening Journal to Ledger')}
+              {accDict.postOpeningJournal || dict.app.pages.accountingOpeningBalances.postOpeningJournalToLedger}
             </span>
           </button>
         }
@@ -126,7 +124,7 @@ export default function OpeningBalances({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <span>
-            {accDict.noFiscalYearsWarning || (locale === 'ar' ? 'لا توجد سنوات مالية. يرجى إنشاء سنة مالية أولاً.' : 'No fiscal years found. Please create a fiscal year first.')}
+            {accDict.noFiscalYearsWarning || dict.app.pages.accountingOpeningBalances.noFiscalYearsFoundPleaseCreate}
           </span>
         </div>
       )}
@@ -137,7 +135,7 @@ export default function OpeningBalances({
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>
-            {accDict.balancesAlreadyPosted || (locale === 'ar' ? 'تم ترحيل الأرصدة الافتتاحية لهذه السنة المالية سابقاً إلى دفتر الاستاد.' : 'Opening balances for this fiscal year have already been posted to the general ledger.')}
+            {accDict.balancesAlreadyPosted || dict.app.pages.accountingOpeningBalances.openingBalancesForThisFiscalYear}
           </span>
         </div>
       )}
@@ -146,7 +144,7 @@ export default function OpeningBalances({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
-              {accDict.fiscalYear || (locale === 'ar' ? 'السنة المالية:' : 'Fiscal Year:')}
+              {accDict.fiscalYear || dict.app.pages.accountingOpeningBalances.fiscalYear_2}
             </span>
             <div className="w-64 sm:w-80">
               <SearchableSelect
@@ -165,14 +163,14 @@ export default function OpeningBalances({
           <div className="flex flex-wrap items-center gap-4 font-mono text-xs font-bold">
             <div>
               <span className="text-[var(--text-muted)] uppercase me-1.5 font-sans">
-                {accDict.totalDebit || (locale === 'ar' ? 'إجمالي المدين:' : 'Total Debits:')}
+                {accDict.totalDebit || dict.app.pages.accountingOpeningBalances.totalDebits}
               </span>
               <span className="text-blue-600 dark:text-blue-400 text-sm font-extrabold">{totalDebit.toLocaleString()}</span>
             </div>
             <div className="h-5 w-px bg-[var(--border)]" />
             <div>
               <span className="text-[var(--text-muted)] uppercase me-1.5 font-sans">
-                {accDict.totalCredit || (locale === 'ar' ? 'إجمالي الدائن:' : 'Total Credits:')}
+                {accDict.totalCredit || dict.app.pages.accountingOpeningBalances.totalCredits}
               </span>
               <span className="text-indigo-600 dark:text-indigo-400 text-sm font-extrabold">{totalCredit.toLocaleString()}</span>
             </div>
@@ -181,14 +179,14 @@ export default function OpeningBalances({
                 <div className="h-5 w-px bg-[var(--border)]" />
                 <div>
                   <span className="text-red-500 uppercase me-1.5 font-sans">
-                    {accDict.difference || (locale === 'ar' ? 'الفرق:' : 'Difference:')}
+                    {accDict.difference || dict.app.pages.accountingOpeningBalances.difference}
                   </span>
                   <span className="text-red-500 text-sm font-extrabold">{difference.toLocaleString()}</span>
                 </div>
               </>
             )}
             <StatusBadge tone={isBalanced ? 'ok' : 'danger'}>
-              {isBalanced ? (accDict.balanced || (locale === 'ar' ? 'متوازن' : 'BALANCED')) : (accDict.unbalanced || (locale === 'ar' ? 'غير متوازن' : 'UNBALANCED'))}
+              {isBalanced ? (accDict.balanced || dict.app.pages.accountingOpeningBalances.balanced) : (accDict.unbalanced || dict.app.pages.accountingOpeningBalances.unbalanced)}
             </StatusBadge>
           </div>
         </div>
@@ -196,8 +194,8 @@ export default function OpeningBalances({
 
       {accounts.length === 0 ? (
         <EmptyState
-          title={accDict.noOpeningBalancesConfigured || (locale === 'ar' ? 'لم يتم إعداد الأرصدة الافتتاحية بعد.' : 'No opening balances have been configured yet.')}
-          description={accDict.noOpeningBalancesConfiguredDesc || (locale === 'ar' ? 'يرجى إعداد الحسابات والسنة المالية لتخصيص الأرصدة الافتتاحية.' : 'Configure accounts and fiscal year to set initial opening balances.')}
+          title={accDict.noOpeningBalancesConfigured || dict.app.pages.accountingOpeningBalances.noOpeningBalancesHaveBeenConfigured}
+          description={accDict.noOpeningBalancesConfiguredDesc || dict.app.pages.accountingOpeningBalances.configureAccountsAndFiscalYearTo}
         />
       ) : (
         <form onSubmit={submitDraft}>
@@ -205,14 +203,14 @@ export default function OpeningBalances({
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{accDict.accountCode || (locale === 'ar' ? 'رمز الحساب' : 'Code')}</th>
-                  <th className={tableClasses.th}>{accDict.accountName || (locale === 'ar' ? 'اسم الحساب' : 'Account Name')}</th>
-                  <th className={tableClasses.th}>{accDict.typeAndNature || (locale === 'ar' ? 'النوع / الطبيعة' : 'Type / Nature')}</th>
+                  <th className={tableClasses.th}>{accDict.accountCode || dict.app.pages.accountingOpeningBalances.code}</th>
+                  <th className={tableClasses.th}>{accDict.accountName || dict.app.pages.accountingOpeningBalances.accountName}</th>
+                  <th className={tableClasses.th}>{accDict.typeAndNature || dict.app.pages.accountingOpeningBalances.typeNature}</th>
                   <th className={`${tableClasses.th} text-right`}>
-                    {accDict.openingDebitMinor || (locale === 'ar' ? 'مدين افتتاحي (أصغر)' : 'Opening Debit (Minor)')}
+                    {accDict.openingDebitMinor || dict.app.pages.accountingOpeningBalances.openingDebitMinor}
                   </th>
                   <th className={`${tableClasses.th} text-right`}>
-                    {accDict.openingCreditMinor || (locale === 'ar' ? 'دائن افتتاحي (أصغر)' : 'Opening Credit (Minor)')}
+                    {accDict.openingCreditMinor || dict.app.pages.accountingOpeningBalances.openingCreditMinor}
                   </th>
                 </tr>
               </thead>
@@ -265,7 +263,7 @@ export default function OpeningBalances({
               disabled={saveForm.processing || isAlreadyPosted}
               className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-40 transition-colors cursor-pointer"
             >
-              {accDict.saveDraft || (locale === 'ar' ? 'حفظ مسودة الأرصدة' : 'Save Draft Balances')}
+              {accDict.saveDraft || dict.app.pages.accountingOpeningBalances.saveDraftBalances}
             </button>
           </div>
         </form>

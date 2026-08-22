@@ -96,7 +96,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
   function handleDelete(at: AccountTypeItem) {
     if (at.is_system) return;
     if ((at.groups_count ?? 0) > 0 || (at.accounts_count ?? 0) > 0) return;
-    if (confirm(actionsDict.confirmDelete || (locale === 'ar' ? 'هل أنت متاكد من رغبتك في حذف هذا العنصر؟' : 'Are you sure you want to delete this Account Type?'))) {
+    if (confirm(actionsDict.confirmDelete || dict.app.pages.accountingAccountTypes.areYouSureYouWantTo)) {
       router.delete(`/accounting/account-types/${at.id}`);
     }
   }
@@ -123,13 +123,13 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
   };
 
   const normalBalanceOptions = [
-    { value: 'debit', label: accDict.debitOption || (locale === 'ar' ? 'مدين' : 'Debit') },
-    { value: 'credit', label: accDict.creditOption || (locale === 'ar' ? 'دائن' : 'Credit') },
+    { value: 'debit', label: accDict.debitOption || dict.app.pages.accountingAccountTypes.debit },
+    { value: 'credit', label: accDict.creditOption || dict.app.pages.accountingAccountTypes.credit },
   ];
 
   const statementTypeOptions = [
-    { value: 'balance_sheet', label: accDict.balanceSheet || (locale === 'ar' ? 'الميزانية العمومية' : 'Balance Sheet') },
-    { value: 'income_statement', label: accDict.incomeStatement || (locale === 'ar' ? 'قائمة الدخل' : 'Income Statement') },
+    { value: 'balance_sheet', label: accDict.balanceSheet || dict.app.pages.accountingAccountTypes.balanceSheet },
+    { value: 'income_statement', label: accDict.incomeStatement || dict.app.pages.accountingAccountTypes.incomeStatement },
   ];
 
   return (
@@ -296,15 +296,15 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{fieldsDict.code || (locale === 'ar' ? 'الكود' : 'Code')}</th>
-              <th className={tableClasses.th}>{fieldsDict.name || (locale === 'ar' ? 'الاسم' : 'Name')}</th>
-              <th className={tableClasses.th}>{accDict.category || (locale === 'ar' ? 'التصنيف' : 'Category')}</th>
-              <th className={tableClasses.th}>{accDict.normalBalance || (locale === 'ar' ? 'الرصيد الطبيعي' : 'Normal Balance')}</th>
-              <th className={tableClasses.th}>{accDict.statementType || (locale === 'ar' ? 'القائمة' : 'Statement')}</th>
-              <th className={tableClasses.th}>{accDict.accountGroups || (locale === 'ar' ? 'المجموعات' : 'Groups')}</th>
-              <th className={tableClasses.th}>{accDict.accounts || (locale === 'ar' ? 'الحسابات' : 'Accounts')}</th>
-              <th className={tableClasses.th}>{fieldsDict.status || (locale === 'ar' ? 'الحالة' : 'Status')}</th>
-              <th className={`${tableClasses.th} text-right`}>{actionsDict.actionsTitle || actionsDict.actions || (locale === 'ar' ? 'الإجراءات' : 'Actions')}</th>
+              <th className={tableClasses.th}>{fieldsDict.code || dict.app.pages.accountingAccountTypes.code}</th>
+              <th className={tableClasses.th}>{fieldsDict.name || dict.app.pages.accountingAccountTypes.name}</th>
+              <th className={tableClasses.th}>{accDict.category || dict.app.pages.accountingAccountTypes.category}</th>
+              <th className={tableClasses.th}>{accDict.normalBalance || dict.app.pages.accountingAccountTypes.normalBalance}</th>
+              <th className={tableClasses.th}>{accDict.statementType || dict.app.pages.accountingAccountTypes.statement}</th>
+              <th className={tableClasses.th}>{accDict.accountGroups || dict.app.pages.accountingAccountTypes.groups}</th>
+              <th className={tableClasses.th}>{accDict.accounts || dict.app.pages.accountingAccountTypes.accounts}</th>
+              <th className={tableClasses.th}>{fieldsDict.status || dict.app.pages.accountingAccountTypes.status}</th>
+              <th className={`${tableClasses.th} text-right`}>{actionsDict.actionsTitle || actionsDict.actions || dict.app.pages.accountingAccountTypes.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -334,17 +334,17 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                   <td className={tableClasses.td}>
                     {at.normal_balance === 'debit' ? (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                        {accDict.debitBadge || (locale === 'ar' ? 'مدين' : 'DEBIT')}
+                        {accDict.debitBadge || dict.app.pages.accountingAccountTypes.debit_2}
                       </span>
                     ) : (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                        {accDict.creditBadge || (locale === 'ar' ? 'دائن' : 'CREDIT')}
+                        {accDict.creditBadge || dict.app.pages.accountingAccountTypes.credit_2}
                       </span>
                     )}
                   </td>
                   <td className={tableClasses.td}>
                     <span className="text-xs text-[var(--text-secondary)]">
-                      {at.statement_type === 'balance_sheet' ? (accDict.balanceSheet || (locale === 'ar' ? 'الميزانية العمومية' : 'Balance Sheet')) : (accDict.incomeStatement || (locale === 'ar' ? 'قائمة الدخل' : 'Income Statement'))}
+                      {at.statement_type === 'balance_sheet' ? (accDict.balanceSheet || dict.app.pages.accountingAccountTypes.balanceSheet_2) : (accDict.incomeStatement || dict.app.pages.accountingAccountTypes.incomeStatement_2)}
                     </span>
                   </td>
                   <td className={tableClasses.td}>
@@ -352,7 +352,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       type="button"
                       onClick={() => setSelectedTypeGroupsDetails(at)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 active:scale-95 border border-indigo-500/20"
-                      title={locale === 'ar' ? 'عرض تفاصيل المجموعات المحاسبية' : 'View Account Groups Details'}
+                      title={dict.app.pages.accountingAccountTypes.viewAccountGroupsDetails}
                     >
                       <span>{at.groups_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -366,7 +366,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       type="button"
                       onClick={() => setSelectedTypeAccountsDetails(at)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 border border-emerald-500/20"
-                      title={locale === 'ar' ? 'عرض تفاصيل الحسابات' : 'View Accounts Details'}
+                      title={dict.app.pages.accountingAccountTypes.viewAccountsDetails}
                     >
                       <span>{at.accounts_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -400,9 +400,9 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         }`}
                         title={
                           at.is_system
-                            ? (accDict.systemCannotDelete || (locale === 'ar' ? 'لا يمكن حذف السجلات النظامية الخاصة بالنظام.' : 'System account types cannot be deleted.'))
+                            ? (accDict.systemCannotDelete || dict.app.pages.accountingAccountTypes.systemAccountTypesCannotBeDeleted)
                             : !isDeletable
-                            ? (accDict.inUseCannotDelete || (locale === 'ar' ? 'لا يمكن حذف نوع حساب مستخدم بواسطة مجموعات أو حسابات.' : 'Cannot delete account type in use by account groups or accounts.'))
+                            ? (accDict.inUseCannotDelete || dict.app.pages.accountingAccountTypes.cannotDeleteAccountTypeInUse)
                             : undefined
                         }
                       >
@@ -452,7 +452,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
             <div className="overflow-y-auto flex-1">
               {(selectedTypeGroupsDetails.groups?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
-                  {locale === 'ar' ? 'لا توجد مجموعات محاسبية مرتبطة بهذا النوع حالياً.' : 'No Account Groups linked to this type.'}
+                  {dict.app.pages.accountingAccountTypes.noAccountGroupsLinkedToThis}
                 </div>
               ) : (
                 <table className={tableClasses.table}>
@@ -520,7 +520,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
             <div className="overflow-y-auto flex-1">
               {(selectedTypeAccountsDetails.accounts?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
-                  {locale === 'ar' ? 'لا توجد حسابات مرتبطة بهذا النوع حالياً.' : 'No Accounts linked to this type.'}
+                  {dict.app.pages.accountingAccountTypes.noAccountsLinkedToThisType}
                 </div>
               ) : (
                 <table className={tableClasses.table}>
@@ -545,11 +545,11 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         <td className={tableClasses.td}>
                           {acc.nature === 'debit' ? (
                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                              {accDict.debitBadge || (locale === 'ar' ? 'مدين' : 'DEBIT')}
+                              {accDict.debitBadge || dict.app.pages.accountingAccountTypes.debit_3}
                             </span>
                           ) : (
                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                              {accDict.creditBadge || (locale === 'ar' ? 'دائن' : 'CREDIT')}
+                              {accDict.creditBadge || dict.app.pages.accountingAccountTypes.credit_3}
                             </span>
                           )}
                         </td>
@@ -558,7 +558,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         </td>
                         <td className={tableClasses.td}>
                           {acc.is_control ? (
-                            <StatusBadge tone="info">{accDict.controlBadge || (locale === 'ar' ? 'حساب مراقبة' : 'CONTROL')}</StatusBadge>
+                            <StatusBadge tone="info">{accDict.controlBadge || dict.app.pages.accountingAccountTypes.control}</StatusBadge>
                           ) : (
                             <span className="text-xs text-[var(--text-muted)]">—</span>
                           )}

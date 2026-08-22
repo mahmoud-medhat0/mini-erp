@@ -13,6 +13,15 @@ export function getDictionary(locale: string = 'en'): Dictionary {
 }
 
 /**
+ * Replaces `:placeholder` tokens in a dictionary string with runtime values.
+ */
+export function interpolate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/:(\w+)/g, (match, key: string) =>
+    key in params ? String(params[key]) : match,
+  );
+}
+
+/**
  * Synchronizes HTML `dir` and `lang` attributes on the DOM document element.
  */
 export function syncDomLocale(locale: string = 'en', direction?: string) {

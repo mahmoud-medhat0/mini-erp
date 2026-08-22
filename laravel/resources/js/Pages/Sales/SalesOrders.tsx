@@ -1,8 +1,9 @@
-import { Head, useForm, router } from '@inertiajs/react';
+﻿import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type CustomerOption = {
@@ -88,8 +89,8 @@ type SalesOrdersProps = SharedPageProps & {
 };
 
 export default function SalesOrdersIndex({ locale, salesOrders, customers, currencies, products, filters }: SalesOrdersProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<SalesOrderRow | null>(null);
@@ -238,9 +239,9 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
   const handleAction = (orderId: string, action: 'submit' | 'confirm' | 'cancel') => {
     let confirmMsg = '';
-    if (action === 'submit') confirmMsg = isAr ? 'هل أنت تأكد من تقديم أمر البيع هذا؟' : 'Submit this Sales Order?';
-    if (action === 'confirm') confirmMsg = isAr ? 'هل أنت تأكد من تأكيد أمر البيع وتخصيص الرقم؟' : 'Confirm this Sales Order and allocate order number?';
-    if (action === 'cancel') confirmMsg = isAr ? 'هل أنت تأكد من إلغاء أمر البيع هذا؟' : 'Cancel this Sales Order?';
+    if (action === 'submit') confirmMsg = dict.app.pages.salesSalesOrders.submitThisSalesOrder;
+    if (action === 'confirm') confirmMsg = dict.app.pages.salesSalesOrders.confirmThisSalesOrderAndAllocate;
+    if (action === 'cancel') confirmMsg = dict.app.pages.salesSalesOrders.cancelThisSalesOrder;
 
     if (confirm(confirmMsg)) {
       router.post(`/sales/orders/${orderId}/${action}`);
@@ -265,13 +266,13 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'draft':
-        return isAr ? 'مسودة' : 'Draft';
+        return dict.app.pages.salesSalesOrders.draft;
       case 'submitted':
-        return isAr ? 'مقدم' : 'Submitted';
+        return dict.app.pages.salesSalesOrders.submitted;
       case 'confirmed':
-        return isAr ? 'مؤكد' : 'Confirmed';
+        return dict.app.pages.salesSalesOrders.confirmed;
       case 'cancelled':
-        return isAr ? 'ملغى' : 'Cancelled';
+        return dict.app.pages.salesSalesOrders.cancelled;
       default:
         return status;
     }
@@ -287,22 +288,24 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
   return (
     <AppLayout active="sales-orders.index">
-      <Head title={isAr ? 'أوامر البيع' : 'Sales Orders'} />
+      <Head title={dict.app.pages.salesSalesOrders.salesOrders} />
 
       <PageHeader
-        title={isAr ? 'أوامر البيع' : 'Sales Orders'}
-        description={isAr ? 'إدارة أوامر البيع والتزامات العملاء' : 'Manage customer sales orders and commitments'}
+        title={dict.app.pages.salesSalesOrders.salesOrders_2}
+        description={dict.app.pages.salesSalesOrders.manageCustomerSalesOrdersAndCommitments}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{isAr ? 'إنشاء أمر بيع' : 'Create Sales Order'}</span>
-          </button>
+          can('sales.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{dict.app.pages.salesSalesOrders.createSalesOrder}</span>
+            </button>
+          ) : null
         }
       />
 
@@ -311,7 +314,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={isAr ? 'بحث بالرقم، المرجع، أو اسم العميل...' : 'Search number, reference, or customer...'}
+              placeholder={dict.app.pages.salesSalesOrders.searchNumberReferenceOrCustomer}
               defaultValue={filters.search || ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -332,38 +335,38 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
               onChange={(e) => router.get('/sales/orders', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
             >
-              <option value="">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
-              <option value="draft">{isAr ? 'مسودة' : 'Draft'}</option>
-              <option value="submitted">{isAr ? 'مقدم' : 'Submitted'}</option>
-              <option value="confirmed">{isAr ? 'مؤكد' : 'Confirmed'}</option>
-              <option value="cancelled">{isAr ? 'ملغى' : 'Cancelled'}</option>
+              <option value="">{dict.app.pages.salesSalesOrders.allStatuses}</option>
+              <option value="draft">{dict.app.pages.salesSalesOrders.draft}</option>
+              <option value="submitted">{dict.app.pages.salesSalesOrders.submitted}</option>
+              <option value="confirmed">{dict.app.pages.salesSalesOrders.confirmed}</option>
+              <option value="cancelled">{dict.app.pages.salesSalesOrders.cancelled}</option>
             </select>
           </div>
         </div>
 
         {salesOrders.data.length === 0 ? (
           <EmptyState
-            title={isAr ? 'لا توجد أوامر بيع' : 'No Sales Orders found'}
-            description={isAr ? 'ابدأ بإنشاء أول أمر بيع للعملاء' : 'Get started by creating your first sales order'}
+            title={dict.app.pages.salesSalesOrders.noSalesOrdersFound}
+            description={dict.app.pages.salesSalesOrders.getStartedByCreatingYourFirst}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{isAr ? 'رقم الأمر' : 'Order #'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'العميل' : 'Customer'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'التاريخ' : 'Date'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'المبلغ الإجمالي' : 'Total Amount'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                  <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesSalesOrders.order}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesSalesOrders.customer}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesSalesOrders.date}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesSalesOrders.totalAmount}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesSalesOrders.status}</th>
+                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesSalesOrders.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {salesOrders.data.map((order) => (
                   <tr key={order.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {order.number || (isAr ? '(مسودة)' : '(Draft)')}
+                      {order.number || dict.app.pages.salesSalesOrders.draft_2}
                     </td>
                     <td className={`${tableClasses.td} font-medium`}>{order.customer?.name || '-'}</td>
                     <td className={tableClasses.td}>{order.order_date}</td>
@@ -378,39 +381,47 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
                       {order.status === 'draft' ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(order)}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                          >
-                            {isAr ? 'تعديل' : 'Edit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(order.id, 'submit')}
-                            className="text-xs font-semibold text-purple-600 hover:text-purple-800"
-                          >
-                            {isAr ? 'تقديم' : 'Submit'}
-                          </button>
+                          {can('sales.edit') ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(order)}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                            >
+                              {dict.app.pages.salesSalesOrders.edit}
+                            </button>
+                          ) : null}
+                          {can('sales.submit') ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(order.id, 'submit')}
+                              className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                            >
+                              {dict.app.pages.salesSalesOrders.submit}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
 
                       {order.status === 'draft' || order.status === 'submitted' ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(order.id, 'confirm')}
-                            className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                          >
-                            {isAr ? 'تأكيد' : 'Confirm'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(order.id, 'cancel')}
-                            className="text-xs font-semibold text-red-600 hover:text-red-800"
-                          >
-                            {isAr ? 'إلغاء' : 'Cancel'}
-                          </button>
+                          {can('sales.approve') ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(order.id, 'confirm')}
+                              className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                            >
+                              {dict.app.pages.salesSalesOrders.confirm}
+                            </button>
+                          ) : null}
+                          {can('sales.cancel') ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(order.id, 'cancel')}
+                              className="text-xs font-semibold text-red-600 hover:text-red-800"
+                            >
+                              {dict.app.pages.salesSalesOrders.cancel}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
                     </td>
@@ -428,15 +439,15 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
           <div className="w-full max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
             <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
               {editingOrder
-                ? isAr ? 'تعديل أمر البيع' : 'Edit Sales Order'
-                : isAr ? 'إنشاء أمر بيع جديد' : 'Create Sales Order'}
+                ? dict.app.pages.salesSalesOrders.editSalesOrder
+                : dict.app.pages.salesSalesOrders.createSalesOrder_2}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'العميل' : 'Customer'} *
+                    {dict.app.pages.salesSalesOrders.customer_2} *
                   </label>
                   <select
                     value={data.customer_id}
@@ -444,7 +455,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     required
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   >
-                    <option value="">{isAr ? 'اختر العميل' : 'Select Customer'}</option>
+                    <option value="">{dict.app.pages.salesSalesOrders.selectCustomer}</option>
                     {customers.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} ({c.code})
@@ -456,7 +467,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'تاريخ الأمر' : 'Order Date'} *
+                    {dict.app.pages.salesSalesOrders.orderDate} *
                   </label>
                   <input
                     type="date"
@@ -470,7 +481,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'العملة' : 'Currency'} *
+                    {dict.app.pages.salesSalesOrders.currency} *
                   </label>
                   <select
                     value={data.currency}
@@ -490,7 +501,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'تاريخ التسليم المتوقع' : 'Expected Delivery Date'}
+                    {dict.app.pages.salesSalesOrders.expectedDeliveryDate}
                   </label>
                   <input
                     type="date"
@@ -502,7 +513,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'المرجع' : 'Reference'}
+                    {dict.app.pages.salesSalesOrders.reference}
                   </label>
                   <input
                     type="text"
@@ -518,7 +529,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
               <div className="pt-4 border-t border-[var(--border)]">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                    {isAr ? 'بنود أمر البيع' : 'Order Lines'}
+                    {dict.app.pages.salesSalesOrders.orderLines}
                   </h4>
                   <button
                     type="button"
@@ -528,7 +539,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
-                    <span>{isAr ? 'إضافة بند' : 'Add Line'}</span>
+                    <span>{dict.app.pages.salesSalesOrders.addLine}</span>
                   </button>
                 </div>
 
@@ -541,7 +552,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                       <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-xl border border-[var(--border)] bg-[var(--background)]/50">
                         <div className="flex-1 w-full sm:w-auto">
                           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {isAr ? 'المنتج / الخدمة' : 'Product / Service'}
+                            {dict.app.pages.salesSalesOrders.productService}
                           </label>
                           <select
                             value={item.product_id}
@@ -559,7 +570,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                         <div className="w-full sm:w-24">
                           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {isAr ? 'الوحدة' : 'UOM'}
+                            {dict.app.pages.salesSalesOrders.uom}
                           </label>
                           <input
                             type="text"
@@ -571,7 +582,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                         <div className="w-full sm:w-28">
                           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {isAr ? 'الكمية' : 'Quantity'}
+                            {dict.app.pages.salesSalesOrders.quantity}
                           </label>
                           <input
                             type="number"
@@ -593,7 +604,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                         <div className="w-full sm:w-28">
                           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {isAr ? 'سعر الوحدة' : 'Unit Price'}
+                            {dict.app.pages.salesSalesOrders.unitPrice}
                           </label>
                           <input
                             type="number"
@@ -615,7 +626,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
                         <div className="w-full sm:w-32">
                           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {isAr ? 'الإجمالي' : 'Line Total'}
+                            {dict.app.pages.salesSalesOrders.lineTotal}
                           </label>
                           <div className="py-1.5 px-2 font-mono text-xs font-bold text-[var(--text-primary)]">
                             {lineTotal.toFixed(2)} {data.currency}
@@ -641,7 +652,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                 <div className="mt-4 flex justify-end">
                   <div className="text-end">
                     <span className="text-xs font-semibold text-[var(--text-secondary)] me-2">
-                      {isAr ? 'إجمالي الأمر:' : 'Order Total:'}
+                      {dict.app.pages.salesSalesOrders.orderTotal}
                     </span>
                     <span className="text-base font-extrabold text-blue-600 font-mono">
                       {calculatePreviewSubtotal().toFixed(2)} {data.currency}
@@ -652,7 +663,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'ملاحظات' : 'Notes'}
+                  {dict.app.pages.salesSalesOrders.notes}
                 </label>
                 <textarea
                   rows={2}
@@ -668,7 +679,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                   onClick={closeModal}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.salesSalesOrders.cancel_2}
                 </button>
                 <button
                   type="submit"
@@ -676,8 +687,8 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {processing
-                    ? isAr ? 'جاري الحفظ...' : 'Saving...'
-                    : isAr ? 'حفظ المسودة' : 'Save Draft'}
+                    ? dict.app.pages.salesSalesOrders.saving
+                    : dict.app.pages.salesSalesOrders.saveDraft}
                 </button>
               </div>
             </form>

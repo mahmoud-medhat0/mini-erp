@@ -1,9 +1,10 @@
-import { Head, useForm, router } from '@inertiajs/react';
+﻿import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type CustomerOption = {
@@ -92,6 +93,7 @@ export default function CustomerInvoicesIndex({
 }: CustomerInvoicesProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<CustomerInvoiceRow | null>(null);
@@ -277,10 +279,10 @@ export default function CustomerInvoicesIndex({
 
   const handleAction = (invId: string, action: 'submit' | 'approve' | 'post' | 'cancel') => {
     let confirmMsg = '';
-    if (action === 'submit') confirmMsg = isAr ? 'هل أنت تأكد من تقديم الفاتورة؟' : 'Submit this invoice?';
-    if (action === 'approve') confirmMsg = isAr ? 'هل أنت تأكد من اعتماد الفاتورة؟' : 'Approve this invoice?';
-    if (action === 'post') confirmMsg = isAr ? 'هل أنت تأكد من ترحيل الفاتورة للقيود ولحسابات العملاء؟' : 'Post this invoice to AR/GL?';
-    if (action === 'cancel') confirmMsg = isAr ? 'هل أنت تأكد من إلغاء الفاتورة؟' : 'Cancel this invoice?';
+    if (action === 'submit') confirmMsg = dict.app.pages.salesCustomerInvoices.submitThisInvoice;
+    if (action === 'approve') confirmMsg = dict.app.pages.salesCustomerInvoices.approveThisInvoice;
+    if (action === 'post') confirmMsg = dict.app.pages.salesCustomerInvoices.postThisInvoiceToArGl;
+    if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerInvoices.cancelThisInvoice;
 
     if (confirm(confirmMsg)) {
       router.post(`/sales/invoices/${invId}/${action}`);
@@ -307,15 +309,15 @@ export default function CustomerInvoicesIndex({
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'draft':
-        return isAr ? 'مسودة' : 'Draft';
+        return dict.app.pages.salesCustomerInvoices.draft;
       case 'submitted':
-        return isAr ? 'مقدمة' : 'Submitted';
+        return dict.app.pages.salesCustomerInvoices.submitted;
       case 'approved':
-        return isAr ? 'معتمدة' : 'Approved';
+        return dict.app.pages.salesCustomerInvoices.approved;
       case 'posted':
-        return isAr ? 'مرحلة' : 'Posted';
+        return dict.app.pages.salesCustomerInvoices.posted;
       case 'cancelled':
-        return isAr ? 'ملغاة' : 'Cancelled';
+        return dict.app.pages.salesCustomerInvoices.cancelled;
       default:
         return status;
     }
@@ -329,22 +331,24 @@ export default function CustomerInvoicesIndex({
 
   return (
     <AppLayout active="customer-invoices.index">
-      <Head title={isAr ? 'فواتير العملاء' : 'Customer Invoices'} />
+      <Head title={dict.app.pages.salesCustomerInvoices.customerInvoices} />
 
       <PageHeader
-        title={isAr ? 'فواتير العملاء' : 'Customer Invoices'}
-        description={isAr ? 'إدارة فواتير المبيعات وترحيلها لحسابات العملاء والدفتر العام' : 'Manage customer sales invoices and post to AR/GL'}
+        title={dict.app.pages.salesCustomerInvoices.customerInvoices_2}
+        description={dict.app.pages.salesCustomerInvoices.manageCustomerSalesInvoicesAndPost}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{isAr ? 'إنشاء فاتورة جديدة' : 'Create Customer Invoice'}</span>
-          </button>
+          can('sales.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{dict.app.pages.salesCustomerInvoices.createCustomerInvoice}</span>
+            </button>
+          ) : null
         }
       />
 
@@ -353,7 +357,7 @@ export default function CustomerInvoicesIndex({
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={isAr ? 'بحث بالرقم، المرجع، أو العميل...' : 'Search number, reference, or customer...'}
+              placeholder={dict.app.pages.salesCustomerInvoices.searchNumberReferenceOrCustomer}
               defaultValue={filters.search || ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -374,39 +378,39 @@ export default function CustomerInvoicesIndex({
               onChange={(e) => router.get('/sales/invoices', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
             >
-              <option value="">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
-              <option value="draft">{isAr ? 'مسودة' : 'Draft'}</option>
-              <option value="submitted">{isAr ? 'مقدمة' : 'Submitted'}</option>
-              <option value="approved">{isAr ? 'معتمدة' : 'Approved'}</option>
-              <option value="posted">{isAr ? 'مرحلة' : 'Posted'}</option>
-              <option value="cancelled">{isAr ? 'ملغاة' : 'Cancelled'}</option>
+              <option value="">{dict.app.pages.salesCustomerInvoices.allStatuses}</option>
+              <option value="draft">{dict.app.pages.salesCustomerInvoices.draft}</option>
+              <option value="submitted">{dict.app.pages.salesCustomerInvoices.submitted}</option>
+              <option value="approved">{dict.app.pages.salesCustomerInvoices.approved}</option>
+              <option value="posted">{dict.app.pages.salesCustomerInvoices.posted}</option>
+              <option value="cancelled">{dict.app.pages.salesCustomerInvoices.cancelled}</option>
             </select>
           </div>
         </div>
 
         {customerInvoices.data.length === 0 ? (
           <EmptyState
-            title={isAr ? 'لا توجد فواتير عملاء' : 'No Customer Invoices found'}
-            description={isAr ? 'قم بإنشاء فاتورة خدمات أو فاتورة من أمر بيع/إذن تسليم' : 'Create a manual service invoice or invoice from sales order/delivery note'}
+            title={dict.app.pages.salesCustomerInvoices.noCustomerInvoicesFound}
+            description={dict.app.pages.salesCustomerInvoices.createAManualServiceInvoiceOr}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{isAr ? 'رقم الفاتورة' : 'Invoice #'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'العميل' : 'Customer'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'تاريخ الفاتورة' : 'Invoice Date'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'المبلغ الإجمالي' : 'Total Amount'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                  <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.invoice}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.customer}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.invoiceDate}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.totalAmount}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.status}</th>
+                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesCustomerInvoices.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {customerInvoices.data.map((inv) => (
                   <tr key={inv.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {inv.number || (isAr ? '(مسودة)' : '(Draft)')}
+                      {inv.number || dict.app.pages.salesCustomerInvoices.draft_2}
                     </td>
                     <td className={`${tableClasses.td} font-medium`}>{inv.customer?.name || '-'}</td>
                     <td className={tableClasses.td}>{inv.invoice_date}</td>
@@ -421,50 +425,54 @@ export default function CustomerInvoicesIndex({
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
                       {inv.status === 'draft' ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(inv)}
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                          >
-                            {isAr ? 'تعديل' : 'Edit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAction(inv.id, 'submit')}
-                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                          >
-                            {isAr ? 'تقديم' : 'Submit'}
-                          </button>
+                          {can('sales.edit') ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(inv)}
+                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                            >
+                              {dict.app.pages.salesCustomerInvoices.edit}
+                            </button>
+                          ) : null}
+                          {can('sales.submit') ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(inv.id, 'submit')}
+                              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                            >
+                              {dict.app.pages.salesCustomerInvoices.submit}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
 
-                      {['draft', 'submitted'].includes(inv.status) ? (
+                      {['draft', 'submitted'].includes(inv.status) && can('sales.approve') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(inv.id, 'approve')}
                           className="text-xs font-semibold text-amber-600 hover:text-amber-800"
                         >
-                          {isAr ? 'اعتماد' : 'Approve'}
+                          {dict.app.pages.salesCustomerInvoices.approve}
                         </button>
                       ) : null}
 
-                      {inv.status === 'approved' ? (
+                      {inv.status === 'approved' && can('sales.post') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(inv.id, 'post')}
                           className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
                         >
-                          {isAr ? 'ترحيل AR/GL' : 'Post to AR/GL'}
+                          {dict.app.pages.salesCustomerInvoices.postToArGl}
                         </button>
                       ) : null}
 
-                      {inv.status !== 'posted' && inv.status !== 'cancelled' ? (
+                      {inv.status !== 'posted' && inv.status !== 'cancelled' && can('sales.cancel') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(inv.id, 'cancel')}
                           className="text-xs font-semibold text-red-600 hover:text-red-800"
                         >
-                          {isAr ? 'إلغاء' : 'Cancel'}
+                          {dict.app.pages.salesCustomerInvoices.cancel}
                         </button>
                       ) : null}
                     </td>
@@ -482,8 +490,8 @@ export default function CustomerInvoicesIndex({
           <div className="w-full max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
             <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
               {editingInvoice
-                ? isAr ? 'تعديل فاتورة العميل' : 'Edit Customer Invoice'
-                : isAr ? 'إنشاء فاتورة عميل جديدة' : 'Create Customer Invoice'}
+                ? dict.app.pages.salesCustomerInvoices.editCustomerInvoice
+                : dict.app.pages.salesCustomerInvoices.createCustomerInvoice_2}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -497,7 +505,7 @@ export default function CustomerInvoicesIndex({
                       sourceMode === 'manual' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
-                    {isAr ? 'يدوي (خدمات)' : 'Manual (Service)'}
+                    {dict.app.pages.salesCustomerInvoices.manualService}
                   </button>
                   <button
                     type="button"
@@ -506,7 +514,7 @@ export default function CustomerInvoicesIndex({
                       sourceMode === 'sales_order' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
-                    {isAr ? 'من أمر بيع' : 'From Sales Order'}
+                    {dict.app.pages.salesCustomerInvoices.fromSalesOrder}
                   </button>
                   <button
                     type="button"
@@ -515,7 +523,7 @@ export default function CustomerInvoicesIndex({
                       sourceMode === 'delivery_note' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
-                    {isAr ? 'من إذن تسليم' : 'From Delivery Note'}
+                    {dict.app.pages.salesCustomerInvoices.fromDeliveryNote}
                   </button>
                 </div>
               ) : null}
@@ -524,14 +532,14 @@ export default function CustomerInvoicesIndex({
               {sourceMode === 'sales_order' && !editingInvoice ? (
                 <div className="mb-4">
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'اختر أمر البيع المؤكد' : 'Select Confirmed Sales Order'}
+                    {dict.app.pages.salesCustomerInvoices.selectConfirmedSalesOrder}
                   </label>
                   <select
                     value={data.sales_order_id}
                     onChange={(e) => handleSalesOrderSelect(e.target.value)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   >
-                    <option value="">{isAr ? 'اختر أمر البيع' : 'Select Sales Order'}</option>
+                    <option value="">{dict.app.pages.salesCustomerInvoices.selectSalesOrder}</option>
                     {confirmedSalesOrders.map((so) => (
                       <option key={so.id} value={so.id}>
                         {so.number} - {so.customer?.name} ({so.currency})
@@ -544,14 +552,14 @@ export default function CustomerInvoicesIndex({
               {sourceMode === 'delivery_note' && !editingInvoice ? (
                 <div className="mb-4">
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'اختر إذن التسليم المؤكد' : 'Select Confirmed Delivery Note'}
+                    {dict.app.pages.salesCustomerInvoices.selectConfirmedDeliveryNote}
                   </label>
                   <select
                     value={data.delivery_note_id}
                     onChange={(e) => handleDeliveryNoteSelect(e.target.value)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   >
-                    <option value="">{isAr ? 'اختر إذن التسليم' : 'Select Delivery Note'}</option>
+                    <option value="">{dict.app.pages.salesCustomerInvoices.selectDeliveryNote}</option>
                     {confirmedDeliveryNotes.map((dn) => (
                       <option key={dn.id} value={dn.id}>
                         {dn.number} - {dn.salesOrder?.customer?.name}
@@ -564,7 +572,7 @@ export default function CustomerInvoicesIndex({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'العميل' : 'Customer'} *
+                    {dict.app.pages.salesCustomerInvoices.customer_2} *
                   </label>
                   <select
                     disabled={Boolean(editingInvoice) || sourceMode !== 'manual'}
@@ -573,7 +581,7 @@ export default function CustomerInvoicesIndex({
                     required
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
                   >
-                    <option value="">{isAr ? 'اختر العميل' : 'Select Customer'}</option>
+                    <option value="">{dict.app.pages.salesCustomerInvoices.selectCustomer}</option>
                     {activeCustomers.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} ({c.code})
@@ -585,7 +593,7 @@ export default function CustomerInvoicesIndex({
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'تاريخ الفاتورة' : 'Invoice Date'} *
+                    {dict.app.pages.salesCustomerInvoices.invoiceDate_2} *
                   </label>
                   <input
                     type="date"
@@ -599,7 +607,7 @@ export default function CustomerInvoicesIndex({
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {isAr ? 'العملة' : 'Currency'} *
+                    {dict.app.pages.salesCustomerInvoices.currency} *
                   </label>
                   <input
                     type="text"
@@ -616,7 +624,7 @@ export default function CustomerInvoicesIndex({
               <div className="pt-4 border-t border-[var(--border)]">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                    {isAr ? 'بنود الفاتورة (خدمات ومنتجات غير مخزنية)' : 'Invoice Lines (Service & Non-Stock Only)'}
+                    {dict.app.pages.salesCustomerInvoices.invoiceLinesServiceNonStockOnly}
                   </h4>
                   {sourceMode === 'manual' ? (
                     <button
@@ -624,7 +632,7 @@ export default function CustomerInvoicesIndex({
                       onClick={addManualLine}
                       className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                     >
-                      + {isAr ? 'إضافة بند' : 'Add Line'}
+                      + {dict.app.pages.salesCustomerInvoices.addLine}
                     </button>
                   ) : null}
                 </div>
@@ -634,7 +642,7 @@ export default function CustomerInvoicesIndex({
                     <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-xl border border-[var(--border)] bg-[var(--background)]/50">
                       <div className="flex-1 w-full sm:w-auto">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                          {isAr ? 'المنتج / الخدمة' : 'Product / Service'}
+                          {dict.app.pages.salesCustomerInvoices.productService}
                         </label>
                         <select
                           disabled={sourceMode !== 'manual'}
@@ -665,7 +673,7 @@ export default function CustomerInvoicesIndex({
 
                       <div className="w-full sm:w-28">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                          {isAr ? 'الكمية' : 'Qty'}
+                          {dict.app.pages.salesCustomerInvoices.qty}
                         </label>
                         <input
                           type="number"
@@ -687,7 +695,7 @@ export default function CustomerInvoicesIndex({
 
                       <div className="w-full sm:w-32">
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                          {isAr ? 'سعر الوحدة' : 'Unit Price'} ({data.currency})
+                          {dict.app.pages.salesCustomerInvoices.unitPrice} ({data.currency})
                         </label>
                         <input
                           type="number"
@@ -723,7 +731,7 @@ export default function CustomerInvoicesIndex({
                 <div className="mt-4 flex justify-end">
                   <div className="text-end">
                     <span className="text-xs font-semibold text-[var(--text-secondary)] me-2">
-                      {isAr ? 'إجمالي الفاتورة التقديري:' : 'Estimated Invoice Total:'}
+                      {dict.app.pages.salesCustomerInvoices.estimatedInvoiceTotal}
                     </span>
                     <span className="text-sm font-bold font-mono text-blue-600">
                       {formatMoney(previewTotalMinor, data.currency)}
@@ -734,7 +742,7 @@ export default function CustomerInvoicesIndex({
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الوصف / ملاحظات' : 'Description / Notes'}
+                  {dict.app.pages.salesCustomerInvoices.descriptionNotes}
                 </label>
                 <textarea
                   rows={2}
@@ -750,7 +758,7 @@ export default function CustomerInvoicesIndex({
                   onClick={closeModal}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.salesCustomerInvoices.cancel_2}
                 </button>
                 <button
                   type="submit"
@@ -758,8 +766,8 @@ export default function CustomerInvoicesIndex({
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {processing
-                    ? isAr ? 'جاري الحفظ...' : 'Saving...'
-                    : isAr ? 'حفظ المسودة' : 'Save Draft'}
+                    ? dict.app.pages.salesCustomerInvoices.saving
+                    : dict.app.pages.salesCustomerInvoices.saveDraft}
                 </button>
               </div>
             </form>

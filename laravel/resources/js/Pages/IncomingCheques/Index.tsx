@@ -1,10 +1,11 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
-import { getDictionary } from '../../lib/i18n';
+import { getDictionary, interpolate } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type IncomingChequeRow = {
@@ -51,6 +52,7 @@ export default function IncomingChequesIndex({
 }: IncomingChequesProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeActionCheque, setActiveActionCheque] = useState<IncomingChequeRow | null>(null);
@@ -133,19 +135,21 @@ export default function IncomingChequesIndex({
 
   return (
     <AppLayout active="incoming-cheques.index">
-      <Head title={isAr ? 'حافظة الشيكات الواردة - Mini ERP' : 'Incoming Cheques - Mini ERP'} />
+      <Head title={dict.app.pages.incomingCheques.incomingChequesMiniErp} />
 
       <PageHeader
-        title={isAr ? 'حافظة الشيكات الواردة' : 'Incoming Cheques Register'}
-        description={isAr ? 'متابعة وتحديث حالة الشيكات الواردة من العملاء (استلام، إيداع، تحصيل، ارتداد، إرجاع).' : 'Manage incoming cheques lifecycle state machine.'}
+        title={dict.app.pages.incomingCheques.incomingChequesRegister}
+        description={dict.app.pages.incomingCheques.manageIncomingChequesLifecycleStateMachine}
         actions={
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-          >
-            {isAr ? '+ إضافة شيك وارد' : '+ Add Incoming Cheque'}
-          </button>
+          can('cheques.create') ? (
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+            >
+              {dict.app.pages.incomingCheques.addIncomingCheque}
+            </button>
+          ) : null
         }
       />
 
@@ -158,7 +162,7 @@ export default function IncomingChequesIndex({
             }}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
           >
-            <option value="">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
+            <option value="">{dict.app.pages.incomingCheques.allStatuses}</option>
             <option value="draft">Draft</option>
             <option value="received">Received</option>
             <option value="deposited">Deposited</option>
@@ -171,21 +175,21 @@ export default function IncomingChequesIndex({
 
       {cheques.data.length === 0 ? (
         <EmptyState
-          title={isAr ? 'لا يوجد شيكات واردة' : 'No Incoming Cheques Found'}
-          description={isAr ? 'قم بإضافة اول شيك بالضغط على الزر اعلاه.' : 'Get started by creating your first incoming cheque.'}
+          title={dict.app.pages.incomingCheques.noIncomingChequesFound}
+          description={dict.app.pages.incomingCheques.getStartedByCreatingYourFirst}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{isAr ? 'رقم الشيك' : 'Cheque No.'}</th>
-                <th className={tableClasses.th}>{isAr ? 'العميل' : 'Customer'}</th>
-                <th className={tableClasses.th}>{isAr ? 'البنك الساحب' : 'Drawn Bank'}</th>
-                <th className={tableClasses.th}>{isAr ? 'تاريخ الاستحقاق' : 'Due Date'}</th>
-                <th className={tableClasses.th}>{isAr ? 'المبلغ' : 'Amount'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحالة الحالية' : 'Current Status'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الإجراءات المتاحة' : 'Valid Lifecycle Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.chequeNo}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.customer}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.drawnBank}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.dueDate}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.amount}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.currentStatus}</th>
+                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.validLifecycleActions}</th>
               </tr>
             </thead>
             <tbody>
@@ -207,56 +211,64 @@ export default function IncomingChequesIndex({
                   </td>
                   <td className={tableClasses.td}>
                     <div className="flex flex-wrap gap-1">
-                      {row.status === 'draft' ? (
+                      {row.status === 'draft' && can('cheques.receive') ? (
                         <button
                           type="button"
                           onClick={() => openActionModal(row, 'receive')}
                           className="rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400 px-2 py-1 text-[11px] font-bold hover:bg-blue-600/20 cursor-pointer"
                         >
-                          {isAr ? 'استلام' : 'Receive'}
+                          {dict.app.pages.incomingCheques.receive}
                         </button>
                       ) : null}
 
                       {row.status === 'received' ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'deposit')}
-                            className="rounded-lg bg-amber-600/10 text-amber-600 dark:text-amber-400 px-2 py-1 text-[11px] font-bold hover:bg-amber-600/20 cursor-pointer"
-                          >
-                            {isAr ? 'إيداع بالبنك' : 'Deposit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'return')}
-                            className="rounded-lg bg-slate-600/10 text-slate-600 dark:text-slate-400 px-2 py-1 text-[11px] font-bold hover:bg-slate-600/20 cursor-pointer"
-                          >
-                            {isAr ? 'إرجاع للعميل' : 'Return'}
-                          </button>
+                          {can('cheques.deposit') ? (
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(row, 'deposit')}
+                              className="rounded-lg bg-amber-600/10 text-amber-600 dark:text-amber-400 px-2 py-1 text-[11px] font-bold hover:bg-amber-600/20 cursor-pointer"
+                            >
+                              {dict.app.pages.incomingCheques.deposit}
+                            </button>
+                          ) : null}
+                          {can('cheques.return') ? (
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(row, 'return')}
+                              className="rounded-lg bg-slate-600/10 text-slate-600 dark:text-slate-400 px-2 py-1 text-[11px] font-bold hover:bg-slate-600/20 cursor-pointer"
+                            >
+                              {dict.app.pages.incomingCheques.return}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
 
                       {row.status === 'deposited' ? (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'clear')}
-                            className="rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 text-[11px] font-bold hover:bg-emerald-600/20 cursor-pointer"
-                          >
-                            {isAr ? 'تحصيل (تحويل رصيد)' : 'Clear'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'bounce')}
-                            className="rounded-lg bg-red-600/10 text-red-600 dark:text-red-400 px-2 py-1 text-[11px] font-bold hover:bg-red-600/20 cursor-pointer"
-                          >
-                            {isAr ? 'ارتداد الشيك' : 'Bounce'}
-                          </button>
+                          {can('cheques.clear') ? (
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(row, 'clear')}
+                              className="rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 text-[11px] font-bold hover:bg-emerald-600/20 cursor-pointer"
+                            >
+                              {dict.app.pages.incomingCheques.clear}
+                            </button>
+                          ) : null}
+                          {can('cheques.bounce') ? (
+                            <button
+                              type="button"
+                              onClick={() => openActionModal(row, 'bounce')}
+                              className="rounded-lg bg-red-600/10 text-red-600 dark:text-red-400 px-2 py-1 text-[11px] font-bold hover:bg-red-600/20 cursor-pointer"
+                            >
+                              {dict.app.pages.incomingCheques.bounce}
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
 
                       {row.status === 'cleared' ? (
-                        <span className="text-[11px] font-mono text-[var(--text-muted)]">{isAr ? 'مُحصل (مُقفل)' : 'Terminal Cleared'}</span>
+                        <span className="text-[11px] font-mono text-[var(--text-muted)]">{dict.app.pages.incomingCheques.terminalCleared}</span>
                       ) : null}
                     </div>
                   </td>
@@ -272,13 +284,13 @@ export default function IncomingChequesIndex({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {isAr ? 'إضافة شيك وارد جديد (مسودة)' : 'New Incoming Cheque'}
+              {dict.app.pages.incomingCheques.newIncomingCheque}
             </h2>
 
             <form onSubmit={submitCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {isAr ? 'اختر العميل' : 'Customer'} *
+                  {dict.app.pages.incomingCheques.customer_2} *
                 </label>
                 <SearchableSelect
                   options={customerSelectOptions}
@@ -291,7 +303,7 @@ export default function IncomingChequesIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'رقم الشيك الفعلي' : 'Cheque Number'} *
+                    {dict.app.pages.incomingCheques.chequeNumber} *
                   </label>
                   <input
                     type="text"
@@ -303,7 +315,7 @@ export default function IncomingChequesIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'البنك الساحب' : 'Drawn Bank Name'} *
+                    {dict.app.pages.incomingCheques.drawnBankName} *
                   </label>
                   <input
                     type="text"
@@ -318,7 +330,7 @@ export default function IncomingChequesIndex({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <DatePicker
-                    label={isAr ? 'تاريخ الاستحقاق' : 'Due Date'}
+                    label={dict.app.pages.incomingCheques.dueDate_2}
                     value={createForm.data.due_date}
                     onChange={(val) => createForm.setData('due_date', val || '')}
                     required
@@ -326,7 +338,7 @@ export default function IncomingChequesIndex({
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    {isAr ? 'المبلغ' : 'Amount'} *
+                    {dict.app.pages.incomingCheques.amount_2} *
                   </label>
                   <input
                     type="number"
@@ -346,14 +358,14 @@ export default function IncomingChequesIndex({
                   onClick={() => setShowCreateModal(false)}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.incomingCheques.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={createForm.processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
-                  {createForm.processing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ الشيك' : 'Save Cheque')}
+                  {createForm.processing ? dict.app.pages.incomingCheques.saving : dict.app.pages.incomingCheques.saveCheque}
                 </button>
               </div>
             </form>
@@ -366,10 +378,10 @@ export default function IncomingChequesIndex({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <h2 className="text-base font-bold text-[var(--text-primary)] mb-2">
-              {isAr ? `تحديث حالة الشيك رقم [${activeActionCheque.cheque_number}]` : `Update Cheque status [${activeActionCheque.cheque_number}]`}
+              {interpolate(dict.app.pages.incomingCheques.updateStatusTitle, { number: activeActionCheque.cheque_number })}
             </h2>
             <p className="text-xs text-[var(--text-secondary)] mb-4">
-              {isAr ? `الإجراء المطلوب: ${actionType.toUpperCase()}` : `Target action: ${actionType.toUpperCase()}`}
+              {interpolate(dict.app.pages.incomingCheques.targetAction, { action: (actionType ?? '').toUpperCase() })}
             </p>
 
             <form onSubmit={submitAction} className="space-y-4">
@@ -377,7 +389,7 @@ export default function IncomingChequesIndex({
                 <>
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                      {isAr ? 'الفترة المالية' : 'Financial Period'} *
+                      {dict.app.pages.incomingCheques.financialPeriod} *
                     </label>
                     <SearchableSelect
                       options={periodSelectOptions}
@@ -388,7 +400,7 @@ export default function IncomingChequesIndex({
                   </div>
                   <div>
                     <DatePicker
-                      label={isAr ? 'تاريخ الاستلام' : 'Received Date'}
+                      label={dict.app.pages.incomingCheques.receivedDate}
                       value={actionForm.data.received_date}
                       onChange={(val) => actionForm.setData('received_date', val || '')}
                       required
@@ -401,7 +413,7 @@ export default function IncomingChequesIndex({
                 <>
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                      {isAr ? 'إيداع بالحساب البنكي' : 'Bank Account'} *
+                      {dict.app.pages.incomingCheques.bankAccount} *
                     </label>
                     <SearchableSelect
                       options={bankSelectOptions}
@@ -412,7 +424,7 @@ export default function IncomingChequesIndex({
                   </div>
                   <div>
                     <DatePicker
-                      label={isAr ? 'تاريخ الإيداع' : 'Deposited Date'}
+                      label={dict.app.pages.incomingCheques.depositedDate}
                       value={actionForm.data.deposited_date}
                       onChange={(val) => actionForm.setData('deposited_date', val || '')}
                       required
@@ -424,7 +436,7 @@ export default function IncomingChequesIndex({
               {actionType === 'clear' ? (
                 <div>
                   <DatePicker
-                    label={isAr ? 'تاريخ التحصيل' : 'Cleared Date'}
+                    label={dict.app.pages.incomingCheques.clearedDate}
                     value={actionForm.data.cleared_date}
                     onChange={(val) => actionForm.setData('cleared_date', val || '')}
                     required
@@ -436,7 +448,7 @@ export default function IncomingChequesIndex({
                 <>
                   <div>
                     <DatePicker
-                      label={isAr ? 'تاريخ الارتداد' : 'Bounced Date'}
+                      label={dict.app.pages.incomingCheques.bouncedDate}
                       value={actionForm.data.bounced_date}
                       onChange={(val) => actionForm.setData('bounced_date', val || '')}
                       required
@@ -444,7 +456,7 @@ export default function IncomingChequesIndex({
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                      {isAr ? 'سبب الارتداد' : 'Bounce Reason'}
+                      {dict.app.pages.incomingCheques.bounceReason}
                     </label>
                     <input
                       type="text"
@@ -460,7 +472,7 @@ export default function IncomingChequesIndex({
                 <>
                   <div>
                     <DatePicker
-                      label={isAr ? 'تاريخ الإرجاع' : 'Returned Date'}
+                      label={dict.app.pages.incomingCheques.returnedDate}
                       value={actionForm.data.returned_date}
                       onChange={(val) => actionForm.setData('returned_date', val || '')}
                       required
@@ -468,7 +480,7 @@ export default function IncomingChequesIndex({
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                      {isAr ? 'سبب الإرجاع' : 'Return Reason'}
+                      {dict.app.pages.incomingCheques.returnReason}
                     </label>
                     <input
                       type="text"
@@ -489,14 +501,14 @@ export default function IncomingChequesIndex({
                   }}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.incomingCheques.cancel_2}
                 </button>
                 <button
                   type="submit"
                   disabled={actionForm.processing}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  {actionForm.processing ? (isAr ? 'جاري التنفيذ...' : 'Processing...') : (isAr ? 'تأكيد الإجراء' : 'Confirm Action')}
+                  {actionForm.processing ? dict.app.pages.incomingCheques.processing : dict.app.pages.incomingCheques.confirmAction}
                 </button>
               </div>
             </form>

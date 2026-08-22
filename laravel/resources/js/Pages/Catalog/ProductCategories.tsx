@@ -1,8 +1,9 @@
-import { Head, useForm, router } from '@inertiajs/react';
+﻿import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type ProductCategoryRow = {
@@ -26,8 +27,8 @@ type CategoriesProps = SharedPageProps & {
 };
 
 export default function ProductCategoriesIndex({ locale, categories, filters }: CategoriesProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategoryRow | null>(null);
@@ -78,29 +79,31 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
   };
 
   const handleDelete = (category: ProductCategoryRow) => {
-    if (confirm(isAr ? 'هل أنت تأكد من حذف تصنيف المنتجات هذا؟' : 'Are you sure you want to delete this Product Category?')) {
+    if (confirm(dict.app.pages.catalogProductCategories.areYouSureYouWantTo)) {
       destroy(`/catalog/categories/${category.id}`);
     }
   };
 
   return (
     <AppLayout active="product-categories.index">
-      <Head title={isAr ? 'تصنيفات المنتجات' : 'Product Categories'} />
+      <Head title={dict.app.pages.catalogProductCategories.productCategories} />
 
       <PageHeader
-        title={isAr ? 'تصنيفات المنتجات' : 'Product Categories'}
-        description={isAr ? 'إدارة تصنيفات وفئات المنتجات والخدمات' : 'Manage product and service categories'}
+        title={dict.app.pages.catalogProductCategories.productCategories_2}
+        description={dict.app.pages.catalogProductCategories.manageProductAndServiceCategories}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{isAr ? 'إضافة تصنيف' : 'Add Category'}</span>
-          </button>
+          can('products.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{dict.app.pages.catalogProductCategories.addCategory}</span>
+            </button>
+          ) : null
         }
       />
 
@@ -109,7 +112,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={isAr ? 'بحث بالرمز أو الاسم...' : 'Search code or name...'}
+              placeholder={dict.app.pages.catalogProductCategories.searchCodeOrName}
               defaultValue={filters.search || ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -127,19 +130,19 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
 
         {categories.data.length === 0 ? (
           <EmptyState
-            title={isAr ? 'لا توجد تصنيفات' : 'No Product Categories found'}
-            description={isAr ? 'ابدأ بإضافة أول تصنيف للمنتجات' : 'Get started by creating your first product category'}
+            title={dict.app.pages.catalogProductCategories.noProductCategoriesFound}
+            description={dict.app.pages.catalogProductCategories.getStartedByCreatingYourFirst}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{isAr ? 'الرمز' : 'Code'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الاسم' : 'Name'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الوصف' : 'Description'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                  <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogProductCategories.code}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogProductCategories.name}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogProductCategories.description}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogProductCategories.status}</th>
+                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.catalogProductCategories.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -150,24 +153,28 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                     <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{cat.description || '-'}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={cat.is_active ? 'ok' : 'muted'}>
-                        {cat.is_active ? (isAr ? 'نشط' : 'Active') : (isAr ? 'غير نشط' : 'Inactive')}
+                        {cat.is_active ? dict.app.pages.catalogProductCategories.active_2 : dict.app.pages.catalogProductCategories.inactive}
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(cat)}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                      >
-                        {isAr ? 'تعديل' : 'Edit'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(cat)}
-                        className="text-xs font-semibold text-red-600 hover:text-red-800"
-                      >
-                        {isAr ? 'حذف' : 'Delete'}
-                      </button>
+                      {can('products.edit') ? (
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(cat)}
+                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                        >
+                          {dict.app.pages.catalogProductCategories.edit}
+                        </button>
+                      ) : null}
+                      {can('products.delete') ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(cat)}
+                          className="text-xs font-semibold text-red-600 hover:text-red-800"
+                        >
+                          {dict.app.pages.catalogProductCategories.delete}
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -183,14 +190,14 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
           <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
             <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
               {editingCategory
-                ? isAr ? 'تعديل تصنيف المنتجات' : 'Edit Product Category'
-                : isAr ? 'إضافة تصنيف جديد' : 'Create Product Category'}
+                ? dict.app.pages.catalogProductCategories.editProductCategory
+                : dict.app.pages.catalogProductCategories.createProductCategory}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الرمز (CODE)' : 'Code'} *
+                  {dict.app.pages.catalogProductCategories.code_2} *
                 </label>
                 <input
                   type="text"
@@ -205,7 +212,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الاسم' : 'Name'} *
+                  {dict.app.pages.catalogProductCategories.name_2} *
                 </label>
                 <input
                   type="text"
@@ -219,7 +226,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الوصف' : 'Description'}
+                  {dict.app.pages.catalogProductCategories.description_2}
                 </label>
                 <textarea
                   rows={3}
@@ -238,7 +245,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                   className="rounded border-[var(--border)] text-blue-600 focus:ring-blue-500"
                 />
                 <label htmlFor="is_active" className="text-xs font-medium text-[var(--text-primary)]">
-                  {isAr ? 'نشط' : 'Active'}
+                  {dict.app.pages.catalogProductCategories.active}
                 </label>
               </div>
 
@@ -248,7 +255,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                   onClick={closeModal}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.catalogProductCategories.cancel}
                 </button>
                 <button
                   type="submit"
@@ -256,8 +263,8 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {processing
-                    ? isAr ? 'جاري الحفظ...' : 'Saving...'
-                    : isAr ? 'حفظ' : 'Save'}
+                    ? dict.app.pages.catalogProductCategories.saving
+                    : dict.app.pages.catalogProductCategories.save}
                 </button>
               </div>
             </form>

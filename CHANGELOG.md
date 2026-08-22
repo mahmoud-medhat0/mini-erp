@@ -3,6 +3,33 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 4 Slice 10 Manual AR/AP Settlement Pass (2026-08-22)
+- Implemented manual settlement schema and models for note-created AR/AP entries: `receivable_entry_settlement` and `payable_entry_settlement` (`2026_08_22_200000_create_phase4_slice10_settlement_tables.php`).
+- Implemented domain services: `ReceivableEntrySettlementService` (credit note settlement against invoice debits) and `PayableEntrySettlementService` (supplier adjustment note settlement against bill credits) with deterministic ID row-locking (`orderBy('id', 'asc')->lockForUpdate()`), capacity & match validation, `AuditLogger` integration, and idempotency store protection.
+- Created controllers & routes: `ReceivableEntrySettlementController` (`sales.receivable_settlements.*`) and `PayableEntrySettlementController` (`purchasing.payable_settlements.*`).
+- Added Inertia React settlement pages: `ReceivableSettlements.tsx` and `PayableSettlements.tsx` with settlement entry forms and reversal modals (no emojis per style rule). Added quick "Settle" action links on posted customer credit notes and supplier adjustment notes.
+- Updated subledger reporting services: `ArAgingReportService`, `ArToGlReconciliationReportService`, `ApAgingReportService`, and `ApToGlReconciliationReportService` to incorporate active note settlements into remaining open balances.
+- Added concurrency stress command: `SettlementConcurrencyStressCommand` (`accounting:settlement-concurrency-stress {--workers=50}`).
+- Updated test suite: `Phase4Slice10ReturnsCreditNotesTest.php` (38/38 passing tests, 0 skipped, 230 assertions). Removed skipped test and added full test coverage for AR/AP settlement, over-settlement rejection, customer/supplier/currency mismatch rejection, idempotency, reversal, reporting reconciliation, and architecture compliance.
+
+### Added — Phase 4 Slice 10 Sales Returns, Credit Notes & Operations Close-Out (2026-08-22)
+- Implemented six migrations: `sales_return`/`sales_return_line`, `customer_credit_note`/`customer_credit_note_line`, `customer_invoice_revision`, `purchase_return`/`purchase_return_line`, `supplier_adjustment_note`/`supplier_adjustment_note_line` tables, and the `2026_08_22_100050_update_accounting_mapping_for_slice10` mapping update.
+- Added services `SalesReturnService`, `CustomerCreditNoteService`, `CustomerInvoiceRevisionService`, `PurchaseReturnService`, and `SupplierAdjustmentNoteService`; extended the Moving Weighted Average inventory service with `recordReturn`/`recordScrap`/`calculateIssueCostForReturn` so returns post as reversal stock movements and scrap disposition does not increase saleable stock.
+- Added routes `sales-returns.*`, `customer-credit-notes.*`, `invoice-revisions.*` under `/sales/invoice-revisions`, `purchase-returns.*`, `supplier-adjustment-notes.*`, plus `GET /sales/returns/returnable-lines/{invoiceId}`.
+- Added permissions `sales.returns`, `sales.credit_notes`, `sales.invoice_revisions`, `purchasing.returns`, `purchasing.adjustment_notes` in `config/erp_rbac.php`, and registered attachment entities `sales_return`, `customer_credit_note`, `customer_invoice_revision`, `purchase_return`, `supplier_adjustment_note` in `config/erp_attachments.php`.
+- Added numbering keys/prefixes `sales.return` (`SR-`), `customer.credit_note` (`CN-`), `purchase.return` (`PRT-`), and `supplier.adjustment_note` (`SAN-`) with idempotent number allocation.
+- Seeded new accounting mapping keys idempotently in `AccountingCoreSeeder`: `sales_returns` (4200), `inventory_return_variance` (5200), `inventory_scrap_loss` (5300), `purchase_returns_allowances` (5400), `input_tax_receivable` (1300), and `output_tax_payable` (2200).
+- Implemented immutable cumulative customer invoice revisions (`R01`/`R02`) showing original, returned, and net quantities with no GL effects.
+- Implemented manual tax percentage stored in integer basis points with exact manual amount override; modes `none`/`manual_rate`/`manual_amount` computed as `intdiv(($baseMinor * $rateBps) + 5000, 10000)`.
+- Kept credit/debit note settlement manual/open only with explicit settlement actions that do not create extra GL; purchase return GRNI vs post-bill AP impact is carried through a separate `supplier_adjustment_note`.
+- Verified full PHPUnit suite 402 tests / 398 passed / 4 skipped (3 pre-existing plus 1 intentional skip for the manual credit settlement allocation engine follow-up) / 3124 assertions, `Phase4Slice10ReturnsCreditNotesTest` 33 tests / 32 passed / 1 skipped / 192 assertions, Concurrency suite 7 tests / 16 assertions, all accounting concurrency stress commands passing at 50 workers, clean Pint, `npm run typecheck`, and `npm run build`. `concurrency:stress --workers=100` remains blocked locally by Windows paging-file memory exhaustion; `--workers=10` passes.
+
+### Added — Phase 4 Slice 10 Selected Returns/Credit/Supplier Adjustment Prompt
+- Recorded the selected safe operating model in `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`: separate physical returns (`sales_return`, `purchase_return`) from financial adjustments (`customer_credit_note`, normalized `supplier_adjustment_note`).
+- Added `PHASE_4_SLICE_10_GEMINI_PROMPT.md` as the bounded execution contract for Sales Returns, Customer Credit Notes, Purchase Returns, Supplier Adjustment Notes, manual tax basis points, manual/open allocation, stock valuation rules, and operational close-out hardening.
+- Added the owner-requested posted-invoice return workflow: select returned invoice lines/quantities, post Sales Return + Customer Credit Note, then generate an immutable corrected customer invoice revision showing original, returned, and net quantities.
+- Updated status/handoff documentation so Phase 4 Slice 10 is ready for execution and no longer blocked on owner decision.
+
 ### Added — Phase 4 Slice 9 Read-only Operational Reports & Returns Decision Pack
 - Implemented 7 read-only operational query services (`SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`).
 - Created 7 HTTP Controllers under `App\Http\Controllers\Reports` with `Gate::authorize('reports.view')` access control.

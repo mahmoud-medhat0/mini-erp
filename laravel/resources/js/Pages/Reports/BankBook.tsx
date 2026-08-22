@@ -6,6 +6,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type BankBookProps = SharedPageProps & {
   report: {
@@ -35,7 +36,7 @@ type BankBookProps = SharedPageProps & {
 };
 
 export default function BankBook({ locale, report, bankAccounts, filters }: BankBookProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [bankAccountId, setBankAccountId] = useState(filters.bank_account_id || '');
   const [dateFrom, setDateFrom] = useState(filters.date_from);
@@ -57,15 +58,15 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
 
   return (
     <AppLayout active="reports.bank-book">
-      <Head title={isAr ? 'دفتر حركة البنك - Mini ERP' : 'Bank Book Report - Mini ERP'} />
+      <Head title={dict.app.pages.reportsBankBook.bankBookReportMiniErp} />
 
       <PageHeader
-        title={isAr ? 'دفتر حركة البنك' : 'Bank Book Report'}
-        description={isAr ? 'سجل تفصيلي لجميع الإيداعات والمسحوبات البنكية بالأستاذ العام حالة المطابقة البنكية.' : 'Ledger-backed detailed bank movement, daily running balance, and reconciliation matching status.'}
+        title={dict.app.pages.reportsBankBook.bankBookReport}
+        description={dict.app.pages.reportsBankBook.ledgerBackedDetailedBankMovementDaily}
         actions={
           report ? (
             <Button variant="secondary" onClick={handleExport}>
-              {isAr ? 'تصدير CSV' : 'Export CSV'}
+              {dict.app.pages.reportsBankBook.exportCsv}
             </Button>
           ) : undefined
         }
@@ -76,7 +77,7 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حساب البنك' : 'Bank Account'}
+                {dict.app.pages.reportsBankBook.bankAccount}
               </label>
               <SearchableSelect
                 options={bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }))}
@@ -86,19 +87,19 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'من تاريخ' : 'From Date'}
+                {dict.app.pages.reportsBankBook.fromDate}
               </label>
               <DatePicker value={dateFrom} onChange={(val) => setDateFrom(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'إلى تاريخ' : 'To Date'}
+                {dict.app.pages.reportsBankBook.toDate}
               </label>
               <DatePicker value={dateTo} onChange={(val) => setDateTo(val || '')} />
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'عرض التقرير' : 'View Report'}
+                {dict.app.pages.reportsBankBook.viewReport}
               </Button>
             </div>
           </div>
@@ -108,25 +109,25 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'الرصيد الافتتاحي' : 'Opening Balance'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankBook.openingBalance}</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
                   {formatMoney(report.opening_balance_minor, report.currency)}
                 </div>
               </div>
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي الإيداعات (مدين)' : 'Total Deposits (In)'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankBook.totalDepositsIn}</div>
                 <div className="text-sm font-bold text-emerald-600">
                   {formatMoney(report.period_debit_minor, report.currency)}
                 </div>
               </div>
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي المسحوبات (دائن)' : 'Total Withdrawals (Out)'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankBook.totalWithdrawalsOut}</div>
                 <div className="text-sm font-bold text-rose-600">
                   {formatMoney(report.period_credit_minor, report.currency)}
                 </div>
               </div>
               <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'الرصيد الختامي' : 'Closing Balance'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankBook.closingBalance}</div>
                 <div className="text-sm font-bold text-[var(--text-primary)]">
                   {formatMoney(report.closing_balance_minor, report.currency)}
                 </div>
@@ -137,18 +138,18 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
               <table className="w-full text-left text-xs">
                 <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
                   <tr>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'التاريخ' : 'Date'}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'رقم القيد' : 'Journal Ref'}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'البيان' : 'Description'}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'حالة المطابقة' : 'Recon Status'}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'إيداع (مدين)' : 'Deposit (In)'}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'سحب (دائن)' : 'Withdrawal (Out)'}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'الرصيد التراكمي' : 'Running Balance'}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.date}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.journalRef}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.description}</th>
+                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.reconStatus}</th>
+                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.depositIn}</th>
+                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.withdrawalOut}</th>
+                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.runningBalance}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
                   <tr className="bg-[var(--background)]/50 font-bold">
-                    <td colSpan={6} className="p-3">{isAr ? 'الرصيد الافتتاحي قبل الفترة' : 'Opening Balance Prior to Range'}</td>
+                    <td colSpan={6} className="p-3">{dict.app.pages.reportsBankBook.openingBalancePriorToRange}</td>
                     <td className="p-3 text-end">{formatMoney(report.opening_balance_minor, report.currency)}</td>
                   </tr>
                   {report.entries.map((item, idx) => (
@@ -159,11 +160,11 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
                       <td className="p-3">
                         {item.is_reconciled ? (
                           <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            {isAr ? 'مطابق' : 'Matched'}
+                            {dict.app.pages.reportsBankBook.matched}
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-600 border border-slate-300">
-                            {isAr ? 'غير مطابق' : 'Unmatched'}
+                            {dict.app.pages.reportsBankBook.unmatched}
                           </span>
                         )}
                       </td>
@@ -181,7 +182,7 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
                   {report.entries.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-6 text-center text-[var(--text-muted)]">
-                        {isAr ? 'لا توجد حركات بنكية خاضعة للفترة المحددة.' : 'No bank movements found for the selected period.'}
+                        {dict.app.pages.reportsBankBook.noBankMovementsFoundForThe}
                       </td>
                     </tr>
                   ) : null}
@@ -191,7 +192,7 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
           </div>
         ) : (
           <Card className="p-12 text-center text-[var(--text-muted)]">
-            {isAr ? 'يرجى اختيار حساب البنك لتوليد التقرير.' : 'Please select a bank account to generate the statement.'}
+            {dict.app.pages.reportsBankBook.pleaseSelectABankAccountTo}
           </Card>
         )}
       </div>

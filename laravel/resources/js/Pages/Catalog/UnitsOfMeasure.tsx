@@ -1,8 +1,9 @@
-import { Head, useForm, router } from '@inertiajs/react';
+﻿import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type UnitOfMeasureRow = {
@@ -26,8 +27,8 @@ type UomsProps = SharedPageProps & {
 };
 
 export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingUom, setEditingUom] = useState<UnitOfMeasureRow | null>(null);
@@ -78,29 +79,31 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
   };
 
   const handleDelete = (uom: UnitOfMeasureRow) => {
-    if (confirm(isAr ? 'هل أنت تأكد من حذف وحدة القياس هذه؟' : 'Are you sure you want to delete this Unit of Measure?')) {
+    if (confirm(dict.app.pages.catalogUnitsOfMeasure.areYouSureYouWantTo)) {
       destroy(`/catalog/uoms/${uom.id}`);
     }
   };
 
   return (
     <AppLayout active="uoms.index">
-      <Head title={isAr ? 'وحدات القياس' : 'Units of Measure'} />
+      <Head title={dict.app.pages.catalogUnitsOfMeasure.unitsOfMeasure} />
 
       <PageHeader
-        title={isAr ? 'وحدات القياس' : 'Units of Measure'}
-        description={isAr ? 'إدارة وحدات القياس المستخدمة للمنتجات والخدمات' : 'Manage Units of Measure for products and services'}
+        title={dict.app.pages.catalogUnitsOfMeasure.unitsOfMeasure_2}
+        description={dict.app.pages.catalogUnitsOfMeasure.manageUnitsOfMeasureForProducts}
         actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{isAr ? 'إضافة وحدة قياس' : 'Add Unit of Measure'}</span>
-          </button>
+          can('uom.create') ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{dict.app.pages.catalogUnitsOfMeasure.addUnitOfMeasure}</span>
+            </button>
+          ) : null
         }
       />
 
@@ -109,7 +112,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={isAr ? 'بحث بالرمز أو الاسم...' : 'Search code or name...'}
+              placeholder={dict.app.pages.catalogUnitsOfMeasure.searchCodeOrName}
               defaultValue={filters.search || ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -127,19 +130,19 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
 
         {uoms.data.length === 0 ? (
           <EmptyState
-            title={isAr ? 'لا توجد وحدات قياس' : 'No Units of Measure found'}
-            description={isAr ? 'ابدأ بإضافة أول وحدة قياس للنظام' : 'Get started by creating your first Unit of Measure'}
+            title={dict.app.pages.catalogUnitsOfMeasure.noUnitsOfMeasureFound}
+            description={dict.app.pages.catalogUnitsOfMeasure.getStartedByCreatingYourFirst}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{isAr ? 'الرمز' : 'Code'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الاسم' : 'Name'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الرمز المختصر' : 'Symbol'}</th>
-                  <th className={tableClasses.th}>{isAr ? 'الحالة' : 'Status'}</th>
-                  <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogUnitsOfMeasure.code}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogUnitsOfMeasure.name}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogUnitsOfMeasure.symbol}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.catalogUnitsOfMeasure.status}</th>
+                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.catalogUnitsOfMeasure.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -150,24 +153,28 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                     <td className={tableClasses.td}>{uom.symbol}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={uom.is_active ? 'ok' : 'muted'}>
-                        {uom.is_active ? (isAr ? 'نشط' : 'Active') : (isAr ? 'غير نشط' : 'Inactive')}
+                        {uom.is_active ? dict.app.pages.catalogUnitsOfMeasure.active_2 : dict.app.pages.catalogUnitsOfMeasure.inactive}
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(uom)}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                      >
-                        {isAr ? 'تعديل' : 'Edit'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(uom)}
-                        className="text-xs font-semibold text-red-600 hover:text-red-800"
-                      >
-                        {isAr ? 'حذف' : 'Delete'}
-                      </button>
+                      {can('uom.edit') ? (
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(uom)}
+                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                        >
+                          {dict.app.pages.catalogUnitsOfMeasure.edit}
+                        </button>
+                      ) : null}
+                      {can('uom.delete') ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(uom)}
+                          className="text-xs font-semibold text-red-600 hover:text-red-800"
+                        >
+                          {dict.app.pages.catalogUnitsOfMeasure.delete}
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -183,14 +190,14 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
           <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
             <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
               {editingUom
-                ? isAr ? 'تعديل وحدة قياس' : 'Edit Unit of Measure'
-                : isAr ? 'إضافة وحدة قياس جديدة' : 'Create Unit of Measure'}
+                ? dict.app.pages.catalogUnitsOfMeasure.editUnitOfMeasure
+                : dict.app.pages.catalogUnitsOfMeasure.createUnitOfMeasure}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الرمز (CODE)' : 'Code'} *
+                  {dict.app.pages.catalogUnitsOfMeasure.code_2} *
                 </label>
                 <input
                   type="text"
@@ -205,7 +212,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الاسم' : 'Name'} *
+                  {dict.app.pages.catalogUnitsOfMeasure.name_2} *
                 </label>
                 <input
                   type="text"
@@ -219,7 +226,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {isAr ? 'الرمز المختصر (Symbol)' : 'Symbol'}
+                  {dict.app.pages.catalogUnitsOfMeasure.symbol_2}
                 </label>
                 <input
                   type="text"
@@ -239,7 +246,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                   className="rounded border-[var(--border)] text-blue-600 focus:ring-blue-500"
                 />
                 <label htmlFor="is_active" className="text-xs font-medium text-[var(--text-primary)]">
-                  {isAr ? 'نشط' : 'Active'}
+                  {dict.app.pages.catalogUnitsOfMeasure.active}
                 </label>
               </div>
 
@@ -249,7 +256,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                   onClick={closeModal}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
-                  {isAr ? 'إلغاء' : 'Cancel'}
+                  {dict.app.pages.catalogUnitsOfMeasure.cancel}
                 </button>
                 <button
                   type="submit"
@@ -257,8 +264,8 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {processing
-                    ? isAr ? 'جاري الحفظ...' : 'Saving...'
-                    : isAr ? 'حفظ' : 'Save'}
+                    ? dict.app.pages.catalogUnitsOfMeasure.saving
+                    : dict.app.pages.catalogUnitsOfMeasure.save}
                 </button>
               </div>
             </form>

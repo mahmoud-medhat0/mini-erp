@@ -76,6 +76,16 @@ class ReceivableEntry extends Model
         return $this->hasMany(ReceivableAllocation::class, 'receivable_entry_id');
     }
 
+    public function sourceSettlements(): HasMany
+    {
+        return $this->hasMany(ReceivableEntrySettlement::class, 'source_receivable_entry_id');
+    }
+
+    public function targetSettlements(): HasMany
+    {
+        return $this->hasMany(ReceivableEntrySettlement::class, 'target_receivable_entry_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

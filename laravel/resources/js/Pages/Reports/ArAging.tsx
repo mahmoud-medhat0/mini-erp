@@ -6,6 +6,7 @@ import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types';
+import { getDictionary } from '../../lib/i18n';
 
 type ArAgingProps = SharedPageProps & {
   report: {
@@ -49,7 +50,7 @@ type ArAgingProps = SharedPageProps & {
 };
 
 export default function ArAging({ locale, report, customers, currencies, filters }: ArAgingProps) {
-  const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date);
   const [customerId, setCustomerId] = useState(filters.customer_id || '');
@@ -70,14 +71,14 @@ export default function ArAging({ locale, report, customers, currencies, filters
 
   return (
     <AppLayout active="reports.ar-aging">
-      <Head title={isAr ? 'أعمار ديون العملاء - Mini ERP' : 'AR Aging Report - Mini ERP'} />
+      <Head title={dict.app.pages.reportsArAging.arAgingReportMiniErp} />
 
       <PageHeader
-        title={isAr ? 'تقرير أعمار ديون العملاء' : 'AR Aging Report'}
-        description={isAr ? 'تحليل المستحقات المفتوحة للعملاء موزعة على فترات الاستحقاق (حتى تاريخ التقرير).' : 'Analysis of outstanding customer receivables grouped by aging buckets.'}
+        title={dict.app.pages.reportsArAging.arAgingReport}
+        description={dict.app.pages.reportsArAging.analysisOfOutstandingCustomerReceivablesGrouped}
         actions={
           <Button variant="secondary" onClick={handleExport}>
-            {isAr ? 'تصدير CSV' : 'Export CSV'}
+            {dict.app.pages.reportsArAging.exportCsv}
           </Button>
         }
       />
@@ -87,17 +88,17 @@ export default function ArAging({ locale, report, customers, currencies, filters
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'حتى تاريخ (تاريخ الاستحقاق)' : 'As of Date'}
+                {dict.app.pages.reportsArAging.asOfDate}
               </label>
               <DatePicker value={asOfDate} onChange={(val) => setAsOfDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'العميل' : 'Customer'}
+                {dict.app.pages.reportsArAging.customer}
               </label>
               <SearchableSelect
                 options={[
-                  { value: '', label: isAr ? 'جميع العملاء' : 'All Customers' },
+                  { value: '', label: dict.app.pages.reportsArAging.allCustomers },
                   ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
                 ]}
                 value={customerId}
@@ -106,7 +107,7 @@ export default function ArAging({ locale, report, customers, currencies, filters
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {isAr ? 'العملة' : 'Currency'}
+                {dict.app.pages.reportsArAging.currency}
               </label>
               <SearchableSelect
                 options={currencies.map((c) => ({ value: c.code, label: c.code }))}
@@ -116,7 +117,7 @@ export default function ArAging({ locale, report, customers, currencies, filters
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {isAr ? 'عرض التقرير' : 'View Report'}
+                {dict.app.pages.reportsArAging.viewReport}
               </Button>
             </div>
           </div>
@@ -124,37 +125,37 @@ export default function ArAging({ locale, report, customers, currencies, filters
 
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'حالي (غير مستحق)' : 'Current'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsArAging.current}</div>
             <div className="text-sm font-bold text-emerald-600">
               {formatMoney(report.grand_totals.current, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">1 - 30 {isAr ? 'يوم' : 'Days'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">1 - 30 {dict.app.pages.reportsArAging.days}</div>
             <div className="text-sm font-bold text-blue-600">
               {formatMoney(report.grand_totals.b1_30, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">31 - 60 {isAr ? 'يوم' : 'Days'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">31 - 60 {dict.app.pages.reportsArAging.days_2}</div>
             <div className="text-sm font-bold text-amber-600">
               {formatMoney(report.grand_totals.b31_60, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">61 - 90 {isAr ? 'يوم' : 'Days'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">61 - 90 {dict.app.pages.reportsArAging.days_3}</div>
             <div className="text-sm font-bold text-orange-600">
               {formatMoney(report.grand_totals.b61_90, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">+90 {isAr ? 'يوم' : 'Days'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">+90 {dict.app.pages.reportsArAging.days_4}</div>
             <div className="text-sm font-bold text-rose-600">
               {formatMoney(report.grand_totals.over_90, report.currency)}
             </div>
           </div>
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{isAr ? 'إجمالي المتبقي' : 'Total Open'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsArAging.totalOpen}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
               {formatMoney(report.grand_totals.total, report.currency)}
             </div>
@@ -165,16 +166,16 @@ export default function ArAging({ locale, report, customers, currencies, filters
           <table className="w-full text-left text-xs">
             <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'العميل' : 'Customer'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'المرجع' : 'Reference'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'تاريخ الحركة' : 'Entry Date'}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{isAr ? 'أساس العمر' : 'Aging Basis'}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'حالي' : 'Current'}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArAging.customer_2}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArAging.reference}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArAging.entryDate}</th>
+                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArAging.agingBasis}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsArAging.current_2}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">1-30</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">31-60</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">61-90</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">+90</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{isAr ? 'الرصيد المتبقي' : 'Open Balance'}</th>
+                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsArAging.openBalance}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-color)]">
@@ -184,7 +185,7 @@ export default function ArAging({ locale, report, customers, currencies, filters
                     {cGroup.customer.code} - {cGroup.customer.name}
                   </td>
                   <td colSpan={3} className="p-3 text-[var(--text-secondary)]">
-                    {cGroup.items.length} {isAr ? 'حركة مفتوحة' : 'open items'}
+                    {cGroup.items.length} {dict.app.pages.reportsArAging.openItems}
                   </td>
                   <td className="p-3 text-end font-mono">{formatMoney(cGroup.totals.current, report.currency)}</td>
                   <td className="p-3 text-end font-mono">{formatMoney(cGroup.totals.b1_30, report.currency)}</td>
@@ -197,7 +198,7 @@ export default function ArAging({ locale, report, customers, currencies, filters
               {report.customers.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-[var(--text-muted)]">
-                    {isAr ? 'لا توجد مستحقات مفتوحة للعملاء.' : 'No open customer receivables found.'}
+                    {dict.app.pages.reportsArAging.noOpenCustomerReceivablesFound}
                   </td>
                 </tr>
               ) : null}

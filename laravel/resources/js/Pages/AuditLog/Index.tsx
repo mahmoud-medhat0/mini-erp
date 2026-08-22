@@ -33,7 +33,6 @@ export default function AuditLogIndex({
   usersList,
 }: AuditLogProps) {
   const dict = getDictionary(locale);
-  const isAr = locale === 'ar';
   const auditDict = (dict.app as any)?.audit || {};
 
   const [searchFilter, setSearchFilter] = useState(filters.search ?? '');
@@ -47,7 +46,7 @@ export default function AuditLogIndex({
 
   // Options for SearchableSelect
   const userSelectOptions = [
-    { value: '', label: auditDict.allUsers || (isAr ? 'جميع المستخدمين' : 'All Users') },
+    { value: '', label: auditDict.allUsers || dict.app.pages.auditLog.allUsers },
     ...usersList.map((u) => ({
       value: String(u.id),
       label: u.name,
@@ -56,7 +55,7 @@ export default function AuditLogIndex({
   ];
 
   const actionSelectOptions = [
-    { value: '', label: auditDict.allActions || (isAr ? 'جميع الإجراءات' : 'All Actions') },
+    { value: '', label: auditDict.allActions || dict.app.pages.auditLog.allActions },
     ...actions.map((act) => ({
       value: act,
       label: act,
@@ -64,7 +63,7 @@ export default function AuditLogIndex({
   ];
 
   const entityTypeSelectOptions = [
-    { value: '', label: auditDict.allEntities || (isAr ? 'جميع الكائنات' : 'All Entities') },
+    { value: '', label: auditDict.allEntities || dict.app.pages.auditLog.allEntities },
     ...entityTypes.map((ent) => ({
       value: ent,
       label: ent,
@@ -110,15 +109,13 @@ export default function AuditLogIndex({
 
   return (
     <AppLayout active="audit.view">
-      <Head title={dict.app?.nav?.auditLog || (isAr ? 'سجل التدقيق' : 'Audit Log')} />
+      <Head title={dict.app?.nav?.auditLog || dict.app.pages.auditLog.auditLog} />
 
       <PageHeader
-        title={auditDict.title || (isAr ? 'سجل التدقيق والعمليات' : 'System Audit Log')}
+        title={auditDict.title || dict.app.pages.auditLog.systemAuditLog}
         description={
           auditDict.description ||
-          (isAr
-            ? 'سجل التغييرات والأحداث غير القابل للتعديل للنظام (Append-only audit trail)'
-            : 'Immutable append-only audit trail recording all system transactions and security actions')
+          dict.app.pages.auditLog.immutableAppendOnlyAuditTrailRecording
         }
       />
 
@@ -129,13 +126,13 @@ export default function AuditLogIndex({
             {/* Search Input */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.search || (dict.app as any).actions?.search || (isAr ? 'بحث عام' : 'Search')}
+                {auditDict.search || (dict.app as any).actions?.search || dict.app.pages.auditLog.search}
               </label>
               <input
                 type="text"
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder={auditDict.searchPlaceholder || (isAr ? 'بحث عن إجراء أو كائن...' : 'Search action or entity...')}
+                placeholder={auditDict.searchPlaceholder || dict.app.pages.auditLog.searchActionOrEntity}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden"
               />
             </div>
@@ -143,13 +140,13 @@ export default function AuditLogIndex({
             {/* Actor Filter with SearchableSelect */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.actor || (isAr ? 'المستخدم' : 'Actor / User')}
+                {auditDict.actor || dict.app.pages.auditLog.actorUser}
               </label>
               <SearchableSelect
                 options={userSelectOptions}
                 value={actorFilter ? String(actorFilter) : ''}
                 onChange={(val) => setActorFilter(val)}
-                placeholder={auditDict.allUsers || (isAr ? 'جميع المستخدمين' : 'All Users')}
+                placeholder={auditDict.allUsers || dict.app.pages.auditLog.allUsers_2}
                 isClearable
               />
             </div>
@@ -157,13 +154,13 @@ export default function AuditLogIndex({
             {/* Action Filter with SearchableSelect */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.action || (isAr ? 'الإجراء' : 'Action')}
+                {auditDict.action || dict.app.pages.auditLog.action}
               </label>
               <SearchableSelect
                 options={actionSelectOptions}
                 value={actionFilter ? String(actionFilter) : ''}
                 onChange={(val) => setActionFilter(val)}
-                placeholder={auditDict.allActions || (isAr ? 'جميع الإجراءات' : 'All Actions')}
+                placeholder={auditDict.allActions || dict.app.pages.auditLog.allActions_2}
                 isClearable
               />
             </div>
@@ -171,13 +168,13 @@ export default function AuditLogIndex({
             {/* Entity Type Filter with SearchableSelect */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.entityType || (isAr ? 'نوع الكائن' : 'Entity Type')}
+                {auditDict.entityType || dict.app.pages.auditLog.entityType}
               </label>
               <SearchableSelect
                 options={entityTypeSelectOptions}
                 value={entityTypeFilter ? String(entityTypeFilter) : ''}
                 onChange={(val) => setEntityTypeFilter(val)}
-                placeholder={auditDict.allEntities || (isAr ? 'جميع الكائنات' : 'All Entities')}
+                placeholder={auditDict.allEntities || dict.app.pages.auditLog.allEntities_2}
                 isClearable
               />
             </div>
@@ -185,7 +182,7 @@ export default function AuditLogIndex({
             {/* Request ID Filter */}
             <div>
               <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1">
-                {auditDict.requestId || (isAr ? 'معرف الطلب' : 'Request ID')}
+                {auditDict.requestId || dict.app.pages.auditLog.requestId}
               </label>
               <input
                 type="text"
@@ -199,7 +196,7 @@ export default function AuditLogIndex({
             {/* Date From */}
             <div>
               <DatePicker
-                label={auditDict.dateFrom || (isAr ? 'من تاريخ' : 'Date From')}
+                label={auditDict.dateFrom || dict.app.pages.auditLog.dateFrom}
                 value={dateFrom}
                 onChange={(val) => setDateFrom(val || '')}
               />
@@ -208,7 +205,7 @@ export default function AuditLogIndex({
             {/* Date To */}
             <div>
               <DatePicker
-                label={auditDict.dateTo || (isAr ? 'إلى تاريخ' : 'Date To')}
+                label={auditDict.dateTo || dict.app.pages.auditLog.dateTo}
                 value={dateTo}
                 onChange={(val) => setDateTo(val || '')}
               />
@@ -221,13 +218,13 @@ export default function AuditLogIndex({
               onClick={handleReset}
               className="px-3 py-1.5 text-xs font-bold rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
             >
-              {(dict.app as any).actions?.reset || (isAr ? 'إعادة ضبط' : 'Reset')}
+              {(dict.app as any).actions?.reset || dict.app.pages.auditLog.reset}
             </button>
             <button
               type="submit"
               className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
-              {(dict.app as any).actions?.filter || (isAr ? 'تصفية النتائج' : 'Filter Logs')}
+              {(dict.app as any).actions?.filter || dict.app.pages.auditLog.filterLogs}
             </button>
           </div>
         </form>
@@ -235,20 +232,20 @@ export default function AuditLogIndex({
 
       {/* Main Audit Table */}
       {logs.data.length === 0 ? (
-        <EmptyState title={auditDict.empty || (isAr ? 'لا توجد سجلات تدقيق مطابقة' : 'No audit log records found')} />
+        <EmptyState title={auditDict.empty || dict.app.pages.auditLog.noAuditLogRecordsFound} />
       ) : (
         <Card className="overflow-hidden border-[var(--border)]">
           <div className="overflow-x-auto">
             <table className={tableClasses.table}>
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--background)]/50">
-                  <th className={tableClasses.th}>{auditDict.timestamp || (isAr ? 'التاريخ والوقت' : 'Timestamp')}</th>
-                  <th className={tableClasses.th}>{auditDict.actor || (isAr ? 'المستخدم' : 'Actor')}</th>
-                  <th className={tableClasses.th}>{auditDict.action || (isAr ? 'الإجراء' : 'Action')}</th>
-                  <th className={tableClasses.th}>{auditDict.entityType || (isAr ? 'نوع الكائن' : 'Entity Type')}</th>
-                  <th className={tableClasses.th}>{auditDict.entityId || (isAr ? 'معرف الكائن' : 'Entity ID')}</th>
-                  <th className={tableClasses.th}>{auditDict.requestId || (isAr ? 'معرف الطلب' : 'Request ID')}</th>
-                  <th className={`${tableClasses.th} text-end`}>{auditDict.details || (isAr ? 'التفاصيل' : 'Details')}</th>
+                  <th className={tableClasses.th}>{auditDict.timestamp || dict.app.pages.auditLog.timestamp}</th>
+                  <th className={tableClasses.th}>{auditDict.actor || dict.app.pages.auditLog.actor}</th>
+                  <th className={tableClasses.th}>{auditDict.action || dict.app.pages.auditLog.action_2}</th>
+                  <th className={tableClasses.th}>{auditDict.entityType || dict.app.pages.auditLog.entityType_2}</th>
+                  <th className={tableClasses.th}>{auditDict.entityId || dict.app.pages.auditLog.entityId}</th>
+                  <th className={tableClasses.th}>{auditDict.requestId || dict.app.pages.auditLog.requestId_2}</th>
+                  <th className={`${tableClasses.th} text-end`}>{auditDict.details || dict.app.pages.auditLog.details}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -262,7 +259,7 @@ export default function AuditLogIndex({
                     <td className={tableClasses.td}>
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-[var(--text-primary)]">
-                          {log.actor_name || (log.actor_id ? `User #${log.actor_id}` : (isAr ? 'النظام' : 'System'))}
+                          {log.actor_name || (log.actor_id ? `User #${log.actor_id}` : dict.app.pages.auditLog.system)}
                         </span>
                         {log.actor_email ? (
                           <span className="text-[10px] text-[var(--text-muted)] font-mono">{log.actor_email}</span>
@@ -308,7 +305,7 @@ export default function AuditLogIndex({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                          <span>{auditDict.viewPayload || (isAr ? 'عرض الحمولة' : 'View Payload')}</span>
+                          <span>{auditDict.viewPayload || dict.app.pages.auditLog.viewPayload}</span>
                         </button>
                       ) : (
                         <span className="text-xs text-[var(--text-muted)]">-</span>
@@ -323,7 +320,7 @@ export default function AuditLogIndex({
           {/* Pagination Controls */}
           <div className="flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface)]">
             <span className="text-xs text-[var(--text-muted)]">
-              {auditDict.totalRecords || (isAr ? 'إجمالي السجلات:' : 'Total records:')} {logs.total}
+              {auditDict.totalRecords || dict.app.pages.auditLog.totalRecords} {logs.total}
             </span>
             <div className="flex items-center gap-2">
               {logs.prev_page_url ? (
@@ -332,7 +329,7 @@ export default function AuditLogIndex({
                   onClick={() => router.get(logs.prev_page_url!)}
                   className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
                 >
-                  {(dict.app as any).actions?.previous || (isAr ? 'السابق' : 'Previous')}
+                  {(dict.app as any).actions?.previous || dict.app.pages.auditLog.previous}
                 </button>
               ) : null}
               <span className="text-xs font-bold text-[var(--text-primary)] px-2">
@@ -344,7 +341,7 @@ export default function AuditLogIndex({
                   onClick={() => router.get(logs.next_page_url!)}
                   className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
                 >
-                  {(dict.app as any).actions?.next || (isAr ? 'التالي' : 'Next')}
+                  {(dict.app as any).actions?.next || dict.app.pages.auditLog.next}
                 </button>
               ) : null}
             </div>
@@ -359,7 +356,7 @@ export default function AuditLogIndex({
             <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
               <div>
                 <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {auditDict.payloadTitle || (isAr ? 'حمولة التغيير (JSON Payload)' : 'Audit Record JSON Payload')}
+                  {auditDict.payloadTitle || dict.app.pages.auditLog.auditRecordJsonPayload}
                 </h3>
                 <span className="text-xs text-[var(--text-muted)] font-mono">
                   {selectedPayload.action} • {selectedPayload.entity_type} #{selectedPayload.entity_id}
@@ -380,7 +377,7 @@ export default function AuditLogIndex({
               {selectedPayload.before_json ? (
                 <div>
                   <h5 className="m-0 mb-1 font-bold text-amber-600 dark:text-amber-400">
-                    {auditDict.stateBefore || (isAr ? 'الحالة القبلية (BEFORE):' : 'State Before (BEFORE):')}
+                    {auditDict.stateBefore || dict.app.pages.auditLog.stateBeforeBefore}
                   </h5>
                   <pre className="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] overflow-x-auto">
                     {parseJsonPayload(selectedPayload.before_json)}
@@ -391,7 +388,7 @@ export default function AuditLogIndex({
               {selectedPayload.after_json ? (
                 <div>
                   <h5 className="m-0 mb-1 font-bold text-emerald-600 dark:text-emerald-400">
-                    {auditDict.stateAfter || (isAr ? 'الحالة البعدية (AFTER):' : 'State After (AFTER):')}
+                    {auditDict.stateAfter || dict.app.pages.auditLog.stateAfterAfter}
                   </h5>
                   <pre className="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--text-primary)] overflow-x-auto">
                     {parseJsonPayload(selectedPayload.after_json)}
@@ -406,7 +403,7 @@ export default function AuditLogIndex({
                 onClick={() => setSelectedPayload(null)}
                 className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
               >
-                {(dict.app as any).actions?.close || (isAr ? 'إغلاق' : 'Close')}
+                {(dict.app as any).actions?.close || dict.app.pages.auditLog.close}
               </button>
             </div>
           </Card>

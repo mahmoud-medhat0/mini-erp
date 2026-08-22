@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
@@ -56,11 +56,11 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
   const getStatusLabel = (status: string) => {
     const s = status.toLowerCase();
     const map: Record<string, string> = {
-      draft: accDict.statusDraft || (locale === 'ar' ? 'مسودة' : 'DRAFT'),
-      submitted: accDict.statusSubmitted || (locale === 'ar' ? 'مقدم للمراجعة' : 'SUBMITTED'),
-      approved: accDict.statusApproved || (locale === 'ar' ? 'معتمد' : 'APPROVED'),
-      posted: accDict.statusPosted || (locale === 'ar' ? 'مرحّل' : 'POSTED'),
-      reversed: accDict.statusReversed || (locale === 'ar' ? 'معكوس' : 'REVERSED'),
+      draft: accDict.statusDraft || dict.app.pages.accountingJournalDetail.draft,
+      submitted: accDict.statusSubmitted || dict.app.pages.accountingJournalDetail.submitted,
+      approved: accDict.statusApproved || dict.app.pages.accountingJournalDetail.approved,
+      posted: accDict.statusPosted || dict.app.pages.accountingJournalDetail.posted,
+      reversed: accDict.statusReversed || dict.app.pages.accountingJournalDetail.reversed,
     };
     return map[s] || status.toUpperCase();
   };
@@ -190,9 +190,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
         <Card className="p-6 mb-6 border-red-500/30 shadow-xl">
           <h3 className="m-0 text-sm font-bold text-[var(--text-primary)] mb-3">{accDict.reverseEntry || 'Reverse Journal Entry'}</h3>
           <p className="text-xs text-[var(--text-muted)] mb-4">
-            {locale === 'ar'
-              ? 'سيؤدي عكس هذا القيد المرحّل إلى إنشاء قيد يومية عكسي تلقائي (عكس البنود المدنية والدائنة) في الفترة المالية المفتوحة المحددة.'
-              : 'Reversing this posted entry will create an automatic mirror journal entry (swapping debit and credit lines) in the selected open period.'}
+            {dict.app.pages.accountingJournalDetail.reversingThisPostedEntryWillCreate}
           </p>
 
           <form
@@ -267,7 +265,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             </div>
             <div>
               <span className="text-[var(--text-muted)] block font-bold uppercase">{accDict.createdBy || 'Created By'}</span>
-              <span className="text-[var(--text-primary)]">{journal.createdBy?.name || (locale === 'ar' ? 'النظام' : 'System')}</span>
+              <span className="text-[var(--text-primary)]">{journal.createdBy?.name || dict.app.pages.accountingJournalDetail.system}</span>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
-import { useForm, router } from '@inertiajs/react';
+﻿import { useForm, router } from '@inertiajs/react';
 import { useEffect, useState, type FormEvent, type ChangeEvent } from 'react';
 import { Card, tableClasses } from './Primitives';
+import { getDictionary, interpolate } from '../lib/i18n';
 
 type AttachmentRow = {
   id: string;
@@ -29,6 +30,7 @@ export default function AttachmentPanel({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const isAr = locale === 'ar';
+  const dict = getDictionary(locale);
 
   const { data, setData, post, processing, errors, reset } = useForm({
     entity_type: entityType,
@@ -85,7 +87,7 @@ export default function AttachmentPanel({
   }
 
   function handleDelete(id: string) {
-    if (confirm(isAr ? 'هل أنت متاكد من حذف هذا المرفق؟' : 'Are you sure you want to delete this attachment?')) {
+    if (confirm(dict.app.components.attachments.confirmDelete)) {
       router.delete(`/attachments/${id}`, {
         preserveScroll: true,
         onSuccess: () => {
@@ -109,11 +111,11 @@ export default function AttachmentPanel({
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
           </svg>
           <h4 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-            {isAr ? 'المرفقات والملفات' : 'Attachments & Documents'}
+            {dict.app.components.attachments.title}
           </h4>
         </div>
         <span className="text-xs text-[var(--text-muted)] font-mono">
-          {attachmentsList.length} {isAr ? 'ملف' : 'files'}
+          {interpolate(dict.app.components.attachments.filesCount, { count: attachmentsList.length })}
         </span>
       </div>
 
@@ -127,7 +129,7 @@ export default function AttachmentPanel({
             accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.xlsx,.docx"
           />
           <span className="truncate block">
-            {selectedFile ? selectedFile.name : (isAr ? 'اختر ملفاً لإرفاقه (PDF, PNG, JPG, XLSX... Max 10MB)' : 'Choose file to attach (PDF, PNG, JPG, XLSX... Max 10MB)')}
+            {selectedFile ? selectedFile.name : dict.app.components.attachments.chooseFile}
           </span>
         </label>
 
@@ -139,7 +141,7 @@ export default function AttachmentPanel({
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
-          <span>{isAr ? 'رفع المرفق' : 'Upload File'}</span>
+          <span>{dict.app.components.attachments.upload}</span>
         </button>
       </form>
 
@@ -148,17 +150,17 @@ export default function AttachmentPanel({
       {/* Attachments List */}
       {attachmentsList.length === 0 ? (
         <p className="m-0 text-xs text-[var(--text-muted)] italic py-2">
-          {isAr ? 'لا توجد مرفقات حالياً لهذا العنصر.' : 'No attachments associated with this record yet.'}
+          {dict.app.components.attachments.empty}
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className={tableClasses.table}>
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--background)]/50">
-                <th className={tableClasses.th}>{isAr ? 'اسم الملف' : 'File Name'}</th>
-                <th className={tableClasses.th}>{isAr ? 'الحجم' : 'Size'}</th>
-                <th className={tableClasses.th}>{isAr ? 'تاريخ الرفع' : 'Uploaded At'}</th>
-                <th className={`${tableClasses.th} text-end`}>{isAr ? 'الإجراءات' : 'Actions'}</th>
+                <th className={tableClasses.th}>{dict.app.components.attachments.fileName}</th>
+                <th className={tableClasses.th}>{dict.app.components.attachments.size}</th>
+                <th className={tableClasses.th}>{dict.app.components.attachments.uploadedAt}</th>
+                <th className={`${tableClasses.th} text-end`}>{dict.app.components.attachments.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -191,7 +193,7 @@ export default function AttachmentPanel({
                         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        <span>{isAr ? 'تنزيل' : 'Download'}</span>
+                        <span>{dict.app.components.attachments.download}</span>
                       </a>
                       <button
                         type="button"
@@ -201,7 +203,7 @@ export default function AttachmentPanel({
                         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        <span>{isAr ? 'حذف' : 'Delete'}</span>
+                        <span>{dict.app.components.attachments.delete}</span>
                       </button>
                     </div>
                   </td>

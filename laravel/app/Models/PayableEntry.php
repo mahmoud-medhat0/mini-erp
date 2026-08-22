@@ -76,6 +76,16 @@ class PayableEntry extends Model
         return $this->hasMany(PayableAllocation::class, 'payable_entry_id');
     }
 
+    public function sourceSettlements(): HasMany
+    {
+        return $this->hasMany(PayableEntrySettlement::class, 'source_payable_entry_id');
+    }
+
+    public function targetSettlements(): HasMany
+    {
+        return $this->hasMany(PayableEntrySettlement::class, 'target_payable_entry_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
