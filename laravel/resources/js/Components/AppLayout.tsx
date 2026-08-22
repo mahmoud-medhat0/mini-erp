@@ -43,7 +43,9 @@ export type NavKey =
   | 'product-categories.index'
   | 'uoms.index'
   | 'sales-orders.index'
+  | 'delivery-notes.index'
   | 'purchase-orders.index'
+  | 'goods-receipts.index'
   | 'reports.index'
   | 'reports.customer-statement'
   | 'reports.supplier-statement'
@@ -681,7 +683,9 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: locale === 'ar' ? 'المنتجات والخدمات' : 'Products & Services' },
                         { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: locale === 'ar' ? 'أوامر البيع' : 'Sales Orders' },
+                        { key: 'delivery-notes.index' as NavKey, href: '/sales/delivery-notes', label: locale === 'ar' ? 'أذون التسليم' : 'Delivery Notes' },
                         { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: locale === 'ar' ? 'أوامر الشراء' : 'Purchase Orders' },
+                        { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: locale === 'ar' ? 'أذون الإستلام' : 'Goods Receipts' },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: locale === 'ar' ? 'تصنيفات المنتجات' : 'Product Categories' },
                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: locale === 'ar' ? 'وحدات القياس' : 'Units of Measure' },
                       ].map((subItem) => (

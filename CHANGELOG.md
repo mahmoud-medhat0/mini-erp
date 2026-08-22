@@ -3,9 +3,14 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
-### Added - Phase 4 Slice 4 fulfillment prompt
-- Added `PHASE_4_SLICE_4_GEMINI_PROMPT.md` as the bounded execution contract for Delivery Notes and Goods Receipts operational fulfillment.
-- Updated handoff/status documentation so the next prepared execution step is Phase 4 Slice 4 after Purchase Orders.
+### Added — Phase 4 Slice 4 Delivery Notes & Goods Receipts Operational Foundation
+- Created migration `2026_08_22_050000_create_phase4_slice4_fulfillment_tables.php` defining `delivery_note`, `delivery_note_line`, `goods_receipt`, and `goods_receipt_line` tables with UUID primary keys, optimistic locking (`lock_version`), integer quantity scaling (`quantity_e6`), foreign keys, and zero prohibited tenancy/company/accounting columns.
+- Created Eloquent models `DeliveryNote`, `DeliveryNoteLine`, `GoodsReceipt`, and `GoodsReceiptLine` with proper relationships to SalesOrder, PurchaseOrder, Product, UnitOfMeasure, and User.
+- Implemented `DeliveryNoteService` and `GoodsReceiptService` domain services supporting full document lifecycle (`draft` -> `confirmed` / `cancelled`), integer quantity validation (`quantity_e6`), cumulative over-fulfillment prevention with deterministic transaction locks (`lockForUpdate`), global number sequence allocation (`DN-YYYY-XXXXX` & `GRN-YYYY-XXXXX`) via `NumberSequenceAllocator`, idempotent confirmation replay, and Spatie Activitylog auditing via `AuditLogger`.
+- Registered `delivery_note` and `goods_receipt` entity definitions in `config/erp_attachments.php` mapping permissions `sales.view`, `sales.create`, `sales.edit`, `sales.delete` and `purchasing.view`, `purchasing.create`, `purchasing.edit`, `purchasing.delete`.
+- Created `DeliveryNoteController` and `GoodsReceiptController` and web routes under `/sales/delivery-notes/*` and `/purchasing/goods-receipts/*`.
+- Created Inertia React pages `DeliveryNotes.tsx` and `GoodsReceipts.tsx` with confirmed order selectors, dynamic line items, quantity inputs, status badges, and action controls. Added Delivery Notes and Goods Receipts links to `AppLayout.tsx` navigation.
+- Created `Phase4Slice4FulfillmentTest.php` feature test suite (17/17 passing, 138 assertions). Verified full suite (302 passing tests, 0 TS errors, clean Pint formatting, successful Vite build).
 
 ### Added — Phase 4 Slice 3 Purchase Order Backend & UX
 - Created migration `2026_08_22_040000_create_phase4_slice3_purchase_order_tables.php` defining `purchase_order` and `purchase_order_line` tables with optimistic locking (`lock_version`), integer currency columns, `quantity_e6` scaling, foreign keys, and zero prohibited tenancy/company columns.

@@ -14,6 +14,8 @@ use App\Http\Controllers\Catalog\UnitOfMeasureController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
+use App\Http\Controllers\DeliveryNoteController;
+use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
 use App\Http\Controllers\OutgoingChequeController;
@@ -242,6 +244,19 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/purchasing/orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->name('purchase-orders.submit');
     Route::post('/purchasing/orders/{purchaseOrder}/confirm', [PurchaseOrderController::class, 'confirm'])->name('purchase-orders.confirm');
     Route::post('/purchasing/orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+
+    // Phase 4 Slice 4 Fulfillment Routes (Delivery Notes & Goods Receipts)
+    Route::get('/sales/delivery-notes', [DeliveryNoteController::class, 'index'])->name('delivery-notes.index');
+    Route::post('/sales/delivery-notes', [DeliveryNoteController::class, 'store'])->name('delivery-notes.store');
+    Route::put('/sales/delivery-notes/{deliveryNote}', [DeliveryNoteController::class, 'update'])->name('delivery-notes.update');
+    Route::post('/sales/delivery-notes/{deliveryNote}/confirm', [DeliveryNoteController::class, 'confirm'])->name('delivery-notes.confirm');
+    Route::post('/sales/delivery-notes/{deliveryNote}/cancel', [DeliveryNoteController::class, 'cancel'])->name('delivery-notes.cancel');
+
+    Route::get('/purchasing/goods-receipts', [GoodsReceiptController::class, 'index'])->name('goods-receipts.index');
+    Route::post('/purchasing/goods-receipts', [GoodsReceiptController::class, 'store'])->name('goods-receipts.store');
+    Route::put('/purchasing/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->name('goods-receipts.update');
+    Route::post('/purchasing/goods-receipts/{goodsReceipt}/confirm', [GoodsReceiptController::class, 'confirm'])->name('goods-receipts.confirm');
+    Route::post('/purchasing/goods-receipts/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel'])->name('goods-receipts.cancel');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

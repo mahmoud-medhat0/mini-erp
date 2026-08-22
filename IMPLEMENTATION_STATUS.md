@@ -1,13 +1,13 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 4 Slice 3 complete (Purchase Order Backend & UX with exact integer totals). Slice 4 Delivery Notes & Goods Receipts prompt-ready.
-- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 3 purchase order implementation.
-- **Tests passing:** Laravel PHPUnit 285 passing tests (2 skipped for PostgreSQL row locking on SQLite); Phase 4 Slice 3 suite 16/16 (74 assertions).
+- **Current phase:** Phase 4 Slice 4 complete (Delivery Notes & Goods Receipts Operational Foundation). Slice 5 Customer Invoice Posting to AR/GL planned.
+- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 4 fulfillment implementation.
+- **Tests passing:** Laravel PHPUnit 302 passing tests (2 skipped for PostgreSQL row locking on SQLite); Phase 4 Slice 4 suite 17/17 (138 assertions).
 - **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 TS errors), `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 4 Slice 3 worktree.
-- **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`, then `PHASE_4_SLICE_4_GEMINI_PROMPT.md`.
+- **Latest verified code commit:** pending for Phase 4 Slice 4 worktree.
+- **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 
 ## Legend
 
@@ -31,8 +31,8 @@
 | Phase 4 Slice 1 Catalog Foundation | COMPLETE | UnitOfMeasure, ProductCategory, Product models/migrations/services/controllers, Spatie Activitylog audit, attachment entity registry for product, Inertia catalog management pages, 12/12 passing feature tests. |
 | Phase 4 Slice 2 Sales Order Backend | COMPLETE | `sales_order` and `sales_order_line`, `SalesOrderService` lifecycle, exact integer total calculation with overflow/fractional-minor rejection, `SO-YYYY-XXXXX` idempotent confirmation, Spatie Activitylog audit, `sales_order` attachment registry, Inertia page, and 15/15 passing feature tests. |
 | Phase 4 Slice 3 Purchase Order Backend | COMPLETE | `purchase_order` and `purchase_order_line` models/migrations, `PurchaseOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`), exact integer total calculation (`intdiv` & `% 1000000`), number sequence allocation `PO-YYYY-XXXXX`, idempotent confirmation, Spatie Activitylog audit, attachment entity registry for `purchase_order`, Inertia purchase order management pages (`PurchaseOrders.tsx`), 16/16 passing feature tests. |
-| Phase 4 Slice 4 Delivery Notes & Goods Receipts | PLANNED | `PHASE_4_SLICE_4_GEMINI_PROMPT.md` is ready. No Delivery Note or Goods Receipt implementation has started yet. |
-| Phase 4 Slices 5-10 Operations | PLANNED | Invoicing & Bills, Inventory Costing/Subledger after owner decision, Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
+| Phase 4 Slice 4 Delivery Notes & Goods Receipts | COMPLETE | `delivery_note`, `delivery_note_line`, `goods_receipt`, `goods_receipt_line` models/migrations, `DeliveryNoteService` & `GoodsReceiptService` lifecycle, integer quantity validation (`quantity_e6`), cumulative over-fulfillment prevention with deterministic transaction locks, `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` number allocation, Spatie Activitylog audit, attachment entity registry for `delivery_note` & `goods_receipt`, Inertia management pages (`DeliveryNotes.tsx`, `GoodsReceipts.tsx`), 17/17 passing feature tests. |
+| Phase 4 Slices 5-10 Operations | PLANNED | Customer Invoice Posting, Supplier Bill Posting, Inventory Costing/Subledger after owner decision, Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |

@@ -188,5 +188,23 @@ return [
                 'delete' => ['purchasing.delete', 'purchasing.edit'],
             ],
         ],
+        'delivery_note' => [
+            'table' => 'delivery_note',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['sales.view'],
+                'attach' => ['sales.edit', 'sales.create'],
+                'delete' => ['sales.delete', 'sales.edit'],
+            ],
+        ],
+        'goods_receipt' => [
+            'table' => 'goods_receipt',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['purchasing.view'],
+                'attach' => ['purchasing.edit', 'purchasing.create'],
+                'delete' => ['purchasing.delete', 'purchasing.edit'],
+            ],
+        ],
     ],
 ];

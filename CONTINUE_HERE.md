@@ -67,7 +67,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), and Phase 4 Slice 3 (Purchase Order Backend & UX with exact integer totals) is complete and locally verified on PostgreSQL. Phase 4 Slice 4 Delivery Notes & Goods Receipts is prompt-ready.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), and Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation) is complete and locally verified on PostgreSQL. Phase 4 Slice 5 Customer Invoice Posting to AR/GL is planned.
 
 Implemented:
 
@@ -83,17 +83,18 @@ Implemented:
 - Phase 3 Slices 1-10 Foundation (Master Data, AR/AP Subledgers, Receipts/Payments, Allocation Engine, Cheques, Bank Reconciliation, Inertia Pages/UX, Operational Reports, Concurrency Stress & Integrity, Close-Out Report).
 - Phase 4 Slice 1 Product & Service Catalog Foundation.
 - Phase 4 Slice 2 Sales Order Backend & UX.
-- Phase 4 Slice 3 Purchase Order Backend & UX:
-  - `purchase_order` and `purchase_order_line` models and migrations.
-  - `PurchaseOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`).
-  - Exact integer math calculation helper (`calculateLineTotalMinor` using `intdiv` & `% 1000000`), 0 float/rounding usage.
-  - Overflow checks and fractional-minor rejection validation.
-  - Number sequence allocation `PO-YYYY-XXXXX` with idempotent confirmation replay.
+- Phase 4 Slice 3 Purchase Order Backend & UX.
+- Phase 4 Slice 4 Delivery Notes & Goods Receipts Operational Foundation:
+  - `delivery_note`, `delivery_note_line`, `goods_receipt`, `goods_receipt_line` models/migrations.
+  - `DeliveryNoteService` & `GoodsReceiptService` lifecycle (`draft` -> `confirmed` / `cancelled`).
+  - Integer quantity validation (`quantity_e6 = 1000000 = 1.000000`).
+  - Cumulative over-delivery and over-receipt prevention with deterministic row locks.
+  - Number sequence allocation `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` with idempotent confirmation replay.
   - Spatie Activitylog audit via `AuditLogger`.
-  - Attachment entity registry registration for `purchase_order`.
-  - `PurchaseOrderController` endpoints under `/purchasing/orders/*`.
-  - `PurchaseOrders.tsx` Inertia page with supplier selector, product/UOM selector, dynamic line items, real-time line total preview, status badges, and action buttons.
-  - `Phase4Slice3PurchaseOrderTest` 16/16 passing tests (74 assertions).
+  - Attachment entity registry registration for `delivery_note` and `goods_receipt`.
+  - `DeliveryNoteController` and `GoodsReceiptController` endpoints.
+  - `DeliveryNotes.tsx` and `GoodsReceipts.tsx` Inertia pages.
+  - `Phase4Slice4FulfillmentTest` 17/17 passing tests (138 assertions).
   - currencies and FX rates
   - fiscal years and periods
   - account categories and account types
