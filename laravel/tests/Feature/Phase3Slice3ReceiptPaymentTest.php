@@ -416,11 +416,8 @@ class Phase3Slice3ReceiptPaymentTest extends TestCase
         try {
             $customer->delete();
             $this->fail('Expected database restriction when deleting customer with receipt.');
-        } catch (QueryException) {
-            $this->assertDatabaseHas('customer_receipt', [
-                'id' => $receipt->id,
-                'customer_id' => $customer->id,
-            ]);
+        } catch (QueryException $exception) {
+            $this->assertStringContainsString('customer_receipt_customer_id_foreign', $exception->getMessage());
         }
     }
 

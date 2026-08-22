@@ -21,24 +21,28 @@
 | Console Commands | `app/Console/Commands/SettlementConcurrencyStressCommand.php` |
 | Tests | `tests/Feature/Phase4Slice10ReturnsCreditNotesTest.php` (38 tests, 0 skipped) |
 
-### Modified backend (7 files)
+### Modified backend
 
 - `app/Application/Accounting/AccountingAccountMappingService.php` — 6 new mapping keys + type/nature validation.
 - `app/Application/Inventory/MovingWeightedAverageInventoryService.php` — added `recordReturn`, `recordScrap`, `calculateIssueCostForReturn`.
+- `app/Application/Reports/ArAgingReportService.php`, `ArToGlReconciliationReportService.php`, `ApAgingReportService.php`, `ApToGlReconciliationReportService.php` — active note settlements included in remaining open balance calculations.
+- `app/Models/ReceivableEntry.php`, `PayableEntry.php` — settlement relationships.
 - `app/Http/Controllers/AccountingController.php` — style/format alignment only (Pint).
 - `database/seeders/AccountingCoreSeeder.php` — 12 new accounts + 16 idempotent mapping seeds.
 - `database/seeders/PermissionSeeder.php` — new permissions materialization.
-- `routes/web.php` — 31 new routes under a Phase 4 Slice 10 block.
+- `routes/web.php` — Phase 4 Slice 10 routes, including manual settlement routes.
 - `config/erp_rbac.php`, `config/erp_attachments.php` — permissions and attachment entities.
 
-### New frontend (7 files)
+### New frontend (9 files)
 
 - `resources/js/Pages/Sales/SalesReturns.tsx`
 - `resources/js/Pages/Sales/CustomerCreditNotes.tsx`
 - `resources/js/Pages/Sales/InvoiceRevisions.tsx`
 - `resources/js/Pages/Sales/InvoiceRevisionShow.tsx`
+- `resources/js/Pages/Sales/ReceivableSettlements.tsx`
 - `resources/js/Pages/Purchasing/PurchaseReturns.tsx`
 - `resources/js/Pages/Purchasing/SupplierAdjustmentNotes.tsx`
+- `resources/js/Pages/Purchasing/PayableSettlements.tsx`
 - `resources/js/lib/permissions.ts`
 
 ### Modified frontend
@@ -53,7 +57,7 @@
 
 ## 2. Migrations Added
 
-All forward-only; `php artisan migrate --force` ran clean; `migrate:status` shows all Ran through `...100050`.
+All forward-only; `php artisan migrate --force` ran clean; `migrate:status` shows all Ran through `2026_08_22_200000_create_phase4_slice10_settlement_tables`.
 
 1. `2026_08_22_100000_create_phase4_slice10_sales_return_tables` — `sales_return`, `sales_return_line`
 2. `2026_08_22_100010_create_phase4_slice10_customer_credit_note_tables` — `customer_credit_note`, `customer_credit_note_line`
@@ -61,6 +65,7 @@ All forward-only; `php artisan migrate --force` ran clean; `migrate:status` show
 4. `2026_08_22_100030_create_phase4_slice10_purchase_return_tables` — `purchase_return`, `purchase_return_line`
 5. `2026_08_22_100040_create_phase4_slice10_supplier_adjustment_note_tables` — `supplier_adjustment_note`, `supplier_adjustment_note_line`
 6. `2026_08_22_100050_update_accounting_mapping_for_slice10` — extends the PostgreSQL accounting-mapping key check constraint with: `sales_returns`, `inventory_return_variance`, `inventory_scrap_loss`, `purchase_returns_allowances`, `output_tax_payable`, `input_tax_receivable`
+7. `2026_08_22_200000_create_phase4_slice10_settlement_tables` — `receivable_entry_settlement`, `payable_entry_settlement`
 
 ---
 
@@ -78,8 +83,10 @@ New tables (all UUID PKs, singular names, no company/branch/tenant columns):
 - **purchase_return_line**: return FK cascade, line_no, goods_receipt_line_id, supplier_bill_line_id?, product_id, unit_of_measure_id, description?, quantity_e6, original_receipt_cost_minor, stock_value_minor, variance_minor.
 - **supplier_adjustment_note**: number, supplier_id, supplier_bill_id?, purchase_return_id?, fiscal_year_id, financial_period_id, adjustment_date, direction(decrease_payable/increase_payable), ui_label?, status, currency, subtotal/tax_rate_bps/tax/total minor, tax_mode, reason?, notes?, journal_entry_id?, payable_entry_id?, lifecycle columns, lock_version.
 - **supplier_adjustment_note_line**: note FK cascade, line_no, supplier_bill_line_id?, purchase_return_line_id?, product_id?, unit_of_measure_id?, description, quantity_e6?, unit_cost_minor, line_subtotal_minor, tax_rate_bps, tax_minor, line_total_minor.
+- **receivable_entry_settlement**: customer_id, source_receivable_entry_id, target_receivable_entry_id, currency, amount_minor, status(active/reversed), settled_at, reversed_at?, reason?, reversed_reason?, created_by?, reversed_by?, timestamps; indexes on customer/date, source/status, target/status, and currency.
+- **payable_entry_settlement**: supplier_id, source_payable_entry_id, target_payable_entry_id, currency, amount_minor, status(active/reversed), settled_at, reversed_at?, reason?, reversed_reason?, created_by?, reversed_by?, timestamps; indexes on supplier/date, source/status, target/status, and currency.
 
-Existing schema untouched except the accounting mapping key constraint extension (migration #6). No changes to posted documents, ledger, subledger, or stock tables.
+Existing schema untouched except the accounting mapping key constraint extension and dedicated settlement tables. No changes to posted documents, ledger, subledger entry rows, or stock tables.
 
 ---
 
@@ -132,8 +139,12 @@ Five document families, exactly as approved:
 ## 8. Allocation/Settlement Behavior
 
 - Credit/debit entries are created as **open items**; there is **no automatic allocation** anywhere in Slice 10 (test-asserted count = 0 after posting).
-- The existing Phase 3 allocation engine (`ReceivableAllocationService`/`PayableAllocationService`) remains receipt/payment-bound; manual settlement of note credits/debits is exposed as an explicit follow-up through that same manual pattern. One test intentionally skips with a documented follow-up marker rather than faking coverage.
-- Settlement/allocation performs **no** GL, journal, ledger, stock, revenue, COGS, or inventory postings — AR/AP control was already affected at note posting time; allocation only settles open subledger items (matches existing engine behavior).
+- Dedicated manual settlement services are implemented:
+  - `ReceivableEntrySettlementService::settleCredit()` settles posted customer credit-note receivable credits against invoice/receivable debits.
+  - `PayableEntrySettlementService::settleDebit()` settles posted supplier adjustment payable debits against bill/payable credits.
+- Settlement validates same customer/supplier, same currency, opposite economic direction, positive integer amount, source/target capacity, and no self-settlement.
+- Settlement/reversal uses deterministic row locks and idempotency keys.
+- Settlement performs **no** GL, journal, ledger, stock, revenue, COGS, or inventory postings. AR/AP control was already affected when the note posted; settlement only changes open/settled subledger presentation.
 
 ## 9. Revenue/Return Accounting
 
@@ -142,7 +153,8 @@ Confirmed derivable, without mutating any posted document:
 - Gross sales = posted `customer_invoice` totals (unchanged forever).
 - Sales returns = posted `customer_credit_note` subtotals hitting contra-revenue `sales_returns` (account 4200, revenue/debit-normal).
 - Net sales = gross − returns.
-- AR open balance = `receivable_entry` debits − credits − active allocations; AP likewise via `payable_entry` (SAN debit/credit entries included).
+- AR open balance = `receivable_entry` debits minus receipt allocations and target settlements, less remaining credit-note credits after source settlements.
+- AP open balance = `payable_entry` credits minus payment allocations and target settlements, less remaining supplier-adjustment debits after source settlements.
 
 ## 10. Unsupported Assumptions Avoided
 
@@ -154,7 +166,7 @@ None introduced. Explicitly avoided per plan: tenant/company/branch context, war
 
 ## 12. RBAC Changes
 
-Following local convention (dot notation, config-driven via `config/erp_rbac.php` materialized by seeder): `sales.returns`, `sales.credit_notes`, `sales.invoice_revisions`, `purchasing.returns`, `purchasing.adjustment_notes`. SUPER_ADMIN inherits automatically. Routes guarded with matching `can:` middleware. No company/branch scoping.
+Following local convention (dot notation, config-driven via `config/erp_rbac.php` materialized by seeder): `sales.returns`, `sales.credit_notes`, `sales.invoice_revisions`, `purchasing.returns`, `purchasing.adjustment_notes`. Settlement routes reuse `sales.credit_notes` and `purchasing.adjustment_notes` authorization. SUPER_ADMIN inherits automatically. Routes guarded with matching `can:` middleware. No company/branch scoping.
 
 ## 13. Audit / Attachment / Notification Integration
 
@@ -166,11 +178,11 @@ Following local convention (dot notation, config-driven via `config/erp_rbac.php
 
 | Suite | Result |
 |---|---|
-| `php artisan test` (full) | **402 tests, 398 passed, 4 skipped, 3124 assertions** |
-| `Phase4Slice10ReturnsCreditNotesTest` | 33 tests: 32 passed, 1 intentional skip (manual settlement engine follow-up), 192 assertions |
+| `php artisan test` (full) | **407 tests, 404 passed, 3 skipped, 3172 assertions** |
+| `Phase4Slice10ReturnsCreditNotesTest` | 38 tests: 38 passed, 0 skipped, 230 assertions |
 | Concurrency suite | 7 tests / 16 assertions passed |
 
-Coverage includes: pre/post-invoice sales returns, partial-return boundaries, dispositions incl. variance + scrap, idempotent replays, credit-note GL shape, bps/manual tax math, unallocated open items, over-credit rejection, cancelled-note exclusion, R01→R02 cumulative revisions, draft-exclusion, immutability of originals, paid-invoice behavior, purchase GRNI clearing + original-cost valuation + boundaries + idempotency, SAN directions + service-only + tax math, unauthorized denial, attachment registry, audit writes, no tenant columns, no-float scan.
+Coverage includes: pre/post-invoice sales returns, partial-return boundaries, dispositions incl. variance + scrap, idempotent replays, credit-note GL shape, bps/manual tax math, unallocated open items, manual AR/AP note settlement and reversal, over-settlement rejection, wrong customer/supplier/currency rejection, cancelled-note exclusion, R01→R02 cumulative revisions, draft-exclusion, immutability of originals, paid-invoice behavior, purchase GRNI clearing + original-cost valuation + boundaries + idempotency, SAN directions + service-only + tax math, unauthorized denial, attachment registry, audit writes, no tenant columns, no-float scan.
 
 ## 15. Stress Results
 
@@ -180,6 +192,7 @@ Coverage includes: pre/post-invoice sales returns, partial-return boundaries, di
 | `accounting:concurrency-stress --workers=50` | PASS |
 | `accounting:inventory-concurrency-stress --workers=50` | PASS |
 | `accounting:allocation-concurrency-stress --workers=50` | PASS (zero over-allocation, invariants preserved) |
+| `accounting:settlement-concurrency-stress --workers=50` | PASS (zero AR/AP over-settlement under concurrent workers) |
 | `accounting:cheque-concurrency-stress --workers=50` | PASS |
 | `accounting:bank-reconciliation-concurrency-stress --workers=50` | PASS |
 | `accounting:phase3-integrity-check` | PASS |
@@ -191,11 +204,10 @@ Coverage includes: pre/post-invoice sales returns, partial-return boundaries, di
 
 ## 16. Remaining Risks
 
-1. **Manual settlement UI/engine for note entries**: notes remain open items until allocated; extending `ReceivableAllocationService`/`PayableAllocationService` to allocate note-created entries is a bounded follow-up (marked skip in test suite).
-2. `concurrency:stress --workers=100` remains machine-limited (Windows paging file); workers=10 passes. Not a code defect.
-3. Revision print/export is browser-print based; PDF rendering service not in scope.
-4. Purchase-return post-bill AP effect intentionally routed exclusively through `supplier_adjustment_note` (one consistent path chosen and documented); direct AP-carrying physical returns are not implemented.
-5. Frontend build emits a chunk >500 kB warning (pre-existing scale issue, cosmetic).
+1. `concurrency:stress --workers=100` remains machine-limited (Windows paging file); workers=10 passes. Not a code defect.
+2. Revision print/export is browser-print based; PDF rendering service not in scope.
+3. Purchase-return post-bill AP effect intentionally routed exclusively through `supplier_adjustment_note` (one consistent path chosen and documented); direct AP-carrying physical returns are not implemented.
+4. Frontend build emits a chunk >500 kB warning (pre-existing scale issue, cosmetic).
 
 ---
 

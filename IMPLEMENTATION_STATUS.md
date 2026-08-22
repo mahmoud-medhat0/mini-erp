@@ -83,14 +83,15 @@ npm run build
 Result summary:
 
 - `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 10 implementation.
-- `php artisan migrate:status`: all migrations Ran through `2026_08_22_100050_update_accounting_mapping_for_slice10`.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_22_200000_create_phase4_slice10_settlement_tables`.
 - `vendor/bin/pint --test`: passed after Phase 4 Slice 10 implementation.
-- `php artisan test`: 402 tests, 398 passed, 4 skipped / 3124 assertions (3 pre-existing skips plus 1 intentional skip for the manual credit settlement allocation engine follow-up).
-- `php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest`: 33 tests / 32 passed / 1 skipped / 192 assertions.
+- `php artisan test`: 407 tests, 404 passed, 3 skipped / 3172 assertions.
+- `php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest`: 38 tests / 38 passed / 0 skipped / 230 assertions.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=10`: passed; `--workers=100` is blocked locally by Windows paging-file memory exhaustion.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
 - `php artisan accounting:allocation-concurrency-stress --workers=50`: passed.
+- `php artisan accounting:settlement-concurrency-stress --workers=50`: passed.
 - `php artisan accounting:cheque-concurrency-stress --workers=50`: passed.
 - `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed.
 - `php artisan accounting:inventory-concurrency-stress --workers=50`: passed.
@@ -128,9 +129,9 @@ Result summary:
 
 ## Next Milestone
 
-Phase 3 is 100% complete for the agreed scope, and Phase 4 is implemented through Slice 10 (Slices 1-10). Returns, credit notes, invoice revisions, purchase returns, supplier adjustment notes, manual tax basis points, and operational close-out hardening are implemented and locally verified.
+Phase 3 is 100% complete for the agreed scope, and Phase 4 is complete through Slice 10 (Slices 1-10). Returns, credit notes, invoice revisions, purchase returns, supplier adjustment notes, manual tax basis points, manual AR/AP note settlement, and operational close-out hardening are implemented and locally verified.
 
-Before treating Phase 4 as fully closed, execute `PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md` to replace the intentional skipped settlement test with working manual AR/AP note settlement.
+No required Phase 4 correction remains; awaiting owner direction.
 
 Other owner options:
 

@@ -468,9 +468,9 @@ Gemini must report:
 
 ## Phase 4 Slice 10 Implementation Record
 
-Status: IMPLEMENTED (verified 2026-08-22) with required settlement correction follow-up
+Status: COMPLETE (verified 2026-08-22, including Manual AR/AP Settlement Pass)
 
-Implemented the owner-selected model from `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md` using `PHASE_4_SLICE_10_GEMINI_PROMPT.md`. Six migrations: sales return tables (2026_08_22_100000), customer credit note tables (...100010), customer invoice revision tables (...100020), purchase return tables (...100030), supplier adjustment note tables (...100040), and the accounting mapping update (...100050).
+Implemented the owner-selected model from `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md` using `PHASE_4_SLICE_10_GEMINI_PROMPT.md` and closed the manual settlement gap using `PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`. Seven migrations: sales return tables (2026_08_22_100000), customer credit note tables (...100010), customer invoice revision tables (...100020), purchase return tables (...100030), supplier adjustment note tables (...100040), accounting mapping update (...100050), and note settlement tables (...200000).
 
 Implemented document families:
 
@@ -488,7 +488,7 @@ Key behaviors:
 - Invoice revisions are cumulative snapshots (`R01` original, `R02` after first return, showing original/returned/net quantities) and create no GL effects.
 - Purchase returns choose between GRNI clearing and post-bill correction per case; where an AP impact is required after bill posting, a separate `supplier_adjustment_note` carries it instead of mutating posted bills.
 - Manual tax is stored in integer basis points with modes `none`/`manual_rate`/`manual_amount`; computed exactly as `intdiv(($baseMinor * $rateBps) + 5000, 10000)` with optional exact manual amount override. Tax sides map to `input_tax_receivable` (1300) / `output_tax_payable` (2200).
-- Credit/debit settlement allocation is manual/open only. The implementation currently leaves note-created entry settlement as a required correction follow-up; execute `PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md` so explicit settlement actions exist and create no extra GL.
+- Credit/debit settlement allocation is manual/open only. Explicit `receivable_entry_settlement` and `payable_entry_settlement` actions settle note-created AR/AP entries without creating extra GL.
 - New mapping keys (`sales_returns`, `inventory_return_variance`, `inventory_scrap_loss`, `purchase_returns_allowances`, `input_tax_receivable`, `output_tax_payable`) seeded idempotently in `AccountingCoreSeeder`.
 - Permissions: `sales.returns`, `sales.credit_notes`, `sales.invoice_revisions`, `purchasing.returns`, `purchasing.adjustment_notes`. Attachment entities registered for all five families. Routes: `sales-returns.*`, `customer-credit-notes.*`, `invoice-revisions.*`, `purchase-returns.*`, `supplier-adjustment-notes.*`, plus `GET /sales/returns/returnable-lines/{invoiceId}`.
-- Verification: full suite 402 tests / 398 passed / 4 skipped (3 pre-existing + 1 intentional) / 3124 assertions; `Phase4Slice10ReturnsCreditNotesTest` 33 tests / 32 passed / 1 skipped / 192 assertions; Concurrency suite 7 tests / 16 assertions; all accounting stress commands pass at 50 workers; Pint, typecheck, and build pass. `concurrency:stress --workers=100` remains blocked locally by Windows paging-file memory exhaustion; `--workers=10` passes.
+- Verification: full suite 407 tests / 404 passed / 3 skipped / 3172 assertions; `Phase4Slice10ReturnsCreditNotesTest` 38 tests / 38 passed / 0 skipped / 230 assertions; Concurrency suite 7 tests / 16 assertions; all accounting stress commands pass at 50 workers, including `accounting:settlement-concurrency-stress --workers=50`; Pint, typecheck, and build pass. `concurrency:stress --workers=100` remains blocked locally by Windows paging-file memory exhaustion; `--workers=10` passes.

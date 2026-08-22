@@ -32,21 +32,21 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Concurrency stress command: `accounting:settlement-concurrency-stress`.
   - Feature test suite `Phase4Slice10ReturnsCreditNotesTest.php` (38/38 passing tests, 0 skipped, 230 assertions).
   - GL mapping keys `sales_returns` (4200), `inventory_return_variance` (5200), `inventory_scrap_loss` (5300), `purchase_returns_allowances` (5400), `input_tax_receivable` (1300), `output_tax_payable` (2200) seeded idempotently in `AccountingCoreSeeder` with accounts.
-  - Manual tax percentage in integer basis points (`intdiv(($baseMinor * $rateBps) + 5000, 10000)`) with modes `none`/`manual_rate`/`manual_amount`; manual/open credit/debit settlement only.
-  - Feature test suite `Phase4Slice10ReturnsCreditNotesTest.php` (33 tests / 32 passed / 1 intentional skip / 192 assertions; skip reserved for the manual credit settlement allocation engine follow-up).
+  - Manual tax percentage in integer basis points (`intdiv(($baseMinor * $rateBps) + 5000, 10000)`) with modes `none`/`manual_rate`/`manual_amount`; manual/open credit/debit settlement with explicit settlement/reversal actions and no extra GL.
 
 Latest verified baseline:
 
 ```text
 php artisan migrate --force: Nothing to migrate
-php artisan migrate:status: all migrations Ran through 2026_08_22_100050_update_accounting_mapping_for_slice10
-php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest: 33 tests / 32 passed / 1 skipped / 192 assertions
-php artisan test: 402 tests, 398 passed, 4 skipped / 3124 assertions
+php artisan migrate:status: all migrations Ran through 2026_08_22_200000_create_phase4_slice10_settlement_tables
+php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest: 38 tests / 38 passed / 0 skipped / 230 assertions
+php artisan test: 407 tests, 404 passed, 3 skipped / 3172 assertions
 php artisan test --testsuite=Concurrency: 7 tests / 16 assertions
 php artisan concurrency:stress --workers=10: PASSED CLEANLY
 php artisan concurrency:stress --workers=100: BLOCKED LOCALLY by Windows paging-file memory exhaustion, not an application assertion failure
 php artisan accounting:concurrency-stress --workers=50: PASSED CLEANLY
 php artisan accounting:allocation-concurrency-stress --workers=50: PASSED CLEANLY
+php artisan accounting:settlement-concurrency-stress --workers=50: PASSED CLEANLY
 php artisan accounting:cheque-concurrency-stress --workers=50: PASSED CLEANLY
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50: PASSED CLEANLY
 php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
@@ -61,11 +61,7 @@ Inventory backend forbidden float/rounding source scan: no results
 
 ## Next Execution
 
-Required correction before optional work:
-
-- Execute `PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md` to implement manual settlement/allocation for `customer_credit_note` receivable credits and `supplier_adjustment_note` payable debits, remove the intentional skipped test, and update AR/AP open-balance reports.
-
-After that correction is complete, remaining optional items only, each requiring an explicit bounded owner prompt:
+No required Phase 4 correction remains. Remaining optional items only, each requiring an explicit bounded owner prompt:
 
 - Optional: E2E Browser Testing Hardening (Playwright/Dusk smoke coverage for the Laravel UI).
 - Optional: Production Deployment Readiness (Nginx, Supervisor/queue workers, scheduler cron, Redis, backups).
