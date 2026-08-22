@@ -3,6 +3,31 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 4 Slice 7 Inventory Costing Decision Prompt
+- Added `PHASE_4_SLICE_7_GEMINI_PROMPT.md` as a bounded decision-pack contract before any inventory valuation implementation.
+- Scope is limited to reviewing current stock-product boundaries, comparing weighted average, FIFO, standard cost, and non-valued/manual stock tracking, and producing owner-ready consequences, recommended path, and future implementation plan.
+- Explicitly excludes stock ledger migrations, warehouse/location semantics, COGS posting, stock-product invoice/bill posting, landed cost, tax, returns, credit notes, debit notes, and tenant/company/branch scope.
+
+### Added — Phase 4 Slice 6 Supplier Bill Posting
+- Implemented `supplier_bill` and `supplier_bill_line` tables, models, service, controller, routes, attachment registry, navigation, and `SupplierBills.tsx` Inertia page.
+- Added `purchase_expense` accounting mapping support and Supplier Bill posting through the existing PostingEngine: Dr Purchase Expense / Cr AP Control, plus AP `payable_entry` credit creation.
+- Added exact integer bill total calculation, `BILL-YYYY-XXXXX` numbering, lifecycle transitions (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`), idempotent post replay, and Spatie Activitylog audit via `AuditLogger`.
+- Hardened Supplier Bill source rules locally after Gemini output: source lines require matching source headers, Purchase Order/Goods Receipt sources cannot be mixed, product/UOM/unit cost must match the source line, duplicate source-line quantities inside one bill are counted cumulatively, source lines are locked deterministically, and JournalLine uses `memo` instead of a non-existent description field.
+- Fixed `SupplierBillController` product filtering to use `is_purchase_enabled` and seeded default `purchase_expense` mapping to account `5100` through `AccountingCoreSeeder`.
+- Verified `Phase4Slice6SupplierBillTest` 19/19 passing tests (100 assertions), full PHPUnit suite 342 tests / 340 passed / 2 skipped / 2675 assertions, clean Pint, clean Supplier Bill backend float/rounding source scan, `npm run typecheck`, and `npm run build`.
+
+### Added — Phase 4 Slice 6 Supplier Bill Posting Prompt
+- Added `PHASE_4_SLICE_6_GEMINI_PROMPT.md` as the bounded execution contract for Supplier Bill lifecycle and AP/GL posting through the existing `PostingEngine`.
+- Scope is limited to `supplier_bill` / `supplier_bill_line`, `purchase_expense` accounting mapping, AP `payable_entry` credit creation, idempotent `BILL-YYYY-XXXXX` posting, attachment registry, RBAC, audit, and Inertia UX.
+- Explicitly excludes stock-product billing, inventory valuation, stock movement, COGS, landed cost, VAT/tax, discounts, returns, credit notes, debit notes, reports, and tenant/company/branch scope.
+
+### Added — Phase 4 Slice 5 Customer Invoice Posting
+- Implemented `customer_invoice` and `customer_invoice_line` tables, models, service, controller, routes, attachment registry, navigation, and `CustomerInvoices.tsx` Inertia page.
+- Added `sales_revenue` accounting mapping support and Customer Invoice posting through the existing PostingEngine: Dr AR Control / Cr Sales Revenue, plus AR `receivable_entry` debit creation.
+- Added exact integer invoice total calculation, `INV-YYYY-XXXXX` numbering, lifecycle transitions (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`), idempotent post replay, and Spatie Activitylog audit via `AuditLogger`.
+- Hardened Customer Invoice source rules locally after Gemini output: source lines require matching source headers, Sales Order/Delivery Note sources cannot be mixed, product/UOM/unit price must match the source line, source lines are locked deterministically, and JournalLine uses `memo` instead of a non-existent description field.
+- Verified `Phase4Slice5CustomerInvoiceTest` 19/19 passing tests (86 assertions), full PHPUnit suite 323 tests / 321 passed / 2 skipped / 2565 assertions, clean Pint, clean Customer Invoice backend float/rounding source scan, `npm run typecheck`, and `npm run build`.
+
 ### Added — Phase 4 Slice 5 Customer Invoice Posting Prompt
 - Added `PHASE_4_SLICE_5_GEMINI_PROMPT.md` as the bounded execution contract for Customer Invoice lifecycle and AR/GL posting through the existing `PostingEngine`.
 - Scope is limited to `customer_invoice` / `customer_invoice_line`, `sales_revenue` accounting mapping, AR `receivable_entry` debit creation, idempotent `INV-YYYY-XXXXX` posting, attachment registry, RBAC, audit, and Inertia UX.

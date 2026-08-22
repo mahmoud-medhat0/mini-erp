@@ -36,6 +36,7 @@ use App\Http\Controllers\Reports\ReportsHubController;
 use App\Http\Controllers\Reports\SupplierStatementController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SettingsActionController;
+use App\Http\Controllers\SupplierBillController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
 use App\Http\Controllers\SupplierPaymentController;
@@ -267,6 +268,15 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/sales/invoices/{customerInvoice}/approve', [CustomerInvoiceController::class, 'approve'])->name('customer-invoices.approve');
     Route::post('/sales/invoices/{customerInvoice}/post', [CustomerInvoiceController::class, 'post'])->name('customer-invoices.post');
     Route::post('/sales/invoices/{customerInvoice}/cancel', [CustomerInvoiceController::class, 'cancel'])->name('customer-invoices.cancel');
+
+    // Phase 4 Slice 6 Supplier Bill Routes
+    Route::get('/purchasing/bills', [SupplierBillController::class, 'index'])->name('supplier-bills.index');
+    Route::post('/purchasing/bills', [SupplierBillController::class, 'store'])->name('supplier-bills.store');
+    Route::put('/purchasing/bills/{supplierBill}', [SupplierBillController::class, 'update'])->name('supplier-bills.update');
+    Route::post('/purchasing/bills/{supplierBill}/submit', [SupplierBillController::class, 'submit'])->name('supplier-bills.submit');
+    Route::post('/purchasing/bills/{supplierBill}/approve', [SupplierBillController::class, 'approve'])->name('supplier-bills.approve');
+    Route::post('/purchasing/bills/{supplierBill}/post', [SupplierBillController::class, 'post'])->name('supplier-bills.post');
+    Route::post('/purchasing/bills/{supplierBill}/cancel', [SupplierBillController::class, 'cancel'])->name('supplier-bills.cancel');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

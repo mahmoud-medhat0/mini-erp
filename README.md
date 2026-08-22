@@ -101,11 +101,17 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Phase 4 Slice 4 Delivery Notes & Goods Receipts:
   - Delivery Note and Goods Receipt header/line tables, lifecycle, `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` numbering, attachment registry, audit, and Inertia UX.
   - exact integer fulfillment quantities with cumulative over-delivery and over-receipt prevention.
+- Phase 4 Slice 5 Customer Invoice Posting:
+  - Customer Invoice header/lines, lifecycle, `INV-YYYY-XXXXX` numbering, `sales_revenue` mapping, attachment registry, audit, and Inertia UX.
+  - strict Sales Order/Delivery Note source matching, exact integer invoice totals, PostingEngine integration, and AR `receivable_entry` debit.
+- Phase 4 Slice 6 Supplier Bill Posting:
+  - Supplier Bill header/lines, lifecycle, `BILL-YYYY-XXXXX` numbering, `purchase_expense` mapping, attachment registry, audit, and Inertia UX.
+  - strict Purchase Order/Goods Receipt source matching, exact integer bill totals, PostingEngine integration, and AP `payable_entry` credit.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
 ## Not Implemented Yet
 
-- Customer Invoices and Supplier Bills. Customer Invoice execution is prepared in `PHASE_4_SLICE_5_GEMINI_PROMPT.md`.
+- Inventory costing decision and stock-product posting behavior. The next prepared prompt is `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
 - Sales/Purchasing returns, credit notes, debit notes, and post-invoice corrections.
 - Inventory valuation, COGS, stock movement, and warehouse semantics.
 - Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
@@ -164,9 +170,9 @@ npm run build
 
 Latest verified result:
 
-- 302 PHPUnit tests passing / 2469 assertions reported after Phase 4 Slice 4.
-- Phase 4 Slices 1-4 are complete for their agreed operational scope.
-- Phase4Slice4FulfillmentTest: 17 tests / 138 assertions passed after local source-scan cleanup.
+- 342 PHPUnit tests / 340 passed / 2 skipped / 2675 assertions after Phase 4 Slice 6 hardening.
+- Phase 4 Slices 1-6 are complete for their agreed operational scope.
+- Phase4Slice5CustomerInvoiceTest: 19 tests / 86 assertions passed after local source-line hardening.
 - Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
 - Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
 - 7 Concurrency suite tests / 16 assertions passed.
@@ -188,6 +194,8 @@ Use these first:
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
 - `NEXT_TASKS.md`
 - `PHASE_3_AR_AP_CASH_BANK_CHEQUES.md`
 - `PHASE_3_SLICE_1_GEMINI_PROMPT.md`

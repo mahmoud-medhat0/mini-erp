@@ -4,8 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Account;
 use App\Models\AccountGroup;
+use App\Models\AccountingAccountMapping;
 use App\Models\AccountType;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AccountingCoreSeeder extends Seeder
@@ -153,6 +155,32 @@ class AccountingCoreSeeder extends Seeder
                     'currency' => 'EGP',
                 ]
             );
+        }
+
+        if (Schema::hasTable('accounting_account_mapping')) {
+            $mappings = [
+                'ar_control' => ['account_code' => '1200', 'description' => 'Default Accounts Receivable control account'],
+                'ap_control' => ['account_code' => '2100', 'description' => 'Default Accounts Payable control account'],
+                'sales_revenue' => ['account_code' => '4100', 'description' => 'Default sales revenue account'],
+                'purchase_expense' => ['account_code' => '5100', 'description' => 'Default purchase expense account'],
+            ];
+
+            foreach ($mappings as $key => $mappingData) {
+                $account = Account::where('code', $mappingData['account_code'])->first();
+                if (! $account) {
+                    continue;
+                }
+
+                $existingMapping = AccountingAccountMapping::where('key', $key)->first();
+                AccountingAccountMapping::updateOrCreate(
+                    ['key' => $key],
+                    [
+                        'account_id' => $account->id,
+                        'description' => $existingMapping?->description ?? $mappingData['description'],
+                        'is_system' => true,
+                    ]
+                );
+            }
         }
     }
 }

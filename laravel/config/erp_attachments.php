@@ -215,5 +215,14 @@ return [
                 'delete' => ['sales.delete', 'sales.edit'],
             ],
         ],
+        'supplier_bill' => [
+            'table' => 'supplier_bill',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['purchasing.view'],
+                'attach' => ['purchasing.edit', 'purchasing.create'],
+                'delete' => ['purchasing.delete', 'purchasing.edit'],
+            ],
+        ],
     ],
 ];

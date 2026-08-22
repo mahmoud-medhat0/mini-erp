@@ -16,6 +16,7 @@ class AccountingAccountMappingService
         'cheques_under_collection',
         'cheques_payable',
         'sales_revenue',
+        'purchase_expense',
     ];
 
     public function __construct(
@@ -120,6 +121,7 @@ class AccountingAccountMappingService
             'ap_control', 'cheques_payable' => ['liability'],
             'opening_balance_offset' => ['equity'],
             'sales_revenue' => ['revenue'],
+            'purchase_expense' => ['expense'],
         };
 
         if (! in_array($account->type, $expectedTypes, true)) {
@@ -129,7 +131,7 @@ class AccountingAccountMappingService
         }
 
         $expectedNature = match ($key) {
-            'ar_control', 'cheques_under_collection' => 'debit',
+            'ar_control', 'cheques_under_collection', 'purchase_expense' => 'debit',
             'ap_control', 'cheques_payable', 'sales_revenue' => 'credit',
             'opening_balance_offset' => null,
         };

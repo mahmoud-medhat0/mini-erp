@@ -1,12 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 4 Slice 4 complete (Delivery Notes & Goods Receipts Operational Foundation). Slice 5 Customer Invoice Posting to AR/GL prompt ready.
-- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 4 fulfillment implementation.
-- **Tests passing:** Laravel PHPUnit 302 passing tests (2 skipped for PostgreSQL row locking on SQLite); Phase 4 Slice 4 suite 17/17 (138 assertions).
+- **Current phase:** Phase 4 Slice 6 complete (Supplier Bill Posting to AP/GL). Slice 7 Inventory Costing Decision prompt ready.
+- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 6 hardening correction.
+- **Tests passing:** Laravel PHPUnit 342 tests, 340 passed, 2 skipped / 2675 assertions; Phase 4 Slice 6 suite 19/19 (100 assertions).
 - **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 TS errors), `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 4 Slice 4 worktree and Slice 5 prompt/docs.
+- **Latest verified code commit:** pending for Phase 4 Slice 6 implementation/correction and Slice 7 prompt/docs.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 
 ## Legend
@@ -32,8 +32,10 @@
 | Phase 4 Slice 2 Sales Order Backend | COMPLETE | `sales_order` and `sales_order_line`, `SalesOrderService` lifecycle, exact integer total calculation with overflow/fractional-minor rejection, `SO-YYYY-XXXXX` idempotent confirmation, Spatie Activitylog audit, `sales_order` attachment registry, Inertia page, and 15/15 passing feature tests. |
 | Phase 4 Slice 3 Purchase Order Backend | COMPLETE | `purchase_order` and `purchase_order_line` models/migrations, `PurchaseOrderService` lifecycle (`draft` -> `submitted` -> `confirmed` / `cancelled`), exact integer total calculation (`intdiv` & `% 1000000`), number sequence allocation `PO-YYYY-XXXXX`, idempotent confirmation, Spatie Activitylog audit, attachment entity registry for `purchase_order`, Inertia purchase order management pages (`PurchaseOrders.tsx`), 16/16 passing feature tests. |
 | Phase 4 Slice 4 Delivery Notes & Goods Receipts | COMPLETE | `delivery_note`, `delivery_note_line`, `goods_receipt`, `goods_receipt_line` models/migrations, `DeliveryNoteService` & `GoodsReceiptService` lifecycle, integer quantity validation (`quantity_e6`), cumulative over-fulfillment prevention with deterministic transaction locks, `DN-YYYY-XXXXX` and `GRN-YYYY-XXXXX` number allocation, Spatie Activitylog audit, attachment entity registry for `delivery_note` & `goods_receipt`, Inertia management pages (`DeliveryNotes.tsx`, `GoodsReceipts.tsx`), 17/17 passing feature tests. |
-| Phase 4 Slice 5 Customer Invoice Posting | PLANNED | Execution contract prepared in `PHASE_4_SLICE_5_GEMINI_PROMPT.md`; scope is Customer Invoice lifecycle, AR/GL posting through PostingEngine, `sales_revenue` mapping, and no stock/COGS/tax/supplier bill scope. |
-| Phase 4 Slices 6-10 Operations | PLANNED | Supplier Bill Posting, Inventory Costing/Subledger after owner decision, Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
+| Phase 4 Slice 5 Customer Invoice Posting | COMPLETE | `customer_invoice` and `customer_invoice_line`, lifecycle, strict Sales Order/Delivery Note source matching, exact integer totals, `INV-YYYY-XXXXX`, `sales_revenue` mapping, PostingEngine posting Dr AR / Cr Sales Revenue, `receivable_entry` debit, attachment registry, Inertia page, and 19/19 passing feature tests after local hardening. |
+| Phase 4 Slice 6 Supplier Bill Posting | COMPLETE | `supplier_bill` and `supplier_bill_line`, lifecycle, strict Purchase Order/Goods Receipt source matching, exact integer totals, `BILL-YYYY-XXXXX`, `purchase_expense` mapping, PostingEngine posting Dr Purchase Expense / Cr AP Control, `payable_entry` credit, attachment registry, Inertia page, and 19/19 passing feature tests after local hardening. |
+| Phase 4 Slice 7 Inventory Costing Decision | PLANNED | Decision prompt prepared in `PHASE_4_SLICE_7_GEMINI_PROMPT.md`; no inventory valuation, stock ledger, COGS, warehouse semantics, or stock-product posting may be implemented until owner chooses the costing model. |
+| Phase 4 Slices 8-10 Operations | PLANNED | Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -77,10 +79,11 @@ npm run build
 
 Result summary:
 
-- `php artisan migrate --force`: completed during Phase 4 Slice 4 verification.
-- `vendor/bin/pint --test`: passed after Phase 4 Slice 4 local source-scan cleanup.
-- `php artisan test`: 302 passing tests / 2469 assertions reported after Phase 4 Slice 4.
-- `php artisan test --filter=Phase4Slice4FulfillmentTest`: 17 tests / 138 assertions passed locally after source-scan cleanup.
+- `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 6 migration was applied.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_22_070000_create_phase4_slice6_supplier_bill_tables`.
+- `vendor/bin/pint --test`: passed after Phase 4 Slice 6 local hardening.
+- `php artisan test`: 342 tests, 340 passed, 2 skipped / 2675 assertions.
+- `php artisan test --filter=Phase4Slice6SupplierBillTest`: 19 tests / 100 assertions passed after source-line and posting hardening.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
@@ -92,7 +95,7 @@ Result summary:
 - `php artisan tokens:gc --batch=100`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
-- Delivery/Goods Receipt forbidden float/rounding source scan: no results.
+- Supplier Bill backend forbidden float/rounding source scan: no results.
 
 ## Module Status
 
@@ -103,8 +106,8 @@ Result summary:
 | Notifications | COMPLETE FOUNDATION | User-targeted notifications and read actions exist; future modules must add their own event triggers. |
 | Attachments | COMPLETE FOUNDATION | Entity registry + service exists; future entities must register authorization rules. |
 | Audit | COMPLETE FOUNDATION | Spatie Activitylog active with read-only viewer and append-only enforcement. |
-| Sales | PARTIAL | Sales Orders and Delivery Notes are complete for their bounded operational scopes. Customer Invoices, returns, stock-product invoicing, and sales posting are not implemented yet. |
-| Purchasing | PARTIAL | Purchase Orders and Goods Receipts are complete for their bounded operational scopes. Supplier Bills, AP posting, landed cost, and inventory valuation are not implemented yet. |
+| Sales | PARTIAL | Sales Orders, Delivery Notes, and Customer Invoice posting are complete for their bounded scopes. Returns, credit notes, stock-product invoicing, and COGS/inventory posting are not implemented yet. |
+| Purchasing | PARTIAL | Purchase Orders, Goods Receipts, and Supplier Bill AP/GL posting are complete for their bounded operational scopes. Stock-product billing, landed cost, and inventory valuation are not implemented yet. |
 | Inventory | PLANNED | Inventory valuation/stock movement requires later owner decisions; Slice 1 must not implement valuation, COGS, or stock ledgers. |
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
 | Payroll, Rentals, Fixed Assets, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
@@ -120,9 +123,9 @@ Result summary:
 
 ## Next Milestone
 
-Phase 3 is 100% complete for the agreed scope, and Phase 4 Slices 1-4 are complete. The next prepared execution step is:
+Phase 3 is 100% complete for the agreed scope, and Phase 4 Slices 1-6 are complete. The next prepared execution step is:
 
-- Phase 4 Slice 5: Customer Invoice Posting to AR/GL using `PHASE_4_SLICE_5_GEMINI_PROMPT.md`.
+- Phase 4 Slice 7: Inventory Costing Decision Pack using `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
 
 Other owner options:
 

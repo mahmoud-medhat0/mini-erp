@@ -23,6 +23,8 @@ Use the current Laravel code and these documents first:
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -68,7 +70,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), and Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation) is complete and locally verified on PostgreSQL. Phase 4 Slice 5 Customer Invoice Posting to AR/GL is prepared in `PHASE_4_SLICE_5_GEMINI_PROMPT.md`.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), and Phase 4 Slice 6 (Supplier Bill Posting to AP/GL) is complete and locally verified on PostgreSQL. Phase 4 Slice 7 Inventory Costing Decision Pack is prepared in `PHASE_4_SLICE_7_GEMINI_PROMPT.md`.
 
 Implemented:
 
@@ -96,6 +98,24 @@ Implemented:
   - `DeliveryNoteController` and `GoodsReceiptController` endpoints.
   - `DeliveryNotes.tsx` and `GoodsReceipts.tsx` Inertia pages.
   - `Phase4Slice4FulfillmentTest` 17/17 passing tests (138 assertions).
+- Phase 4 Slice 5 Customer Invoice Posting to AR/GL:
+  - `customer_invoice` and `customer_invoice_line` models/migrations.
+  - `CustomerInvoiceService` lifecycle (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`).
+  - manual service/non-stock invoice lines and confirmed Sales Order / Delivery Note source lines.
+  - strict source matching for source header, source line, product, UOM, and unit price.
+  - cumulative over-invoicing prevention with deterministic source-line locks.
+  - `INV-YYYY-XXXXX` global numbering, `sales_revenue` mapping, PostingEngine integration, and AR `receivable_entry` debit.
+  - Spatie Activitylog audit via `AuditLogger`, attachment registry registration for `customer_invoice`, controller/routes, and `CustomerInvoices.tsx` Inertia page.
+  - `Phase4Slice5CustomerInvoiceTest` 19/19 passing tests (86 assertions) after local hardening.
+- Phase 4 Slice 6 Supplier Bill Posting to AP/GL:
+  - `supplier_bill` and `supplier_bill_line` models/migrations.
+  - `SupplierBillService` lifecycle (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`).
+  - manual service/non-stock bill lines and confirmed Purchase Order / Goods Receipt source lines.
+  - strict source matching for source header, source line, product, UOM, and unit cost.
+  - cumulative over-billing prevention with deterministic source-line locks, including duplicate source-line protection inside one bill.
+  - `BILL-YYYY-XXXXX` global numbering, `purchase_expense` mapping, PostingEngine integration, and AP `payable_entry` credit.
+  - Spatie Activitylog audit via `AuditLogger`, attachment registry registration for `supplier_bill`, controller/routes, and `SupplierBills.tsx` Inertia page.
+  - `Phase4Slice6SupplierBillTest` 19/19 passing tests (100 assertions) after local hardening.
   - currencies and FX rates
   - fiscal years and periods
   - account categories and account types
@@ -186,9 +206,10 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate --force`: completed during Phase 4 Slice 4 verification.
-- `php artisan test`: 302 passing tests / 2469 assertions reported after Phase 4 Slice 4.
-- `php artisan test --filter=Phase4Slice4FulfillmentTest`: 17 tests / 138 assertions passed locally after source-scan cleanup.
+- `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 6 migration was applied.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_22_070000_create_phase4_slice6_supplier_bill_tables`.
+- `php artisan test`: 342 tests, 340 passed, 2 skipped / 2675 assertions.
+- `php artisan test --filter=Phase4Slice6SupplierBillTest`: 19 tests / 100 assertions passed after source-line and posting hardening.
 - `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
 - `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
@@ -200,9 +221,10 @@ Latest results:
 - `php artisan accounting:phase3-integrity-check`: passed.
 - `php artisan accounting:phase3-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
-- `vendor/bin/pint --test`: passed after local Slice 4 source-scan cleanup.
+- `vendor/bin/pint --test`: passed after local Slice 6 hardening.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
+- Supplier Bill backend forbidden float/rounding source scan: no results.
 
 ## Audit Status
 
@@ -295,12 +317,14 @@ Phase 4 planning is prepared:
 - `PHASE_4_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
 
 Next prepared execution step:
 
-1. **Phase 4 Slice 5: Customer Invoice Posting to AR/GL**
-   - Customer Invoice lifecycle, exact integer invoice totals, `INV-YYYY-XXXXX` numbering, `sales_revenue` mapping, PostingEngine integration, and AR `receivable_entry` debit.
-   - No Supplier Bills, AP posting, stock products, Inventory Valuation, stock movement, COGS, VAT/tax, discounts, Returns, Credit Notes, Reports, E2E hardening, or deployment work.
+1. **Phase 4 Slice 7: Inventory Costing Decision Pack**
+   - Inspect current stock-product boundaries and produce an owner decision matrix for weighted average, FIFO, standard cost, and non-valued/manual stock tracking.
+   - Do not implement inventory valuation, stock ledger, warehouse semantics, COGS, landed cost, or stock-product invoice/bill posting until the owner chooses the costing model.
 
 Other possible owner choices:
 

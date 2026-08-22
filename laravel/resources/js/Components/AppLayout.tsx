@@ -47,6 +47,7 @@ export type NavKey =
   | 'customer-invoices.index'
   | 'purchase-orders.index'
   | 'goods-receipts.index'
+  | 'supplier-bills.index'
   | 'reports.index'
   | 'reports.customer-statement'
   | 'reports.supplier-statement'

@@ -139,7 +139,7 @@ class Phase4Slice5CustomerInvoiceTest extends TestCase
             'nature' => 'debit',
             'currency' => 'USD',
             'is_active' => true,
-            'is_allow_manual_journal' => false,
+            'allow_manual_posting' => false,
         ]);
 
         $this->revenueAccount = Account::query()->create([
@@ -149,7 +149,7 @@ class Phase4Slice5CustomerInvoiceTest extends TestCase
             'nature' => 'credit',
             'currency' => 'USD',
             'is_active' => true,
-            'is_allow_manual_journal' => true,
+            'allow_manual_posting' => true,
         ]);
 
         /** @var AccountingAccountMappingService $mappingService */

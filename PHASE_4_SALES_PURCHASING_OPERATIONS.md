@@ -1,6 +1,6 @@
 # PHASE 4 - SALES & PURCHASING OPERATIONS
 
-Status: IN PROGRESS - Slices 1, 2, 3, 4 & 5 complete, Slice 6 prompt ready
+Status: IN PROGRESS - Slices 1, 2, 3, 4, 5 & 6 complete, Slice 7 decision prompt ready
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -287,7 +287,7 @@ Execution file:
 
 Create supplier bill lifecycle and post approved bills to AP and GL.
 
-Status: READY FOR EXECUTION
+Status: COMPLETE
 
 Expected scope:
 
@@ -308,7 +308,9 @@ Execution file:
 
 ### Slice 7 - Inventory Costing Decision Slice
 
-Only after owner approval, implement the chosen inventory valuation approach.
+Prepare the owner decision pack for the future inventory valuation approach. Do not implement valuation code in this slice.
+
+Status: READY FOR EXECUTION
 
 Owner must decide:
 
@@ -318,6 +320,10 @@ Owner must decide:
 - manual/non-valued stock tracking
 
 No default assumption is allowed.
+
+Execution file:
+
+- `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
 
 ### Slice 8 - Returns, Credit Notes, Debit Notes
 
