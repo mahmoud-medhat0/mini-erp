@@ -1,6 +1,4 @@
-# PHASE 4 - SALES & PURCHASING OPERATIONS
-
-Status: IN PROGRESS - Slices 1, 2, 3, 4, 5, 6, 7 & 8 complete (Moving Weighted Average Inventory Costing & Posting)
+Status: IN PROGRESS - Slices 1, 2, 3, 4, 5, 6, 7, 8 & 9 complete (Read-only Operational Reports + Returns Decision Pack)
 
 This document is the Phase 4 planning contract for the active Laravel + Inertia Mini ERP migration.
 
@@ -355,11 +353,27 @@ Expected scope must explicitly define:
 
 Do not implement FIFO layers, Standard Costing, or Non-Valued alternate branches.
 
-### Slice 9 - Returns, Credit Notes, Debit Notes
+### Slice 9 - Operational Reports + Returns/Credit/Debit Decision Pack
 
-Only after owner approval, implement sales returns, purchase returns, credit notes, and debit notes.
+Status: READY FOR EXECUTION
 
-This slice must define:
+Execution file:
+
+- `PHASE_4_SLICE_9_GEMINI_PROMPT.md`
+
+Implement read-only operational reports for existing durable documents, and create an owner-ready decision pack for returns, credit notes, and debit notes.
+
+This slice must implement reports for:
+
+- sales orders
+- purchase orders
+- customer invoices
+- supplier bills
+- delivery notes
+- goods receipts
+- stock movements
+
+This slice must document, but not implement, return/credit/debit note decisions:
 
 - relation to original invoice/bill
 - inventory effect
@@ -368,16 +382,13 @@ This slice must define:
 - tax effect if tax exists
 - posting/reversal invariants
 
-### Slice 10 - Reports, UX Gaps, Stress, Docs, Final Verification
+Do not implement returns, credit notes, debit notes, or tax until the owner approves the exact rules.
 
-Close Phase 4 with operational reports, any remaining Phase 4 UX gaps, stress/integrity commands, documentation synchronization, and final verification.
+### Slice 10 - UX Gaps, Stress, Docs, Final Verification
 
 Expected scope:
 
-- sales order report
-- purchase order report
-- invoice/bill report
-- delivery/goods receipt report
+- remaining Phase 4 UX gaps after Slice 9
 - permission-aware action review
 - empty state and validation feedback review
 - AR/AP reconciliation checks extended to invoices/bills

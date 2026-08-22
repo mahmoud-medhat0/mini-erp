@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting) is complete and locally hardened after the owner selected **Option 1: Moving Weighted Average Costing**.
+Current status: Phase 4 Slice 9 (Read-only Operational Reports & Returns Decision Pack) is complete and locally verified.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -20,68 +20,29 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - Phase 4 Slice 2 Sales Order Backend & UX.
 - Phase 4 Slice 3 Purchase Order Backend & UX.
 - Phase 4 Slice 4 Delivery Notes & Goods Receipts.
-- Phase 4 Slice 5 Customer Invoice Posting:
-  - `customer_invoice` and `customer_invoice_line` models/migrations.
-  - `CustomerInvoiceService` lifecycle (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`).
-  - Manual service/non-stock invoice lines.
-  - Confirmed Sales Order and confirmed Delivery Note source lines.
-  - Strict source mode validation: no source line without matching source header, no mixed Sales Order/Delivery Note sources, and product/UOM/unit price must match the source.
-  - Integer quantity and minor-unit money math with overflow/fractional-minor rejection.
-  - Cumulative over-invoicing prevention with deterministic source-line locks.
-  - `INV-YYYY-XXXXX` global invoice numbering using `customer.invoice`.
-  - `sales_revenue` accounting mapping.
-  - PostingEngine integration: Dr AR Control / Cr Sales Revenue.
-  - AR subledger `receivable_entry` debit creation.
-  - Idempotent post replay.
-  - Spatie Activitylog audit via `AuditLogger`.
-  - Attachment entity registry registration for `customer_invoice`.
-  - `CustomerInvoiceController` endpoints.
-  - `CustomerInvoices.tsx` Inertia page.
-  - `Phase4Slice5CustomerInvoiceTest` 19/19 passing tests (86 assertions) after local hardening.
-- Phase 4 Slice 6 Supplier Bill Posting:
-  - `supplier_bill` and `supplier_bill_line` models/migrations.
-  - `SupplierBillService` lifecycle (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`).
-  - Manual service/non-stock bill lines.
-  - Confirmed Purchase Order and confirmed Goods Receipt source lines.
-  - Strict source mode validation: no source line without matching source header, no mixed Purchase Order/Goods Receipt sources, and product/UOM/unit cost must match the source.
-  - Integer quantity and minor-unit money math with overflow/fractional-minor rejection.
-  - Cumulative over-billing prevention with deterministic source-line locks, including duplicate source-line protection inside one bill.
-  - `BILL-YYYY-XXXXX` global bill numbering using `supplier.bill`.
-  - `purchase_expense` accounting mapping and idempotent default seeding to account `5100`.
-  - PostingEngine integration: Dr Purchase Expense / Cr AP Control.
-  - AP subledger `payable_entry` credit creation.
-  - Idempotent post replay.
-  - Spatie Activitylog audit via `AuditLogger`.
-  - Attachment entity registry registration for `supplier_bill`.
-  - `SupplierBillController` endpoints.
-  - `SupplierBills.tsx` Inertia page.
-  - `Phase4Slice6SupplierBillTest` 16/16 passing tests (97 assertions).
-- Phase 4 Slice 7 Inventory Costing Decision Pack:
-  - Created `PHASE_4_INVENTORY_COSTING_DECISION.md`.
-  - Owner selected Option 1: Moving Weighted Average Costing.
-- Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting:
-  - Created `stock_balance` and `stock_movement_ledger` migrations and Eloquent models.
-  - Extended `AccountingAccountMappingService` with `inventory_asset`, `grni_clearing`, and `cogs`.
-  - Implemented `MovingWeightedAverageInventoryService` with exact integer valuation math, residual clearance, pessimistic balance locks (`lockForUpdate`), GL journal posting, and audit logging.
-  - Integrated Goods Receipt confirmation to post Dr Inventory Asset / Cr GRNI Clearing.
-  - Integrated Delivery Note confirmation to post Dr COGS / Cr Inventory Asset and prevent negative stock.
-  - Integrated Supplier Bill posting to clear GRNI Clearing for stock lines sourced from Goods Receipts.
-  - Integrated Customer Invoice posting for stock lines sourced from Delivery Notes.
-  - Created read-only Inertia page `resources/js/Pages/Inventory/StockBalances.tsx`.
-  - Added PostgreSQL integrity constraints for stock balances and stock movements in `2026_08_22_090000_harden_phase4_slice8_inventory_integrity.php`.
-  - Fixed inventory-generated journal lines to use `memo`, not the non-existent `description` fillable field.
-  - Implemented `Phase4Slice8InventoryCostingTest` (14 tests, 13 passed, 1 PostgreSQL-only check skipped under the current test driver, 100 assertions).
-  - Implemented and hardened `accounting:inventory-concurrency-stress --workers=50`; it now respects append-only `stock_movement_ledger` and passes cleanly.
+- Phase 4 Slice 5 Customer Invoice Posting.
+- Phase 4 Slice 6 Supplier Bill Posting.
+- Phase 4 Slice 7 Inventory Costing Decision Pack (Owner selected Option 1: Moving Weighted Average Costing).
+- Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting.
+- Phase 4 Slice 9 Operational Reports & Returns Decision Pack:
+  - 7 Read-only Query Services: `SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`.
+  - 7 HTTP Controllers under `App\Http\Controllers\Reports`.
+  - 7 Inertia UI Pages (`SalesOrdersReport.tsx`, `PurchaseOrdersReport.tsx`, `DeliveryNotesReport.tsx`, `GoodsReceiptsReport.tsx`, `CustomerInvoicesReport.tsx`, `SupplierBillsReport.tsx`, `StockMovementsReport.tsx`).
+  - Reports Hub (`Reports/Index.tsx`) links for all 7 new operational reports.
+  - Owner decision pack `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
+  - Feature test suite `Phase4Slice9OperationalReportsTest.php` (7/7 passing tests, 85 assertions after local schema-alignment correction).
 
 Latest verified baseline:
 
 ```text
-php artisan migrate --force: applied 2026_08_22_090000_harden_phase4_slice8_inventory_integrity
+php artisan migrate --force: Nothing to migrate
 php artisan migrate:status: all migrations Ran through 2026_08_22_090000_harden_phase4_slice8_inventory_integrity
-php artisan test --filter=Phase4Slice8InventoryCostingTest: 14 tests, 13 passed, 1 skipped / 100 assertions
-php artisan test: 356 tests, 353 passed, 3 skipped / 2785 assertions
+php artisan test --filter=Phase4Slice9OperationalReportsTest: 7 tests / 85 assertions
+php artisan test: 363 tests, 360 passed, 3 skipped / 2870 assertions
+php artisan test --testsuite=Concurrency: 7 tests / 16 assertions
 php artisan accounting:inventory-concurrency-stress --workers=50: PASSED CLEANLY
-php artisan concurrency:stress --workers=100: PASSED CLEANLY
+php artisan concurrency:stress --workers=10: PASSED CLEANLY
+php artisan concurrency:stress --workers=100: BLOCKED LOCALLY by Windows paging-file VirtualAlloc exhaustion, not an application assertion failure
 php artisan accounting:concurrency-stress --workers=50: PASSED CLEANLY
 php artisan tokens:gc --batch=100: PASSED CLEANLY
 vendor/bin/pint --test: passed
@@ -92,7 +53,13 @@ Inventory backend forbidden float/rounding source scan: no results
 
 ## Next Execution
 
-Proceed to Phase 4 Slice 9 (Sales & Purchasing Operational Reports & Returns/Credit/Debit Notes Decision Pack).
+Proceed to Phase 4 Slice 10 only after the owner answers the open decisions in `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
+
+Slice 10 expected scope after owner approval:
+
+- implement the approved returns/credit/debit note model;
+- preserve immutable posted ledgers and stock movement ledger behavior;
+- do not invent VAT/tax, warehouse/location, or company/branch scope.
 
 ## Owner Decisions Still Needed
 
@@ -102,7 +69,6 @@ Do not implement these without explicit owner approval:
 - FIFO, Standard Costing, or Non-Valued alternate inventory costing branches.
 - Warehouse/location semantics.
 - Warehouse-to-branch relationship.
-- Stock-product invoicing/billing behavior.
 - Landed cost and freight allocation.
 - Post-confirmation sales order cancellation behavior once delivery/invoice exists.
 - Post-confirmation purchase order cancellation behavior once goods receipt/bill exists.

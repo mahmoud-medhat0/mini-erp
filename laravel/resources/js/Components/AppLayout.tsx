@@ -58,6 +58,13 @@ export type NavKey =
   | 'reports.bank-book'
   | 'reports.cheque-register'
   | 'reports.bank-reconciliations'
+  | 'reports.sales-orders'
+  | 'reports.purchase-orders'
+  | 'reports.delivery-notes'
+  | 'reports.goods-receipts'
+  | 'reports.customer-invoices'
+  | 'reports.supplier-bills'
+  | 'reports.stock-movements'
   | 'reports.ar-gl-reconciliation'
   | 'reports.ap-gl-reconciliation';
 

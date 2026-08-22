@@ -72,6 +72,46 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
         },
       ],
     },
+    {
+      title: isAr ? 'تقارير عمليات المبيعات والشراء والمخزون' : 'Sales, Purchasing & Inventory Reports',
+      reports: [
+        {
+          name: isAr ? 'سجل أوامر البيع' : 'Sales Orders Register',
+          desc: isAr ? 'تقرير تفصيلي لجميع أوامر البيع وحالاتها والكميات والمبالغ.' : 'Read-only operational register of sales orders and fulfillment status.',
+          href: '/reports/sales-orders',
+        },
+        {
+          name: isAr ? 'سجل أوامر الشراء' : 'Purchase Orders Register',
+          desc: isAr ? 'تقرير تفصيلي لجميع أوامر الشراء وحالاتها والكميات والمبالغ.' : 'Read-only operational register of purchase orders and receiving status.',
+          href: '/reports/purchase-orders',
+        },
+        {
+          name: isAr ? 'سجل إذونات التسليم' : 'Delivery Notes Register',
+          desc: isAr ? 'تقرير تفصيلي لإذونات التسليم الصادرة للعملاء والكميات المسلمة.' : 'Read-only register of goods delivery notes issued to customers.',
+          href: '/reports/delivery-notes',
+        },
+        {
+          name: isAr ? 'سجل إذونات الاستلام' : 'Goods Receipts Register',
+          desc: isAr ? 'تقرير تفصيلي لإذونات الاستلام الواردة من الموردين والكميات المستلمة.' : 'Read-only register of goods receipts received from suppliers.',
+          href: '/reports/goods-receipts',
+        },
+        {
+          name: isAr ? 'سجل فواتير العملاء' : 'Customer Invoices Register',
+          desc: isAr ? 'سجل تفصيلي لفواتير العملاء وربطها بالقيود والأستاذ والذمم.' : 'Read-only register of customer invoices with GL and AR entries.',
+          href: '/reports/customer-invoices',
+        },
+        {
+          name: isAr ? 'سجل فواتير الموردين' : 'Supplier Bills Register',
+          desc: isAr ? 'سجل تفصيلي لفواتير الموردين وربطها بالقيود والأستاذ والذمم.' : 'Read-only register of supplier bills with GL and AP entries.',
+          href: '/reports/supplier-bills',
+        },
+        {
+          name: isAr ? 'سجل حركات المخزون' : 'Stock Movements Register',
+          desc: isAr ? 'سجل حركة وتقييم المخزون المستند للأستاذ والتغيرات بالرصيد.' : 'Immutable audit ledger of stock movements, valuation, and balance deltas.',
+          href: '/reports/stock-movements',
+        },
+      ],
+    },
   ];
 
   return (

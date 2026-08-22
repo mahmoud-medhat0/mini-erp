@@ -3,6 +3,15 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 4 Slice 9 Read-only Operational Reports & Returns Decision Pack
+- Implemented 7 read-only operational query services (`SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`).
+- Created 7 HTTP Controllers under `App\Http\Controllers\Reports` with `Gate::authorize('reports.view')` access control.
+- Implemented 7 Inertia UI Pages (`SalesOrdersReport.tsx`, `PurchaseOrdersReport.tsx`, `DeliveryNotesReport.tsx`, `GoodsReceiptsReport.tsx`, `CustomerInvoicesReport.tsx`, `SupplierBillsReport.tsx`, `StockMovementsReport.tsx`).
+- Updated Reports Hub (`Reports/Index.tsx`) to link all 7 new operational reports under a dedicated "Sales, Purchasing & Inventory Reports" group.
+- Drafted owner-facing decision pack `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md` covering Sales Returns, Customer Credit Notes, Purchase Returns, Supplier Credit/Debit Notes, Tax/VAT status, and recommended Next Slice execution plan.
+- Implemented feature test suite `Phase4Slice9OperationalReportsTest.php` (7/7 passing tests, 85 assertions) verifying RBAC authorization, query filters, integer minor unit / e6 quantity formatting, linked accounting IDs, and zero-mutation database safety.
+- Hardened report query services locally after review to use the current schema fields (`number` and `journal_entry.number`) instead of stale generated aliases such as `order_number`, `invoice_number`, or `entry_number`.
+
 ### Added — Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting
 - Implemented `stock_balance` and `stock_movement_ledger` migrations and Eloquent domain models.
 - Added database immutability triggers for `stock_movement_ledger` on PostgreSQL and SQLite.

@@ -1,12 +1,12 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 4 Slice 8 complete and locally hardened (Moving Weighted Average Inventory Costing & Posting).
-- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 8 integrity hardening.
-- **Tests passing:** Laravel PHPUnit 356 tests, 353 passed, 3 skipped / 2785 assertions; Phase 4 Slice 8 suite 14 tests, 13 passed, 1 skipped / 100 assertions.
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, and `accounting:phase3-stress --workers=50`.
+- **Current phase:** Phase 4 Slice 9 complete and locally verified (Read-only Sales, Purchasing, Fulfillment, Invoicing, Billing & Stock Movement Operational Reports + Returns Decision Pack).
+- **Latest verified:** 2026-08-22, local Laravel + PostgreSQL after Phase 4 Slice 9 completion.
+- **Tests passing:** Laravel PHPUnit 363 tests, 360 passed, 3 skipped / 2870 assertions; Phase 4 Slice 9 suite 7/7 passing tests / 85 assertions.
+- **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, and the PHPUnit Concurrency suite. `concurrency:stress --workers=100` is currently blocked locally by Windows paging-file exhaustion.
 - **Frontend verification:** `npm run typecheck` passed (0 TS errors), `npm run build` passed.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending for Phase 4 Slice 8 implementation.
+- **Latest verified code commit:** pending for Phase 4 Slice 9 implementation.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 
 ## Legend
@@ -36,7 +36,8 @@
 | Phase 4 Slice 6 Supplier Bill Posting | COMPLETE | `supplier_bill` and `supplier_bill_line`, lifecycle, strict Purchase Order/Goods Receipt source matching, exact integer totals, `BILL-YYYY-XXXXX`, `purchase_expense` mapping, PostingEngine posting Dr Purchase Expense / Cr AP Control, `payable_entry` credit, attachment registry, Inertia page, and 16/16 passing feature tests. |
 | Phase 4 Slice 7 Inventory Costing Decision | COMPLETE | Created `PHASE_4_INVENTORY_COSTING_DECISION.md` comparing Weighted Average, FIFO, Standard Costing, and Non-Valued Stock Tracking. Owner selected Option 1: Moving Weighted Average Costing. |
 | Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting | COMPLETE | `stock_balance` and `stock_movement_ledger` tables/models, `MovingWeightedAverageInventoryService`, GL mappings (`inventory_asset`, `grni_clearing`, `cogs`), Goods Receipt stock receipt posting (Dr Inventory Asset / Cr GRNI Clearing), Delivery Note stock issue posting (Dr COGS / Cr Inventory Asset), Supplier Bill stock line GRNI clearing, Customer Invoice stock line DN matching, read-only Inertia stock balances page (`StockBalances.tsx`), PostgreSQL integrity constraints via `2026_08_22_090000_harden_phase4_slice8_inventory_integrity.php`, 14-test Slice 8 feature suite, and 50-iteration inventory integrity stress command. |
-| Phase 4 Slices 9-10 Operations | PLANNED | Returns/Credit Notes after owner decision, UX/reporting/stress close-out. |
+| Phase 4 Slice 9 Operational Reports & Returns Decision Pack | COMPLETE | 7 Query Services (`SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`), 7 Controllers, 7 Inertia Pages, Reports Hub links, `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md` decision pack, schema-aligned report numbers, and 7/7 passing feature tests (`Phase4Slice9OperationalReportsTest`, 85 assertions). |
+| Phase 4 Slice 10 Sales Returns, Credit Notes & Operations Close-Out | PLANNED | Implementation of Returns, Customer Credit Notes, Supplier Credit/Debit Notes after owner decision approval, followed by final operational close-out audit. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -80,23 +81,19 @@ npm run build
 
 Result summary:
 
-- `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 6 migration was applied.
-- `php artisan migrate:status`: all migrations Ran through `2026_08_22_070000_create_phase4_slice6_supplier_bill_tables`.
-- `vendor/bin/pint --test`: passed after Phase 4 Slice 6 local hardening.
-- `php artisan test`: 342 tests, 340 passed, 2 skipped / 2675 assertions.
-- `php artisan test --filter=Phase4Slice6SupplierBillTest`: 19 tests / 100 assertions passed after source-line and posting hardening.
+- `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 9 local correction.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_22_090000_harden_phase4_slice8_inventory_integrity`.
+- `vendor/bin/pint --test`: passed after Phase 4 Slice 9 local correction.
+- `php artisan test`: 363 tests, 360 passed, 3 skipped / 2870 assertions.
+- `php artisan test --filter=Phase4Slice9OperationalReportsTest`: 7 tests / 85 assertions passed after report schema-alignment correction.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
-- `php artisan concurrency:stress --workers=100`: passed.
+- `php artisan concurrency:stress --workers=10`: passed; `--workers=100` is blocked locally by Windows paging-file `VirtualAlloc` exhaustion.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
-- `php artisan accounting:allocation-concurrency-stress --workers=50`: passed.
-- `php artisan accounting:cheque-concurrency-stress --workers=50`: passed.
-- `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed.
-- `php artisan accounting:phase3-integrity-check`: passed.
-- `php artisan accounting:phase3-stress --workers=50`: passed.
+- `php artisan accounting:inventory-concurrency-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
-- Supplier Bill backend forbidden float/rounding source scan: no results.
+- Phase 4 Slice 9 report services use current `number`/`journal_entry.number` schema fields.
 
 ## Module Status
 
@@ -107,9 +104,9 @@ Result summary:
 | Notifications | COMPLETE FOUNDATION | User-targeted notifications and read actions exist; future modules must add their own event triggers. |
 | Attachments | COMPLETE FOUNDATION | Entity registry + service exists; future entities must register authorization rules. |
 | Audit | COMPLETE FOUNDATION | Spatie Activitylog active with read-only viewer and append-only enforcement. |
-| Sales | PARTIAL | Sales Orders, Delivery Notes, and Customer Invoice posting are complete for their bounded scopes. Returns, credit notes, stock-product invoicing, and COGS/inventory posting are not implemented yet. |
-| Purchasing | PARTIAL | Purchase Orders, Goods Receipts, and Supplier Bill AP/GL posting are complete for their bounded operational scopes. Stock-product billing, landed cost, and inventory valuation are not implemented yet. |
-| Inventory | PLANNED | Inventory valuation/stock movement requires later owner decisions; Slice 1 must not implement valuation, COGS, or stock ledgers. |
+| Sales | PARTIAL | Sales Orders, Delivery Notes, Customer Invoice posting, stock-product invoice reporting, and COGS/inventory posting through Delivery Notes are complete for their bounded scopes. Returns and credit notes are not implemented yet. |
+| Purchasing | PARTIAL | Purchase Orders, Goods Receipts, Supplier Bill AP/GL posting, stock-product bill reporting, GRNI clearing, and inventory valuation through Goods Receipts are complete for their bounded scopes. Purchase returns and supplier credit/debit notes are not implemented yet. |
+| Inventory | PARTIAL | Moving Weighted Average stock balance and immutable stock movement ledger are implemented. Warehouse/location, stock counts, stock adjustments, and return valuation workflows are not implemented. |
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
 | Payroll, Rentals, Fixed Assets, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
 | Full financial statements | NOT IMPLEMENTED | General Journal, General Ledger, and Trial Balance exist; Balance Sheet/Income Statement/Cash Flow are later work. |
@@ -120,13 +117,14 @@ Result summary:
 - Browser E2E coverage for the Laravel UI is not yet equivalent to the old Next.js Playwright smoke suite.
 - Branch exact business semantics remain undefined; do not add ownership, uniqueness, or authorization scope without owner decision.
 - Production scheduler execution still needs deployment wiring, e.g. external cron calling Laravel `schedule:run`.
+- `php artisan concurrency:stress --workers=100` can exhaust the local Windows paging file in this workstation; lower worker counts pass and accounting/inventory stress checks pass.
 - Legacy specs and old `app/` docs can mention tenant/company scope; treat them as historical unless they match current owner corrections.
 
 ## Next Milestone
 
-Phase 3 is 100% complete for the agreed scope, and Phase 4 Slices 1-8 are complete. Moving Weighted Average inventory costing is implemented and locally hardened.
+Phase 3 is 100% complete for the agreed scope, and Phase 4 Slices 1-9 are complete. Moving Weighted Average inventory costing and read-only operational reports are implemented and locally hardened.
 
-- Next execution: Phase 4 Slice 9 planning/implementation prompt for sales and purchasing operational reports plus returns/credit/debit note decision scope.
+- Next execution: Phase 4 Slice 10 after owner decisions in `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
 
 Other owner options:
 

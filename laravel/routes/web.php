@@ -31,8 +31,15 @@ use App\Http\Controllers\Reports\BankBookController;
 use App\Http\Controllers\Reports\BankReconciliationReportController;
 use App\Http\Controllers\Reports\CashBookController;
 use App\Http\Controllers\Reports\ChequeRegisterReportController;
+use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
+use App\Http\Controllers\Reports\DeliveryNoteReportController;
+use App\Http\Controllers\Reports\GoodsReceiptReportController;
+use App\Http\Controllers\Reports\PurchaseOrderReportController;
 use App\Http\Controllers\Reports\ReportsHubController;
+use App\Http\Controllers\Reports\SalesOrderReportController;
+use App\Http\Controllers\Reports\StockMovementReportController;
+use App\Http\Controllers\Reports\SupplierBillReportController;
 use App\Http\Controllers\Reports\SupplierStatementController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SettingsActionController;
@@ -214,6 +221,15 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/ar-gl-reconciliation/export', [ArToGlReconciliationController::class, 'exportCsv'])->name('reports.ar-gl-reconciliation.export');
         Route::get('/ap-gl-reconciliation', [ApToGlReconciliationController::class, 'index'])->name('reports.ap-gl-reconciliation');
         Route::get('/ap-gl-reconciliation/export', [ApToGlReconciliationController::class, 'exportCsv'])->name('reports.ap-gl-reconciliation.export');
+
+        // Phase 4 Slice 9 Operational Reports
+        Route::get('/sales-orders', [SalesOrderReportController::class, 'index'])->name('reports.sales-orders');
+        Route::get('/purchase-orders', [PurchaseOrderReportController::class, 'index'])->name('reports.purchase-orders');
+        Route::get('/delivery-notes', [DeliveryNoteReportController::class, 'index'])->name('reports.delivery-notes');
+        Route::get('/goods-receipts', [GoodsReceiptReportController::class, 'index'])->name('reports.goods-receipts');
+        Route::get('/customer-invoices', [CustomerInvoiceReportController::class, 'index'])->name('reports.customer-invoices');
+        Route::get('/supplier-bills', [SupplierBillReportController::class, 'index'])->name('reports.supplier-bills');
+        Route::get('/stock-movements', [StockMovementReportController::class, 'index'])->name('reports.stock-movements');
     });
 
     // Phase 4 Slice 1 Catalog Routes

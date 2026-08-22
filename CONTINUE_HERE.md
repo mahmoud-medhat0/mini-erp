@@ -26,6 +26,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_4_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_7_GEMINI_PROMPT.md`
 - `PHASE_4_SLICE_8_GEMINI_PROMPT.md`
+- `PHASE_4_SLICE_9_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -71,7 +72,7 @@ Confirmed later owner decision:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), Phase 4 Slice 7 (Inventory Costing Decision Pack), and Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting) is complete, locally hardened, and verified on PostgreSQL.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slice 1 (Catalog Foundation), Phase 4 Slice 2 (Sales Order Backend & UX), Phase 4 Slice 3 (Purchase Order Backend & UX), Phase 4 Slice 4 (Delivery Notes & Goods Receipts Operational Foundation), Phase 4 Slice 5 (Customer Invoice Posting to AR/GL), Phase 4 Slice 6 (Supplier Bill Posting to AP/GL), Phase 4 Slice 7 (Inventory Costing Decision Pack), Phase 4 Slice 8 (Moving Weighted Average Inventory Costing & Posting), and Phase 4 Slice 9 (Operational Reports & Returns Decision Pack) is complete, locally hardened, and verified on PostgreSQL.
 
 Implemented:
 
@@ -88,6 +89,19 @@ Implemented:
 - Phase 4 Slice 1 Product & Service Catalog Foundation.
 - Phase 4 Slice 2 Sales Order Backend & UX.
 - Phase 4 Slice 3 Purchase Order Backend & UX.
+- Phase 4 Slice 4 Delivery Notes & Goods Receipts.
+- Phase 4 Slice 5 Customer Invoice Posting.
+- Phase 4 Slice 6 Supplier Bill Posting.
+- Phase 4 Slice 7 Inventory Costing Decision Pack (Moving Weighted Average Costing).
+- Phase 4 Slice 8 Moving Weighted Average Inventory Costing & Posting.
+- Phase 4 Slice 9 Operational Reports & Returns Decision Pack:
+  - 7 Read-only Operational Query Services (`SalesOrderReportService`, `PurchaseOrderReportService`, `DeliveryNoteReportService`, `GoodsReceiptReportService`, `CustomerInvoiceReportService`, `SupplierBillReportService`, `StockMovementReportService`).
+  - 7 HTTP Controllers under `App\Http\Controllers\Reports`.
+  - 7 Inertia UI Pages under `resources/js/Pages/Reports`.
+  - Main Reports Hub (`Reports/Index.tsx`) links.
+  - Returns / Credit Notes / Debit Notes owner decision pack `PHASE_4_RETURNS_CREDIT_DEBIT_DECISION.md`.
+  - Feature test suite `Phase4Slice9OperationalReportsTest.php` (7/7 passing tests, 85 assertions after local schema-alignment correction).
+
 - Phase 4 Slice 4 Delivery Notes & Goods Receipts Operational Foundation:
   - `delivery_note`, `delivery_note_line`, `goods_receipt`, `goods_receipt_line` models/migrations.
   - `DeliveryNoteService` & `GoodsReceiptService` lifecycle (`draft` -> `confirmed` / `cancelled`).
@@ -207,22 +221,16 @@ npm run build
 
 Latest results:
 
-- `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 6 migration was applied.
-- `php artisan migrate:status`: all migrations Ran through `2026_08_22_070000_create_phase4_slice6_supplier_bill_tables`.
-- `php artisan test`: 342 tests, 340 passed, 2 skipped / 2675 assertions.
-- `php artisan test --filter=Phase4Slice6SupplierBillTest`: 19 tests / 100 assertions passed after source-line and posting hardening.
-- `php artisan test --filter=Phase3Slice9StressIntegrityTest`: 6 tests / 262 assertions passed.
-- `php artisan test --filter=Phase3Slice8ReportsTest`: 12 tests / 180 assertions passed.
+- `php artisan migrate --force`: Nothing to migrate after Phase 4 Slice 9 local correction.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_22_090000_harden_phase4_slice8_inventory_integrity`.
+- `php artisan test`: 363 tests, 360 passed, 3 skipped / 2870 assertions.
+- `php artisan test --filter=Phase4Slice9OperationalReportsTest`: 7 tests / 85 assertions passed after report schema-alignment correction.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
-- `php artisan concurrency:stress --workers=100`: passed.
+- `php artisan concurrency:stress --workers=10`: passed; `--workers=100` is blocked locally by Windows paging-file `VirtualAlloc` exhaustion.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
-- `php artisan accounting:allocation-concurrency-stress --workers=50`: passed.
-- `php artisan accounting:cheque-concurrency-stress --workers=50`: passed.
-- `php artisan accounting:bank-reconciliation-concurrency-stress --workers=50`: passed.
-- `php artisan accounting:phase3-integrity-check`: passed.
-- `php artisan accounting:phase3-stress --workers=50`: passed.
+- `php artisan accounting:inventory-concurrency-stress --workers=50`: passed.
 - `php artisan tokens:gc --batch=100`: passed.
-- `vendor/bin/pint --test`: passed after local Slice 6 hardening.
+- `vendor/bin/pint --test`: passed after local Slice 9 correction.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
 - Supplier Bill backend forbidden float/rounding source scan: no results.
