@@ -2,6 +2,30 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 6 Slice 6 Fixed Asset Disposal (2026-08-23)
+- Created database migration `2026_08_23_070000_create_phase6_slice6_fixed_asset_disposal_tables.php` for `fixed_asset_disposal` table with PostgreSQL check constraints `chk_fad_status` (`posted`, `reversed`), `chk_fad_type` (`sale`, `scrap`, `retirement`), and `chk_fad_amounts` (`proceeds_minor >= 0`, `net_book_value_minor >= 0`, `gain_minor >= 0`, `loss_minor >= 0`).
+- Created Eloquent model `FixedAssetDisposal` with casts & relations, and updated `FixedAsset` model with `disposals` relation.
+- Built `FixedAssetDisposalPostingService` domain application service supporting:
+  - `previewDisposal`: real-time calculation of Net Book Value ($\text{Cost} - \text{Accum Dep}$), proceeds, gain, and loss in integer minor units.
+  - `postDisposal`: locked open period guard, row locks, idempotency claim handling, asset status transition (`active` -> `disposed`), GL journal posting via `PostingEngine` (**Credit** `fixed_asset_cost`, **Debit** `accumulated_depreciation`, **Debit** `fixed_asset_clearing` for proceeds, **Debit** `fixed_asset_disposal_loss` for loss, **Credit** `fixed_asset_disposal_gain` for gain), and automatic skipping of remaining unposted depreciation schedules.
+  - `reverseDisposal`: reversal via `ReversalService`, restoring asset status back to `active` and schedule statuses back to `planned`.
+- Built `FixedAssetDisposalController` with actions `index`, `show`, `preview`, `store`, `reverse` guarded by Spatie RBAC permissions (`fixedAssets.view`, `fixedAssets.post`, `fixedAssets.reverse`, `view_financials`).
+- Registered web routes in `routes/web.php` (`/fixed-assets-disposals`, `/fixed-assets-disposals/{id}`, `/fixed-assets/{assetId}/disposals/preview`, `/fixed-assets/{assetId}/disposals`, `/fixed-assets-disposals/{id}/reverse`).
+- Built Inertia React pages `Disposals/Index.tsx` and `Disposals/Show.tsx`, and added Dispose Asset Modal in `FixedAssets/Show.tsx`.
+- Added dictionary translation keys in `en.json` and `ar.json` under `fixedAssetsDisposals`.
+- Updated navigation key `fixed-assets-disposals.index` and permission mapping in `AppLayout.tsx`.
+- Created console command `FixedAssetDisposalStressCommand.php` (`php artisan accounting:fixed-asset-disposal-stress --workers=50`). Verified that 50 concurrent workers created exactly 1 durable disposal record on PostgreSQL.
+- Added forward hardening migration `2026_08_23_071000_enforce_fixed_asset_disposal_integrity.php` enforcing one posted disposal per asset and database immutability for posted disposal financial fields.
+- Built feature test suite `Phase6Slice6FixedAssetDisposalTest.php` (15/15 passing tests / 60 assertions after local review).
+- Executed full verification gate pass cleanly: Pint passed, full PHPUnit suite 508 tests / 505 passed / 3 skipped / 3702 assertions, Phase 6 test suites passed (58/58 tests / 303 assertions), PostgreSQL stress commands passed cleanly (including 50-worker disposal stress), `npm run typecheck` passed (0 errors), `npm run build` completed cleanly.
+
+### Corrected — Phase 6 Slice 6 Local Review (2026-08-23)
+- Hardened `fixed_asset_disposal` at database level with a partial unique index for one active posted disposal per asset plus PostgreSQL/SQLite triggers blocking posted financial-field mutation and deletion.
+- Corrected disposal idempotency so repeated duplicate requests replay safely while corrected reposting after reversal is not trapped by stale completed keys.
+- Locked depreciation schedule rows during disposal posting, blocked backdated disposal before posted depreciation periods, skipped only schedules at/after the disposal date, and restored those skipped schedules on reversal.
+- Removed hardcoded visible disposal text from the new React pages/modal and corrected disposal pages to use `fixed-assets-disposals.index` as the active navigation key.
+- Added regression coverage for DB immutability, delete blocking, no unsupported company/branch/tenant/custodian/location scope columns, repost after reversal, and backdated disposal rejection.
+
 ### Added — Phase 6 Slice 5 Depreciation Run Posting (2026-08-23)
 - Created database migration `2026_08_23_060000_create_phase6_slice5_depreciation_run_tables.php` for `fixed_asset_depreciation_run` table (with check constraints `chk_fadr_status` and `chk_fadr_amounts`) and added `depreciation_run_id` FK on `fixed_asset_depreciation_schedule`.
 - Created Eloquent model `FixedAssetDepreciationRun` with casts & relations, and updated `FixedAssetDepreciationSchedule` with `depreciationRun` relation.

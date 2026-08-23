@@ -128,6 +128,22 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
     });
   }
 
+  const [showDisposeModal, setShowDisposeModal] = useState(false);
+  const disposalDict = (dict.app as any).fixedAssetsDisposals;
+
+  const disposeForm = useForm({
+    disposal_date: new Date().toISOString().split('T')[0],
+    disposal_type: 'scrap',
+    proceeds_minor: 0,
+  });
+
+  function handlePostDisposal(e: FormEvent) {
+    e.preventDefault();
+    disposeForm.post(`/fixed-assets/${asset.id}/disposals`, {
+      onSuccess: () => setShowDisposeModal(false),
+    });
+  }
+
   function formatName(name: { en: string; ar: string } | string): string {
     if (typeof name === 'object' && name !== null) {
       return locale === 'ar' ? name.ar || name.en : name.en || name.ar;
@@ -208,6 +224,15 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
                   className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700"
                 >
                   {appDict.capitalizeAsset}
+                </button>
+              )}
+              {can.post && asset.status === 'active' && (
+                <button
+                  type="button"
+                  onClick={() => setShowDisposeModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700"
+                >
+                  {disposalDict.disposeAsset}
                 </button>
               )}
               {can.reverse && asset.status === 'active' && asset.capitalization_mode === 'manual_capitalization' && (
@@ -503,6 +528,93 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
                   className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {appDict.capitalizeAsset}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Dispose Asset Modal */}
+      {showDisposeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+              {disposalDict.disposeAsset}
+            </h3>
+
+            <form onSubmit={handlePostDisposal} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {disposalDict.disposalType}
+                </label>
+                <select
+                  value={disposeForm.data.disposal_type}
+                  onChange={(e) => disposeForm.setData('disposal_type', e.target.value)}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  required
+                >
+                  <option value="scrap">{disposalDict.scrap}</option>
+                  <option value="sale">{disposalDict.sale}</option>
+                  <option value="retirement">{disposalDict.retirement}</option>
+                </select>
+                {disposeForm.errors.disposal_type && (
+                  <p className="mt-1 text-xs text-rose-600">{disposeForm.errors.disposal_type}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {disposalDict.disposalDate}
+                </label>
+                <input
+                  type="date"
+                  value={disposeForm.data.disposal_date}
+                  onChange={(e) => disposeForm.setData('disposal_date', e.target.value)}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  required
+                />
+                {disposeForm.errors.disposal_date && (
+                  <p className="mt-1 text-xs text-rose-600">{disposeForm.errors.disposal_date}</p>
+                )}
+              </div>
+
+              {disposeForm.data.disposal_type === 'sale' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {disposalDict.proceedsMinorUnits}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={disposeForm.data.proceeds_minor}
+                    onChange={(e) => disposeForm.setData('proceeds_minor', parseInt(e.target.value, 10) || 0)}
+                    className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm font-mono"
+                    required
+                  />
+                  {disposeForm.errors.proceeds_minor && (
+                    <p className="mt-1 text-xs text-rose-600">{disposeForm.errors.proceeds_minor}</p>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500">
+                {disposalDict.confirmDisposal}
+              </p>
+
+              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDisposeModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
+                >
+                  {disposalDict.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={disposeForm.processing}
+                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50"
+                >
+                  {disposalDict.postDisposal}
                 </button>
               </div>
             </form>

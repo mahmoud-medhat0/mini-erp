@@ -80,7 +80,8 @@ export type NavKey =
   | 'reports.ap-gl-reconciliation'
   | 'fixed-assets.index'
   | 'fixed-asset-categories.index'
-  | 'fixed-assets.depreciation-runs.index';
+  | 'fixed-assets.depreciation-runs.index'
+  | 'fixed-assets-disposals.index';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -103,6 +104,7 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'fixed-assets.index': 'fixedAssets.view',
   'fixed-asset-categories.index': 'fixedAssets.view',
   'fixed-assets.depreciation-runs.index': 'fixedAssets.view',
+  'fixed-assets-disposals.index': 'fixedAssets.view',
   'customers.index': 'customers.view',
   'customer-opening-balances.index': 'customers.view',
   'customer-receipts.index': 'customers.view',

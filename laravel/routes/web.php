@@ -22,6 +22,7 @@ use App\Http\Controllers\FinancialStatementMappingController;
 use App\Http\Controllers\FixedAssets\FixedAssetCategoryController;
 use App\Http\Controllers\FixedAssets\FixedAssetController;
 use App\Http\Controllers\FixedAssets\FixedAssetDepreciationRunController;
+use App\Http\Controllers\FixedAssets\FixedAssetDisposalController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
@@ -397,6 +398,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/fixed-assets-depreciation-runs/preview/{financialPeriodId}', [FixedAssetDepreciationRunController::class, 'preview'])->name('fixed-assets.depreciation-runs.preview');
     Route::get('/fixed-assets-depreciation-runs/{id}', [FixedAssetDepreciationRunController::class, 'show'])->name('fixed-assets.depreciation-runs.show');
     Route::post('/fixed-assets-depreciation-runs/{id}/reverse', [FixedAssetDepreciationRunController::class, 'reverse'])->name('fixed-assets.depreciation-runs.reverse');
+
+    // Phase 6 Slice 6 Fixed Asset Disposal Routes
+    Route::get('/fixed-assets-disposals', [FixedAssetDisposalController::class, 'index'])->name('fixed-assets-disposals.index');
+    Route::get('/fixed-assets-disposals/{id}', [FixedAssetDisposalController::class, 'show'])->name('fixed-assets-disposals.show');
+    Route::post('/fixed-assets/{assetId}/disposals/preview', [FixedAssetDisposalController::class, 'preview'])->name('fixed-assets.disposals.preview');
+    Route::post('/fixed-assets/{assetId}/disposals', [FixedAssetDisposalController::class, 'store'])->name('fixed-assets.disposals.store');
+    Route::post('/fixed-assets-disposals/{id}/reverse', [FixedAssetDisposalController::class, 'reverse'])->name('fixed-assets-disposals.reverse');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

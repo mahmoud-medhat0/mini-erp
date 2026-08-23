@@ -1,10 +1,25 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 6 Slice 5 (Depreciation Run Posting) is fully implemented and locally verified on 2026-08-23. Phase 6 Slices 1-5 are complete. Phase 6 Slice 6 (Disposal and Gain/Loss Posting) is next.
+Current status: Phase 6 Slice 6 (Disposal, Sale, Scrap, and Reversal Workflow) is fully implemented and locally verified on 2026-08-23. Phase 6 Slices 1-6 are complete. Phase 6 Slice 7 (Reports, UX, Export/Print, E2E Smoke & Close-Out) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Completed
+
+- Phase 6 Slice 6 Fixed Asset Disposal (FULLY COMPLETE):
+  - Database schema: `2026_08_23_070000_create_phase6_slice6_fixed_asset_disposal_tables.php` creating `fixed_asset_disposal` table with PostgreSQL check constraints `chk_fad_status`, `chk_fad_type`, and `chk_fad_amounts`.
+  - Hardening migration: `2026_08_23_071000_enforce_fixed_asset_disposal_integrity.php` enforces one posted disposal per asset and blocks UPDATE/DELETE mutation of posted disposal financial fields at database level.
+  - Eloquent models: `FixedAssetDisposal` created and `FixedAsset` updated with `disposals` relation.
+  - Domain service: `FixedAssetDisposalPostingService` supporting `previewDisposal`, `postDisposal` (sale/scrap/retirement), and `reverseDisposal`, with corrected idempotency so repeated post requests replay safely while corrected reposting after reversal is allowed.
+  - Accounting Entry Engine: Credit `fixed_asset_cost`, Debit `accumulated_depreciation`, Debit `fixed_asset_clearing` (proceeds), Debit `fixed_asset_disposal_loss` (if loss), Credit `fixed_asset_disposal_gain` (if gain), through `PostingEngine` with open period guard.
+  - Depreciation/disposal safeguards: blocks disposal before already posted depreciation periods, locks asset schedules during disposal posting, skips unposted schedules at/after disposal date, and restores those skipped schedules on reversal.
+  - Controllers & Routes: `FixedAssetDisposalController` (`index`, `show`, `preview`, `store`, `reverse`) guarded by permissions `fixedAssets.view`, `fixedAssets.post`, `fixedAssets.reverse`, and `view_financials`.
+  - Inertia React UI: `Disposals/Index.tsx` and `Disposals/Show.tsx` created, Dispose Asset Modal added in `FixedAssets/Show.tsx`, with visible text dictionary-backed through EN/AR locale files.
+  - Navigation: added `fixed-assets-disposals.index` navigation key and permission map in `AppLayout.tsx`.
+  - Translations: EN/AR dictionary keys added in `en.json` and `ar.json`.
+  - Concurrency stress command: `accounting:fixed-asset-disposal-stress --workers=50` (Passed cleanly on PostgreSQL).
+  - Feature test suite `Phase6Slice6FixedAssetDisposalTest.php` (15/15 passing tests / 60 assertions).
+  - Full local verification after review: `php artisan test` 508 tests / 505 passed / 3 skipped / 3702 assertions, Phase 6 combined 58/58 tests / 303 assertions, Concurrency suite 7/7, Pint/typecheck/build, token GC, and all relevant PostgreSQL stress commands passed.
 
 - Phase 6 Slice 5 Depreciation Run Posting (FULLY COMPLETE):
   - Database schema: `2026_08_23_060000_create_phase6_slice5_depreciation_run_tables.php` creating `fixed_asset_depreciation_run` table with PostgreSQL check constraints `chk_fadr_status` and `chk_fadr_amounts`, plus added `depreciation_run_id` foreign key on `fixed_asset_depreciation_schedule`.
@@ -137,7 +152,7 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 Phase 5 (Financial Statements & Period Close) is **100% COMPLETE AND VERIFIED**.
 Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is **DOCS-ONLY COMPLETE** (Status: `OWNER DECISION REQUIRED`).
-Phase 6 Slices 2-5 (Register, Capitalization, Depreciation Schedule Engine, Depreciation Run Posting) are **100% COMPLETE AND VERIFIED** after local review.
+Phase 6 Slices 2-6 (Register, Capitalization, Depreciation Schedule Engine, Depreciation Run Posting, Fixed Asset Disposal) are **100% COMPLETE AND VERIFIED** after local review.
 
 Phase 6 Prepared execution files:
 
@@ -147,10 +162,10 @@ Phase 6 Prepared execution files:
 - `PHASE_6_SLICE_3_GEMINI_PROMPT.md` (Capitalization and Opening Asset Posting - COMPLETE)
 - `PHASE_6_SLICE_4_GEMINI_PROMPT.md` (Depreciation Schedule Engine - COMPLETE)
 - `PHASE_6_SLICE_5_GEMINI_PROMPT.md` (Depreciation Run Posting - COMPLETE)
-- `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_6_GEMINI_PROMPT.md` (Disposal, Sale, Scrap, and Reversal Workflow - COMPLETE)
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Next execution step: give Gemini `PHASE_6_SLICE_6_GEMINI_PROMPT.md` for Disposal, Sale, Scrap, and Gain/Loss Posting. Slice 6 must build on completed Slice 5 depreciation runs and must not introduce supplier bill integration, tax depreciation books, or tenant/company/branch/custodian scopes.
+Next execution step: give Gemini `PHASE_6_SLICE_7_GEMINI_PROMPT.md` for Fixed Asset Reports, UX polish, export/print, smoke verification, and Phase 6 close-out. Slice 7 must build on completed disposal/depreciation workflows and must not introduce tax depreciation books, maintenance, insurance, barcode, transfer, warehouse/location, tenant/company/branch/custodian scopes, or hardcoded visible page text.
 
 Phase 6 must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
@@ -168,7 +183,7 @@ Explicitly NOT STARTED modules requiring bounded owner prompts:
 
 - Payroll.
 - Rentals.
-- Fixed Assets Slices 6-7. Register, capitalization, depreciation schedules, and depreciation posting are implemented; disposal, reports, export/print, and close-out remain pending.
+- Fixed Assets Slice 7. Register, capitalization, depreciation schedules, depreciation posting, and disposal are implemented; reports, export/print, smoke verification, and close-out remain pending.
 - Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.

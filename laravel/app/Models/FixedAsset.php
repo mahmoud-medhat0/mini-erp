@@ -80,6 +80,11 @@ class FixedAsset extends Model
         return $this->hasMany(FixedAssetDepreciationSchedule::class, 'fixed_asset_id')->orderBy('period_number');
     }
 
+    public function disposals(): HasMany
+    {
+        return $this->hasMany(FixedAssetDisposal::class, 'fixed_asset_id')->latest('created_at');
+    }
+
     public function capitalizer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'capitalized_by');
