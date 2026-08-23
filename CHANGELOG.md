@@ -2,7 +2,30 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
-## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 6 Slice 5 Depreciation Run Posting (2026-08-23)
+- Created database migration `2026_08_23_060000_create_phase6_slice5_depreciation_run_tables.php` for `fixed_asset_depreciation_run` table (with check constraints `chk_fadr_status` and `chk_fadr_amounts`) and added `depreciation_run_id` FK on `fixed_asset_depreciation_schedule`.
+- Created Eloquent model `FixedAssetDepreciationRun` with casts & relations, and updated `FixedAssetDepreciationSchedule` with `depreciationRun` relation.
+- Built `FixedAssetDepreciationPostingService` application service featuring:
+  - Strict period guard `PeriodGuard::assertPeriodOpenForPostingWithLock` enforcing open period status with row lock.
+  - Idempotency claim handling via `DatabaseIdempotencyStore`.
+  - Balanced journal voucher posting via `PostingEngine`: **Dr** `depreciation_expense` / **Cr** `accumulated_depreciation`.
+  - Reversal engine via `reverseDepreciationRun`, reversing JV via `ReversalService` and marking schedule statuses `reversed` while preserving original run/journal links.
+- Built `FixedAssetDepreciationRunController` with actions `index`, `store`, `show`, `preview`, `reverse` guarded by permissions (`fixedAssets.view`, `fixedAssets.post`, `fixedAssets.reverse`, `view_financials`).
+- Registered web routes in `routes/web.php` (`/fixed-assets-depreciation-runs`, `/fixed-assets-depreciation-runs/preview`, `/fixed-assets-depreciation-runs/{id}/reverse`).
+- Added dictionary translation keys in `en.json` and `ar.json`.
+- Built Inertia React pages `DepreciationRuns/Index.tsx`, `DepreciationRuns/Show.tsx`, and `DepreciationRuns/Preview.tsx`, and updated navigation in `AppLayout.tsx`.
+- Created console command `FixedAssetDepreciationStressCommand.php` (`php artisan accounting:fixed-asset-depreciation-stress --workers=50`).
+- Added forward hardening migration `2026_08_23_061000_harden_fixed_asset_depreciation_schedule_run_link_immutability.php` so posted schedule rows cannot have their `depreciation_run_id` changed after posting.
+- Built feature test suite `Phase6Slice5DepreciationRunTest.php` (10/10 passing tests / 44 assertions).
+- Executed full verification gate cleanly: Pint passed, full PHPUnit suite 493 tests / 490 passed / 3 skipped / 3637 assertions, Concurrency test suite 7/7 passed, PostgreSQL stress commands passed cleanly (including 50-worker depreciation run concurrency test), `npm run typecheck` passed (0 errors), `npm run build` completed cleanly.
+
+### Corrected — Phase 6 Slice 5 Local Review (2026-08-23)
+- Preserved posted depreciation schedule auditability during reversal by marking schedules `reversed` instead of resetting them to `planned` or clearing run/journal links.
+- Removed unused JV sequence allocation from depreciation run posting; `PostingEngine` remains the sole allocator for JV numbers.
+- Added missing GL mapping regression coverage and DB immutability coverage for posted schedule `depreciation_run_id`.
+- Added the missing depreciation run preview page and removed hardcoded visible period/status text from the depreciation run UI.
+- Updated the fixed asset depreciation stress command output to report unique durable runs instead of implying every worker posted a separate run.
+
 ### Added — Phase 6 Slice 4 Depreciation Schedule Engine (2026-08-23)
 - Created database migration `2026_08_23_050000_create_phase6_slice4_fixed_asset_depreciation_schedule_table.php` for `fixed_asset_depreciation_schedule` table with PostgreSQL check constraints `chk_fads_status` (`planned`, `posted`, `reversed`, `skipped`) and `chk_fads_amounts` (`depreciation_minor >= 0`, `accumulated_depreciation_minor >= 0`, `net_book_value_minor >= 0`).
 - Created database migration `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability.php` enforcing database-level protection for posted depreciation schedule financial fields and posted-row deletion.

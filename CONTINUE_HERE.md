@@ -45,7 +45,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_6_SLICE_2_GEMINI_PROMPT.md` (Phase 6 Slice 2 Fixed Asset Register Foundation 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_6_SLICE_3_GEMINI_PROMPT.md` (Phase 6 Slice 3 Capitalization and Opening Asset Posting 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_6_SLICE_4_GEMINI_PROMPT.md` (Phase 6 Slice 4 Depreciation Schedule Engine 100% COMPLETE & VERIFIED 2026-08-23)
-- `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_5_GEMINI_PROMPT.md` (Phase 6 Slice 5 Depreciation Run Posting 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
@@ -105,7 +105,7 @@ Before accepting any Gemini/AI implementation report:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out), and Phase 6 Slices 1-4 is verified on PostgreSQL.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out), and Phase 6 Slices 1-5 is verified on PostgreSQL.
 
 Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is FULLY COMPLETE (Docs-Only, Status: `OWNER DECISION REQUIRED`).
 
@@ -114,6 +114,18 @@ Phase 6 Slice 2 (Fixed Asset Register Foundation) is FULLY COMPLETE after local 
 Phase 6 Slice 3 (Capitalization and Opening Asset Posting) is FULLY COMPLETE after local review.
 
 Phase 6 Slice 4 (Depreciation Schedule Engine) is FULLY COMPLETE after local review.
+
+Phase 6 Slice 5 (Depreciation Run Posting) is FULLY COMPLETE after local review.
+
+Latest Phase 6 Slice 5 local correction notes:
+
+- Built `fixed_asset_depreciation_run` database migration with PostgreSQL check constraints `chk_fadr_status` and `chk_fadr_amounts`, plus added `depreciation_run_id` foreign key on `fixed_asset_depreciation_schedule`.
+- Added `2026_08_23_061000_harden_fixed_asset_depreciation_schedule_run_link_immutability.php` so posted schedule rows cannot have their `depreciation_run_id` changed after posting.
+- Built `FixedAssetDepreciationPostingService` with `PeriodGuard::assertPeriodOpenForPostingWithLock` enforcement, row locks, idempotency claim handling, balanced journal posting (Dr `depreciation_expense` / Cr `accumulated_depreciation`), and reversal via `ReversalService` marking schedule rows `reversed` while preserving original run/journal links.
+- Built `FixedAssetDepreciationRunController` and Inertia React views (`DepreciationRuns/Index.tsx`, `DepreciationRuns/Show.tsx`, `DepreciationRuns/Preview.tsx`) with dictionary translations, preview workflow, and permissions mapping.
+- Created concurrency stress command `accounting:fixed-asset-depreciation-stress --workers=50`.
+- Built `Phase6Slice5DepreciationRunTest.php` feature suite (10/10 tests passed / 44 assertions).
+- Full verification gate executed cleanly: Pint passed, full PHPUnit suite 493 tests / 490 passed / 3 skipped / 3637 assertions, Concurrency test suite 7/7 passed, PostgreSQL stress commands passed cleanly (including 50-worker depreciation run concurrency test), `npm run typecheck` passed (0 errors), `npm run build` completed cleanly.
 
 Latest Phase 6 Slice 2 local correction notes:
 
@@ -140,14 +152,14 @@ Latest Phase 6 Slice 4 local correction notes:
 - Fixed Asset detail depreciation schedule UI uses dictionary-backed statuses, date separators, table labels, buttons, and empty states.
 - Verification: migrations up to date through `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability`, `vendor/bin/pint --test`, Slice 4 suite 13/13 / 64 assertions, full PHPUnit suite 483 tests / 480 passed / 3 skipped / 3588 assertions, Concurrency testsuite 7/7, PostgreSQL stress commands, `npm run typecheck`, and `npm run build`.
 
-Next execution step: `PHASE_6_SLICE_5_GEMINI_PROMPT.md` (Monthly Depreciation Posting & Journal Posting).
+Next execution step: `PHASE_6_SLICE_6_GEMINI_PROMPT.md` (Disposal, Sale, Scrap, and Gain/Loss Posting).
 
 Latest Phase 6 Slice 1 notes:
 
 - Created `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` containing Arabic executive summary, technical overview, 12 policy dimensions, GL mapping strategy, RBAC permission specifications, owner decision checklist, recommended defaults, and future slice roadmap.
 - Recommended straight-line depreciation, useful life in months, optional salvage value defaulting to 0, depreciation starting in month after in-service date, opening asset registration without GL entries, and acquisition via Fixed Asset Clearing account (`fixed_asset_clearing`).
 - Preserved docs-only execution: 0 migrations, 0 models, 0 services, 0 routes, 0 UI components, 0 seeders, 0 commands, and 0 tests added. Status marked as `OWNER DECISION REQUIRED`.
-- Slices 2-4 have already implemented the register foundation, capitalization/opening posting, and depreciation schedules. Continue with Slice 5.
+- Slices 2-5 have already implemented the register foundation, capitalization/opening posting, depreciation schedules, and depreciation run posting. Continue with Slice 6.
 
 Latest Phase 5 Slice 6 close-out notes:
 
@@ -478,7 +490,7 @@ Phase 6 planning is prepared:
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Phase 6 Slices 1-4 are complete. Execute `PHASE_6_SLICE_5_GEMINI_PROMPT.md` next for Monthly Depreciation Posting & Journal Posting.
+Phase 6 Slices 1-5 are complete. Execute `PHASE_6_SLICE_6_GEMINI_PROMPT.md` next for Disposal, Sale, Scrap, and Gain/Loss Posting.
 
 Other possible owner choices:
 

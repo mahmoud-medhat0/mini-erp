@@ -1,14 +1,14 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 6 (Fixed Assets) is IN PROGRESS. Slices 1-4 are complete; Slice 5 is next.
-- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 4 local review.
-- **Tests passing:** Full suite 483 tests, 480 passed, 3 skipped / 3588 assertions. Phase 6 Slice 4 suite 13 tests, 13 passed / 64 assertions. Concurrency testsuite 7 tests, 7 passed / 16 assertions.
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, and the PHPUnit Concurrency suite.
-- **Frontend verification:** `npm run typecheck` passed, `npm run build` passed (chunk size warning only).
+- **Current phase:** Phase 6 (Fixed Assets) is IN PROGRESS. Slices 1-5 are complete; Slice 6 is next.
+- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 5 local review.
+- **Tests passing:** Full suite 493 tests, 490 passed, 3 skipped / 3637 assertions. Phase 6 Slice 5 suite 10 tests, 10 passed / 44 assertions. Concurrency testsuite 7 tests, 7 passed / 16 assertions.
+- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, and the PHPUnit Concurrency suite.
+- **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (chunk size warning only).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending after Phase 6 Slice 4 local review.
+- **Latest verified code commit:** pending after Phase 6 Slice 5 local review.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
-- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared. Slices 1-4 are complete; start the next pass with `PHASE_6_SLICE_5_GEMINI_PROMPT.md`.
+- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared. Slices 1-5 are complete; start the next pass with `PHASE_6_SLICE_6_GEMINI_PROMPT.md`.
 
 ## Legend
 
@@ -50,7 +50,8 @@
 | Phase 6 Slice 2 Fixed Asset Register Foundation | COMPLETE | `fixed_asset_category` and `fixed_asset` tables/models created with PostgreSQL check constraints, 6 fixed asset GL mapping keys registered, attachment entity registered, `FixedAssetCategoryService` & `FixedAssetRegisterService`, controllers, routes, Inertia React pages (`Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`), EN/AR translations, navigation items in `AppLayout.tsx`, local review fixes for multilingual form payloads / hardcoded TSX text / workflow-owned activation / currency validation, and 9/9 passing feature tests (`Phase6Slice2FixedAssetRegisterTest`, 71 assertions). |
 | Phase 6 Slice 3 Capitalization and Opening Asset Posting | COMPLETE | Capitalization metadata columns (`capitalization_mode`, `capitalization_date`, `journal_entry_id`, `capitalized_at`, `capitalized_by`) added via migration, `FixedAssetCapitalizationService` supporting `opening_already_capitalized` (0 GL entries) and `manual_capitalization` (PostingEngine Dr Asset Cost / Cr Fixed Asset Clearing), capitalization reversal (`ReversalService`), controller endpoints, web routes, Capitalize Modal in `Show.tsx`, dictionary translations, retry-safe row-lock/state-based capitalization idempotency, blocked non-draft capitalization/edit/update, blocked recapitalization with a different mode, machine-readable journal/memo descriptions, no hardcoded visible fixed-asset detail text, and 11/11 passing feature tests (`Phase6Slice3CapitalizationTest`, 64 assertions). |
 | Phase 6 Slice 4 Depreciation Schedule Engine | COMPLETE | `fixed_asset_depreciation_schedule` table/model created with PostgreSQL check constraints plus DB immutability trigger migration `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability.php`, deterministic straight-line integer minor-unit math, integer remainder allocation, month-after-in-service start policy, automatic fiscal year extension, active-asset-only idempotent schedule (re)generation, side-effect-free schedule reads, protection of posted lines, controller & routes, Inertia React preview table & (re)generate action in `Show.tsx`, dictionary translations, zero GL posting in this slice, and 13/13 passing feature tests (`Phase6Slice4DepreciationScheduleTest`, 64 assertions). |
-| Phase 6 Fixed Assets | IN PROGRESS | Phase 6 Slices 1, 2, 3, and 4 are 100% complete and locally verified. Slices 5-7 are prepared. |
+| Phase 6 Slice 5 Depreciation Run Posting | COMPLETE | `fixed_asset_depreciation_run` table/model created with PostgreSQL check constraints `chk_fadr_status` and `chk_fadr_amounts`, `depreciation_run_id` FK added to schedule table, forward hardening migration `2026_08_23_061000_harden_fixed_asset_depreciation_schedule_run_link_immutability.php`, `FixedAssetDepreciationPostingService` with `PeriodGuard::assertPeriodOpenForPostingWithLock` enforcement, row locks, idempotency claim handling, balanced journal posting (Dr `depreciation_expense` / Cr `accumulated_depreciation`), reversal via `ReversalService` marking posted schedule rows `reversed` while preserving run/journal links, `FixedAssetDepreciationRunController`, web routes, Inertia React pages (`DepreciationRuns/Index.tsx`, `DepreciationRuns/Show.tsx`, `DepreciationRuns/Preview.tsx`), dictionary translations, navigation items, concurrency stress command `accounting:fixed-asset-depreciation-stress --workers=50`, and 10/10 passing feature tests (`Phase6Slice5DepreciationRunTest`, 44 assertions). |
+| Phase 6 Fixed Assets | IN PROGRESS | Phase 6 Slices 1, 2, 3, 4, and 5 are 100% complete and locally verified. Slices 6-7 are prepared. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -67,7 +68,7 @@
 
 ## Verification Snapshot
 
-Latest Phase 6 Slice 4 local review verification:
+Latest Phase 6 Slice 5 local review verification:
 
 ```powershell
 php artisan migrate --force
@@ -76,6 +77,7 @@ vendor/bin/pint --test
 php artisan test --filter=Phase6Slice2FixedAssetRegisterTest
 php artisan test --filter=Phase6Slice3CapitalizationTest
 php artisan test --filter=Phase6Slice4DepreciationScheduleTest
+php artisan test --filter=Phase6Slice5DepreciationRunTest
 php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=100
@@ -85,6 +87,7 @@ php artisan accounting:settlement-concurrency-stress --workers=50
 php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
 php artisan accounting:inventory-concurrency-stress --workers=50
+php artisan accounting:fixed-asset-depreciation-stress --workers=50
 php artisan accounting:phase3-integrity-check
 php artisan accounting:phase3-stress --workers=50
 php artisan tokens:gc --batch=100
@@ -95,16 +98,17 @@ npm run build
 Result summary:
 
 - `php artisan migrate --force`: Nothing to migrate.
-- `php artisan migrate:status`: all 56 migrations Ran through `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability`.
+- `php artisan migrate:status`: all 58 migrations Ran through `2026_08_23_061000_harden_fixed_asset_depreciation_schedule_run_link_immutability`.
 - `vendor/bin/pint --test`: passed.
 - `php artisan test --filter=Phase6Slice2FixedAssetRegisterTest`: 9 tests / 71 assertions passed.
 - `php artisan test --filter=Phase6Slice3CapitalizationTest`: 11 tests / 64 assertions passed.
 - `php artisan test --filter=Phase6Slice4DepreciationScheduleTest`: 13 tests / 64 assertions passed.
-- `php artisan test`: 483 tests, 480 passed, 3 skipped / 3588 assertions.
+- `php artisan test --filter=Phase6Slice5DepreciationRunTest`: 10 tests / 44 assertions passed.
+- `php artisan test`: 493 tests, 490 passed, 3 skipped / 3637 assertions.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=100`: passed.
 - `php artisan accounting:concurrency-stress --workers=50`: passed.
-- Accounting stress commands for allocation, settlement, cheques, bank reconciliation, inventory, and Phase 3 orchestration: passed.
+- Accounting stress commands for allocation, settlement, cheques, bank reconciliation, inventory, fixed asset depreciation, and Phase 3 orchestration: passed.
 - `php artisan accounting:phase3-integrity-check`: passed.
 - `php artisan tokens:gc --batch=100`: deleted 0 rows.
 - `npm run typecheck`: passed.

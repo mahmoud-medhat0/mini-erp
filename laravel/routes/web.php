@@ -21,6 +21,7 @@ use App\Http\Controllers\DeliveryNoteController;
 use App\Http\Controllers\FinancialStatementMappingController;
 use App\Http\Controllers\FixedAssets\FixedAssetCategoryController;
 use App\Http\Controllers\FixedAssets\FixedAssetController;
+use App\Http\Controllers\FixedAssets\FixedAssetDepreciationRunController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
@@ -390,6 +391,12 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/fixed-assets/{id}/capitalize', [FixedAssetController::class, 'capitalize'])->name('fixed-assets.capitalize');
     Route::post('/fixed-assets/{id}/reverse-capitalization', [FixedAssetController::class, 'reverseCapitalization'])->name('fixed-assets.reverse_capitalization');
     Route::post('/fixed-assets/{id}/generate-schedule', [FixedAssetController::class, 'generateSchedule'])->name('fixed-assets.generate_schedule');
+
+    Route::get('/fixed-assets-depreciation-runs', [FixedAssetDepreciationRunController::class, 'index'])->name('fixed-assets.depreciation-runs.index');
+    Route::post('/fixed-assets-depreciation-runs', [FixedAssetDepreciationRunController::class, 'store'])->name('fixed-assets.depreciation-runs.store');
+    Route::get('/fixed-assets-depreciation-runs/preview/{financialPeriodId}', [FixedAssetDepreciationRunController::class, 'preview'])->name('fixed-assets.depreciation-runs.preview');
+    Route::get('/fixed-assets-depreciation-runs/{id}', [FixedAssetDepreciationRunController::class, 'show'])->name('fixed-assets.depreciation-runs.show');
+    Route::post('/fixed-assets-depreciation-runs/{id}/reverse', [FixedAssetDepreciationRunController::class, 'reverse'])->name('fixed-assets.depreciation-runs.reverse');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');
