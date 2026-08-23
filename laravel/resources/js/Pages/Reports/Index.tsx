@@ -10,6 +10,7 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
   const accDict = dict.app.accounting;
   const can = useCan();
   const canViewFinancials = can('view_financials');
+  const canViewFixedAssetReports = can('reports.view') && canViewFinancials;
 
   const reportGroups = [
     ...(canViewFinancials
@@ -141,6 +142,40 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
         },
       ],
     },
+    ...(canViewFixedAssetReports
+      ? [
+          {
+            title: dict.app.pages.reports.fixedAssetReports,
+            reports: [
+              {
+                name: dict.app.pages.reports.fixedAssetRegisterReport,
+                desc: dict.app.pages.reports.fixedAssetRegisterReportDescription,
+                href: '/reports/fixed-asset-register',
+              },
+              {
+                name: dict.app.pages.reports.fixedAssetNetBookValueReport,
+                desc: dict.app.pages.reports.fixedAssetNetBookValueReportDescription,
+                href: '/reports/fixed-asset-net-book-values',
+              },
+              {
+                name: dict.app.pages.reports.fixedAssetDepreciationScheduleReport,
+                desc: dict.app.pages.reports.fixedAssetDepreciationScheduleDescription,
+                href: '/reports/fixed-asset-depreciation',
+              },
+              {
+                name: dict.app.pages.reports.fixedAssetDepreciationRunHistoryReport,
+                desc: dict.app.pages.reports.fixedAssetDepreciationRunHistoryDescription,
+                href: '/reports/fixed-asset-depreciation-runs',
+              },
+              {
+                name: dict.app.pages.reports.fixedAssetDisposalHistoryReport,
+                desc: dict.app.pages.reports.fixedAssetDisposalHistoryDescription,
+                href: '/reports/fixed-asset-disposals',
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (

@@ -1,10 +1,20 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 6 Slice 6 (Disposal, Sale, Scrap, and Reversal Workflow) is fully implemented and locally verified on 2026-08-23. Phase 6 Slices 1-6 are complete. Phase 6 Slice 7 (Reports, UX, Export/Print, E2E Smoke & Close-Out) is next.
+Current status: Phase 6 (Fixed Assets & Depreciation Engine) is 100% fully implemented, concurrency-hardened, and locally verified on 2026-08-23. All 7 slices of Phase 6 are complete.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Completed
+
+- Phase 6 Slice 7 Reports, UX, Export/Print, E2E Smoke & Close-Out (FULLY COMPLETE):
+  - Report Service: `FixedAssetReportService` centralizes register, net book value, depreciation schedule, depreciation run history, and disposal history calculations.
+  - Controller & Routes: `FixedAssetReportController` exposes five read-only report pages plus five CSV exports under `/reports/fixed-asset-*`.
+  - Inertia React UI: `FixedAssetRegisterReport.tsx`, `FixedAssetNetBookValueReport.tsx`, `FixedAssetDepreciationReport.tsx`, `FixedAssetDepreciationRunReport.tsx`, `FixedAssetDisposalReport.tsx`, and Reports Hub integration in `Reports/Index.tsx`.
+  - Export: CSV export endpoints preserve integer minor units and are guarded by (`reports.export` OR `fixedAssets.export`) plus `reports.view` and `view_financials`; `fixedAssets.view` alone is not an export permission.
+  - Required Source Scans: 0 prohibited tenant/branch/custodian/location scope matches, 0 `/100` or float money conversion matches, 0 hardcoded Arabic/`locale ===` visible report text matches, and 0 `created_at` report ordering matches in the Slice 7 report service.
+  - Feature test suite `Phase6Slice7FixedAssetReportsTest.php` (6/6 passing tests / 153 assertions).
+  - Final Verification Gate: full suite 514 tests / 511 passed / 3 skipped / 3855 assertions, Phase 6 suite 64/64 tests / 456 assertions, Concurrency suite 7/7, core and fixed-asset PostgreSQL stress commands, Pint, typecheck, build, migrations, and token GC passed.
+  - Verification Artifact: `PHASE_6_FINAL_VERIFICATION_REPORT.md` updated after local correction.
 
 - Phase 6 Slice 6 Fixed Asset Disposal (FULLY COMPLETE):
   - Database schema: `2026_08_23_070000_create_phase6_slice6_fixed_asset_disposal_tables.php` creating `fixed_asset_disposal` table with PostgreSQL check constraints `chk_fad_status`, `chk_fad_type`, and `chk_fad_amounts`.
@@ -152,7 +162,7 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 Phase 5 (Financial Statements & Period Close) is **100% COMPLETE AND VERIFIED**.
 Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is **DOCS-ONLY COMPLETE** (Status: `OWNER DECISION REQUIRED`).
-Phase 6 Slices 2-6 (Register, Capitalization, Depreciation Schedule Engine, Depreciation Run Posting, Fixed Asset Disposal) are **100% COMPLETE AND VERIFIED** after local review.
+Phase 6 Slices 2-7 (Register, Capitalization, Depreciation Schedule Engine, Depreciation Run Posting, Fixed Asset Disposal, Reports/Export/Print/Close-Out) are **100% COMPLETE AND VERIFIED** after local review.
 
 Phase 6 Prepared execution files:
 
@@ -165,7 +175,7 @@ Phase 6 Prepared execution files:
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md` (Disposal, Sale, Scrap, and Reversal Workflow - COMPLETE)
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Next execution step: give Gemini `PHASE_6_SLICE_7_GEMINI_PROMPT.md` for Fixed Asset Reports, UX polish, export/print, smoke verification, and Phase 6 close-out. Slice 7 must build on completed disposal/depreciation workflows and must not introduce tax depreciation books, maintenance, insurance, barcode, transfer, warehouse/location, tenant/company/branch/custodian scopes, or hardcoded visible page text.
+Next execution step: no Phase 6 implementation slice remains. Choose the next bounded phase/module with the owner before creating new prompts.
 
 Phase 6 must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
@@ -183,7 +193,7 @@ Explicitly NOT STARTED modules requiring bounded owner prompts:
 
 - Payroll.
 - Rentals.
-- Fixed Assets Slice 7. Register, capitalization, depreciation schedules, depreciation posting, and disposal are implemented; reports, export/print, smoke verification, and close-out remain pending.
+- Fixed Assets is complete for Phase 6. Future fixed-asset extensions such as tax depreciation books, maintenance, insurance, barcode, transfers, custody, or warehouse/location semantics require separate owner-approved prompts.
 - Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.

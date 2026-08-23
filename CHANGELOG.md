@@ -2,6 +2,18 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 6 Slice 7 Reports, UX, Export/Print, E2E Smoke & Close-Out (2026-08-23)
+- Built `FixedAssetReportService` so fixed asset register, net book value, depreciation schedule, depreciation run history, and disposal history reports read one service-calculated source of truth.
+- Rebuilt `FixedAssetReportController` with strict `reports.view` + `view_financials` report access and CSV export guarded by (`reports.export` OR `fixedAssets.export`) plus `reports.view` and `view_financials`.
+- Registered report routes in `routes/web.php` for five report pages and five CSV export endpoints under `/reports/fixed-asset-*`.
+- Created Inertia React report pages `Reports/FixedAssetRegisterReport.tsx`, `Reports/FixedAssetNetBookValueReport.tsx`, `Reports/FixedAssetDepreciationReport.tsx`, `Reports/FixedAssetDepreciationRunReport.tsx`, and `Reports/FixedAssetDisposalReport.tsx`.
+- Integrated a permission-aware Fixed Asset Reports section into the Reports Hub (`Reports/Index.tsx`).
+- Corrected CSV exports and frontend money display to preserve integer minor units without `/100`, float casts, or rounding.
+- Added EN/AR dictionary keys for all new report UI labels/statuses/actions and removed new hardcoded visible TSX text.
+- Added feature test suite `Phase6Slice7FixedAssetReportsTest.php` (6/6 passing tests / 153 assertions).
+- Executed local verification cleanly on PostgreSQL: full suite 514 tests / 511 passed / 3 skipped / 3855 assertions, Phase 6 suite 64/64 tests / 456 assertions, Concurrency suite 7/7, core and fixed-asset PostgreSQL stress commands, Pint, typecheck, build, migrations, source scans, and token GC passed.
+- Updated `PHASE_6_FINAL_VERIFICATION_REPORT.md` marking Phase 6 (Fixed Assets & Depreciation Engine) 100% COMPLETE & VERIFIED after local correction.
+
 ### Added — Phase 6 Slice 6 Fixed Asset Disposal (2026-08-23)
 - Created database migration `2026_08_23_070000_create_phase6_slice6_fixed_asset_disposal_tables.php` for `fixed_asset_disposal` table with PostgreSQL check constraints `chk_fad_status` (`posted`, `reversed`), `chk_fad_type` (`sale`, `scrap`, `retirement`), and `chk_fad_amounts` (`proceeds_minor >= 0`, `net_book_value_minor >= 0`, `gain_minor >= 0`, `loss_minor >= 0`).
 - Created Eloquent model `FixedAssetDisposal` with casts & relations, and updated `FixedAsset` model with `disposals` relation.

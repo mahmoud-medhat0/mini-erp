@@ -46,6 +46,7 @@ use App\Http\Controllers\Reports\ChequeRegisterReportController;
 use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
 use App\Http\Controllers\Reports\DeliveryNoteReportController;
+use App\Http\Controllers\Reports\FixedAssetReportController;
 use App\Http\Controllers\Reports\GoodsReceiptReportController;
 use App\Http\Controllers\Reports\IncomeStatementReportController;
 use App\Http\Controllers\Reports\PurchaseOrderReportController;
@@ -258,6 +259,18 @@ Route::middleware('auth')->group(function (): void {
 
         // Phase 5 Slice 2 & 3 Financial Statements Reports
         Route::get('/balance-sheet', [BalanceSheetReportController::class, 'index'])->name('reports.balance_sheet');
+
+        // Phase 6 Slice 7 Fixed Asset Reports
+        Route::get('/fixed-asset-register', [FixedAssetReportController::class, 'register'])->name('reports.fixed-asset-register');
+        Route::get('/fixed-asset-register/export', [FixedAssetReportController::class, 'exportRegister'])->name('reports.fixed-asset-register.export');
+        Route::get('/fixed-asset-net-book-values', [FixedAssetReportController::class, 'netBookValues'])->name('reports.fixed-asset-net-book-values');
+        Route::get('/fixed-asset-net-book-values/export', [FixedAssetReportController::class, 'exportNetBookValues'])->name('reports.fixed-asset-net-book-values.export');
+        Route::get('/fixed-asset-depreciation', [FixedAssetReportController::class, 'depreciation'])->name('reports.fixed-asset-depreciation');
+        Route::get('/fixed-asset-depreciation/export', [FixedAssetReportController::class, 'exportDepreciation'])->name('reports.fixed-asset-depreciation.export');
+        Route::get('/fixed-asset-depreciation-runs', [FixedAssetReportController::class, 'depreciationRuns'])->name('reports.fixed-asset-depreciation-runs');
+        Route::get('/fixed-asset-depreciation-runs/export', [FixedAssetReportController::class, 'exportDepreciationRuns'])->name('reports.fixed-asset-depreciation-runs.export');
+        Route::get('/fixed-asset-disposals', [FixedAssetReportController::class, 'disposals'])->name('reports.fixed-asset-disposals');
+        Route::get('/fixed-asset-disposals/export', [FixedAssetReportController::class, 'exportDisposals'])->name('reports.fixed-asset-disposals.export');
         Route::get('/balance-sheet/export', [BalanceSheetReportController::class, 'exportCsv'])->name('reports.balance_sheet.export');
         Route::get('/income-statement', [IncomeStatementReportController::class, 'index'])->name('reports.income_statement');
         Route::get('/income-statement/export', [IncomeStatementReportController::class, 'exportCsv'])->name('reports.income_statement.export');
