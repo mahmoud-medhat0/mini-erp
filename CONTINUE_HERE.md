@@ -36,6 +36,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_5_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_5_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_5_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_5_YEAR_END_CLOSE_DECISION.md`
 - `PHASE_5_SLICE_6_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
@@ -94,7 +95,15 @@ Before accepting any Gemini/AI implementation report:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slices 1-4 (Financial Statement Mapping, Balance Sheet / Income Statement, Cash Flow Statement, Period Close Controls) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 5 is ready for bounded docs-only execution.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out) is FULLY COMPLETE, HARDENED, AND VERIFIED on PostgreSQL.
+
+Latest Phase 5 Slice 6 close-out notes:
+
+- Added permission-aware Print action buttons (`reports.print` + `view_financials`) to `BalanceSheet.tsx`, `IncomeStatement.tsx`, and `CashFlow.tsx`.
+- Created `Phase5Slice6FinalCloseOutTest.php` verifying CSV export streaming, service total matching, authorization enforcement, route access contracts, and schema-field fidelity (4 passing tests / 30 assertions after local review).
+- Removed duplicate `"app.accounting"` key from `en.json` and `ar.json`.
+- Executed verification after local review: migrations up to date, full PHPUnit test suite (450 tests / 447 passed / 3 skipped / 3374 assertions), Concurrency testsuite (7/7), all accounting/Phase 3 stress and integrity commands, token GC, Pint lint check, TypeScript typecheck, and Vite build.
+- Created `PHASE_5_FINAL_VERIFICATION_REPORT.md` close-out artifact.
 
 Latest Phase 5 Slice 4 local correction notes:
 
@@ -406,7 +415,7 @@ Phase 4 planning is prepared:
 
 Next prepared execution step:
 
-Execute `PHASE_5_SLICE_3_GEMINI_PROMPT.md` for Cash Flow Statement Foundation.
+Phase 5 is complete. Prepare the next bounded owner-approved phase before starting new implementation work.
 
 Other possible owner choices:
 
@@ -421,7 +430,7 @@ Not started; each requires a bounded owner prompt before any implementation:
 - Full tax/VAT filing module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.
-- Remaining Phase 5 financial statement work: year-end close decision pack and UX/export/print close-out.
+- Physical year-end closing journal / Retained Earnings GL posting remains blocked until explicit owner approval.
 
 Going forward, keep these invariants:
 

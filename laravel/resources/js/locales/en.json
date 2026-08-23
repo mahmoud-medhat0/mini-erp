@@ -86,7 +86,8 @@
       "viewDetails": "View Details",
       "numberDetails": "Number Details",
       "sequenceDetails": "Sequence Details",
-      "exportCsv": "Export CSV"
+      "exportCsv": "Export CSV",
+      "printReport": "Print Report"
     },
     "nav": {
       "dashboard": "Dashboard",

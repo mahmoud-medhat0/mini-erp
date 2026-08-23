@@ -107,7 +107,7 @@ class BankReconciliationReportService
                         'description' => $line->matchedLedgerEntry->description,
                         'debit_minor' => (int) $line->matchedLedgerEntry->debit_minor,
                         'credit_minor' => (int) $line->matchedLedgerEntry->credit_minor,
-                        'journal_number' => $line->matchedLedgerEntry->journalEntry?->entry_number,
+                        'journal_number' => $line->matchedLedgerEntry->journalEntry?->number,
                     ] : null,
                 ]),
             ],

@@ -3,6 +3,21 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 5 Slice 6 UX, Export/Print, E2E Smoke & Close-Out (2026-08-23)
+- Closed out Phase 5 with permission-aware Print actions (`reports.print` + `view_financials`) across Balance Sheet, Income Statement, and Cash Flow Statement pages (`BalanceSheet.tsx`, `IncomeStatement.tsx`, `CashFlow.tsx`).
+- Created `Phase5Slice6FinalCloseOutTest.php` verifying CSV export streaming, service total matching, authorization enforcement, route access contracts, and actual schema-field usage (4 passing tests / 30 assertions after local review).
+- Removed duplicate `"app.accounting"` key from `en.json` and `ar.json` and added `"printReport"` translations.
+- Corrected the Slice 6 test fixture to use actual schema fields (`financial_period.month`, `journal_entry.number`, `account.is_active`) instead of silently ignored natural-language fields.
+- Executed verification after local review: migrations up to date, full PHPUnit test suite (450 tests / 447 passed / 3 skipped / 3374 assertions), Concurrency testsuite (7/7), all accounting/Phase 3 stress and integrity commands, token GC, Pint lint check, TypeScript typecheck, and Vite build.
+- Created `PHASE_5_FINAL_VERIFICATION_REPORT.md` close-out artifact.
+
+### Added — Phase 5 Slice 5 Year-End Close Decision Pack (2026-08-23)
+- Added `PHASE_5_YEAR_END_CLOSE_DECISION.md` as the docs-only decision pack for Year-End Close and Retained Earnings handling.
+- Documented Soft Close, Physical Closing Journal, and Hybrid options in owner-facing Arabic and technical English.
+- Recommended Hybrid: continue with soft/date-based reporting now, and add a physical Retained Earnings closing journal only after explicit owner approval.
+- Explicitly confirmed zero Slice 5 implementation additions: no migrations, models, services, routes, UI components, seeders, commands, jobs, or closing journal engine.
+- Updated handoff/status documents to record the docs-only owner decision before Phase 5 close-out.
+
 ### Added — Phase 5 Slice 4 Period Close Controls & Hardening (2026-08-23)
 - Added migration `2026_08_23_020000_create_phase5_slice4_period_close_columns.php` with close/reopen metadata on `financial_period` and a PostgreSQL status constraint for `open`, `closed`, and `reopened`.
 - Added `PeriodGuard` and `PeriodClosedException`, and integrated period-open/date-bound checks into PostingEngine and financial-impact posting services.

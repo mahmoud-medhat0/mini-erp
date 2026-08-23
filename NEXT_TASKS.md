@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-4 are complete and locally corrected on 2026-08-23.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-6 are complete on 2026-08-23. Slice 5 remains docs-only and leaves physical year-end close / Retained Earnings posting as `OWNER DECISION REQUIRED`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -71,20 +71,21 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 - Phase 5 Slice 5 Year-End Close & Retained Earnings Decision Pack (FULLY COMPLETE):
   - Created `PHASE_5_YEAR_END_CLOSE_DECISION.md` containing Arabic executive summary, plain-language business owner explanations, technical comparison of 3 options (Soft close only, Physical closing journal, and Hybrid approach), owner decision prompt and approval checklist, database/audit/reopen/permission specifications, future testing strategy, and explicit "not implemented yet" declaration.
-  - Recommended Option 3 (Hybrid: soft close now with dynamic report calculation, physical closing entry engine later upon explicit approval).
+  - Recommended Option 3 (Hybrid: soft close now with current date-based financial reporting, physical closing entry engine later only upon explicit approval).
   - Preserved docs-only execution: 0 migrations, 0 models, 0 services, 0 routes, 0 UI components added. Status marked as `OWNER DECISION REQUIRED`.
 
-## Immediate Next Steps (Phase 5 Slice 6)
+- Phase 5 Slice 6 UX, Export/Print, E2E Smoke & Close-Out (FULLY COMPLETE):
+  - Added permission-aware Print action buttons (`reports.print` + `view_financials`) to `BalanceSheet.tsx`, `IncomeStatement.tsx`, and `CashFlow.tsx`.
+  - Added `Phase5Slice6FinalCloseOutTest.php` verifying CSV export streaming, service total matching, authorization enforcement, route access contracts, and schema-field fidelity (4/4 passing tests, 30 assertions after local review).
+  - Cleaned dictionary keys in `en.json` and `ar.json`.
+  - Local review corrected the Slice 6 fixture to use actual schema fields: `financial_period.month`, `journal_entry.number`, and `account.is_active`.
+  - Executed verification after local review: migrations up to date, full PHPUnit test suite (450 tests / 447 passed / 3 skipped / 3374 assertions), Concurrency testsuite (7/7), all accounting/Phase 3 stress and integrity commands, token GC, Pint lint check, TypeScript typecheck, and Vite build.
+  - Created `PHASE_5_FINAL_VERIFICATION_REPORT.md` close-out artifact.
 
-- Execute **Phase 5 Slice 6: UX, Export/Print, E2E Smoke, and Phase 5 Close-Out**:
-  - Read `PHASE_5_SLICE_6_GEMINI_PROMPT.md`.
-  - Polish financial statement pages, report exports/prints, navigation, and execute end-to-end smoke verification.
+## Roadmap & Next Phase
 
-## Next Execution
-
-Continue Phase 5 in bounded order:
-
-1. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+Phase 5 (Financial Statements & Period Close) is **100% COMPLETE AND VERIFIED**.
+All 6 bounded slices are fully integrated and verified on PostgreSQL.
 
 Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
@@ -122,6 +123,7 @@ Still do not implement these without explicit owner approval:
 - Separate quotation/requisition modules.
 - Approval workflow engine beyond bounded status transitions.
 - Credit limit blocking.
+- Physical year-end closing journal / Retained Earnings GL posting model. Slice 5 recommends Hybrid, but implementation still requires explicit owner approval of the account mapping, closing date rule, zeroing policy, reopen/reversal policy, and authorized roles.
 
 ## Verification Gate
 

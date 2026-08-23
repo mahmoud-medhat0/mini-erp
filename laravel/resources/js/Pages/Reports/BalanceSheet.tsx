@@ -86,6 +86,7 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
 
   const can = useCan();
   const canExport = can('reports.export') && can('view_financials');
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date || dateToday());
 
@@ -103,6 +104,10 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
     window.location.href = `/reports/balance-sheet/export?as_of_date=${encodeURIComponent(asOfDate)}`;
   }
 
+  function handlePrint() {
+    window.print();
+  }
+
   const { sections, summary } = report;
 
   return (
@@ -114,17 +119,33 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
           title={accDict.balanceSheet}
           description={accDict.balanceSheetDesc}
           actions={
-            canExport ? (
-              <button
-                type="button"
-                onClick={handleExportCsv}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
-              >
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                {actionsDict.exportCsv}
-              </button>
+            canPrint || canExport ? (
+              <div className="flex items-center gap-2">
+                {canPrint ? (
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    {actionsDict.printReport}
+                  </button>
+                ) : null}
+                {canExport ? (
+                  <button
+                    type="button"
+                    onClick={handleExportCsv}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    {actionsDict.exportCsv}
+                  </button>
+                ) : null}
+              </div>
             ) : null
           }
         />

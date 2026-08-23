@@ -86,7 +86,8 @@
       "viewDetails": "عرض التفاصيل",
       "numberDetails": "تفاصيل الرقم",
       "sequenceDetails": "تفاصيل التسلسل",
-      "exportCsv": "تصدير CSV"
+      "exportCsv": "تصدير CSV",
+      "printReport": "طباعة التقرير"
     },
     "nav": {
       "dashboard": "لوحة التحكم",

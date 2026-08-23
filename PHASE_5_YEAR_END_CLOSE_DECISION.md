@@ -16,7 +16,7 @@
 > 
 > **الوضع الحالي للنظام:**  
 > 1. يتم إقفال الفترات المالية الشهرية (12 شهراً) بدقة وأمان تام عبر `PeriodGuard` و `PeriodService`.  
-> 2. تُحسب الأرباح المبقاة (Retained Earnings) وصافي الدخل (Net Income) **ديناميكياً** وبشكل دقيق جداً في القوائم المالية (الميزانية العمومية، قائمة الدخل، وقائمة التدفقات النقدية) بناءً على قيود اليومية المرحّلة.  
+> 2. تُحسب القوائم المالية من قيود اليومية المرحّلة حسب تاريخ القيد المحاسبي. الميزانية العمومية الحالية تضيف صافي حركة حسابات قائمة الدخل ضمن إجمالي حقوق الملكية للعرض والتوازن، لكن لم يتم اعتماد أو إنشاء حساب دفتر أستاذ رسمي للأرباح المبقاة ولم يتم إنشاء قيد إقفال نهاية سنة.
 > 3. لا يوجد أي تعديل أو حظر على السجلات التاريخية للدفاتر المرحّلة.  
 > 
 > **التوصية الفنية (الخيار الهجين - Hybrid):**  
@@ -28,7 +28,7 @@
 
 This decision pack presents a bounded architectural comparison and recommended path for **Year-End Close** and **Retained Earnings** handling in Mini ERP.
 
-Currently, Mini ERP operates with **pessimistic, period-guarded period closing** (`PeriodGuard` & `PeriodService` implemented in Phase 5 Slice 4). Financial statements—including the Balance Sheet, Income Statement, and Cash Flow Statement—calculate ending balances, net income, and accumulated equity dynamically from posted `ledger_entry` records filtered by accounting date (`entry_date`).
+Currently, Mini ERP operates with **pessimistic, period-guarded period closing** (`PeriodGuard` & `PeriodService` implemented in Phase 5 Slice 4). Financial statements—including the Balance Sheet, Income Statement, and Cash Flow Statement—calculate balances and net income from posted `ledger_entry` records filtered by accounting date (`entry_date`). The current Balance Sheet includes income-statement net movement in the equity total for reporting balance, but no physical Retained Earnings GL account or year-end closing journal engine has been approved or implemented.
 
 This document explains three operational approaches for year-end closing, recommends **Option 3 (Hybrid Approach)**, provides an owner decision framework, and establishes the blueprint for future implementation upon explicit owner approval.
 
@@ -66,7 +66,7 @@ In double-entry accounting and ERP systems:
 | **Income Statement Next-Year Zeroing** | Achieved via report date filters (`entry_date >= year_start`). | Achieved by zero GL account opening balance via physical entry. | Achieved via report date filters now; physical zeroing available later. |
 | **Reopen & Audit Complexity** | Extremely low. Reopening a period simply removes posting block. | High. Reopening a year requires reversing or voiding the closing journal entry. | Low now. Clear policy defined before physical closing engine is built. |
 | **Risk of Double Counting** | Zero. | Medium (if reporting engine sums ledger entries without excluding closing entries). | Zero now. Pre-engineered reporting isolation if closing entries added later. |
-| **Implementation Scope** | Complete now (Phase 5 Slices 1–4). | Requires Migration, Model, Service, GL Mapping, Reversal Policy, UI, & Tests. | Complete for Phase 5. Future slice dedicated to physical close engine when approved. |
+| **Implementation Scope** | Available now for period locking and date-based reporting; formal Retained Earnings posting is not implemented. | Requires Migration, Model, Service, GL Mapping, Reversal Policy, UI, & Tests. | Complete as a decision path for Phase 5. Future slice dedicated to physical close engine only when approved. |
 
 ---
 
@@ -76,8 +76,7 @@ In double-entry accounting and ERP systems:
 - **How it works**:
   - All 12 monthly `financial_period` records in the fiscal year are updated to `status = 'closed'` using `PeriodService::closePeriod`.
   - The `PeriodGuard` prevents any new transaction postings into any date falling within the closed fiscal year.
-  - The Balance Sheet dynamically calculates Retained Earnings:
-    $$\text{Retained Earnings} = \sum_{\text{prior years}} (\text{Revenue} - \text{Expenses})$$
+  - The Balance Sheet includes income-statement net movement in the equity total for reporting balance. A separately named Retained Earnings presentation line can be derived from historical revenue/expense movement, but this slice does not implement a physical Retained Earnings GL posting.
   - The Income Statement filters strictly by the selected fiscal year date range (`entry_date BETWEEN start_date AND end_date`), so income statement accounts naturally display only transactions within that period.
 - **Pros**:
   - 100% audit transparent; zero synthetic entries inserted into `journal_entry` or `ledger_entry`.
@@ -86,7 +85,7 @@ In double-entry accounting and ERP systems:
 - **Cons**:
   - General Ledger queries without date parameters would show cumulative multi-year totals for revenue/expense accounts.
 - **Impact on Financial Statements**:
-  - **Balance Sheet**: Accurately shows Retained Earnings derived dynamically from prior periods.
+  - **Balance Sheet**: Can present accumulated profit/loss dynamically from prior periods while leaving the immutable ledger untouched.
   - **Income Statement**: Displays exact performance for any chosen date range.
   - **Cash Flow Statement**: Unaffected, as cash movements are categorized from operational `ledger_entry` records regardless of closing entries.
 
@@ -115,10 +114,10 @@ In double-entry accounting and ERP systems:
 
 #### Option 3: Hybrid Approach (RECOMMENDED)
 - **How it works**:
-  1. **Phase 5 Current State**: Utilize **Soft Year Close**. All monthly periods are closed via `PeriodGuard`. Balance Sheet, Income Statement, and Cash Flow Statement calculate net income and equity dynamically from historical accounting entries (`entry_date`).
+  1. **Phase 5 Current State**: Utilize **Soft Year Close**. All monthly periods are closed via `PeriodGuard`. Balance Sheet, Income Statement, and Cash Flow Statement calculate report totals from historical accounting entries (`entry_date`). Balance Sheet currently includes income-statement net movement in equity totals; it does not post or require a physical Retained Earnings GL account.
   2. **Future State (Upon Owner Approval)**: If the owner explicitly requests physical year-end closing entries, add a dedicated Year-End Close service (`YearEndCloseService`) that posts a `year_end_close` journal entry to Retained Earnings while marking `journal_entry.source_type = 'year_end_close'`.
 - **Why Option 3 is Recommended**:
-  - **Zero Breaking Changes**: Preserves the integrity of the 441+ passing tests in Mini ERP.
+  - **Zero Breaking Changes**: Preserves the current verified reporting, posting, and period-close behavior.
   - **Maximum Flexibility**: Business operations can execute period closes immediately without blocking reporting or audit processes.
   - **Safe Transition**: Gives the business owner full authority to approve the Retained Earnings GL mapping and reversal rules before any physical ledger entries are created.
 
@@ -128,7 +127,7 @@ In double-entry accounting and ERP systems:
 
 ### Accounting Impact
 - Temporary accounts (Revenue, Expense, COGS, Sales Returns, Discounts) retain their immutable ledger history.
-- Dynamic statement calculation derives Retained Earnings accurately across fiscal years.
+- Dynamic statement calculation can present accumulated profit/loss across fiscal years without mutating ledger history. Current implementation includes net income in equity totals; a formal Retained Earnings posting/account remains an owner decision.
 - If physical closing entries are added in a future slice, a dedicated `source_type = 'year_end_close'` identifier will isolate closing entries from operational postings.
 
 ### Database Impact
@@ -136,8 +135,8 @@ In double-entry accounting and ERP systems:
   - `financial_period`: Stores period bounds (`start_date`, `end_date`), `status` (`open`, `closed`, `reopened`), and close audit metadata (`closed_by`, `closed_at`, `reopened_by`, `reopened_at`, `close_note`).
   - `ledger_entry`: Immutable posted debit/credit entries linked to `account_id` and `journal_entry_id`.
 - **Future Schema Addition (If Option 2/3 Physical Close is Approved)**:
-  - Add `is_retained_earnings` (boolean) to `account` OR `mapping_type = 'retained_earnings'` in `financial_statement_line`.
-  - Add `closed_year_id` (foreign key to `fiscal_year`) on `journal_entry` where `source_type = 'year_end_close'`.
+  - Choose one explicit owner-approved Retained Earnings mapping strategy, such as an accounting mapping key, a financial-statement mapping line, or an account-level flag. Do not add one by assumption.
+  - Add any closing-entry metadata only if the selected implementation requires it, for example a fiscal-year reference on a dedicated year-end close record or journal source metadata.
 
 ### Audit Impact
 - All close and reopen actions are logged to Spatie Activitylog via `AuditLogger`.
@@ -193,8 +192,8 @@ If physical closing journal entries are to be implemented in a future slice, the
 If the owner approves physical Year-End Closing journal entries in a future slice, the execution will follow this structured sequence:
 
 1. **Migration & Mapping**:
-   - Add `is_retained_earnings` flag on `account` table.
-   - Seed or designate the default Retained Earnings account.
+   - Implement the owner-approved Retained Earnings mapping strategy.
+   - Seed or designate the default Retained Earnings account only after explicit owner approval.
 2. **Domain Service (`YearEndCloseService`)**:
    - Create `YearEndCloseService::closeFiscalYear(string $fiscalYearId, string $userId, ?string $note)`.
    - Calculate total debits/credits for all revenue and expense accounts for the fiscal year.
