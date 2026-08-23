@@ -38,6 +38,15 @@ Use the current Laravel code and these documents first:
 - `PHASE_5_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_5_YEAR_END_CLOSE_DECISION.md`
 - `PHASE_5_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_5_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_6_FIXED_ASSETS.md`
+- `PHASE_6_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -96,6 +105,8 @@ Before accepting any Gemini/AI implementation report:
 ## Current Verified Status
 
 The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out) is FULLY COMPLETE, HARDENED, AND VERIFIED on PostgreSQL.
+
+Phase 6 Fixed Assets planning is prepared as docs/prompts only. No Phase 6 migrations, models, services, routes, UI, seeders, commands, or tests have been implemented yet. Start with `PHASE_6_SLICE_1_GEMINI_PROMPT.md` to produce the owner-facing Fixed Asset Policy Decision Pack before any implementation slice.
 
 Latest Phase 5 Slice 6 close-out notes:
 
@@ -415,7 +426,18 @@ Phase 4 planning is prepared:
 
 Next prepared execution step:
 
-Phase 5 is complete. Prepare the next bounded owner-approved phase before starting new implementation work.
+Phase 6 planning is prepared:
+
+- `PHASE_6_FIXED_ASSETS.md`
+- `PHASE_6_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
+
+Execute `PHASE_6_SLICE_1_GEMINI_PROMPT.md` first. Slice 1 is docs-only and must record owner decisions for depreciation method, start rule, partial-month convention, salvage value, useful life, opening assets, capitalization policy, GL mappings, disposal policy, reversal policy, asset identity, and fixed-asset permissions.
 
 Other possible owner choices:
 
@@ -426,7 +448,6 @@ Not started; each requires a bounded owner prompt before any implementation:
 
 - Payroll.
 - Rentals.
-- Fixed Assets.
 - Full tax/VAT filing module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.

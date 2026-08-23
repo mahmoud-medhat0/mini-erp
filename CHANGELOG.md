@@ -3,6 +3,19 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 6 Fixed Assets Planning (2026-08-23)
+- Added `PHASE_6_FIXED_ASSETS.md` as the master planning contract for Fixed Assets.
+- Added seven bounded Gemini execution prompts:
+  - `PHASE_6_SLICE_1_GEMINI_PROMPT.md` Fixed Asset Policy Decision Pack.
+  - `PHASE_6_SLICE_2_GEMINI_PROMPT.md` Fixed Asset Register Foundation.
+  - `PHASE_6_SLICE_3_GEMINI_PROMPT.md` Capitalization and Opening Asset Posting.
+  - `PHASE_6_SLICE_4_GEMINI_PROMPT.md` Depreciation Schedule Engine.
+  - `PHASE_6_SLICE_5_GEMINI_PROMPT.md` Depreciation Run Posting.
+  - `PHASE_6_SLICE_6_GEMINI_PROMPT.md` Disposal, Sale, Scrap, and Reversal Workflow.
+  - `PHASE_6_SLICE_7_GEMINI_PROMPT.md` Reports, UX, Export/Print, Smoke, and Close-Out.
+- Updated `CONTINUE_HERE.md`, `NEXT_TASKS.md`, and `IMPLEMENTATION_STATUS.md` so Phase 6 starts from Slice 1 and remains docs-only until fixed-asset owner decisions are recorded.
+- Reconfirmed the future Fixed Assets implementation must preserve exact permissions, dictionary-backed visible UI text, no tenant/company/branch/custodian assumptions, integer-only money math, PostingEngine integration, PeriodGuard checks, Spatie Activitylog audit, and full verification evidence.
+
 ### Added — Phase 5 Slice 6 UX, Export/Print, E2E Smoke & Close-Out (2026-08-23)
 - Closed out Phase 5 with permission-aware Print actions (`reports.print` + `view_financials`) across Balance Sheet, Income Statement, and Cash Flow Statement pages (`BalanceSheet.tsx`, `IncomeStatement.tsx`, `CashFlow.tsx`).
 - Created `Phase5Slice6FinalCloseOutTest.php` verifying CSV export streaming, service total matching, authorization enforcement, route access contracts, and actual schema-field usage (4 passing tests / 30 assertions after local review).

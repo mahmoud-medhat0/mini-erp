@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-6 are complete on 2026-08-23. Slice 5 remains docs-only and leaves physical year-end close / Retained Earnings posting as `OWNER DECISION REQUIRED`.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-6 are complete on 2026-08-23. Slice 5 remains docs-only and leaves physical year-end close / Retained Earnings posting as `OWNER DECISION REQUIRED`. Phase 6 Fixed Assets planning files are prepared; no Phase 6 implementation has started.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -87,9 +87,23 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 Phase 5 (Financial Statements & Period Close) is **100% COMPLETE AND VERIFIED**.
 All 6 bounded slices are fully integrated and verified on PostgreSQL.
 
-Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
+Phase 6 (Fixed Assets) is **PLANNED ONLY**.
+Prepared execution files:
 
-Review gate for all remaining Phase 5 slices:
+- `PHASE_6_FIXED_ASSETS.md`
+- `PHASE_6_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
+
+Next execution step: give Gemini `PHASE_6_SLICE_1_GEMINI_PROMPT.md`. Slice 1 is docs-only and must produce `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` before any fixed-asset schema or code is created.
+
+Phase 6 must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
+
+Review gate for all future implementation slices:
 
 - A scan is clean only when it prints zero matches; non-empty scans require a classification table and fixes for unacceptable matches.
 - Verification may only be reported as passed after the command exits successfully. Do not accept background "will notify" or timer-based success claims.
@@ -103,7 +117,7 @@ Explicitly NOT STARTED modules requiring bounded owner prompts:
 
 - Payroll.
 - Rentals.
-- Fixed assets.
+- Fixed Assets implementation. Phase 6 prompt files are prepared, but no code/migrations exist yet.
 - Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.
@@ -124,10 +138,11 @@ Still do not implement these without explicit owner approval:
 - Approval workflow engine beyond bounded status transitions.
 - Credit limit blocking.
 - Physical year-end closing journal / Retained Earnings GL posting model. Slice 5 recommends Hybrid, but implementation still requires explicit owner approval of the account mapping, closing date rule, zeroing policy, reopen/reversal policy, and authorized roles.
+- Fixed Asset policy decisions from `PHASE_6_SLICE_1_GEMINI_PROMPT.md`: depreciation method, start rule, partial-month convention, salvage/residual value rule, useful-life source, existing/opening asset handling, new asset capitalization policy, GL mappings, disposal policy, reversal policy, asset numbering/identity, and exact fixed-asset permissions.
 
 ## Verification Gate
 
-Run from `laravel/` for every Phase 5 implementation slice:
+Run from `laravel/` for every future implementation slice:
 
 ```powershell
 php artisan migrate --force
