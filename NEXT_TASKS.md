@@ -1,10 +1,21 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 6 Slice 3 (Capitalization and Opening Asset Posting) is fully implemented and locally verified on 2026-08-23. Phase 6 Slices 1-3 are complete. Phase 6 Slice 4 (Depreciation Schedule Engine) is next.
+Current status: Phase 6 Slice 4 (Depreciation Schedule Engine) is fully implemented and locally verified on 2026-08-23. Phase 6 Slices 1-4 are complete. Phase 6 Slice 5 (Monthly Depreciation Posting & Journal Posting) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Completed
+
+- Phase 6 Slice 4 Depreciation Schedule Engine (FULLY COMPLETE):
+  - Database schema: `2026_08_23_050000_create_phase6_slice4_fixed_asset_depreciation_schedule_table.php` creating `fixed_asset_depreciation_schedule` table with PostgreSQL check constraints `chk_fads_status` and `chk_fads_amounts`.
+  - Eloquent models: `FixedAssetDepreciationSchedule` created and `FixedAsset` updated with `depreciationSchedules` HasMany relation.
+  - Domain service: `FixedAssetDepreciationEngineService` with deterministic straight-line integer minor-unit math, integer remainder allocation (sum of period amounts exactly equals depreciable base), automatic fiscal year creation/extension via `PeriodService`, and idempotent schedule generation with protection of posted lines.
+  - Local review corrections: enforced month-after-in-service start policy across SQLite/PostgreSQL date comparisons, restricted schedule generation to active assets, kept schedule reads side-effect free, added DB-level immutability for posted schedule financial fields, and localized schedule statuses/date separators.
+  - Hardening migration: `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability.php`.
+  - Controller & Routes: `FixedAssetController::generateSchedule` guarded by permissions `fixedAssets.edit` and `view_financials`, and web route `POST /fixed-assets/{id}/generate-schedule`.
+  - Inertia React UI: `Show.tsx` updated with Depreciation Schedule table preview and Generate/Regenerate Schedule action.
+  - Translations: EN/AR dictionary keys added in `en.json` and `ar.json`.
+  - Feature test suite `Phase6Slice4DepreciationScheduleTest.php` (13/13 passing tests / 64 assertions).
 
 - Phase 6 Slice 3 Capitalization and Opening Asset Posting (FULLY COMPLETE):
   - Database schema: `2026_08_23_040000_create_phase6_slice3_capitalization_columns.php` adding `capitalization_mode`, `capitalization_date`, `journal_entry_id`, `capitalized_at`, `capitalized_by` to `fixed_asset`.
@@ -114,20 +125,20 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 Phase 5 (Financial Statements & Period Close) is **100% COMPLETE AND VERIFIED**.
 Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is **DOCS-ONLY COMPLETE** (Status: `OWNER DECISION REQUIRED`).
-Phase 6 Slice 2 (Fixed Asset Register Foundation) is **100% COMPLETE AND VERIFIED** after local review.
+Phase 6 Slices 2-4 (Register, Capitalization, Depreciation Schedule Engine) are **100% COMPLETE AND VERIFIED** after local review.
 
 Phase 6 Prepared execution files:
 
 - `PHASE_6_FIXED_ASSETS.md`
 - `PHASE_6_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_2_GEMINI_PROMPT.md` (Fixed Asset Register Foundation - COMPLETE)
-- `PHASE_6_SLICE_3_GEMINI_PROMPT.md`
-- `PHASE_6_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_3_GEMINI_PROMPT.md` (Capitalization and Opening Asset Posting - COMPLETE)
+- `PHASE_6_SLICE_4_GEMINI_PROMPT.md` (Depreciation Schedule Engine - COMPLETE)
 - `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Next execution step: give Gemini `PHASE_6_SLICE_3_GEMINI_PROMPT.md` for Capitalization and Opening Asset Posting. Slice 3 must build on the completed Slice 2 register and must not introduce depreciation schedules, depreciation runs, disposals, supplier bill integration, or tenant/company/branch/custodian scopes.
+Next execution step: give Gemini `PHASE_6_SLICE_5_GEMINI_PROMPT.md` for Monthly Depreciation Posting & Journal Posting. Slice 5 must build on completed Slice 4 schedules and must not introduce disposals, supplier bill integration, tax modules, or tenant/company/branch/custodian scopes.
 
 Phase 6 must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
@@ -145,7 +156,7 @@ Explicitly NOT STARTED modules requiring bounded owner prompts:
 
 - Payroll.
 - Rentals.
-- Fixed Assets Slices 3-7. Slice 2 register foundation is implemented; capitalization, depreciation, disposal, reports, export/print, and close-out remain pending.
+- Fixed Assets Slices 5-7. Register, capitalization, and depreciation schedules are implemented; depreciation posting, disposal, reports, export/print, and close-out remain pending.
 - Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.

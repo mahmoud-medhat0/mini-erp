@@ -5,6 +5,7 @@ namespace App\Http\Controllers\FixedAssets;
 use App\Application\Attachments\AttachmentService;
 use App\Application\FixedAssets\FixedAssetCapitalizationService;
 use App\Application\FixedAssets\FixedAssetCategoryService;
+use App\Application\FixedAssets\FixedAssetDepreciationEngineService;
 use App\Application\FixedAssets\FixedAssetRegisterService;
 use App\Domain\Accounting\PeriodClosedException;
 use App\Http\Controllers\Controller;
@@ -23,6 +24,7 @@ class FixedAssetController extends Controller
         private readonly FixedAssetRegisterService $assetService,
         private readonly FixedAssetCategoryService $categoryService,
         private readonly FixedAssetCapitalizationService $capitalizationService,
+        private readonly FixedAssetDepreciationEngineService $depreciationEngine,
         private readonly AttachmentService $attachmentService,
     ) {}
 
@@ -100,7 +102,7 @@ class FixedAssetController extends Controller
 
         /** @var FixedAsset $asset */
         $asset = FixedAsset::query()
-            ->with(['category', 'currencyModel', 'journalEntry', 'capitalizer', 'creator', 'updater'])
+            ->with(['category', 'currencyModel', 'journalEntry', 'capitalizer', 'creator', 'updater', 'depreciationSchedules.financialPeriod'])
             ->findOrFail($id);
 
         $attachments = [];
@@ -116,6 +118,7 @@ class FixedAssetController extends Controller
                 'delete' => ($request->user()?->can('fixedAssets.delete') ?? false) && $asset->status === 'draft',
                 'post' => ($request->user()?->can('fixedAssets.post') ?? false) && ($request->user()?->can('view_financials') ?? false) && $asset->status === 'draft',
                 'reverse' => ($request->user()?->can('fixedAssets.reverse') ?? false) && ($request->user()?->can('view_financials') ?? false) && $asset->status === 'active' && $asset->capitalization_mode === 'manual_capitalization',
+                'generate_schedule' => ($request->user()?->can('fixedAssets.edit') ?? false) && ($request->user()?->can('view_financials') ?? false) && $asset->status === 'active',
                 'view_financials' => $request->user()?->can('view_financials') ?? false,
             ],
         ]);
@@ -239,6 +242,17 @@ class FixedAssetController extends Controller
 
         return redirect()->route('fixed-assets.show', $asset->id)
             ->with('success', __('Fixed asset capitalization reversed successfully.'));
+    }
+
+    public function generateSchedule(Request $request, string $id): RedirectResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.edit');
+        $this->authorizeSensitiveCapability($request, 'view_financials');
+
+        $this->depreciationEngine->generateSchedule($id);
+
+        return redirect()->route('fixed-assets.show', $id)
+            ->with('success', __('Depreciation schedule generated successfully.'));
     }
 
     private function authorizePermission(Request $request, string $permission): void

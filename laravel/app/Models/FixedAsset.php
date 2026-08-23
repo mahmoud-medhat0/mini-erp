@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Translatable\HasTranslations;
 
 class FixedAsset extends Model
@@ -72,6 +73,11 @@ class FixedAsset extends Model
     public function journalEntry(): BelongsTo
     {
         return $this->belongsTo(JournalEntry::class, 'journal_entry_id');
+    }
+
+    public function depreciationSchedules(): HasMany
+    {
+        return $this->hasMany(FixedAssetDepreciationSchedule::class, 'fixed_asset_id')->orderBy('period_number');
     }
 
     public function capitalizer(): BelongsTo

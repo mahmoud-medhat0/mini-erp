@@ -18,6 +18,25 @@ type JournalInfo = {
   entry_date: string;
 };
 
+type ScheduleRow = {
+  id: string;
+  period_number: number;
+  financial_period_id: string;
+  period_start_date: string;
+  period_end_date: string;
+  depreciation_minor: number;
+  accumulated_depreciation_minor: number;
+  net_book_value_minor: number;
+  status: 'planned' | 'posted' | 'reversed' | 'skipped';
+  financial_period?: {
+    id: string;
+    month: number;
+    start_date: string;
+    end_date: string;
+    status: string;
+  } | null;
+};
+
 type AssetDetail = {
   id: string;
   asset_number: string;
@@ -44,6 +63,7 @@ type AssetDetail = {
   capitalizer?: { id: number; name: string } | null;
   creator?: { id: number; name: string } | null;
   updater?: { id: number; name: string } | null;
+  depreciation_schedules?: ScheduleRow[];
 };
 
 type AttachmentRow = {
@@ -62,6 +82,7 @@ type ShowProps = SharedPageProps & {
     delete: boolean;
     post: boolean;
     reverse: boolean;
+    generate_schedule: boolean;
     view_financials: boolean;
   };
 };
@@ -71,6 +92,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
   const appDict = (dict.app as any).accounting || {};
 
   const [showCapitalizeModal, setShowCapitalizeModal] = useState(false);
+  const [generatingSchedule, setGeneratingSchedule] = useState(false);
 
   const { data, setData, post, processing, errors, reset } = useForm({
     capitalization_mode: 'manual_capitalization' as 'opening_already_capitalized' | 'manual_capitalization',
@@ -99,6 +121,13 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
     }
   }
 
+  function handleGenerateSchedule() {
+    setGeneratingSchedule(true);
+    router.post(`/fixed-assets/${asset.id}/generate-schedule`, {}, {
+      onFinish: () => setGeneratingSchedule(false),
+    });
+  }
+
   function formatName(name: { en: string; ar: string } | string): string {
     if (typeof name === 'object' && name !== null) {
       return locale === 'ar' ? name.ar || name.en : name.en || name.ar;
@@ -120,8 +149,23 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
     }
   }
 
+  function formatScheduleStatus(status: ScheduleRow['status']): string {
+    switch (status) {
+      case 'posted':
+        return appDict.scheduleStatusPosted;
+      case 'reversed':
+        return appDict.scheduleStatusReversed;
+      case 'skipped':
+        return appDict.scheduleStatusSkipped;
+      case 'planned':
+      default:
+        return appDict.scheduleStatusPlanned;
+    }
+  }
+
   const depreciableBase = asset.cost_minor - asset.salvage_value_minor;
   const netBookValue = asset.cost_minor - asset.opening_accumulated_depreciation_minor;
+  const schedules = asset.depreciation_schedules || [];
 
   return (
     <AppLayout active="fixed-assets.index">
@@ -139,6 +183,16 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
               >
                 {appDict.back}
               </Link>
+              {can.generate_schedule && (
+                <button
+                  type="button"
+                  onClick={handleGenerateSchedule}
+                  disabled={generatingSchedule}
+                  className="px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 disabled:opacity-50"
+                >
+                  {schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
+                </button>
+              )}
               {can.edit && asset.status === 'draft' && (
                 <Link
                   href={`/fixed-assets/${asset.id}/edit`}
@@ -313,6 +367,70 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
             )}
           </Card>
         </div>
+
+        {/* Depreciation Schedule Card */}
+        {can.view_financials && (
+          <Card className="p-6 space-y-4">
+            <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {appDict.depreciationSchedule}
+              </h3>
+              {can.generate_schedule && (
+                <button
+                  type="button"
+                  onClick={handleGenerateSchedule}
+                  disabled={generatingSchedule}
+                  className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 disabled:opacity-50"
+                >
+                  {schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
+                </button>
+              )}
+            </div>
+
+            {schedules.length === 0 ? (
+              <p className="text-sm text-slate-500 italic py-4 text-center">{appDict.noScheduleGenerated}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left rtl:text-right text-slate-600 dark:text-slate-300">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 uppercase text-[10px] text-slate-500 dark:text-slate-400">
+                    <tr>
+                      <th className="px-3 py-2">{appDict.periodNumber}</th>
+                      <th className="px-3 py-2">{appDict.periodBounds}</th>
+                      <th className="px-3 py-2 text-right rtl:text-left">{appDict.depreciationAmount}</th>
+                      <th className="px-3 py-2 text-right rtl:text-left">{appDict.accumulatedDepreciation}</th>
+                      <th className="px-3 py-2 text-right rtl:text-left">{appDict.netBookValue}</th>
+                      <th className="px-3 py-2 text-center">{appDict.status}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {schedules.map((row) => (
+                      <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-3 py-2 font-mono font-semibold">{row.period_number}</td>
+                        <td className="px-3 py-2 font-mono">
+                          {row.period_start_date} {appDict.periodDateSeparator} {row.period_end_date}
+                        </td>
+                        <td className="px-3 py-2 text-right rtl:text-left font-mono font-medium">
+                          {row.depreciation_minor} {asset.currency}
+                        </td>
+                        <td className="px-3 py-2 text-right rtl:text-left font-mono">
+                          {row.accumulated_depreciation_minor} {asset.currency}
+                        </td>
+                        <td className="px-3 py-2 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
+                          {row.net_book_value_minor} {asset.currency}
+                        </td>
+                        <td className="px-3 py-2 text-center capitalize">
+                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full ${row.status === 'posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
+                            {formatScheduleStatus(row.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        )}
       </div>
 
       {showCapitalizeModal && (

@@ -389,6 +389,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/fixed-assets/{id}', [FixedAssetController::class, 'destroy'])->name('fixed-assets.destroy');
     Route::post('/fixed-assets/{id}/capitalize', [FixedAssetController::class, 'capitalize'])->name('fixed-assets.capitalize');
     Route::post('/fixed-assets/{id}/reverse-capitalization', [FixedAssetController::class, 'reverseCapitalization'])->name('fixed-assets.reverse_capitalization');
+    Route::post('/fixed-assets/{id}/generate-schedule', [FixedAssetController::class, 'generateSchedule'])->name('fixed-assets.generate_schedule');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

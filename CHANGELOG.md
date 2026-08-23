@@ -3,6 +3,30 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 6 Slice 4 Depreciation Schedule Engine (2026-08-23)
+- Created database migration `2026_08_23_050000_create_phase6_slice4_fixed_asset_depreciation_schedule_table.php` for `fixed_asset_depreciation_schedule` table with PostgreSQL check constraints `chk_fads_status` (`planned`, `posted`, `reversed`, `skipped`) and `chk_fads_amounts` (`depreciation_minor >= 0`, `accumulated_depreciation_minor >= 0`, `net_book_value_minor >= 0`).
+- Created database migration `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability.php` enforcing database-level protection for posted depreciation schedule financial fields and posted-row deletion.
+- Created `FixedAssetDepreciationSchedule` Eloquent model with UUID trait and casts, and added `depreciationSchedules` HasMany relation to `FixedAsset`.
+- Built `FixedAssetDepreciationEngineService` application service featuring:
+  - Straight-Line integer minor-unit math (`intdiv` and `%` modulo).
+  - Deterministic remainder allocation: 1 minor unit per month distributed to the first remainder months so total scheduled depreciation across all periods **exactly** equals the depreciable base ($\text{Cost} - \text{Salvage} - \text{Opening Accum}$).
+  - Automatic fiscal year extension: uses `PeriodService` to automatically generate missing future fiscal years up to useful life duration.
+  - Idempotent schedule (re)generation: uses `updateOrCreate` and protects existing `posted` schedule lines from mutation or deletion.
+  - Zero GL posting in this slice.
+- Added controller action `generateSchedule` in `FixedAssetController` guarded by permissions `fixedAssets.edit` and `view_financials`.
+- Registered web route `POST /fixed-assets/{id}/generate-schedule` in `routes/web.php`.
+- Updated Inertia React view `Show.tsx` with Depreciation Schedule table preview (showing period #, dates, depreciation, accumulated depreciation, net book value, and status) and Generate/Regenerate Schedule action button.
+- Added dictionary translation keys in `en.json` and `ar.json`.
+- Built feature test suite `Phase6Slice4DepreciationScheduleTest.php` (13/13 passing tests / 64 assertions after local review).
+- Executed full verification pass cleanly (483 PHPUnit tests, 480 passed, 3 skipped / 3588 assertions; Concurrency testsuite 7/7; PostgreSQL stress commands passed cleanly including Phase 3 stress; `npm run typecheck`; `npm run build`).
+
+### Corrected — Phase 6 Slice 4 Local Review (2026-08-23)
+- Enforced the owner-approved depreciation start policy: schedules start in the month after `in_service_date`.
+- Fixed SQLite test parity by converting the starting financial-period comparison to explicit `Y-m-d` strings instead of comparing date strings to Carbon datetime bindings.
+- Restricted schedule generation to active assets and kept schedule reads side-effect free.
+- Localized depreciation schedule statuses, date separator text, controls, and empty-state text in the Fixed Asset detail UI.
+- Added database immutability regression tests for posted schedule row financial-field updates and deletion.
+
 ### Added — Phase 6 Slice 3 Capitalization and Opening Asset Posting (2026-08-23)
 - Created database migration `2026_08_23_040000_create_phase6_slice3_capitalization_columns.php` adding capitalization metadata columns (`capitalization_mode`, `capitalization_date`, `journal_entry_id`, `capitalized_at`, `capitalized_by`) and PostgreSQL check constraint `chk_fixed_asset_capitalization_mode` to `fixed_asset`.
 - Updated `FixedAsset` Eloquent model with capitalization fillable fields, date/timestamp casts, and Eloquent relationships `journalEntry` and `capitalizer`.
