@@ -69,19 +69,22 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Local correction also fixed the time-dependent Phase 4 Slice 10 settlement test by pinning test time to the document date.
   - Verification: full suite 446 tests / 443 passed / 3 skipped / 3344 assertions; Slice 4 suite 13/13 tests / 37 assertions; typecheck/build/stress commands passed.
 
-## Immediate Next Steps (Phase 5 Slice 5)
+- Phase 5 Slice 5 Year-End Close & Retained Earnings Decision Pack (FULLY COMPLETE):
+  - Created `PHASE_5_YEAR_END_CLOSE_DECISION.md` containing Arabic executive summary, plain-language business owner explanations, technical comparison of 3 options (Soft close only, Physical closing journal, and Hybrid approach), owner decision prompt and approval checklist, database/audit/reopen/permission specifications, future testing strategy, and explicit "not implemented yet" declaration.
+  - Recommended Option 3 (Hybrid: soft close now with dynamic report calculation, physical closing entry engine later upon explicit approval).
+  - Preserved docs-only execution: 0 migrations, 0 models, 0 services, 0 routes, 0 UI components added. Status marked as `OWNER DECISION REQUIRED`.
 
-- Execute **Phase 5 Slice 5: Year-End Close & Retained Earnings Decision Pack**:
-  - Read `PHASE_5_SLICE_5_GEMINI_PROMPT.md`.
-  - Keep it docs-only unless the owner explicitly approves implementation. Do not add retained earnings migrations/models/services/routes/pages.
-  - Do not accept a final report unless every source scan match is classified, every verification command finished synchronously, and any UI-visible backend warning/blocker text is localization-ready rather than raw English prose.
+## Immediate Next Steps (Phase 5 Slice 6)
+
+- Execute **Phase 5 Slice 6: UX, Export/Print, E2E Smoke, and Phase 5 Close-Out**:
+  - Read `PHASE_5_SLICE_6_GEMINI_PROMPT.md`.
+  - Polish financial statement pages, report exports/prints, navigation, and execute end-to-end smoke verification.
 
 ## Next Execution
 
 Continue Phase 5 in bounded order:
 
-1. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
-2. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+1. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
 
 Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
