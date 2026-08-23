@@ -1147,9 +1147,9 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
 
         $journal = JournalEntry::query()->with('lines')->findOrFail($note->journal_entry_id);
         $this->assertEquals('posted', $journal->status);
-        $this->assertEquals(8000, $journal->lines->where('account_id', $this->mappedAccount('purchase_returns_allowances')->id)->sum('debit_minor'));
-        $this->assertEquals(800, $journal->lines->where('account_id', $this->mappedAccount('input_tax_receivable')->id)->sum('debit_minor'));
-        $this->assertEquals(8800, $journal->lines->where('account_id', $this->mappedAccount('ap_control')->id)->sum('credit_minor'));
+        $this->assertEquals(8000, $journal->lines->where('account_id', $this->mappedAccount('purchase_returns_allowances')->id)->sum('credit_minor'));
+        $this->assertEquals(800, $journal->lines->where('account_id', $this->mappedAccount('input_tax_receivable')->id)->sum('credit_minor'));
+        $this->assertEquals(8800, $journal->lines->where('account_id', $this->mappedAccount('ap_control')->id)->sum('debit_minor'));
 
         /** @var PayableEntry $payableEntry */
         $payableEntry = PayableEntry::query()

@@ -1,17 +1,30 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 7 Slice 5 (VAT Register, Reports, and GL Reconciliation) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1, 2, 3, 4, and 5 are complete. Phase 7 Slice 6 (Tax Period Filing and Locking Controls) is next.
+Current status: Phase 7 (Tax / VAT Slices 1-7) is 100% COMPLETE and fully verified on 2026-08-23. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
-## Next Planned Track
+## Next Milestones & Future Options
 
-- Phase 7 Tax / VAT (SLICES 1-5 COMPLETE, SLICES 6-7 PLANNED):
-  - Master contract: `PHASE_7_TAX_VAT.md`.
-  - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls (planned next).
-  - Slice 7: `PHASE_7_SLICE_7_GEMINI_PROMPT.md` - UX, Export/Print, Source Scans, and Close-Out.
+- All core migration phases (Phase 1 through Phase 7) are 100% complete and verified.
+- Optional future tracks:
+  - Production deployment readiness & external scheduler configuration.
+  - End-to-end browser automation suite hardening.
 
-## Completed
+## Completed Phase 7 Track
+
+- Phase 7 Slice 7 UX, Export/Print, E2E Smoke, Source Scans, and Close-Out (FULLY COMPLETE):
+  - Created `PHASE_7_FINAL_VERIFICATION_REPORT.md`.
+  - Executed all 7 required source scans with match classifications.
+  - Executed full 28-command verification suite (Pint, full 253-test PHPUnit suite, 13 concurrency stress suites, typecheck, Vite build) with 100% pass rate.
+
+- Phase 7 Slice 6 Tax Period Filing and Locking Controls (FULLY COMPLETE):
+  - Migration: `2026_08_23_110000_create_phase7_slice6_tax_period_tables.php` creating `tax_periods` and `tax_returns` tables with PostgreSQL check constraints `chk_tp_status` and `chk_tr_status`.
+  - Eloquent Models: `TaxPeriod` and `TaxReturn` with UUID traits and relationships.
+  - Period Lock Guard: Created `TaxPeriodGuard` preventing tax-affecting posting for dates falling within filed tax periods across `CustomerInvoiceService`, `CustomerCreditNoteService`, `SalesReturnService`, `SupplierBillService`, `SupplierAdjustmentNoteService`, `PurchaseReturnService`.
+  - Domain Services: `TaxPeriodService` (non-overlapping tax period creation) and `TaxReturnService` (draft tax return generation from VAT reports, transactional/row-locked filing, audit logging).
+  - UI Views & Controllers: `TaxPeriodController` and Inertia views `Taxes/Periods/Index.tsx` and `Show.tsx`.
+  - Stress & Test Suites: `TaxFilingStressCommand.php` (`php artisan accounting:tax-filing-stress`) and `Phase7Slice6TaxFilingTest.php` (9/9 passing tests).
 
 - Phase 7 Slice 5 VAT Register, Reports, and GL Reconciliation (FULLY COMPLETE):
   - Services: `VatRegisterReportService` (reads posted sales/purchase source document snapshots, applies exact sign rules for output/input VAT, calculates line/header totals), `VatSummaryReportService` (summarizes output/input VAT by tax code with 100% register mathematical equality), `VatToGlReconciliationService` (compares register totals against GL ledger movement for `output_tax_payable` and `input_tax_receivable`, produces signed differences, handles missing mapping warning codes).

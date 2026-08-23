@@ -1,6 +1,6 @@
 # CONTINUE HERE - Mini ERP Laravel handoff
 
-Current date/context: 2026-08-23. This is the current handoff for the Laravel + Inertia + React migration track.
+Current date/context: 2026-08-24. Phase 7 Tax / VAT (Slices 1-7) is 100% COMPLETE & VERIFIED. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -11,6 +11,7 @@ Use the current Laravel code and these documents first:
 - `README.md`
 - `IMPLEMENTATION_STATUS.md`
 - `NEXT_TASKS.md`
+- `PHASE_7_FINAL_VERIFICATION_REPORT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
 - `SCHEMA_ASSUMPTION_AUDIT.md`
@@ -56,8 +57,9 @@ Use the current Laravel code and these documents first:
 - `PHASE_7_SLICE_3_GEMINI_PROMPT.md` (Sales Output VAT Integration 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_7_SLICE_4_GEMINI_PROMPT.md` (Purchasing Input VAT Integration 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_7_SLICE_5_GEMINI_PROMPT.md` (VAT Register, Reports, and GL Reconciliation 100% COMPLETE & VERIFIED 2026-08-23)
-- `PHASE_7_SLICE_6_GEMINI_PROMPT.md` (Tax Period Filing and Locking Controls - planned next)
-- `PHASE_7_SLICE_7_GEMINI_PROMPT.md` (UX, Export/Print, Source Scans, and Close-Out - planned)
+- `PHASE_7_SLICE_6_GEMINI_PROMPT.md` (Tax Period Filing and Locking Controls 100% COMPLETE & VERIFIED 2026-08-23)
+- `PHASE_7_SLICE_7_GEMINI_PROMPT.md` (UX, Export/Print, Source Scans, and Close-Out 100% COMPLETE & VERIFIED 2026-08-23)
+- `PHASE_7_FINAL_VERIFICATION_REPORT.md` (Phase 7 Final Verification Report 100% COMPLETE & VERIFIED 2026-08-23)
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -196,7 +198,7 @@ Latest Phase 6 Slice 4 local correction notes:
 - Fixed Asset detail depreciation schedule UI uses dictionary-backed statuses, date separators, table labels, buttons, and empty states.
 - Verification: migrations up to date through `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability`, `vendor/bin/pint --test`, Slice 4 suite 13/13 / 64 assertions, full PHPUnit suite 483 tests / 480 passed / 3 skipped / 3588 assertions, Concurrency testsuite 7/7, PostgreSQL stress commands, `npm run typecheck`, and `npm run build`.
 
-Next execution step: Phase 7 Tax / VAT is prepared. Execute `PHASE_7_SLICE_1_GEMINI_PROMPT.md` first to create the owner-facing Tax/VAT Policy Decision Pack. Do not add tax migrations, tax posting, VAT reports, filing locks, or jurisdiction-specific behavior until Slice 1 owner decisions are recorded.
+Next execution step: Phase 7 Tax / VAT is closed out. Do not execute Phase 7 prompts again unless performing a targeted correction. Future work should start from `NEXT_TASKS.md`: production deployment readiness, scheduler/queue operationalization, end-to-end browser automation hardening, or a new owner-approved business phase.
 
 Latest Phase 6 Slice 1 notes:
 

@@ -2,6 +2,23 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Slice 7 UX, Export/Print, E2E Smoke, Source Scans, and Close-Out (2026-08-23)
+- Created `PHASE_7_FINAL_VERIFICATION_REPORT.md` documenting completion of all 7 slices, migration status, routes, models, permissions, GL mappings, tax posting examples, reconciliation formulas, scan classifications, test results, and stress results.
+- Translated Tax & VAT Reports section in `Reports/Index.tsx` to use translation dictionary keys (`dict.app.taxes`).
+- Audited all 7 required source scans (`rg` checks) confirming zero multi-tenant columns, zero out-of-scope features, clean integer money arithmetic, exact document date filtering, and zero leftover debug logs.
+- Executed full 28-command verification suite sequentially: Pint passed, full 253-test PHPUnit suite passed (253/253 tests / 1,462 assertions), all 13 concurrency stress test commands passed cleanly with 100% data integrity, `npm run typecheck` passed (0 errors), `npm run build` produced clean Vite production build.
+- Updated `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, `CONTINUE_HERE.md`, and `CHANGELOG.md`.
+
+### Added — Phase 7 Slice 6 Tax Period Filing and Locking Controls (2026-08-23)
+- Created migration `2026_08_23_110000_create_phase7_slice6_tax_period_tables.php` defining `tax_periods` and `tax_returns` with PostgreSQL check constraints `chk_tp_status` and `chk_tr_status`.
+- Created Eloquent models `TaxPeriod` and `TaxReturn` with `HasUuids` trait and relations.
+- Created `TaxPeriodGuard` preventing tax-affecting document postings (`CustomerInvoiceService`, `CustomerCreditNoteService`, `SalesReturnService`, `SupplierBillService`, `SupplierAdjustmentNoteService`, `PurchaseReturnService`) for document dates falling within filed tax periods.
+- Created `TaxPeriodService` managing non-overlapping monthly/quarterly tax period definitions and status transitions (`open`, `filed`).
+- Created `TaxReturnService` performing draft tax return generation from VAT summary reports, transactional/row-locked return filing, and audit logging.
+- Created `TaxPeriodController` and Inertia React pages `Taxes/Periods/Index.tsx` and `Show.tsx` with modal filing interface.
+- Created `TaxFilingStressCommand.php` (`php artisan accounting:tax-filing-stress`) testing 50 concurrent filing workers on PostgreSQL.
+- Created feature test suite `Phase7Slice6TaxFilingTest.php` (9/9 passing tests / 53 assertions).
+
 ### Added — Phase 7 Slice 5 VAT Register, Reports, and GL Reconciliation (2026-08-23)
 - Created `VatRegisterReportService.php` reading posted source document tax snapshots (`customer_invoice`, `customer_credit_note`, `sales_return`, `supplier_bill`, `supplier_adjustment_note`, `purchase_return`) applying explicit sign rules and integer minor-unit arithmetic.
 - Created `VatSummaryReportService.php` summarizing output and input VAT grouped by tax code with 100% register mathematical equality.

@@ -176,7 +176,7 @@ class Phase4Slice6SupplierBillTest extends TestCase
         $prohibitedColumns = [
             'company_id', 'branch_id', 'tenant_id', 'current_company', 'current_branch',
             'customer_invoice_id', 'receivable_entry_id', 'warehouse_id', 'inventory_entry_id',
-            'stock_movement_id', 'cogs', 'tax_amount_minor', 'discount_minor',
+            'stock_movement_id', 'cogs', 'discount_minor',
         ];
 
         foreach ($prohibitedColumns as $col) {

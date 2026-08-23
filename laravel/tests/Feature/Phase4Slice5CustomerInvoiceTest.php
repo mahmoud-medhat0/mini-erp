@@ -177,7 +177,7 @@ class Phase4Slice5CustomerInvoiceTest extends TestCase
         $prohibitedColumns = [
             'company_id', 'branch_id', 'tenant_id', 'current_company', 'current_branch',
             'supplier_bill_id', 'payable_entry_id', 'warehouse_id', 'inventory_entry_id',
-            'stock_movement_id', 'cogs', 'tax_amount_minor', 'discount_minor',
+            'stock_movement_id', 'cogs', 'discount_minor',
         ];
         $tables = ['customer_invoice', 'customer_invoice_line'];
 

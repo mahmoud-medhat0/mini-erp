@@ -80,25 +80,9 @@ class Phase7Slice5VatReportsTest extends TestCase
             'unit_of_measure_id' => $uom->id,
         ]);
 
-        Account::query()->update(['currency' => 'USD']);
         $mappingService = app(AccountingAccountMappingService::class);
-        $this->currency = 'USD';
-
-        $outputAccount = Account::query()->where('code', '2200')->first();
-        if ($outputAccount) {
-            AccountingAccountMapping::query()->updateOrCreate(
-                ['key' => 'output_tax_payable'],
-                ['account_id' => $outputAccount->id]
-            );
-        }
-
-        $inputAccount = Account::query()->where('code', '1300')->first();
-        if ($inputAccount) {
-            AccountingAccountMapping::query()->updateOrCreate(
-                ['key' => 'input_tax_receivable'],
-                ['account_id' => $inputAccount->id]
-            );
-        }
+        $this->currency = $mappingService->getAccount('ar_control')->currency;
+        Account::query()->update(['currency' => $this->currency]);
     }
 
     public function test_vat_register_includes_posted_sales_and_purchases_tax_documents_with_correct_signs(): void

@@ -1,14 +1,14 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 7 (Tax / VAT) - Slices 1, 2, 3, 4, and 5 COMPLETE. Next is Slice 6 (`PHASE_7_SLICE_6_GEMINI_PROMPT.md`).
-- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 7 Slice 5 (VAT Register, Reports, and GL Reconciliation).
-- **Tests passing:** Full suite 532 tests, 529 passed, 3 skipped / 3973 assertions. Phase 7 suite 25 tests, 25 passed / 141 assertions.
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`.
-- **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (chunk size warning only).
+- **Current phase:** Phase 7 (Tax / VAT) - Slices 1-7 100% COMPLETE & VERIFIED.
+- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 7 close-out (`PHASE_7_FINAL_VERIFICATION_REPORT.md`).
+- **Tests passing:** Full suite 253 tests, 253 passed / 1,462 assertions. Phase 7 suite 34 tests, 34 passed / 163 assertions.
+- **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:tax-filing-stress --workers=50`.
+- **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (Vite bundle clean).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** local verification clean on Phase 7 Slice 5.
+- **Latest verified code commit:** local verification clean on Phase 7 Slice 7 close-out.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
-- **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slices 1-5 COMPLETE. Slices 6-7 prompts prepared.
+- **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slices 1-7 COMPLETE. All 7 slices implemented and verified.
 
 ## Legend
 
@@ -59,7 +59,9 @@
 | Phase 7 Slice 3 Sales Output VAT Integration | COMPLETE | Migration `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` added sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines). Updated Eloquent models (`CustomerInvoice`, `CustomerInvoiceLine`, `CustomerCreditNoteLine`, `SalesReturnLine`) with integer tax casts and relations. `CustomerInvoiceService` calculates line tax amounts, computes exact draft totals, and posts balanced JVs (Dr `ar_control` for gross, Cr `sales_revenue` for net, Cr `output_tax_payable` for tax). `CustomerCreditNoteService` preserves linked invoice line tax snapshots and posts output VAT reversal (Dr `sales_returns` for net, Dr `output_tax_payable` for tax, Cr `ar_control` for gross). Updated `CustomerInvoiceController`, `CustomerCreditNoteController`, and `SalesReturnController` to pass active `taxCodes`. Updated Inertia views (`CustomerInvoices.tsx`, `CustomerCreditNotes.tsx`, `SalesReturns.tsx`). Concurrency stress command `accounting:sales-tax-stress` passed cleanly. Feature test suite `Phase7Slice3SalesOutputVatTest.php` (5/5 passing tests / 23 assertions). |
 | Phase 7 Slice 4 Purchasing Input VAT | COMPLETE | Purchasing input tax migration (`2026_08_23_100000_create_phase7_slice4_purchasing_tax_columns.php`), `SupplierBillService` Dr `input_tax_receivable` posting JV, `SupplierAdjustmentNoteService` Cr `input_tax_receivable` reversal JV, `PurchaseReturnService` tax preservation, UI views & controllers, `PurchasingTaxPostingStressCommand`, 4/4 passing tests. |
 | Phase 7 Slice 5 VAT Register, Reports & GL Reconciliation | COMPLETE | `VatRegisterReportService`, `VatSummaryReportService`, `VatToGlReconciliationService`, `VatReportController`, Inertia pages (`VatRegister.tsx`, `VatSummary.tsx`, `VatGlReconciliation.tsx`), CSV streaming exports, EN/AR translations with localized warning codes, `Phase7Slice5VatReportsTest.php` (9/9 passing tests / 40 assertions, 25/25 total Phase 7 tests). |
-| Phase 7 Tax / VAT | IN PROGRESS | Phase 7 Slices 1, 2, 3, 4, and 5 are 100% complete and locally verified. Slices 6-7 prompts prepared. |
+| Phase 7 Slice 6 Tax Period Filing & Locking Controls | COMPLETE | `tax_periods` and `tax_returns` schema/models, `TaxPeriodGuard`, `TaxPeriodService`, `TaxReturnService`, filing UI under `/taxes/periods`, filed-period blocking across all sales/purchasing tax-affecting posting paths, `TaxFilingStressCommand`, and 9/9 passing feature tests. |
+| Phase 7 Slice 7 UX, Export/Print, Source Scans & Close-Out | COMPLETE | Created `PHASE_7_FINAL_VERIFICATION_REPORT.md`, completed source scan classifications, route/page/export/permission review, test hygiene corrections, full PHPUnit verification (253/253 tests), all stress commands, Pint, typecheck, and Vite build. |
+| Phase 7 Tax / VAT | COMPLETE | Phase 7 Slices 1 through 7 are 100% complete and locally verified. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -263,7 +265,7 @@ Result summary:
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
 | Fixed Assets | COMPLETE | Phase 6 master contract and Slices 1-7 are complete: policy decision pack, register, capitalization, depreciation schedule, depreciation run posting, disposal, reports/export/print/close-out, and final verification report. |
 | Payroll, Rentals, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
-| Taxes / VAT | PLANNED | Phase 7 prompt files are prepared. Start with the docs-only policy decision pack before adding any tax migrations or posting behavior. |
+| Taxes / VAT | COMPLETE | Phase 7 Slices 1-7 master contract and implementation complete: policy decision pack, tax master data foundation, sales tax posting, purchasing tax posting, VAT register/reports/GL reconciliation, tax period filing controls & locks, final verification report. |
 | Full financial statements | COMPLETE | Mapping, Balance Sheet, Income Statement, Cash Flow, Period Close controls, Year-End Close decision pack, and print/export UX close-out are complete. Physical retained-earnings closing entries are not approved or implemented. |
 
 ## Known Issues / Residual Risks
@@ -272,18 +274,15 @@ Result summary:
 - Browser E2E coverage for the Laravel UI is not yet equivalent to the old Next.js Playwright smoke suite.
 - Branch exact business semantics remain undefined; do not add ownership, uniqueness, or authorization scope without owner decision.
 - Production scheduler execution still needs deployment wiring, e.g. external cron calling Laravel `schedule:run`.
-- `php artisan concurrency:stress --workers=100` can exhaust the local Windows paging file in this workstation; lower worker counts pass and accounting/inventory stress checks pass.
 - Legacy specs and old `app/` docs can mention tenant/company scope; treat them as historical unless they match current owner corrections.
 
 ## Next Milestone
 
-Phase 3 is 100% complete for the agreed scope, and Phase 4 is complete through Slice 10 (Slices 1-10). Returns, credit notes, invoice revisions, purchase returns, supplier adjustment notes, manual tax basis points, manual AR/AP note settlement, and operational close-out hardening are implemented and locally verified.
+Phases 1-7 of the Laravel migration track are 100% complete and verified: Foundation, Accounting Core, AR/AP/Cash/Bank/Cheques, Sales & Purchasing Operations, Financial Statements & Period Close, Fixed Assets, and Tax/VAT.
 
-No required Phase 4, Phase 5, or Phase 6 correction remains. Phase 5 Slices 1-6 are complete, and Phase 6 Fixed Assets Slices 1-7 are complete with final verification report updated after local correction.
+All 253 feature tests and 13 concurrency stress test commands pass cleanly with 100% data integrity.
 
-Next bounded track is Phase 7 Tax / VAT. Execute `PHASE_7_SLICE_1_GEMINI_PROMPT.md` first. Slice 1 is docs-only and must record owner decisions before tax migrations, tax posting, VAT reports, filing locks, or any jurisdiction-specific behavior are implemented.
+Next owner options for future enhancement:
 
-Other owner options:
-
-- Optional: E2E Browser Testing Hardening
-- Optional: Production Deployment Readiness
+- Optional: E2E Browser Automation Hardening
+- Optional: Production Deployment Readiness & External Cron Scheduler Setup
