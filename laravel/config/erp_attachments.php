@@ -269,5 +269,14 @@ return [
                 'delete' => ['purchasing.adjustment_notes'],
             ],
         ],
+        'fixed_asset' => [
+            'table' => 'fixed_asset',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['fixedAssets.view'],
+                'attach' => ['fixedAssets.edit', 'fixedAssets.create'],
+                'delete' => ['fixedAssets.delete', 'fixedAssets.edit'],
+            ],
+        ],
     ],
 ];

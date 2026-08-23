@@ -1,14 +1,14 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 6 (Fixed Assets) is PLANNED ONLY. Phase 5 (Financial Statements & Period Close) is 100% COMPLETE AND VERIFIED.
-- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Slice 6 local review.
-- **Tests passing:** Full suite 450 tests, 447 passed, 3 skipped / 3374 assertions. Phase 5 Slice 6 suite 4 tests, 4 passed / 30 assertions. Phase 3 Slice 8 reports suite 12 tests, 12 passed / 180 assertions.
+- **Current phase:** Phase 6 (Fixed Assets) is IN PROGRESS. Slices 1-2 are complete; Slice 3 is next.
+- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 2 local review.
+- **Tests passing:** Full suite 458 tests, 455 passed, 3 skipped / 3449 assertions. Phase 6 Slice 2 suite 8 tests, 8 passed / 65 assertions. Concurrency testsuite 7 tests, 7 passed / 16 assertions.
 - **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, and the PHPUnit Concurrency suite. `concurrency:stress --workers=100` is blocked locally by Windows paging-file memory exhaustion; lower worker counts pass.
 - **Frontend verification:** `npm run typecheck` passed, `npm run build` passed (chunk size warning only).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending after Phase 5 Slice 6 close-out and local review.
+- **Latest verified code commit:** pending after Phase 6 Slice 2 local review.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
-- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared. Start with `PHASE_6_SLICE_1_GEMINI_PROMPT.md`; it is docs-only and must record fixed-asset owner policy decisions before any implementation slice. Review gates still require source-scan classification, synchronous command results only, no raw backend English in UI, no hardcoded visible TSX text, exact permissions, and no invented schema fields.
+- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared. Slices 1-2 are complete; start the next pass with `PHASE_6_SLICE_3_GEMINI_PROMPT.md`. Review gates still require source-scan classification, synchronous command results only, no raw backend English in UI, no hardcoded visible TSX text, exact permissions, and no invented schema fields.
 
 ## Legend
 
@@ -46,7 +46,9 @@
 | Phase 5 Slice 5 Year-End Close Decision Pack | COMPLETE | `PHASE_5_YEAR_END_CLOSE_DECISION.md` is docs-only complete and marked `OWNER DECISION REQUIRED`. No migrations, models, services, routes, UI, seeders, jobs, or Retained Earnings closing journal engine were added. |
 | Phase 5 Slice 6 UX, Export/Print & Close-Out | COMPLETE | Added permission-gated Print actions (`reports.print` + `view_financials`), `Phase5Slice6FinalCloseOutTest.php` (4/4 passing tests / 30 assertions after local schema-fixture correction), cleaned dictionary keys in `en.json` & `ar.json`, corrected Bank Reconciliation report journal number display to use `journal_entry.number`, ran full PHPUnit locally after review, and created `PHASE_5_FINAL_VERIFICATION_REPORT.md`. |
 | Phase 5 Financial Statements & Period Close | COMPLETE | Slices 1-6 are 100% complete and verified: financial statement mapping, Balance Sheet, Income Statement, Cash Flow, Period Close controls, Year-End Close decision pack, and final UX/Export/Print close-out. |
-| Phase 6 Fixed Assets | PLANNED | Created `PHASE_6_FIXED_ASSETS.md` and seven bounded Gemini prompts for policy decisions, asset register foundation, capitalization/opening posting, depreciation schedules, depreciation posting, disposals, reporting/UX/export/print, and close-out. No Phase 6 Laravel implementation has started. |
+| Phase 6 Slice 1 Fixed Asset Policy Decision Pack | COMPLETE | `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` is docs-only complete and marked `OWNER DECISION REQUIRED`. No migrations, models, services, routes, UI, seeders, commands, or tests were added. |
+| Phase 6 Slice 2 Fixed Asset Register Foundation | COMPLETE | `fixed_asset_category` and `fixed_asset` tables/models created with PostgreSQL check constraints, 6 fixed asset GL mapping keys registered, attachment entity registered, `FixedAssetCategoryService` & `FixedAssetRegisterService`, controllers, routes, Inertia React pages (`Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`), EN/AR translations, navigation items in `AppLayout.tsx`, local review fixes for multilingual form payloads / hardcoded TSX text / status transition scope / currency validation, and 8/8 passing feature tests (`Phase6Slice2FixedAssetRegisterTest`, 65 assertions). |
+| Phase 6 Fixed Assets | IN PROGRESS | Phase 6 Slices 1 & 2 are 100% complete and locally verified. Slices 3-7 are prepared. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -62,6 +64,30 @@
 | DB immutability | COMPLETE | PostgreSQL and SQLite triggers block UPDATE/DELETE on `activity_log` and legacy `audit_log`. |
 
 ## Verification Snapshot
+
+Latest Phase 6 Slice 2 local review verification:
+
+```powershell
+php artisan migrate --force
+php artisan migrate:status
+vendor/bin/pint --test
+php artisan test --filter=Phase6Slice2FixedAssetRegisterTest
+php artisan test --testsuite=Concurrency
+php artisan test
+npm run typecheck
+npm run build
+```
+
+Result summary:
+
+- `php artisan migrate --force`: Nothing to migrate.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_23_030000_create_phase6_slice2_fixed_asset_tables`.
+- `vendor/bin/pint --test`: passed.
+- `php artisan test --filter=Phase6Slice2FixedAssetRegisterTest`: 8 tests / 65 assertions passed.
+- `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
+- `php artisan test`: 458 tests, 455 passed, 3 skipped / 3449 assertions.
+- `npm run typecheck`: passed.
+- `npm run build`: passed (chunk size warning only).
 
 Latest Phase 5 Slice 6 close-out and local review verification:
 
@@ -215,7 +241,7 @@ Result summary:
 
 Phase 3 is 100% complete for the agreed scope, and Phase 4 is complete through Slice 10 (Slices 1-10). Returns, credit notes, invoice revisions, purchase returns, supplier adjustment notes, manual tax basis points, manual AR/AP note settlement, and operational close-out hardening are implemented and locally verified.
 
-No required Phase 4 or Phase 5 correction remains. Phase 5 Slices 1-6 are complete. Phase 6 Fixed Assets planning is prepared; execute `PHASE_6_SLICE_1_GEMINI_PROMPT.md` first as a docs-only owner decision pack before starting any fixed-asset implementation work.
+No required Phase 4 or Phase 5 correction remains. Phase 5 Slices 1-6 are complete. Phase 6 Fixed Assets Slices 1-2 are complete; execute `PHASE_6_SLICE_3_GEMINI_PROMPT.md` next for Capitalization and Opening Asset Posting.
 
 Other owner options:
 

@@ -3,6 +3,24 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 6 Slice 2 Fixed Asset Register Foundation (2026-08-23)
+- Created database migration `2026_08_23_030000_create_phase6_slice2_fixed_asset_tables.php` for `fixed_asset_category` and `fixed_asset` tables with PostgreSQL check constraints enforcing positive costs, non-negative salvage/opening accumulated values, valid depreciation methods (`straight_line`), and valid statuses (`draft`, `active`, `fully_depreciated`, `disposed`).
+- Created Eloquent models `FixedAssetCategory` and `FixedAsset` with Spatie `HasTranslations` (`name`) and UUID traits.
+- Added 6 fixed asset GL mapping keys (`fixed_asset_cost`, `accumulated_depreciation`, `depreciation_expense`, `fixed_asset_disposal_gain`, `fixed_asset_disposal_loss`, `fixed_asset_clearing`) to `AccountingAccountMappingService` with type/nature validation rules, and seeded standard COA accounts (1600, 1690, 1699, 4910, 5250, 5910) and default mappings in `AccountingCoreSeeder`.
+- Registered `fixed_asset` entity in `config/erp_attachments.php` for permission-gated attachment authorization (`fixedAssets.view`, `fixedAssets.edit`, `fixedAssets.create`, `fixedAssets.delete`).
+- Built application services `FixedAssetCategoryService` and `FixedAssetRegisterService` using `NumberSequenceAllocator::nextValue('fixed_asset')` for `FA-YYYY-00001` global asset code allocation and Spatie Activitylog audit logging.
+- Built controllers `FixedAssetCategoryController` and `FixedAssetController` with Inertia React pages (`Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`).
+- Added web routes in `routes/web.php` guarded by RBAC permissions (`fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `view_financials`), added EN/AR translations in `en.json` & `ar.json`, and added navigation items in `AppLayout.tsx`.
+- Created feature test suite `Phase6Slice2FixedAssetRegisterTest.php` (8/8 passing tests / 65 assertions after local review).
+- Executed local verification: migrations up to date, `vendor/bin/pint --test`, Slice 2 suite 8/8, Concurrency testsuite 7/7, full PHPUnit suite 458 tests / 455 passed / 3 skipped / 3449 assertions, `npm run typecheck`, and `npm run build`.
+
+### Corrected — Phase 6 Slice 2 Local Review (2026-08-23)
+- Corrected Fixed Asset React forms so category and asset create/edit pages submit nested multilingual `name.en` / `name.ar` payloads instead of local-only `name_en` / `name_ar` fields.
+- Removed hardcoded visible English text from new Fixed Asset TSX pages and added the missing EN/AR dictionary keys for filters, buttons, statuses, section headings, confirmation prompts, and field labels.
+- Restricted manual register status updates to `draft` and `active`; future statuses `fully_depreciated` and `disposed` remain display/filter values only until depreciation/disposal workflows own those transitions.
+- Hardened fixed asset creation validation so `currency` must be exactly 3 characters and exist in `currency.code`.
+- Added regression tests covering unsupported future status updates and invalid currency rejection.
+
 ### Added — Phase 6 Fixed Assets Planning (2026-08-23)
 - Added `PHASE_6_FIXED_ASSETS.md` as the master planning contract for Fixed Assets.
 - Added seven bounded Gemini execution prompts:

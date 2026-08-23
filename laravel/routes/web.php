@@ -19,6 +19,8 @@ use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
 use App\Http\Controllers\DeliveryNoteController;
 use App\Http\Controllers\FinancialStatementMappingController;
+use App\Http\Controllers\FixedAssets\FixedAssetCategoryController;
+use App\Http\Controllers\FixedAssets\FixedAssetController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IncomingChequeController;
@@ -371,6 +373,20 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/purchasing/payable-settlements', [PayableEntrySettlementController::class, 'index'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.index');
     Route::post('/purchasing/payable-settlements', [PayableEntrySettlementController::class, 'store'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.store');
     Route::post('/purchasing/payable-settlements/{id}/reverse', [PayableEntrySettlementController::class, 'reverse'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.reverse');
+
+    // Phase 6 Slice 2 Fixed Assets Routes
+    Route::get('/fixed-asset-categories', [FixedAssetCategoryController::class, 'index'])->name('fixed-asset-categories.index');
+    Route::post('/fixed-asset-categories', [FixedAssetCategoryController::class, 'store'])->name('fixed-asset-categories.store');
+    Route::put('/fixed-asset-categories/{id}', [FixedAssetCategoryController::class, 'update'])->name('fixed-asset-categories.update');
+    Route::delete('/fixed-asset-categories/{id}', [FixedAssetCategoryController::class, 'destroy'])->name('fixed-asset-categories.destroy');
+
+    Route::get('/fixed-assets', [FixedAssetController::class, 'index'])->name('fixed-assets.index');
+    Route::get('/fixed-assets/create', [FixedAssetController::class, 'create'])->name('fixed-assets.create');
+    Route::post('/fixed-assets', [FixedAssetController::class, 'store'])->name('fixed-assets.store');
+    Route::get('/fixed-assets/{id}', [FixedAssetController::class, 'show'])->name('fixed-assets.show');
+    Route::get('/fixed-assets/{id}/edit', [FixedAssetController::class, 'edit'])->name('fixed-assets.edit');
+    Route::put('/fixed-assets/{id}', [FixedAssetController::class, 'update'])->name('fixed-assets.update');
+    Route::delete('/fixed-assets/{id}', [FixedAssetController::class, 'destroy'])->name('fixed-assets.destroy');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

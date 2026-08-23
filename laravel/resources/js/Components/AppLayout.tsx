@@ -77,7 +77,9 @@ export type NavKey =
   | 'reports.income_statement'
   | 'reports.cash_flow'
   | 'reports.ar-gl-reconciliation'
-  | 'reports.ap-gl-reconciliation';
+  | 'reports.ap-gl-reconciliation'
+  | 'fixed-assets.index'
+  | 'fixed-asset-categories.index';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -97,6 +99,8 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'accounting.account_types': 'accounting.account_types',
   'accounting.account_categories': 'accounting.account_categories',
   'accounting.statement_mappings': 'accounting.mappings',
+  'fixed-assets.index': 'fixedAssets.view',
+  'fixed-asset-categories.index': 'fixedAssets.view',
   'customers.index': 'customers.view',
   'customer-opening-balances.index': 'customers.view',
   'customer-receipts.index': 'customers.view',

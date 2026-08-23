@@ -1,10 +1,23 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-6 are complete on 2026-08-23. Slice 5 remains docs-only and leaves physical year-end close / Retained Earnings posting as `OWNER DECISION REQUIRED`. Phase 6 Fixed Assets planning files are prepared; no Phase 6 implementation has started.
+Current status: Phase 6 Slice 2 (Fixed Asset Register Foundation) is fully implemented and locally verified on 2026-08-23. Phase 6 Slice 1 remains docs-only policy decision pack. Phase 6 Slices 3-7 are prepared.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Completed
+
+- Phase 6 Slice 2 Fixed Asset Register Foundation (FULLY COMPLETE):
+  - Database schema: `fixed_asset_category` and `fixed_asset` tables with PostgreSQL check constraints (`2026_08_23_030000_create_phase6_slice2_fixed_asset_tables.php`).
+  - Eloquent models: `FixedAssetCategory` and `FixedAsset` with `HasTranslations` and `HasUuids`.
+  - 6 fixed asset GL mapping keys registered in `AccountingAccountMappingService` and seeded in `AccountingCoreSeeder`.
+  - Attachment entity `fixed_asset` registered in `config/erp_attachments.php`.
+  - Domain services: `FixedAssetCategoryService` and `FixedAssetRegisterService` (using `NumberSequenceAllocator::nextValue('fixed_asset')` for `FA-YYYY-00001` asset numbers).
+  - Controllers: `FixedAssetCategoryController` and `FixedAssetController`.
+  - Routes: `/fixed-asset-categories` and `/fixed-assets` guarded by RBAC permissions (`fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `view_financials`).
+  - Inertia React pages: `Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`.
+  - EN/AR translations in `en.json` & `ar.json` and navigation links in `AppLayout.tsx`.
+  - Local review corrections: fixed multilingual form payloads, removed hardcoded visible text in the new TSX pages, restricted manual register status updates to `draft`/`active`, and hardened currency validation with `exists:currency,code`.
+  - Feature test suite `Phase6Slice2FixedAssetRegisterTest.php` (8/8 passing tests / 65 assertions after local review).
 
 - M2 Laravel/Inertia foundation.
 - M3 foundation schema, global RBAC, and no-team Spatie Permission.
@@ -82,24 +95,29 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Executed verification after local review: migrations up to date, full PHPUnit test suite (450 tests / 447 passed / 3 skipped / 3374 assertions), Concurrency testsuite (7/7), all accounting/Phase 3 stress and integrity commands, token GC, Pint lint check, TypeScript typecheck, and Vite build.
   - Created `PHASE_5_FINAL_VERIFICATION_REPORT.md` close-out artifact.
 
+- Phase 6 Slice 1 Fixed Asset Policy Decision Pack (FULLY COMPLETE):
+  - Created `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` containing Arabic executive summary, plain-language business owner explanations, technical comparison of depreciation methods, depreciation start/partial-period rules, acquisition/opening asset options, disposal options, GL mapping requirements, exact owner decision checklist, recommended path, and explicit "not implemented yet" declaration.
+  - Recommended straight-line depreciation, useful life in months, optional salvage value defaulting to 0, depreciation starting in month after in-service date, opening asset registration without GL entries, and acquisition via Fixed Asset Clearing account (`fixed_asset_clearing`).
+  - Preserved docs-only execution: 0 migrations, 0 models, 0 services, 0 routes, 0 UI components, 0 seeders, 0 commands, and 0 tests added. Status marked as `OWNER DECISION REQUIRED`.
+
 ## Roadmap & Next Phase
 
 Phase 5 (Financial Statements & Period Close) is **100% COMPLETE AND VERIFIED**.
-All 6 bounded slices are fully integrated and verified on PostgreSQL.
+Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is **DOCS-ONLY COMPLETE** (Status: `OWNER DECISION REQUIRED`).
+Phase 6 Slice 2 (Fixed Asset Register Foundation) is **100% COMPLETE AND VERIFIED** after local review.
 
-Phase 6 (Fixed Assets) is **PLANNED ONLY**.
-Prepared execution files:
+Phase 6 Prepared execution files:
 
 - `PHASE_6_FIXED_ASSETS.md`
 - `PHASE_6_SLICE_1_GEMINI_PROMPT.md`
-- `PHASE_6_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_2_GEMINI_PROMPT.md` (Fixed Asset Register Foundation - COMPLETE)
 - `PHASE_6_SLICE_3_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Next execution step: give Gemini `PHASE_6_SLICE_1_GEMINI_PROMPT.md`. Slice 1 is docs-only and must produce `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` before any fixed-asset schema or code is created.
+Next execution step: give Gemini `PHASE_6_SLICE_3_GEMINI_PROMPT.md` for Capitalization and Opening Asset Posting. Slice 3 must build on the completed Slice 2 register and must not introduce depreciation schedules, depreciation runs, disposals, supplier bill integration, or tenant/company/branch/custodian scopes.
 
 Phase 6 must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
 
@@ -117,7 +135,7 @@ Explicitly NOT STARTED modules requiring bounded owner prompts:
 
 - Payroll.
 - Rentals.
-- Fixed Assets implementation. Phase 6 prompt files are prepared, but no code/migrations exist yet.
+- Fixed Assets Slices 3-7. Slice 2 register foundation is implemented; capitalization, depreciation, disposal, reports, export/print, and close-out remain pending.
 - Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.

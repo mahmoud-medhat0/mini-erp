@@ -26,6 +26,12 @@ class AccountingAccountMappingService
         'inventory_scrap_loss',
         'output_tax_payable',
         'input_tax_receivable',
+        'fixed_asset_cost',
+        'accumulated_depreciation',
+        'depreciation_expense',
+        'fixed_asset_disposal_gain',
+        'fixed_asset_disposal_loss',
+        'fixed_asset_clearing',
     ];
 
     public function __construct(
@@ -114,11 +120,11 @@ class AccountingAccountMappingService
     private function assertAccountMatchesKey(string $key, Account $account): void
     {
         $expectedTypes = match ($key) {
-            'ar_control', 'cheques_under_collection', 'inventory_asset', 'input_tax_receivable' => ['asset'],
+            'ar_control', 'cheques_under_collection', 'inventory_asset', 'input_tax_receivable', 'fixed_asset_cost', 'accumulated_depreciation', 'fixed_asset_clearing' => ['asset'],
             'ap_control', 'cheques_payable', 'grni_clearing', 'output_tax_payable' => ['liability'],
             'opening_balance_offset' => ['equity'],
-            'sales_revenue', 'sales_returns' => ['revenue'],
-            'purchase_expense', 'cogs', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss' => ['expense'],
+            'sales_revenue', 'sales_returns', 'fixed_asset_disposal_gain' => ['revenue'],
+            'purchase_expense', 'cogs', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss', 'depreciation_expense', 'fixed_asset_disposal_loss' => ['expense'],
         };
 
         if (! in_array($account->type, $expectedTypes, true)) {
@@ -130,9 +136,9 @@ class AccountingAccountMappingService
         $expectedNature = match ($key) {
             'ar_control', 'cheques_under_collection', 'purchase_expense', 'inventory_asset', 'cogs',
             'sales_returns', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss',
-            'input_tax_receivable' => 'debit',
+            'input_tax_receivable', 'fixed_asset_cost', 'depreciation_expense', 'fixed_asset_disposal_loss', 'fixed_asset_clearing' => 'debit',
             'ap_control', 'cheques_payable', 'sales_revenue', 'grni_clearing',
-            'output_tax_payable' => 'credit',
+            'output_tax_payable', 'accumulated_depreciation', 'fixed_asset_disposal_gain' => 'credit',
             'opening_balance_offset' => null,
         };
 

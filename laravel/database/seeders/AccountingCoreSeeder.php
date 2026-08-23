@@ -242,6 +242,60 @@ class AccountingCoreSeeder extends Seeder
                 'group_code' => '5000',
                 'is_control' => false,
             ],
+            [
+                'code' => '1600',
+                'name' => ['en' => 'Fixed Assets Cost', 'ar' => 'تكلفة الأصول الثابتة'],
+                'type' => 'asset',
+                'type_code' => 'ASSET_NON_CURRENT',
+                'nature' => 'debit',
+                'group_code' => '1000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '1690',
+                'name' => ['en' => 'Accumulated Depreciation', 'ar' => 'مجمع الإهلاك'],
+                'type' => 'asset',
+                'type_code' => 'ASSET_NON_CURRENT',
+                'nature' => 'credit',
+                'group_code' => '1000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '1699',
+                'name' => ['en' => 'Fixed Asset Clearing', 'ar' => 'حساب وسيط أصول ثابتة'],
+                'type' => 'asset',
+                'type_code' => 'ASSET_NON_CURRENT',
+                'nature' => 'debit',
+                'group_code' => '1000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '4910',
+                'name' => ['en' => 'Gain on Asset Disposal', 'ar' => 'أرباح استبعاد الأصول'],
+                'type' => 'revenue',
+                'type_code' => 'INCOME_OTHER',
+                'nature' => 'credit',
+                'group_code' => '4000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '5250',
+                'name' => ['en' => 'Depreciation Expense', 'ar' => 'مصروف الإهلاك'],
+                'type' => 'expense',
+                'type_code' => 'EXPENSE_OPERATING',
+                'nature' => 'debit',
+                'group_code' => '5000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '5910',
+                'name' => ['en' => 'Loss on Asset Disposal', 'ar' => 'خسائر استبعاد الأصول'],
+                'type' => 'expense',
+                'type_code' => 'EXPENSE_OTHER',
+                'nature' => 'debit',
+                'group_code' => '5000',
+                'is_control' => false,
+            ],
         ];
 
         foreach ($accounts as $aData) {
@@ -283,6 +337,12 @@ class AccountingCoreSeeder extends Seeder
                 'inventory_scrap_loss' => ['account_code' => '5300', 'description' => 'Default inventory scrap loss account'],
                 'output_tax_payable' => ['account_code' => '2200', 'description' => 'Default output tax payable account'],
                 'input_tax_receivable' => ['account_code' => '1300', 'description' => 'Default input tax receivable account'],
+                'fixed_asset_cost' => ['account_code' => '1600', 'description' => 'Default fixed assets cost account'],
+                'accumulated_depreciation' => ['account_code' => '1690', 'description' => 'Default accumulated depreciation account'],
+                'depreciation_expense' => ['account_code' => '5250', 'description' => 'Default depreciation expense account'],
+                'fixed_asset_disposal_gain' => ['account_code' => '4910', 'description' => 'Default gain on asset disposal account'],
+                'fixed_asset_disposal_loss' => ['account_code' => '5910', 'description' => 'Default loss on asset disposal account'],
+                'fixed_asset_clearing' => ['account_code' => '1699', 'description' => 'Default fixed asset clearing account'],
             ];
 
             foreach ($mappings as $key => $mappingData) {
