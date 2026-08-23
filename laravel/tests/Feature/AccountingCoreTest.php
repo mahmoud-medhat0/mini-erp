@@ -234,7 +234,7 @@ class AccountingCoreTest extends TestCase
             $this->user->id
         );
 
-        $periodService->closePeriod($this->period, $this->user->id);
+        $this->period->update(['status' => 'closed']);
 
         $this->expectException(InvalidArgumentException::class);
         $postingEngine->post($entry, $this->user->id);

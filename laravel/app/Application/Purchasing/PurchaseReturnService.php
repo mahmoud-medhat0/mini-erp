@@ -3,6 +3,7 @@
 namespace App\Application\Purchasing;
 
 use App\Application\Accounting\AccountingAccountMappingService;
+use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Domain\Audit\AuditLogger;
@@ -33,6 +34,7 @@ class PurchaseReturnService
         private readonly PostingEngine $postingEngine,
         private readonly MovingWeightedAverageInventoryService $inventoryService,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): PurchaseReturn
@@ -363,16 +365,9 @@ class PurchaseReturnService
                 throw ValidationException::withMessages(['lines' => ['Cannot post purchase return without line items.']]);
             }
 
-            /** @var FinancialPeriod $period */
-            $period = FinancialPeriod::query()->where('id', $return->financial_period_id)->lockForUpdate()->firstOrFail();
-            if (! $period->isOpen()) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period is closed.']]);
-            }
+            $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $return->financial_period_id, (string) $return->return_date);
             if ($period->fiscal_year_id !== $return->fiscal_year_id) {
                 throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the return fiscal year.']]);
-            }
-            if ($return->return_date < $period->start_date || $return->return_date > $period->end_date) {
-                throw ValidationException::withMessages(['return_date' => ['Return date must fall within the financial period.']]);
             }
 
             $grniAccount = $this->mappingService->getAccount('grni_clearing');

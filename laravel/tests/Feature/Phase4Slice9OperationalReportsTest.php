@@ -212,9 +212,7 @@ class Phase4Slice9OperationalReportsTest extends TestCase
 
         $period = FinancialPeriod::query()->create([
             'fiscal_year_id' => $fiscalYear->id,
-            'period_number' => 1,
             'month' => 1,
-            'name' => 'January 2026',
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
             'status' => 'open',

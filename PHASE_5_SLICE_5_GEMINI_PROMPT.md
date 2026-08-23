@@ -6,7 +6,7 @@ Execute only Phase 5 Slice 5.
 
 This is a decision/documentation slice.
 
-Do not implement retained earnings postings, automatic year-end close entries, migrations, models, services, routes, or UI in this pass. A general accounting best practice is not owner approval.
+Do not implement retained earnings postings, automatic year-end close entries, migrations, models, services, routes, UI, composer/package changes, config changes, seeders, jobs, or commands in this pass. A general accounting best practice is not owner approval.
 
 ## Read First
 
@@ -41,8 +41,10 @@ Do not introduce:
 - retained earnings GL mapping
 - year-end close command/controller/page
 - hidden implementation under "optional" code
+- status text that implies retained earnings/year-end close is implemented
 
 Do not mark year-end close as implemented. Mark it as OWNER DECISION REQUIRED.
+Documentation may say "decision pack complete"; it must not say "year-end close complete".
 
 ## Required Decision Topics
 
@@ -92,6 +94,7 @@ Include:
 - risks and controls for each option
 - what happens to Balance Sheet, Income Statement, Cash Flow, and comparative reports under each option
 - what must be tested if/when implementation is later approved
+- a clear "not implemented yet" section listing migrations/models/services/routes/pages intentionally not added
 
 The exact owner decision statement must ask the owner to choose one of:
 
@@ -116,6 +119,7 @@ Allowed only if useful and non-invasive:
 
 Do not add migrations, models, services, or UI unless explicitly required by a current owner decision.
 If any PHP/TS code is changed, clearly justify why it was necessary for a documentation slice.
+Preferred result is docs-only. If you touch any file under `laravel/app`, `laravel/database`, `laravel/routes`, `laravel/resources/js`, or `laravel/tests`, treat that as an exception and explain it before reporting success.
 
 ## Permissions
 
@@ -142,7 +146,7 @@ git diff --name-only
 rg -n "retained earnings|retained_earnings|closing journal|year.end|year-end" laravel/database laravel/app laravel/routes laravel/resources/js laravel/tests
 ```
 
-The `rg` command should prove no implementation was added; existing docs/prompts may match.
+The `rg` command should prove no implementation was added. Because it intentionally scans only Laravel implementation/test paths, any non-empty output must be investigated and reported as either pre-existing reference or fixed.
 
 If any code is changed, also run:
 
@@ -155,3 +159,4 @@ npm run build
 
 Report whether this was docs-only or code-changing.
 Report explicitly that no migrations/models/services/routes/pages were added if it remains docs-only.
+Do not report code tests as passed unless the commands actually completed synchronously. If a command times out or is skipped, say so.

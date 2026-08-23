@@ -29,6 +29,7 @@ class CustomerReceiptService
         private readonly NumberSequenceAllocator $sequenceAllocator,
         private readonly DatabaseIdempotencyStore $idempotencyStore,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -126,20 +127,11 @@ class CustomerReceiptService
                         throw new InvalidArgumentException("Customer receipt [{$id}] cannot be posted from status [{$receipt->status}].");
                     }
 
-                    // 2. Lock Financial Period Row
-                    /** @var FinancialPeriod $period */
-                    $period = FinancialPeriod::query()
-                        ->where('id', $receipt->financial_period_id)
-                        ->lockForUpdate()
-                        ->firstOrFail();
-
-                    if (! $period->isOpen()) {
-                        throw ValidationException::withMessages([
-                            'financial_period_id' => ['Financial period is closed.'],
-                        ]);
-                    }
-
-                    JournalDraftService::assertDateInPeriod($period, (string) $receipt->receipt_date);
+                    // 2. Lock & Guard Financial Period Row
+                    $period = $this->periodGuard->assertPeriodOpenForPostingWithLock(
+                        (string) $receipt->financial_period_id,
+                        (string) $receipt->receipt_date
+                    );
                     $this->assertPostingAmountAndFx((int) $receipt->amount_minor, (int) $receipt->fx_rate_e6);
 
                     // 3. Resolve & Lock Cash/Bank Account GL target

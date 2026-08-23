@@ -31,12 +31,17 @@ Do not introduce:
 - tenant/company/branch scope
 - Spatie Teams
 - hardcoded user-facing text in TSX
+- raw backend English prose rendered directly in UI
 - hardcoded team/tenant/currentCompany/currentBranch props
 - broad permission shortcuts
 - new accounting logic beyond fixes needed for Phase 5 verification
 - new report totals calculated separately in TSX or export controllers
 - timestamp-based financial filtering
 - floating-point money formatting/calculation
+- hidden backend-only user actions unless they are explicitly internal-only and documented
+- a new browser/E2E framework or package without owner approval
+- final reports that call source scans "clean" when the scan printed matches
+- final reports that mark commands passed before they completed synchronously
 
 ## UX Hardening
 
@@ -55,6 +60,7 @@ Requirements:
 - all visible text comes from EN/AR dictionaries or backend-provided multilingual data
 - no hardcoded labels, statuses, empty states, table headings, button names, or error text in TSX
 - no hardcoded visible English in newly added print views/components
+- backend warnings, blockers, statuses, and errors that are displayed in the UI must be localization-ready (`code` plus params, or existing multilingual payloads). Do not render raw backend English prose.
 - all actions are permission-aware using exact permissions
 - pages remain usable in EN and AR/RTL
 - no nested card clutter
@@ -63,6 +69,8 @@ Requirements:
 - long account/report names do not overflow buttons/tables
 - date selectors must use real FinancialPeriod/FiscalYear fields; do not rely on non-existent `name` columns
 - amount formatting must be integer-safe from minor units
+- every backend route/action that is meant for users must have a matching visible control/navigation path or be documented as internal-only
+- any source-scan match in Phase 5 TSX must be fixed if it is new hardcoded visible text; legacy acceptable matches must be classified, not ignored
 
 ## Export/Print
 
@@ -77,6 +85,8 @@ If export/print exists:
 - CSV headers and print labels are user-visible; localize them using the active locale/dictionaries where the current app pattern supports it. If a backend export cannot access dictionaries safely, document the limitation and keep headers minimal and consistent.
 - Add tests comparing service totals to export rows for Balance Sheet, Income Statement, and Cash Flow when implemented.
 - Add tests proving unauthorized users cannot export or print even if they can reach the route URL directly.
+- If print routes/pages are added, verify they use the same service payload as the Inertia pages and do not reimplement totals or filters.
+- If print/export is not fully implemented for a report, do not imply that it is complete. Document the exact missing item and leave a bounded follow-up.
 
 ## E2E Smoke
 
@@ -103,6 +113,8 @@ Smoke-test quality bar:
 - Do not mark E2E as complete from route tests alone if browser tooling exists.
 - If browser tooling is absent, document exactly what is absent, what smaller coverage was added, and what owner-approved setup would be needed later.
 - Screens/pages must be tested in at least one financial-user path and one unauthorized path.
+- Do not report browser smoke as complete if the browser command/session is still running, timed out, or was replaced by route tests while browser tooling exists.
+- If a local dev server is needed for browser smoke, start it deliberately, wait for readiness, stop it before completion, and report the exact command used.
 
 ## Close-Out Documentation
 
@@ -132,10 +144,12 @@ Include:
 - local PostgreSQL-only test coverage, if applicable
 - exact source-scan commands and classification of matches
 - list of any Phase 5 code files intentionally changed during close-out and why
+- explicit distinction between `clean` scans with zero output and `classified` scans with acceptable matches
+- exact verification command status: `passed`, `failed`, `timed out`, or `skipped with reason`
 
 ## Required Verification
 
-Run:
+Run from `laravel/` and wait for completion:
 
 ```powershell
 php artisan migrate --force
@@ -169,3 +183,5 @@ rg -n "settings\\.configure|Gate::authorize\\('settings\\.configure'|can\\('sett
 
 For the text scan, investigate results and distinguish translation keys/imports from hardcoded visible UI text.
 For timestamp scans, distinguish audit/export metadata from accounting date filtering. Financial statement filters must use accounting dates.
+For every scan: if output is non-empty, include a classification table with `match`, `classification`, and `action taken`. Never summarize non-empty scan output as clean.
+For every verification command: report the real local result only after the command exits. Do not use background timers, "will notify", or future-tense pass claims.

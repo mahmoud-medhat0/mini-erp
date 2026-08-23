@@ -29,6 +29,7 @@ class SupplierPaymentService
         private readonly NumberSequenceAllocator $sequenceAllocator,
         private readonly DatabaseIdempotencyStore $idempotencyStore,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -126,20 +127,11 @@ class SupplierPaymentService
                         throw new InvalidArgumentException("Supplier payment [{$id}] cannot be posted from status [{$payment->status}].");
                     }
 
-                    // 2. Lock Financial Period Row
-                    /** @var FinancialPeriod $period */
-                    $period = FinancialPeriod::query()
-                        ->where('id', $payment->financial_period_id)
-                        ->lockForUpdate()
-                        ->firstOrFail();
-
-                    if (! $period->isOpen()) {
-                        throw ValidationException::withMessages([
-                            'financial_period_id' => ['Financial period is closed.'],
-                        ]);
-                    }
-
-                    JournalDraftService::assertDateInPeriod($period, (string) $payment->payment_date);
+                    // 2. Lock & Guard Financial Period Row
+                    $period = $this->periodGuard->assertPeriodOpenForPostingWithLock(
+                        (string) $payment->financial_period_id,
+                        (string) $payment->payment_date
+                    );
                     $this->assertPostingAmountAndFx((int) $payment->amount_minor, (int) $payment->fx_rate_e6);
 
                     // 3. Resolve & Lock Cash/Bank Account GL target

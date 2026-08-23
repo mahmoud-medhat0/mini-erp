@@ -3,6 +3,7 @@
 namespace App\Application\Purchasing;
 
 use App\Application\Accounting\AccountingAccountMappingService;
+use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
@@ -32,6 +33,7 @@ class SupplierAdjustmentNoteService
         private readonly AccountingAccountMappingService $mappingService,
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): SupplierAdjustmentNote
@@ -376,16 +378,10 @@ class SupplierAdjustmentNoteService
                 throw ValidationException::withMessages(['lines' => ['Cannot post supplier adjustment note without line items.']]);
             }
 
-            /** @var FinancialPeriod $period */
-            $period = FinancialPeriod::query()->where('id', $note->financial_period_id)->lockForUpdate()->firstOrFail();
-            if (! $period->isOpen()) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period is closed.']]);
-            }
+            $noteDate = $note->adjustment_date->format('Y-m-d');
+            $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $note->financial_period_id, $noteDate);
             if ($period->fiscal_year_id !== $note->fiscal_year_id) {
                 throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the note fiscal year.']]);
-            }
-            if ($note->adjustment_date < $period->start_date || $note->adjustment_date > $period->end_date) {
-                throw ValidationException::withMessages(['adjustment_date' => ['Adjustment date must fall within the financial period.']]);
             }
 
             $isDecrease = $note->direction === 'decrease_payable';

@@ -3,6 +3,22 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
+### Added — Phase 5 Slice 4 Period Close Controls & Hardening (2026-08-23)
+- Added migration `2026_08_23_020000_create_phase5_slice4_period_close_columns.php` with close/reopen metadata on `financial_period` and a PostgreSQL status constraint for `open`, `closed`, and `reopened`.
+- Added `PeriodGuard` and `PeriodClosedException`, and integrated period-open/date-bound checks into PostingEngine and financial-impact posting services.
+- Added period close-readiness endpoint and close/reopen actions guarded by exact `close_period` and `reopen_period` permissions; `settings.configure` is not a close/reopen bypass.
+- Updated the Accounting Periods Inertia page with permission-aware close/reopen controls and localized blocker display.
+- Added `Phase5Slice4PeriodCloseTest.php`, now covering 13 tests / 37 assertions.
+
+### Corrected — Phase 5 Slice 4 Local Review (2026-08-23)
+- Removed visible English fallback strings from `Periods.tsx` and localized blocker status labels instead of rendering raw backend status codes.
+- Corrected close-readiness to include approved but unposted invoices, bills, sales returns, customer credit notes, purchase returns, and supplier adjustment notes.
+- Corrected Delivery Note and Goods Receipt stock posting to resolve and lock the date-covered FinancialPeriod before inventory movement side effects.
+- Corrected cheque posting validation so `reopened` periods are treated as postable, matching the global FinancialPeriod rule.
+- Fixed a time-dependent Phase 4 Slice 10 settlement test by pinning the test clock to the document date, preventing `settled_at` from drifting beyond the report as-of date.
+- Removed stale `financial_period.name` / `period_number` fixture assumptions from older tests and the bank-reconciliation stress command so source scans no longer imply non-existent period fields.
+- Verified locally with full PHPUnit suite 446 tests / 443 passed / 3 skipped / 3344 assertions, Concurrency suite 7/7, all Phase 3/accounting stress commands, `npm run typecheck`, and `npm run build`.
+
 ### Added — Phase 5 Slice 3 Cash Flow Statement Foundation (2026-08-23)
 - Created migration `2026_08_23_010000_create_phase5_slice3_cash_flow_activity_columns.php` adding nullable `cash_flow_activity` columns to `financial_statement_line` and `account`.
 - Created forward hardening migration `2026_08_23_011000_harden_phase5_slice3_cash_flow_activity_constraints.php` adding PostgreSQL check constraints for allowed stored values (`operating`, `investing`, `financing`).
@@ -18,7 +34,8 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Made Slice 3 Cash Flow rules explicit: cash-equivalent derivation from CashAccount/BankAccount GL links, `ledger_entry.entry_date` filtering, explicit cash-flow classifications only, internal cash transfer handling, mixed classification warnings, and exact reconciliation formula.
 - Made Slice 4 Period Close rules explicit: service-level closed-period guards, PostingEngine final safety net, blocker inspection by actual schema columns, close/post race protection, and no `settings.configure` bypass.
 - Made Slice 5 docs-only by default and marked year-end close/retained earnings as `OWNER DECISION REQUIRED` with no migrations/models/services/routes/pages allowed.
-- Made Slice 6 close-out stricter for UI/export/print consistency, E2E smoke evidence, source scans, and final verification report requirements.
+- Made Slice 6 close-out stricter for UI/export/print consistency, E2E smoke evidence, source scan match classification, localization-ready backend warning payloads, route/UI parity, and synchronous verification-only pass claims.
+- Added generated-work review gates to `CONTINUE_HERE.md` and `NEXT_TASKS.md` so remaining Phase 5 execution cannot treat non-empty scans as clean or report background commands as passed.
 
 ### Added — Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation (2026-08-22)
 - Implemented `BalanceSheetReportService` generating read-only Balance Sheet financial position as of a specified date from immutable posted `ledger_entry` records and statement line taxonomy mappings; compares Total Assets to Liabilities + Equity, calculates `is_balanced` status and imbalance amount, and handles contra-asset/contra-liability display signs.

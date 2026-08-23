@@ -328,13 +328,24 @@ class AccountingController extends Controller
 
     public function periods(Request $request): Response
     {
-        $this->authorizePermission($request, 'settings.configure');
+        if (! $request->user()?->hasAnyPermission(['accounting.periods', 'accounting.view', 'settings.configure'])) {
+            abort(403);
+        }
 
         $fiscalYears = FiscalYear::query()->with('periods')->orderBy('year', 'desc')->get();
 
         return Inertia::render('Accounting/Periods', [
             'fiscalYears' => $fiscalYears,
         ]);
+    }
+
+    public function closeReadiness(Request $request, FinancialPeriod $period)
+    {
+        if (! $request->user()?->hasAnyPermission(['close_period', 'accounting.periods', 'accounting.view'])) {
+            abort(403);
+        }
+
+        return response()->json($this->periodService->checkCloseReadiness($period));
     }
 
     public function storeFiscalYear(Request $request): RedirectResponse
@@ -366,7 +377,20 @@ class AccountingController extends Controller
     {
         $this->authorizePermission($request, 'close_period');
 
-        $this->periodService->closePeriod($period, $request->user()->id);
+        $validated = $request->validate([
+            'close_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $this->periodService->closePeriod($period, (int) $request->user()->id, $validated['close_note'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            $readiness = $this->periodService->checkCloseReadiness($period);
+
+            return redirect()->back()->withErrors([
+                'period' => $e->getMessage(),
+                'blockers' => $readiness['blockers'],
+            ]);
+        }
 
         return redirect()->back()->with('success', __('Financial period closed successfully.'));
     }
@@ -375,7 +399,11 @@ class AccountingController extends Controller
     {
         $this->authorizePermission($request, 'reopen_period');
 
-        $this->periodService->reopenPeriod($period, $request->user()->id);
+        $validated = $request->validate([
+            'close_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $this->periodService->reopenPeriod($period, (int) $request->user()->id, $validated['close_note'] ?? null);
 
         return redirect()->back()->with('success', __('Financial period reopened successfully.'));
     }
@@ -764,6 +792,14 @@ class AccountingController extends Controller
         $user = $request->user();
         if (! $user) {
             abort(401);
+        }
+
+        if (in_array($permission, ['close_period', 'reopen_period'], true)) {
+            if (! $user->can($permission)) {
+                abort(403);
+            }
+
+            return;
         }
 
         if ($user->can('settings.configure') || $user->can($permission)) {

@@ -80,11 +80,34 @@ Confirmed later owner decision:
 - `fiscal_year.year` is globally unique.
 - FinancialPeriod belongs to FiscalYear.
 
+## Review Gate For Generated Work
+
+Before accepting any Gemini/AI implementation report:
+
+- Source scans are clean only when they print zero matches. If a scan prints matches, require a classification table and fixes for every unacceptable match.
+- Verification commands count as passed only after the local command exits successfully. Do not accept background timers, "will notify later", or future-tense pass claims.
+- Tests must use actual local schema fields. Do not invent fields such as `financial_period.name`, `period_number`, tenant/company/branch IDs, or other natural-sounding ERP columns unless the slice explicitly adds them with migrations and tests.
+- Backend warnings, blockers, statuses, and validation messages that appear in the UI must be localization-ready (`code` plus params, or existing multilingual payloads), not raw English prose.
+- Frontend TSX must not contain new hardcoded visible labels, statuses, empty states, table headers, button text, or warnings. Use EN/AR dictionaries or backend multilingual master data.
+- User-facing backend routes/actions must have matching permission-aware UI controls unless intentionally internal-only and documented.
+- Financial reporting and period guards must use accounting/document dates and `financial_period_id`, not row timestamps such as `created_at` or `updated_at`.
+
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slices 1-3 (Financial Statement Mapping, Balance Sheet / Income Statement, Cash Flow Statement) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 4 is ready for bounded execution.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, and Phase 5 Slices 1-4 (Financial Statement Mapping, Balance Sheet / Income Statement, Cash Flow Statement, Period Close Controls) is fully complete, locally hardened, and verified on PostgreSQL. Phase 5 Slice 5 is ready for bounded docs-only execution.
 
-Latest Phase 5 Slice 3 local correction notes:
+Latest Phase 5 Slice 4 local correction notes:
+
+- Period close metadata exists on `financial_period`: `closed_by`, `closed_at`, `reopened_by`, `reopened_at`, `close_note`.
+- `PeriodGuard` locks target FinancialPeriod rows before posting side effects; PostingEngine remains the final safety net.
+- Delivery Note and Goods Receipt stock posting now resolve and lock the date-covered FinancialPeriod before inventory movement posting.
+- Close-readiness includes approved-but-unposted invoices, bills, sales returns, customer credit notes, purchase returns, and supplier adjustment notes.
+- Periods UI no longer has visible English TSX fallbacks for close/reopen controls; blocker entity/status labels are dictionary-backed.
+- Cheque period validation treats `reopened` as postable.
+- Phase 4 Slice 10 settlement tests are pinned to their document date to avoid machine-date flakiness around `settled_at`.
+- Local verification after correction: full suite 446 tests / 443 passed / 3 skipped / 3344 assertions; `Phase5Slice4PeriodCloseTest.php` 13/13 passing tests, 37 assertions; TypeScript typecheck, Vite build, and stress commands passed.
+
+Previous Phase 5 Slice 3 local correction notes:
 
 - Cash Flow uses posted `ledger_entry.entry_date` for report ranges, not `created_at` / `updated_at`.
 - Cash-flow classifications are explicit: account override first, then `financial_statement_line.cash_flow_activity`, then unclassified.
@@ -398,7 +421,7 @@ Not started; each requires a bounded owner prompt before any implementation:
 - Full tax/VAT filing module beyond Slice 10 manual note tax fields.
 - Warehouse/location semantics.
 - Landed cost and freight allocation.
-- Remaining Phase 5 financial statement work beyond Balance Sheet/Income Statement: Cash Flow, period close controls, year-end close decision pack, and UX/export/print close-out.
+- Remaining Phase 5 financial statement work: year-end close decision pack and UX/export/print close-out.
 
 Going forward, keep these invariants:
 

@@ -21,6 +21,7 @@ class OpeningBalanceService
         private readonly PostingEngine $postingEngine,
         private readonly DatabaseIdempotencyStore $idempotencyStore,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -72,9 +73,7 @@ class OpeningBalanceService
                         ->orderBy('month', 'asc')
                         ->firstOrFail();
 
-                    if (! $firstPeriod->isOpen()) {
-                        throw new InvalidArgumentException(__('First financial period of fiscal year is closed.'));
-                    }
+                    $this->periodGuard->assertPeriodOpenForPostingWithLock($firstPeriod->id, $fiscalYear->start_date);
 
                     $openingRows = OpeningBalance::query()
                         ->where('fiscal_year_id', $fiscalYear->id)

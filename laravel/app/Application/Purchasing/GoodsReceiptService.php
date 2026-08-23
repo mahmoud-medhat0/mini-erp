@@ -2,6 +2,7 @@
 
 namespace App\Application\Purchasing;
 
+use App\Application\Accounting\PeriodGuard;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
@@ -22,6 +23,7 @@ class GoodsReceiptService
         private readonly NumberSequenceAllocator $numberAllocator,
         private readonly MovingWeightedAverageInventoryService $inventoryService,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): GoodsReceipt
@@ -233,18 +235,7 @@ class GoodsReceiptService
 
     private function resolveFinancialPeriodForDate(string $date): FinancialPeriod
     {
-        /** @var FinancialPeriod|null $period */
-        $period = FinancialPeriod::query()
-            ->where('start_date', '<=', $date)
-            ->where('end_date', '>=', $date)
-            ->whereIn('status', ['open', 'reopened'])
-            ->first();
-
-        if (! $period) {
-            throw ValidationException::withMessages(['receipt_date' => ["No open financial period covers date {$date}."]]);
-        }
-
-        return $period;
+        return $this->periodGuard->resolveOpenPeriodForPostingDateWithLock($date);
     }
 
     public function cancel(string $id, ?int $actorId = null): GoodsReceipt

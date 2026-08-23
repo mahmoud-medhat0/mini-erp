@@ -1,6 +1,6 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-3 are complete and locally corrected on 2026-08-23.
+Current status: Phase 4 Slice 10 (Sales Returns, Credit Notes & Manual Note Settlement) is fully implemented and locally verified on 2026-08-22, including the Manual Settlement Pass for note-created AR/AP entries (`PHASE_4_SLICE_10_SETTLEMENT_CORRECTION_PROMPT.md`). Phase 5 Slices 1-4 are complete and locally corrected on 2026-08-23.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -60,22 +60,38 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Authorization: Strict server-side gates enforcing `reports.view` AND `view_financials` for report viewing, and `reports.export` AND `view_financials` for CSV export.
   - Inertia Pages & Navigation: `CashFlow.tsx` with date filter controls, period dropdowns, localized warning banners, no emojis, no hardcoded visible TSX fallback text, integer-safe string-based money formatting, full EN/AR dictionary translations, Reports Hub integration, and sidebar navigation.
   - Feature Suite: `Phase5Slice3CashFlowStatementTest.php` (9/9 passing tests, 46 assertions).
+- Phase 5 Slice 4 Period Close Controls & Hardening (FULLY COMPLETE):
+  - Migration `2026_08_23_020000_create_phase5_slice4_period_close_columns.php` adds close/reopen metadata and PostgreSQL `financial_period.status` constraint.
+  - `PeriodGuard` and `PeriodClosedException` protect PostingEngine, posting services, and date-resolved stock posting periods.
+  - Close/reopen routes use exact `close_period` / `reopen_period` permissions; `settings.configure` is not a close/reopen bypass.
+  - Close-readiness blocks unposted postable documents, including approved invoices, bills, returns, credit notes, and supplier adjustment notes.
+  - Periods UI close/reopen controls are permission-aware, dictionary-backed, and localize blocker entity/status labels without visible TSX English fallbacks.
+  - Local correction also fixed the time-dependent Phase 4 Slice 10 settlement test by pinning test time to the document date.
+  - Verification: full suite 446 tests / 443 passed / 3 skipped / 3344 assertions; Slice 4 suite 13/13 tests / 37 assertions; typecheck/build/stress commands passed.
 
-## Immediate Next Steps (Phase 5 Slice 4)
+## Immediate Next Steps (Phase 5 Slice 5)
 
-- Execute **Phase 5 Slice 4: Period Close Controls & Hardening**:
-  - Read `PHASE_5_SLICE_4_GEMINI_PROMPT.md`.
-  - Follow the hardened prompt exactly: service-level closed-period guards, PostingEngine final safety net, actual-schema blocker inspection, close/post race coverage, no `settings.configure` bypass, and no timestamp-based accounting filters.
+- Execute **Phase 5 Slice 5: Year-End Close & Retained Earnings Decision Pack**:
+  - Read `PHASE_5_SLICE_5_GEMINI_PROMPT.md`.
+  - Keep it docs-only unless the owner explicitly approves implementation. Do not add retained earnings migrations/models/services/routes/pages.
+  - Do not accept a final report unless every source scan match is classified, every verification command finished synchronously, and any UI-visible backend warning/blocker text is localization-ready rather than raw English prose.
 
 ## Next Execution
 
 Continue Phase 5 in bounded order:
 
-1. `PHASE_5_SLICE_4_GEMINI_PROMPT.md` - Period Close Controls and Posting Guards.
-2. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
-3. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
+1. `PHASE_5_SLICE_5_GEMINI_PROMPT.md` - Year-End Close and Retained Earnings Decision Pack.
+2. `PHASE_5_SLICE_6_GEMINI_PROMPT.md` - UX, Export/Print, E2E Smoke, and Close-Out.
 
 Phase 5 must preserve exact permissions, especially `reports.view`, `reports.export`, `reports.print`, `view_financials`, `accounting.mappings`, `close_period`, and `reopen_period`. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
+
+Review gate for all remaining Phase 5 slices:
+
+- A scan is clean only when it prints zero matches; non-empty scans require a classification table and fixes for unacceptable matches.
+- Verification may only be reported as passed after the command exits successfully. Do not accept background "will notify" or timer-based success claims.
+- Backend messages shown in the UI must be dictionary/multilingual-code based, not raw English strings.
+- Tests must use actual schema fields. Do not invent columns such as `financial_period.name` or `period_number` unless the slice explicitly adds them with a migration and tests.
+- User-facing routes/actions must have matching permission-aware UI controls unless the route is intentionally internal-only and documented.
 
 No required Phase 4 correction remains. Optional Production Deployment Readiness remains separate from Phase 5.
 

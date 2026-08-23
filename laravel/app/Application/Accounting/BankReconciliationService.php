@@ -17,6 +17,7 @@ class BankReconciliationService
     public function __construct(
         private readonly DatabaseIdempotencyStore $idempotencyStore,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     public function createDraft(array $data, int $actorId): BankReconciliation
@@ -588,6 +589,8 @@ class BankReconciliationService
                 return DB::transaction(function () use ($reconciliationId, $actorId): BankReconciliation {
                     /** @var BankReconciliation $recon */
                     $recon = BankReconciliation::query()->where('id', $reconciliationId)->lockForUpdate()->firstOrFail();
+
+                    $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $recon->financial_period_id, (string) $recon->date_to);
 
                     if ($recon->status === 'reconciled') {
                         return $recon;

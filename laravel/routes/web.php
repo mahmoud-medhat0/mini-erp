@@ -121,6 +121,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/ledger', [AccountingController::class, 'ledger'])->name('accounting.ledger');
         Route::get('/trial-balance', [AccountingController::class, 'trialBalance'])->name('accounting.trial_balance');
         Route::get('/periods', [AccountingController::class, 'periods'])->name('accounting.periods');
+        Route::get('/periods/{period}/close-readiness', [AccountingController::class, 'closeReadiness'])->name('accounting.periods.close_readiness');
         Route::post('/periods/fiscal-years', [AccountingController::class, 'storeFiscalYear'])->name('accounting.periods.fiscal_years.store');
         Route::post('/periods/{period}/close', [AccountingController::class, 'closePeriod'])->name('accounting.periods.close');
         Route::post('/periods/{period}/reopen', [AccountingController::class, 'reopenPeriod'])->name('accounting.periods.reopen');

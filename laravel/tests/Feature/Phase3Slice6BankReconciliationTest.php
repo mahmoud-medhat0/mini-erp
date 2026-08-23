@@ -77,12 +77,10 @@ class Phase3Slice6BankReconciliationTest extends TestCase
 
         $this->period = FinancialPeriod::query()->create([
             'fiscal_year_id' => $this->fiscalYear->id,
-            'name' => 'FP 2026-01',
-            'period_number' => 1,
             'month' => 1,
             'start_date' => '2026-01-01',
             'end_date' => '2026-01-31',
-            'is_closed' => false,
+            'status' => 'open',
         ]);
 
         $this->bankGlAcc = Account::query()->create([

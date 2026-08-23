@@ -66,8 +66,6 @@ class Phase5Slice2FinancialStatementsTest extends TestCase
 
         $this->period = FinancialPeriod::create([
             'fiscal_year_id' => $this->fiscalYear->id,
-            'name' => 'January 2026',
-            'period_number' => 1,
             'month' => 1,
             'start_date' => '2026-01-01',
             'end_date' => '2026-01-31',

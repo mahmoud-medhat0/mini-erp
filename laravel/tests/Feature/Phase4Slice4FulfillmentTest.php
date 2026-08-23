@@ -86,9 +86,7 @@ class Phase4Slice4FulfillmentTest extends TestCase
 
         FinancialPeriod::query()->create([
             'fiscal_year_id' => $fiscalYear->id,
-            'period_number' => 1,
             'month' => 1,
-            'name' => 'Current Period',
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
             'status' => 'open',

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Application\Accounting\CustomerReceiptService;
 use App\Application\Accounting\ReceivableAllocationService;
 use App\Application\Reports\CustomerStatementReportService;
+use App\Domain\Accounting\PeriodClosedException;
 use App\Models\Account;
 use App\Models\AccountingAccountMapping;
 use App\Models\AccountType;
@@ -63,9 +64,7 @@ class Phase3Slice9StressIntegrityTest extends TestCase
 
         $this->period = FinancialPeriod::create([
             'fiscal_year_id' => $this->fiscalYear->id,
-            'period_number' => 1,
             'month' => 1,
-            'name' => 'January 2026',
             'start_date' => '2026-01-01',
             'end_date' => '2026-01-31',
             'status' => 'open',
@@ -189,7 +188,7 @@ class Phase3Slice9StressIntegrityTest extends TestCase
         /** @var CustomerReceiptService $receiptService */
         $receiptService = app(CustomerReceiptService::class);
 
-        $this->expectException(ValidationException::class);
+        $this->expectException(PeriodClosedException::class);
         $receiptService->post($receipt->id, $this->adminUser->id);
     }
 

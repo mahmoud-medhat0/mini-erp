@@ -3,6 +3,7 @@
 namespace App\Application\Sales;
 
 use App\Application\Accounting\AccountingAccountMappingService;
+use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
@@ -30,6 +31,7 @@ class CustomerCreditNoteService
         private readonly AccountingAccountMappingService $mappingService,
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): CustomerCreditNote
@@ -298,16 +300,10 @@ class CustomerCreditNoteService
                 throw ValidationException::withMessages(['lines' => ['Customer credit note must have at least one line item before posting.']]);
             }
 
-            $period = FinancialPeriod::query()->where('id', $note->financial_period_id)->lockForUpdate()->firstOrFail();
-            if (! $period->isOpen()) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period is closed.']]);
-            }
+            $creditDate = $note->credit_date->format('Y-m-d');
+            $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $note->financial_period_id, $creditDate);
             if ($period->fiscal_year_id !== $note->fiscal_year_id) {
                 throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the credit note fiscal year.']]);
-            }
-            $creditDate = $note->credit_date->format('Y-m-d');
-            if ($creditDate < $period->start_date || $creditDate > $period->end_date) {
-                throw ValidationException::withMessages(['credit_date' => ['Credit date must fall within the financial period.']]);
             }
 
             $salesReturnsAccount = $this->mappingService->getAccount('sales_returns');

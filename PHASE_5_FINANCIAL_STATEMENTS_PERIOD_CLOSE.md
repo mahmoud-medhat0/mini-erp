@@ -15,6 +15,8 @@ The Laravel target is complete and locally verified through:
 - Phase 4 Slices 1-10 Sales, Purchasing, Moving Weighted Average Inventory, Returns, Credit Notes, Supplier Adjustments, and Manual AR/AP Note Settlement.
 - Phase 5 Slice 1 Financial Statement Mapping Foundation.
 - Phase 5 Slice 2 Balance Sheet & Income Statement Core Generation, including the local correction pass that requires report filtering by `ledger_entry.entry_date` and not row `created_at`.
+- Phase 5 Slice 3 Cash Flow Statement Foundation, including explicit cash-flow classification, cash-equivalent derivation from Cash/Bank account links, and no timestamp financial filtering.
+- Phase 5 Slice 4 Period Close Controls & Hardening, including central PeriodGuard checks, PostingEngine final safety net, close-readiness blockers, and exact close/reopen permissions.
 
 Read first:
 
@@ -73,15 +75,22 @@ Preserve:
 Every remaining Phase 5 slice must satisfy these rules before reporting completion:
 
 - Inspect the actual migrations/models/services before coding and do not reference columns that do not exist.
+- Do not use non-existent or non-fillable model fields in tests as if they prove schema behavior. If a test needs a field, verify it exists in the migration/model first.
 - Report date filters must use accounting dates (`ledger_entry.entry_date`, `journal_entry.entry_date`, or explicit document/period dates as appropriate), never audit timestamps such as `created_at` unless the feature is explicitly about creation timestamps.
 - Financial reporting must read immutable posted accounting records only. Draft/submitted documents may appear as close blockers, but not as statement balances.
 - Money/report totals must use integer minor units end-to-end. Frontend formatting must avoid floating-point division; split minor units with integer math.
 - Unmapped/unclassified warnings must include only records that materially affect the selected report period/range. Do not show noisy warnings for inactive records or zero-movement accounts.
 - Server-side authorization must be tested for every route/action/export/print endpoint. UI `useCan` checks are not a substitute.
 - New TSX pages/components must not contain hardcoded visible English/Arabic strings. Translation keys/import names are allowed; visible labels, titles, statuses, empty states, table headers, button text, and warnings must come from dictionaries or backend multilingual payloads.
+- Backend messages that are displayed to users must be localization-ready. Prefer structured `code` + parameters in service payloads, then translate in TSX/dictionaries; do not return English prose from services and render it directly.
+- If a slice adds a backend route/action/configuration control that a user must operate, add the matching Inertia UI control in the same slice. Backend-only actions are acceptable only when explicitly documented as internal and tested as such.
+- If a slice adds a column with a bounded set of values, add database-level constraints where the current database supports them and add tests for invalid values.
 - New report/export output must be reconciled against the service totals in tests; UI, CSV, and service calculations must not diverge.
 - Add regression tests for the exact mistakes likely in this slice, especially date-field misuse, non-existent columns, permission bypass, float math, and hidden unclassified/unmapped records.
 - Run targeted source scans before final report and classify every result as acceptable or fixed.
+- A source scan is "clean" only when it prints no matches. If it prints matches, include the matches or a summarized classification table and fix anything that is not explicitly acceptable.
+- Verification commands must complete synchronously before they are reported as passed. If a command times out, is cancelled, or is left running in the background, report it as incomplete and rerun with a larger timeout if needed.
+- Documentation/status updates must use the actual local command results from this slice, not previous Gemini summaries or older baselines.
 
 ## Permission & UI Contract
 

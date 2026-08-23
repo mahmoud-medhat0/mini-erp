@@ -22,6 +22,7 @@ class PostingEngine
         private readonly NumberSequenceAllocator $sequenceAllocator,
         private readonly DatabaseIdempotencyStore $idempotencyStore,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -40,15 +41,11 @@ class PostingEngine
             rawKey: $idempotencyKey,
             callback: function () use ($entry, $userId, $allowControlAccounts): JournalEntry {
                 $postedEntry = DB::transaction(function () use ($entry, $userId, $allowControlAccounts): JournalEntry {
-                    // 1. Lock FinancialPeriod row (FOR UPDATE)
-                    $period = FinancialPeriod::query()
-                        ->where('id', $entry->financial_period_id)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (! $period || ! $period->isOpen()) {
-                        throw new InvalidArgumentException(__('Target financial period is closed or locked.'));
-                    }
+                    // 1. Lock & Guard FinancialPeriod row (FOR UPDATE)
+                    $period = $this->periodGuard->assertPeriodOpenForPostingWithLock(
+                        (string) $entry->financial_period_id,
+                        (string) $entry->entry_date
+                    );
 
                     // 2. Lock Source JournalEntry row (FOR UPDATE)
                     $lockedEntry = JournalEntry::query()

@@ -27,6 +27,8 @@ Inspect:
 - current RBAC config
 - actual migrations/models for every document table touched by close blockers; do not reference guessed number/status/date columns
 
+Before coding, produce and keep an implementation checklist of every inspected posting/financial-impact service. The final report must include that checklist with one of: `guard added`, `already guarded`, or `not period-impacting`.
+
 ## Objective
 
 Harden FinancialPeriod close/reopen behavior so closed periods cannot receive new postings, reversals, allocations with period impact, inventory postings, or document postings.
@@ -43,8 +45,10 @@ Do not introduce:
 - year-end retained earnings postings
 - mutation of posted ledger entries
 - hardcoded UI text in TSX
+- hardcoded user-facing English prose returned from services and rendered directly
 - broad permission shortcuts for close/reopen
 - posting guards based on `created_at` / `updated_at`
+- test fixtures using non-existent `financial_period` fields such as `name` or `period_number` unless a migration explicitly adds them in this slice
 
 Preserve single-ERP FinancialPeriod/FiscalYear context.
 Posting and close logic must use accounting/document dates and `financial_period_id`, not row timestamps.
@@ -55,6 +59,7 @@ Period status:
 
 - preserve allowed statuses: `open`, `closed`, `reopened`
 - if adding metadata, use fields such as `closed_by`, `closed_at`, `reopened_by`, `reopened_at`, and `close_note`
+- if adding metadata fields or new bounded statuses, add database constraints/indexes where supported and tests for invalid values
 - do not add company/branch fields
 - closed means no new accounting/stock/subledger financial impact may be posted into that period
 - reopened must behave as postable/open for guards, but must keep audit metadata showing that the period was reopened
@@ -70,11 +75,12 @@ Guard design:
 Close readiness checks:
 
 - block close if the period has unposted postable documents that would affect GL/AR/AP/stock
-- report blockers with entity type, number/reference, status, and route if available
+- report blockers with entity type, number/reference, status, route if available, and localization-ready label/status codes
 - include at minimum journal entries, opening balances, customer/supplier opening balances, receipts/payments, cheques with pending posting impact, bank reconciliations, sales/purchase documents that post, returns, credit notes, supplier adjustment notes, and inventory-impacting documents
 - do not delete, auto-cancel, auto-post, or mutate blockers
 - use actual table columns and states after inspection; if a module has no postable pending state for the selected period, explicitly report "covered by design" with reason
 - close blockers must be calculated from explicit `financial_period_id` and/or accounting/document date fields, never `created_at`
+- if a blocker query uses a document date rather than `financial_period_id`, document why that is the correct source and add a regression test
 
 Posting guards:
 
@@ -115,6 +121,7 @@ Frontend requirements:
 - do not add a landing page
 - no currentCompany/currentBranch props
 - close/reopen modals/forms must not contain hardcoded visible strings; use dictionaries for titles, button text, blockers, statuses, empty states, and validation messages
+- if adding/returning close blocker payloads, the UI must consume and display them in EN/AR using dictionary keys. Do not show raw backend English messages.
 
 ## Audit
 
@@ -145,8 +152,12 @@ Add tests for:
 - PostingEngine final safety net rejects closed period even if called directly
 - period close does not mutate or auto-post blockers
 - TSX pages do not introduce new hardcoded visible English labels for close/reopen UI
+- close blocker payloads use localization-ready codes and parameters, not raw English prose
+- any new bounded database values have DB constraints and invalid-value coverage
+- every newly added route/action has both positive and negative permission tests
 
 Add a stress command or concurrency test if the current suite lacks close/post race coverage.
+Report completion only after all targeted and full verification commands finish. Do not say the full suite is running in the background or will notify later.
 
 ## Mandatory Source Scans Before Completion
 
@@ -157,9 +168,11 @@ rg -n "created_at|updated_at" laravel/app/Application laravel/app/Http/Controlle
 rg -n "settings\\.configure|Gate::authorize\\('settings\\.configure'|can\\('settings\\.configure'" laravel/app laravel/resources/js laravel/tests
 rg -n "Close Period|Reopen Period|Closed|Reopened|Blockers|Close readiness|Posting period" laravel/resources/js/Pages laravel/resources/js/Components
 rg -n "company_id|branch_id|tenant_id|currentCompany|currentBranch|Spatie Teams" laravel/database/migrations laravel/app laravel/resources/js laravel/tests
+rg -n "period_number|financial_period.*name|name.*financial_period" laravel/app laravel/database/migrations laravel/tests
 ```
 
 Investigate every match. Timestamp matches are acceptable only for audit metadata such as `closed_at`/`reopened_at`, never for accounting period filtering. `settings.configure` must not bypass close/reopen permissions.
+For every source scan: if output is non-empty, include a classification summary in the report. Do not call scans clean when matches exist.
 
 ## Required Verification
 
@@ -182,3 +195,4 @@ npm run build
 ```
 
 Report all posting services inspected, guards added, close blockers covered, and race test results.
+Also report exact command results. If any command timed out or was skipped, say so plainly and do not mark it passed.

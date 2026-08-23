@@ -55,12 +55,10 @@ class BankReconciliationConcurrencyStressCommand extends Command
 
             $period = FinancialPeriod::query()->create([
                 'fiscal_year_id' => $year->id,
-                'name' => 'FP-ReconStress-01',
-                'period_number' => 1,
                 'month' => 1,
                 'start_date' => "{$stressYear}-01-01",
                 'end_date' => "{$stressYear}-01-31",
-                'is_closed' => false,
+                'status' => 'open',
             ]);
 
             $bankGlAccount = Account::query()->create([

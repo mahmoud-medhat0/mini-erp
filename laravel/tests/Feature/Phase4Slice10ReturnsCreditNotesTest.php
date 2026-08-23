@@ -54,6 +54,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ProductCategorySeeder;
 use Database\Seeders\UnitOfMeasureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -87,6 +88,8 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Carbon::setTestNow(self::DATE.' 12:00:00');
 
         $this->seed(CurrencySeeder::class);
         $this->seed(PermissionSeeder::class);
@@ -135,6 +138,13 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
             'end_date' => '2026-08-31',
             'status' => 'open',
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     private function nextCode(string $prefix): string

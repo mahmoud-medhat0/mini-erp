@@ -22,6 +22,11 @@ class FinancialPeriod extends Model
         'start_date',
         'end_date',
         'status',
+        'closed_by',
+        'closed_at',
+        'reopened_by',
+        'reopened_at',
+        'close_note',
     ];
 
     protected function casts(): array
@@ -30,6 +35,8 @@ class FinancialPeriod extends Model
             'month' => 'integer',
             'start_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
+            'closed_at' => 'datetime',
+            'reopened_at' => 'datetime',
         ];
     }
 

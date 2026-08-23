@@ -656,7 +656,7 @@ class OutgoingChequeService
             ->lockForUpdate()
             ->firstOrFail();
 
-        if ($period->status !== 'open') {
+        if (! $period->isOpen()) {
             throw ValidationException::withMessages([
                 'financial_period_id' => ["Financial period is not open. Current status: [{$period->status}]."],
             ]);

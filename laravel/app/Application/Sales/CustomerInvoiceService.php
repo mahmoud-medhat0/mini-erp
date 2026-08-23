@@ -3,6 +3,7 @@
 namespace App\Application\Sales;
 
 use App\Application\Accounting\AccountingAccountMappingService;
+use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
@@ -31,6 +32,7 @@ class CustomerInvoiceService
         private readonly AccountingAccountMappingService $mappingService,
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): CustomerInvoice
@@ -309,6 +311,8 @@ class CustomerInvoiceService
         return DB::transaction(function () use ($id, $actorId): CustomerInvoice {
             /** @var CustomerInvoice $invoice */
             $invoice = CustomerInvoice::query()->with(['lines.product', 'customer'])->where('id', $id)->lockForUpdate()->firstOrFail();
+
+            $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $invoice->financial_period_id, (string) $invoice->invoice_date);
 
             if ($invoice->status === 'posted') {
                 return $invoice->load(['customer', 'lines.product', 'lines.unitOfMeasure', 'journalEntry', 'receivableEntry']);

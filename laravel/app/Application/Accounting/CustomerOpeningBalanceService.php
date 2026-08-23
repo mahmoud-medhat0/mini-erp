@@ -24,6 +24,7 @@ class CustomerOpeningBalanceService
         private readonly PostingEngine $postingEngine,
         private readonly DatabaseIdempotencyStore $idempotencyStore,
         private readonly AuditLogger $auditLogger,
+        private readonly PeriodGuard $periodGuard,
     ) {}
 
     /**
@@ -118,20 +119,11 @@ class CustomerOpeningBalanceService
                         throw new InvalidArgumentException("Customer opening balance [{$id}] cannot be posted from status [{$cob->status}].");
                     }
 
-                    // 2. Lock Financial Period Row
-                    /** @var FinancialPeriod $period */
-                    $period = FinancialPeriod::query()
-                        ->where('id', $cob->financial_period_id)
-                        ->lockForUpdate()
-                        ->firstOrFail();
-
-                    if (! $period->isOpen()) {
-                        throw ValidationException::withMessages([
-                            'financial_period_id' => ['Financial period is closed.'],
-                        ]);
-                    }
-
-                    JournalDraftService::assertDateInPeriod($period, (string) $cob->entry_date);
+                    // 2. Lock & Guard Financial Period Row
+                    $period = $this->periodGuard->assertPeriodOpenForPostingWithLock(
+                        (string) $cob->financial_period_id,
+                        (string) $cob->entry_date
+                    );
 
                     $this->assertPostingAmountAndFx((int) $cob->amount_minor, (int) $cob->fx_rate_e6);
 
