@@ -121,6 +121,10 @@ class SalesReturnService
                     'manual_restock_value_minor' => $line['manual_restock_value_minor'],
                     'stock_value_minor' => $line['stock_value_minor'],
                     'variance_minor' => $line['variance_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
@@ -204,6 +208,10 @@ class SalesReturnService
                     'manual_restock_value_minor' => $line['manual_restock_value_minor'],
                     'stock_value_minor' => $line['stock_value_minor'],
                     'variance_minor' => $line['variance_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
@@ -654,6 +662,18 @@ class SalesReturnService
                 }
             }
 
+            $taxCodeId = null;
+            $taxRateBps = 0;
+            $lineTaxMinor = 0;
+            if (isset($cil) && $cil) {
+                $taxCodeId = $cil->tax_code_id;
+                $taxRateBps = (int) $cil->tax_rate_bps;
+                if ($taxRateBps > 0 && $cil->quantity_e6 > 0) {
+                    $lineSubtotal = intdiv($quantityE6 * (int) $cil->unit_price_minor, 1000000);
+                    $lineTaxMinor = intdiv(($lineSubtotal * $taxRateBps) + 5000, 10000);
+                }
+            }
+
             $validatedLines[] = [
                 'delivery_note_line_id' => $dnLine->id,
                 'customer_invoice_line_id' => $customerInvoiceLineId,
@@ -666,6 +686,10 @@ class SalesReturnService
                 'manual_restock_value_minor' => $manualRestockValueMinor,
                 'stock_value_minor' => $stockValueMinor,
                 'variance_minor' => $varianceMinor,
+                'tax_code_id' => $taxCodeId,
+                'tax_rate_bps' => $taxRateBps,
+                'tax_amount_minor' => $lineTaxMinor,
+                'gross_amount_minor' => $lineTaxMinor,
             ];
         }
 

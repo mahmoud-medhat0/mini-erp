@@ -5,6 +5,7 @@ namespace App\Application\Sales;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Taxes\TaxCalculationService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
 use App\Models\CustomerCreditNote;
@@ -32,6 +33,7 @@ class CustomerCreditNoteService
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
+        private readonly TaxCalculationService $taxCalcService,
     ) {}
 
     public function create(array $data, ?int $actorId = null): CustomerCreditNote
@@ -50,9 +52,12 @@ class CustomerCreditNoteService
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_price_minor' => $line['unit_price_minor'],
                     'line_subtotal_minor' => $line['line_subtotal_minor'],
+                    'tax_code_id' => $line['tax_code_id'] ?? null,
                     'tax_rate_bps' => $line['tax_rate_bps'],
                     'tax_minor' => $line['tax_minor'],
+                    'tax_amount_minor' => $line['tax_minor'],
                     'line_total_minor' => $line['line_total_minor'],
+                    'gross_amount_minor' => $line['line_total_minor'],
                 ]);
             }
 
@@ -560,9 +565,22 @@ class CustomerCreditNoteService
                 ? intdiv($quantityE6 * $unitPriceMinor, 1000000)
                 : $unitPriceMinor;
 
+            $effectiveTaxCodeId = null;
             $effectiveRateBps = 0;
             $lineTaxMinor = 0;
-            if ($taxMode === 'manual_rate') {
+
+            if (isset($cil) && $cil) {
+                $effectiveTaxCodeId = $cil->tax_code_id;
+                $effectiveRateBps = (int) $cil->tax_rate_bps;
+                if ($effectiveRateBps > 0) {
+                    $lineTaxMinor = intdiv(($lineSubtotalMinor * $effectiveRateBps) + 5000, 10000);
+                }
+            } elseif (! empty($line['tax_code_id'])) {
+                $taxResult = $this->taxCalcService->calculateTax($line['tax_code_id'], $lineSubtotalMinor, $creditDate);
+                $effectiveTaxCodeId = $line['tax_code_id'];
+                $effectiveRateBps = $taxResult['rate_bps'];
+                $lineTaxMinor = $taxResult['tax_minor'];
+            } elseif ($taxMode === 'manual_rate') {
                 $overrideRate = $line['tax_rate_bps'] ?? null;
                 $effectiveRateBps = $overrideRate !== null ? (int) $overrideRate : $taxRateBps;
                 if ($effectiveRateBps < 0) {
@@ -579,6 +597,7 @@ class CustomerCreditNoteService
                 'quantity_e6' => $quantityE6,
                 'unit_price_minor' => $unitPriceMinor,
                 'line_subtotal_minor' => $lineSubtotalMinor,
+                'tax_code_id' => $effectiveTaxCodeId,
                 'tax_rate_bps' => $effectiveRateBps,
                 'tax_minor' => $lineTaxMinor,
                 'line_total_minor' => $lineTotalMinor,
@@ -602,6 +621,7 @@ class CustomerCreditNoteService
             'subtotal_minor' => $subtotalMinor,
             'tax_rate_bps' => $taxRateBps,
             'tax_minor' => $taxMinor,
+            'tax_amount_minor' => $taxMinor,
             'total_minor' => $totalMinor,
             'tax_mode' => $taxMode,
             'reason' => $data['reason'] ?? null,

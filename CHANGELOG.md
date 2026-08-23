@@ -2,6 +2,18 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Slice 3 Sales Output VAT Integration (2026-08-23)
+- Created database migration `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` adding sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
+- Updated Eloquent models (`CustomerInvoice`, `CustomerInvoiceLine`, `CustomerCreditNoteLine`, `SalesReturnLine`) with integer tax casts, fillables, and `taxCode` BelongsTo relations.
+- Enhanced `CustomerInvoiceService`: Injected `TaxCalculationService`, computed line tax amounts as of `invoice_date`, updated draft totals (`subtotal_minor`, `tax_amount_minor`, `total_minor`), and posted balanced JVs (Dr `ar_control` for gross total, Cr `sales_revenue` for net subtotal, Cr `output_tax_payable` for output VAT).
+- Enhanced `CustomerCreditNoteService`: Preserved original invoice line tax snapshots (`tax_code_id`, `tax_rate_bps`) for linked credit note lines, calculated tax for standalone lines using `TaxCalculationService`, and posted output VAT reversal (Dr `sales_returns` for net, Dr `output_tax_payable` for tax, Cr `ar_control` for gross).
+- Enhanced `SalesReturnService`: Preserved original customer invoice line tax fields onto `sales_return_line`.
+- Updated Controllers (`CustomerInvoiceController`, `CustomerCreditNoteController`, `SalesReturnController`) to pass active `taxCodes` to Inertia views.
+- Updated TSX views (`CustomerInvoices.tsx`, `CustomerCreditNotes.tsx`, `SalesReturns.tsx`) to render tax code selection, tax breakdown, and gross amounts.
+- Built `SalesTaxPostingStressCommand.php` (`php artisan accounting:sales-tax-stress`) verifying concurrent sales tax posting and credit note reversal idempotency.
+- Built feature test suite `Phase7Slice3SalesOutputVatTest.php` (5/5 passing tests / 23 assertions).
+- Executed full 14-command verification gate cleanly: Pint passed, `php artisan test --filter=Phase7Slice3` passed (5/5 tests), `php artisan test --filter=Phase7` passed (12/12 tests), `php artisan accounting:sales-tax-stress` passed cleanly, `npm run typecheck` passed (0 errors), `npm run build` built cleanly.
+
 ### Added — Phase 7 Slice 2 Tax Code and Tax Rate Foundation (2026-08-23)
 - Created database migration `2026_08_23_080000_create_phase7_slice2_tax_tables.php` creating `tax_codes` and `tax_rates` tables with PostgreSQL check constraints `chk_tc_tax_type`, `chk_tc_calc_mode`, `chk_tc_rec_mode`, and `chk_tr_rate_bps`.
 - Created Eloquent models `TaxCode` and `TaxRate` with JSON name casting, UUIDs, and relations.

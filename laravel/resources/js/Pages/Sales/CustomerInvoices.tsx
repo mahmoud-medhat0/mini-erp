@@ -1,4 +1,4 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
@@ -26,6 +26,14 @@ type ProductOption = {
   } | null;
 };
 
+type TaxCodeOption = {
+  id: string;
+  code: string;
+  name: Record<string, string> | string;
+  calculation_mode: string;
+  rates?: Array<{ rate_bps: number; effective_from: string }>;
+};
+
 type InvoiceLineForm = {
   product_id: string;
   unit_of_measure_id: string;
@@ -34,6 +42,7 @@ type InvoiceLineForm = {
   description: string;
   quantity: number; // Decimal UI input
   unit_price: number; // Decimal UI input
+  tax_code_id?: string | null;
 };
 
 type CustomerInvoiceRow = {
@@ -47,6 +56,7 @@ type CustomerInvoiceRow = {
   due_date?: string | null;
   currency: string;
   subtotal_minor: number;
+  tax_amount_minor?: number;
   total_minor: number;
   status: 'draft' | 'submitted' | 'approved' | 'posted' | 'cancelled';
   reference?: string | null;
@@ -62,6 +72,11 @@ type CustomerInvoiceRow = {
     quantity_e6: number;
     unit_price_minor: number;
     line_total_minor: number;
+    tax_code_id?: string | null;
+    tax_rate_bps?: number;
+    tax_amount_minor?: number;
+    gross_amount_minor?: number;
+    taxCode?: TaxCodeOption | null;
     product?: ProductOption | null;
     unitOfMeasure?: { id: string; code: string; name: string } | null;
   }>;
@@ -76,6 +91,7 @@ type CustomerInvoicesProps = SharedPageProps & {
   eligibleProducts: ProductOption[];
   confirmedSalesOrders: any[];
   confirmedDeliveryNotes: any[];
+  taxCodes?: TaxCodeOption[];
   filters: {
     search?: string;
     status?: string;

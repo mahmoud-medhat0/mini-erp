@@ -5,6 +5,7 @@ namespace App\Application\Sales;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Taxes\TaxCalculationService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
 use App\Models\CustomerInvoice;
@@ -33,6 +34,7 @@ class CustomerInvoiceService
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
+        private readonly TaxCalculationService $taxCalcService,
     ) {}
 
     public function create(array $data, ?int $actorId = null): CustomerInvoice
@@ -102,10 +104,11 @@ class CustomerInvoiceService
                 }
             }
 
-            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $salesOrder, $deliveryNote);
+            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $salesOrder, $deliveryNote, null, $invoiceDate);
 
             $subtotalMinor = array_sum(array_column($validatedLines, 'line_total_minor'));
-            $totalMinor = $subtotalMinor;
+            $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
+            $totalMinor = $subtotalMinor + $taxAmountMinor;
 
             /** @var CustomerInvoice $invoice */
             $invoice = CustomerInvoice::query()->create([
@@ -121,6 +124,7 @@ class CustomerInvoiceService
                 'currency' => $currency,
                 'fx_rate_e6' => $fxRateE6,
                 'subtotal_minor' => $subtotalMinor,
+                'tax_amount_minor' => $taxAmountMinor,
                 'total_minor' => $totalMinor,
                 'status' => 'draft',
                 'created_by' => $actorId,
@@ -139,10 +143,14 @@ class CustomerInvoiceService
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_price_minor' => $line['unit_price_minor'],
                     'line_total_minor' => $line['line_total_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
-            $invoice->load(['customer', 'salesOrder', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure']);
+            $invoice->load(['customer', 'salesOrder', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -177,10 +185,11 @@ class CustomerInvoiceService
             $salesOrder = $invoice->sales_order_id ? SalesOrder::query()->where('id', $invoice->sales_order_id)->lockForUpdate()->first() : null;
             $deliveryNote = $invoice->delivery_note_id ? DeliveryNote::query()->where('id', $invoice->delivery_note_id)->lockForUpdate()->first() : null;
 
-            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $salesOrder, $deliveryNote, $invoice->id);
+            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $salesOrder, $deliveryNote, $invoice->id, (string) $invoiceDate);
 
             $subtotalMinor = array_sum(array_column($validatedLines, 'line_total_minor'));
-            $totalMinor = $subtotalMinor;
+            $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
+            $totalMinor = $subtotalMinor + $taxAmountMinor;
 
             $before = $invoice->toArray();
 
@@ -192,6 +201,7 @@ class CustomerInvoiceService
                 'reference' => $data['reference'] ?? $invoice->reference,
                 'description' => $data['description'] ?? $invoice->description,
                 'subtotal_minor' => $subtotalMinor,
+                'tax_amount_minor' => $taxAmountMinor,
                 'total_minor' => $totalMinor,
                 'updated_by' => $actorId,
                 'lock_version' => $invoice->lock_version + 1,
@@ -210,10 +220,14 @@ class CustomerInvoiceService
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_price_minor' => $line['unit_price_minor'],
                     'line_total_minor' => $line['line_total_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
-            $invoice->load(['customer', 'salesOrder', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure']);
+            $invoice->load(['customer', 'salesOrder', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -352,7 +366,7 @@ class CustomerInvoiceService
             $revenueAccount = $this->mappingService->getAccount('sales_revenue');
 
             if ($arAccount->currency !== $invoice->currency || $revenueAccount->currency !== $invoice->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped GL account currency must match invoice currency.']]);
+                throw ValidationException::withMessages(['currency' => ["Mapped GL account currency (AR: {$arAccount->currency}, Rev: {$revenueAccount->currency}) must match invoice currency ({$invoice->currency})."]]);
             }
 
             // Allocate invoice number sequence if missing
@@ -363,7 +377,15 @@ class CustomerInvoiceService
                 $number = 'INV-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
             }
 
-            $invoiceTotalMinor = (int) ($invoice->total_minor ?: $invoice->lines->sum('line_total_minor'));
+            $subtotalMinor = (int) ($invoice->subtotal_minor ?: $invoice->lines->sum('line_total_minor'));
+            $taxAmountMinor = (int) ($invoice->tax_amount_minor ?: $invoice->lines->sum('tax_amount_minor'));
+            $invoiceTotalMinor = $subtotalMinor + $taxAmountMinor;
+
+            $outputTaxAccount = $taxAmountMinor > 0 ? $this->mappingService->getAccount('output_tax_payable') : null;
+
+            if ($outputTaxAccount && $outputTaxAccount->currency !== $invoice->currency) {
+                throw ValidationException::withMessages(['currency' => ["Mapped tax account currency ({$outputTaxAccount->currency}) must match invoice currency ({$invoice->currency})."]]);
+            }
 
             $before = $invoice->toArray();
 
@@ -385,7 +407,7 @@ class CustomerInvoiceService
                 'lock_version' => 1,
             ]);
 
-            // Dr AR Control
+            // Dr AR Control (Gross Total)
             $arLine = $journalEntry->lines()->create([
                 'line_no' => 1,
                 'account_id' => $arAccount->id,
@@ -398,18 +420,33 @@ class CustomerInvoiceService
                 'fx_rate_e6' => $invoice->fx_rate_e6,
             ]);
 
-            // Cr Sales Revenue
+            // Cr Sales Revenue (Net Subtotal)
             $journalEntry->lines()->create([
                 'line_no' => 2,
                 'account_id' => $revenueAccount->id,
                 'memo' => "Sales Revenue - Invoice {$number}",
                 'debit_minor' => 0,
-                'credit_minor' => $invoiceTotalMinor,
+                'credit_minor' => $subtotalMinor,
                 'debit_txn_minor' => 0,
-                'credit_txn_minor' => $invoiceTotalMinor,
+                'credit_txn_minor' => $subtotalMinor,
                 'currency' => $invoice->currency,
                 'fx_rate_e6' => $invoice->fx_rate_e6,
             ]);
+
+            // Cr Output Tax Payable (Tax Amount)
+            if ($outputTaxAccount && $taxAmountMinor > 0) {
+                $journalEntry->lines()->create([
+                    'line_no' => 3,
+                    'account_id' => $outputTaxAccount->id,
+                    'memo' => "Output Tax Payable - Invoice {$number}",
+                    'debit_minor' => 0,
+                    'credit_minor' => $taxAmountMinor,
+                    'debit_txn_minor' => 0,
+                    'credit_txn_minor' => $taxAmountMinor,
+                    'currency' => $invoice->currency,
+                    'fx_rate_e6' => $invoice->fx_rate_e6,
+                ]);
+            }
 
             // Post journal entry via PostingEngine with system posting to control accounts
             $postedJournal = $this->postingEngine->post($journalEntry, $actorId, allowControlAccounts: true);
@@ -511,7 +548,7 @@ class CustomerInvoiceService
         return $period;
     }
 
-    private function validateAndCalculateLines(array $lines, ?SalesOrder $salesOrder, ?DeliveryNote $deliveryNote, ?string $currentInvoiceId = null): array
+    private function validateAndCalculateLines(array $lines, ?SalesOrder $salesOrder, ?DeliveryNote $deliveryNote, ?string $currentInvoiceId = null, string $invoiceDate = ''): array
     {
         if (empty($lines)) {
             throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
@@ -732,6 +769,19 @@ class CustomerInvoiceService
 
             $lineTotalMinor = $this->calculateLineTotalMinor($quantityE6, $unitPriceMinor, $lineIndex);
 
+            $taxCodeId = $line['tax_code_id'] ?? null;
+            $taxRateBps = 0;
+            $taxAmountMinor = 0;
+            $grossAmountMinor = $lineTotalMinor;
+
+            if ($taxCodeId) {
+                $calcDate = $invoiceDate ?: now()->format('Y-m-d');
+                $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $lineTotalMinor, $calcDate);
+                $taxRateBps = $taxResult['rate_bps'];
+                $taxAmountMinor = $taxResult['tax_minor'];
+                $grossAmountMinor = $taxResult['gross_minor'];
+            }
+
             $validatedLines[] = [
                 'sales_order_line_id' => $solId,
                 'delivery_note_line_id' => $dnlId,
@@ -741,6 +791,10 @@ class CustomerInvoiceService
                 'quantity_e6' => $quantityE6,
                 'unit_price_minor' => $unitPriceMinor,
                 'line_total_minor' => $lineTotalMinor,
+                'tax_code_id' => $taxCodeId,
+                'tax_rate_bps' => $taxRateBps,
+                'tax_amount_minor' => $taxAmountMinor,
+                'gross_amount_minor' => $grossAmountMinor,
             ];
         }
 

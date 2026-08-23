@@ -21,6 +21,8 @@ Read and follow:
 - `PHASE_7_TAX_VAT.md`
 - `PHASE_7_TAX_VAT_POLICY_DECISION.md`
 - `PHASE_7_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_3_GEMINI_PROMPT.md`
+- actual Slice 2 and Slice 3 implementations: `TaxCode`, `TaxRate`, `TaxCalculationService`, sales VAT snapshot fields, sales tax tests, and the sales tax posting stress command
 - current `SupplierBillService`
 - current `SupplierAdjustmentNoteService`
 - current `PurchaseReturnService`
@@ -36,14 +38,20 @@ Inspect actual purchasing-side schemas before changing anything.
 Add only the minimum schema needed for input VAT:
 
 - tax code/rate references on relevant purchase document lines or dedicated tax detail rows
-- taxable base minor, tax minor, and gross totals as integer minor units
+- taxable base minor, tax minor, gross totals, and adjusted/returned tax totals as integer minor units
 - immutable posted tax snapshot values so historical documents do not change when tax rates change
 
 Rules:
 
+- reuse the existing Slice 2 `TaxCalculationService`; do not duplicate tax math in controllers, pages, or posting services
+- server-side services are the source of truth for input VAT calculation; TSX may display summaries only from server-provided props or persisted values
 - do not mutate posted supplier bills, adjustment notes, purchase returns, journal entries, or ledger entries
 - corrections must use adjustment notes/returns/reversal paths already present
-- tax calculation must use the effective tax rate as of the document date
+- supplier bill tax calculation must use the effective tax rate as of the bill document date
+- standalone supplier adjustment notes must use the effective tax rate as of the adjustment document date
+- supplier adjustment notes / purchase returns linked to an original supplier bill line must reverse the original posted tax snapshot proportionally to the adjusted/returned quantity or amount; do not recalculate linked adjustments/returns from current master rates
+- mixed-tax supplier bills must support standard-rated, zero-rated, and exempt lines in the same document
+- document tax total must equal the sum of line-level tax minor values; do not calculate tax once on an aggregate base if that can create rounding drift
 - tax postings must use `input_tax_receivable`
 - 100% recoverability only unless Slice 1 explicitly approved partial recovery
 - no floats, no `(float)`, no `round()`, no JS floating-point division in new UI
@@ -62,6 +70,8 @@ For supplier adjustment notes / purchase returns that reduce taxable purchases:
 
 - Cr input tax receivable for reversed tax amount
 - reverse/reduce AP according to current adjustment/return behavior
+- if the purchase return already generates/links to a supplier adjustment note, ensure input VAT reversal is posted exactly once
+- allocation/settlement balances must use gross AP impact, while tax reporting must keep net/tax split available
 
 Preserve existing moving weighted average inventory and GRNI behavior from Phase 4.
 
@@ -72,6 +82,7 @@ Update purchasing-side pages only where needed:
 - tax code selection sourced from backend active tax codes
 - tax summary panels
 - line/base/tax/gross display
+- clear display of original supplier bill tax snapshot on linked adjustment/return flows where available
 - permission-aware controls
 - dictionary-backed EN/AR visible text
 
@@ -83,6 +94,8 @@ Preserve existing purchasing permissions for purchasing document lifecycle actio
 
 Tax configuration remains under `taxes.edit`; purchasing users must not be able to create/edit tax codes through purchasing pages unless they have tax permissions.
 
+Purchasing document create/edit users may receive active tax code options needed for document entry, but this must not grant access to tax code/rate CRUD pages.
+
 Posting still requires the existing purchasing posting permission plus `view_financials` where already required.
 
 ## Tests
@@ -93,9 +106,12 @@ Add tests covering:
 - tax rate snapshot does not change after rate master data changes
 - supplier bill posting creates balanced JV including input tax receivable
 - adjustment note / purchase return reverses input tax correctly
+- linked adjustment note / purchase return uses original supplier bill tax snapshot after master tax rate changes
+- mixed standard/zero/exempt supplier bill lines produce exact line-summed totals
 - closed period blocks tax-affecting posting
 - missing input tax mapping blocks posting
 - invalid/inactive tax code rejection
+- document service rejects client-supplied tax totals that do not match server calculation, or ignores and recomputes them server-side
 - exempt/zero-rated purchase lines as approved
 - duplicate/repeated posting remains idempotent
 - inventory/GRNI behavior is not regressed
@@ -123,7 +139,9 @@ Run from `laravel/` and wait for completion:
 php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
+php artisan test --filter=Phase7Slice3
 php artisan test --filter=Phase7Slice4
+php artisan accounting:sales-tax-stress --workers=50
 php artisan test
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=10

@@ -53,8 +53,8 @@ Use the current Laravel code and these documents first:
 - `PHASE_7_SLICE_1_GEMINI_PROMPT.md` (Phase 7 Slice 1 Tax/VAT Policy Decision Pack 100% COMPLETE 2026-08-23)
 - `PHASE_7_TAX_VAT_POLICY_DECISION.md` (Phase 7 Tax/VAT Policy Decision Pack 100% COMPLETE 2026-08-23)
 - `PHASE_7_SLICE_2_GEMINI_PROMPT.md` (Phase 7 Slice 2 Tax Code and Tax Rate Foundation 100% COMPLETE & VERIFIED 2026-08-23)
-- `PHASE_7_SLICE_3_GEMINI_PROMPT.md` (Sales Output VAT Integration - planned next)
-- `PHASE_7_SLICE_4_GEMINI_PROMPT.md` (Purchasing Input VAT Integration - planned)
+- `PHASE_7_SLICE_3_GEMINI_PROMPT.md` (Sales Output VAT Integration 100% COMPLETE & VERIFIED 2026-08-23)
+- `PHASE_7_SLICE_4_GEMINI_PROMPT.md` (Purchasing Input VAT Integration - planned next)
 - `PHASE_7_SLICE_5_GEMINI_PROMPT.md` (VAT Register, VAT Reports, and GL Reconciliation - planned)
 - `PHASE_7_SLICE_6_GEMINI_PROMPT.md` (Tax Period Filing and Locking Controls - planned)
 - `PHASE_7_SLICE_7_GEMINI_PROMPT.md` (UX, Export/Print, Source Scans, and Close-Out - planned)
@@ -115,11 +115,22 @@ Before accepting any Gemini/AI implementation report:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out), and Phase 6 Slices 1-7 is verified on PostgreSQL.
+Phase 7 Slice 3 (Sales Output VAT Integration) is FULLY COMPLETE after local review and verification.
 
-Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is FULLY COMPLETE (Docs-Only, Status: `OWNER DECISION REQUIRED`).
+Phase 7 Slice 2 (Tax Code & Tax Rate Foundation) is FULLY COMPLETE after local review.
 
-Phase 6 Slice 2 (Fixed Asset Register Foundation) is FULLY COMPLETE after local review.
+Latest Phase 7 Slice 3 local completion notes:
+
+- Added database migration `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` with sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
+- Updated Eloquent models (`CustomerInvoice`, `CustomerInvoiceLine`, `CustomerCreditNoteLine`, `SalesReturnLine`) with integer tax casts, fillables, and `taxCode` BelongsTo relations.
+- Enhanced `CustomerInvoiceService`: Injected `TaxCalculationService`, computed line tax amounts as of `invoice_date`, updated draft totals (`subtotal_minor`, `tax_amount_minor`, `total_minor`), and posted balanced JVs (Dr `ar_control` for gross total, Cr `sales_revenue` for net subtotal, Cr `output_tax_payable` for output VAT).
+- Enhanced `CustomerCreditNoteService`: Preserved original invoice line tax snapshots (`tax_code_id`, `tax_rate_bps`) for linked credit note lines, calculated tax for standalone lines using `TaxCalculationService`, and posted output VAT reversal (Dr `sales_returns` for net, Dr `output_tax_payable` for tax, Cr `ar_control` for gross).
+- Enhanced `SalesReturnService`: Preserved original customer invoice line tax fields onto `sales_return_line`.
+- Updated Controllers (`CustomerInvoiceController`, `CustomerCreditNoteController`, `SalesReturnController`) to pass active `taxCodes` to Inertia views.
+- Updated TSX views (`CustomerInvoices.tsx`, `CustomerCreditNotes.tsx`, `SalesReturns.tsx`) to render tax code selection, tax breakdown, and gross amounts.
+- Built `SalesTaxPostingStressCommand.php` (`php artisan accounting:sales-tax-stress`) verifying concurrent sales tax posting and credit note reversal idempotency.
+- Built feature test suite `Phase7Slice3SalesOutputVatTest.php` (5/5 tests passed / 23 assertions).
+- Verification: Pint passed, `php artisan test --filter=Phase7Slice3` passed (5/5 tests), `php artisan test --filter=Phase7` passed (12/12 tests), `php artisan accounting:sales-tax-stress` passed cleanly, `npm run typecheck` passed (0 errors), `npm run build` built cleanly.
 
 Phase 6 Slice 3 (Capitalization and Opening Asset Posting) is FULLY COMPLETE after local review.
 

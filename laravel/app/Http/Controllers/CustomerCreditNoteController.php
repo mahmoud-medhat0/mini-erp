@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerCreditNote;
 use App\Models\CustomerInvoice;
 use App\Models\SalesReturn;
+use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -71,11 +72,18 @@ class CustomerCreditNoteController extends Controller
             ->orderBy('number', 'asc')
             ->get();
 
+        $taxCodes = TaxCode::query()
+            ->with(['rates' => fn ($q) => $q->where('is_active', true)->orderBy('effective_from', 'desc')])
+            ->where('is_active', true)
+            ->orderBy('code', 'asc')
+            ->get();
+
         return Inertia::render('Sales/CustomerCreditNotes', [
             'customerCreditNotes' => $customerCreditNotes,
             'activeCustomers' => $activeCustomers,
             'postedCustomerInvoices' => $postedCustomerInvoices,
             'postedSalesReturns' => $postedSalesReturns,
+            'taxCodes' => $taxCodes,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
@@ -104,6 +112,7 @@ class CustomerCreditNoteController extends Controller
             'lines.*.quantity_e6' => ['nullable', 'integer', 'min:1'],
             'lines.*.unit_price_minor' => ['required', 'integer', 'min:0'],
             'lines.*.tax_rate_bps' => ['nullable', 'integer', 'min:0'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
         ]);
 
         $this->customerCreditNoteService->create($validated, $request->user()?->id);
@@ -131,6 +140,7 @@ class CustomerCreditNoteController extends Controller
             'lines.*.quantity_e6' => ['nullable', 'integer', 'min:1'],
             'lines.*.unit_price_minor' => ['required', 'integer', 'min:0'],
             'lines.*.tax_rate_bps' => ['nullable', 'integer', 'min:0'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
         ]);
 
         $this->customerCreditNoteService->update($id, $validated, $request->user()?->id);

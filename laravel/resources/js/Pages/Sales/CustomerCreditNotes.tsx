@@ -78,6 +78,7 @@ type CustomerCreditNotesProps = SharedPageProps & {
   activeCustomers: CustomerOption[];
   postedCustomerInvoices: PostedInvoiceOption[];
   postedSalesReturns: PostedSalesReturnOption[];
+  taxCodes?: any[];
   filters: {
     search?: string;
     status?: string;

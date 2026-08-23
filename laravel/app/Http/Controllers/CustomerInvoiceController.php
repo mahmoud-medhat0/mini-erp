@@ -8,6 +8,7 @@ use App\Models\CustomerInvoice;
 use App\Models\DeliveryNote;
 use App\Models\Product;
 use App\Models\SalesOrder;
+use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -75,12 +76,19 @@ class CustomerInvoiceController extends Controller
             ->orderBy('number', 'asc')
             ->get();
 
+        $taxCodes = TaxCode::query()
+            ->with(['rates' => fn ($q) => $q->where('is_active', true)->orderBy('effective_from', 'desc')])
+            ->where('is_active', true)
+            ->orderBy('code', 'asc')
+            ->get();
+
         return Inertia::render('Sales/CustomerInvoices', [
             'customerInvoices' => $customerInvoices,
             'activeCustomers' => $activeCustomers,
             'eligibleProducts' => $eligibleProducts,
             'confirmedSalesOrders' => $confirmedSalesOrders,
             'confirmedDeliveryNotes' => $confirmedDeliveryNotes,
+            'taxCodes' => $taxCodes,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
@@ -108,6 +116,7 @@ class CustomerInvoiceController extends Controller
             'lines.*.description' => ['nullable', 'string'],
             'lines.*.quantity_e6' => ['required', 'integer', 'min:1'],
             'lines.*.unit_price_minor' => ['required', 'integer', 'min:0'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
         ]);
 
         $this->customerInvoiceService->create($validated, $request->user()?->id);
@@ -131,6 +140,7 @@ class CustomerInvoiceController extends Controller
             'lines.*.description' => ['nullable', 'string'],
             'lines.*.quantity_e6' => ['required', 'integer', 'min:1'],
             'lines.*.unit_price_minor' => ['required', 'integer', 'min:0'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
         ]);
 
         $this->customerInvoiceService->update($id, $validated, $request->user()?->id);

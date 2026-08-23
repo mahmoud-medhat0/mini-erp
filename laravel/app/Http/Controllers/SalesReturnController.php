@@ -10,6 +10,7 @@ use App\Models\CustomerInvoiceLine;
 use App\Models\DeliveryNote;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnLine;
+use App\Models\TaxCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,11 +74,18 @@ class SalesReturnController extends Controller
             ->orderBy('number', 'asc')
             ->get();
 
+        $taxCodes = TaxCode::query()
+            ->with(['rates' => fn ($q) => $q->where('is_active', true)->orderBy('effective_from', 'desc')])
+            ->where('is_active', true)
+            ->orderBy('code', 'asc')
+            ->get();
+
         return Inertia::render('Sales/SalesReturns', [
             'salesReturns' => $salesReturns,
             'activeCustomers' => $activeCustomers,
             'confirmedDeliveryNotes' => $confirmedDeliveryNotes,
             'postedCustomerInvoices' => $postedCustomerInvoices,
+            'taxCodes' => $taxCodes,
             'filters' => [
                 'search' => $search,
                 'status' => $status,

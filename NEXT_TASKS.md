@@ -1,20 +1,27 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 7 Slice 2 (Tax Code & Tax Rate Foundation) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1 and 2 are complete. Phase 7 Slice 3 (Sales Output VAT Integration) is next.
+Current status: Phase 7 Slice 3 (Sales Output VAT Integration) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1, 2, and 3 are complete. Phase 7 Slice 4 (Purchasing Input VAT Integration) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Planned Track
 
-- Phase 7 Tax / VAT (SLICES 1-2 COMPLETE, SLICES 3-7 PLANNED):
+- Phase 7 Tax / VAT (SLICES 1-3 COMPLETE, SLICES 4-7 PLANNED):
   - Master contract: `PHASE_7_TAX_VAT.md`.
-  - Slice 3: `PHASE_7_SLICE_3_GEMINI_PROMPT.md` - Sales Output VAT Integration (planned next).
-  - Slice 4: `PHASE_7_SLICE_4_GEMINI_PROMPT.md` - Purchasing Input VAT Integration.
+  - Slice 4: `PHASE_7_SLICE_4_GEMINI_PROMPT.md` - Purchasing Input VAT Integration (planned next).
   - Slice 5: `PHASE_7_SLICE_5_GEMINI_PROMPT.md` - VAT Register, VAT Reports, and GL Reconciliation.
   - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls.
   - Slice 7: `PHASE_7_SLICE_7_GEMINI_PROMPT.md` - UX, Export/Print, Source Scans, and Close-Out.
 
 ## Completed
+
+- Phase 7 Slice 3 Sales Output VAT Integration (FULLY COMPLETE):
+  - Migration: `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` adding sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
+  - Eloquent Models: `CustomerInvoice`, `CustomerInvoiceLine`, `CustomerCreditNoteLine`, `SalesReturnLine` updated with integer tax casts, fillables, and `taxCode` BelongsTo relations.
+  - Domain Services: `CustomerInvoiceService` calculates line tax amounts, computes exact draft totals, and posts balanced JVs (Dr `ar_control` for gross total, Cr `sales_revenue` for net subtotal, Cr `output_tax_payable` for output VAT). `CustomerCreditNoteService` preserves linked invoice line tax snapshots and posts output VAT reversal (Dr `sales_returns` for net, Dr `output_tax_payable` for tax, Cr `ar_control` for gross). `SalesReturnService` preserves invoice line tax fields on returns.
+  - UI & Controllers: `CustomerInvoiceController`, `CustomerCreditNoteController`, and `SalesReturnController` pass active `taxCodes` to Inertia views. Updated `CustomerInvoices.tsx`, `CustomerCreditNotes.tsx`, and `SalesReturns.tsx` to render tax selection, tax breakdown, and gross total.
+  - Concurrency Stress Command: `SalesTaxPostingStressCommand.php` (`php artisan accounting:sales-tax-stress`) verifying concurrent sales tax posting and credit note reversal idempotency.
+  - Feature Suite: `Phase7Slice3SalesOutputVatTest.php` (5/5 passing tests / 23 assertions).
 
 - Phase 7 Slice 2 Tax Code and Tax Rate Foundation (FULLY COMPLETE):
   - Database schema: `2026_08_23_080000_create_phase7_slice2_tax_tables.php` creating `tax_codes` and `tax_rates` tables with PostgreSQL check constraints `chk_tc_tax_type`, `chk_tc_calc_mode`, `chk_tc_rec_mode`, and `chk_tr_rate_bps`.

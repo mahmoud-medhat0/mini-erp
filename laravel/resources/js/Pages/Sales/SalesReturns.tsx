@@ -108,6 +108,7 @@ type SalesReturnsProps = SharedPageProps & {
   activeCustomers: CustomerOption[];
   confirmedDeliveryNotes: DeliveryNoteOption[];
   postedCustomerInvoices: PostedInvoiceOption[];
+  taxCodes?: any[];
   filters: {
     search?: string;
     status?: string;

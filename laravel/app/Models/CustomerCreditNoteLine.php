@@ -22,12 +22,20 @@ class CustomerCreditNoteLine extends Model
             'quantity_e6' => 'integer',
             'unit_price_minor' => 'integer',
             'line_total_minor' => 'integer',
+            'tax_rate_bps' => 'integer',
+            'tax_amount_minor' => 'integer',
+            'gross_amount_minor' => 'integer',
         ];
     }
 
     public function customerCreditNote(): BelongsTo
     {
         return $this->belongsTo(CustomerCreditNote::class, 'customer_credit_note_id');
+    }
+
+    public function taxCode(): BelongsTo
+    {
+        return $this->belongsTo(TaxCode::class, 'tax_code_id');
     }
 
     public function customerInvoiceLine(): BelongsTo
