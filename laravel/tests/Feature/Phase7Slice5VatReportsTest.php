@@ -13,6 +13,7 @@ use App\Application\Taxes\TaxMasterDataService;
 use App\Models\Account;
 use App\Models\AccountingAccountMapping;
 use App\Models\Customer;
+use App\Models\JournalLine;
 use App\Models\LedgerEntry;
 use App\Models\Product;
 use App\Models\Supplier;
@@ -79,10 +80,25 @@ class Phase7Slice5VatReportsTest extends TestCase
             'unit_of_measure_id' => $uom->id,
         ]);
 
+        Account::query()->update(['currency' => 'USD']);
         $mappingService = app(AccountingAccountMappingService::class);
-        $this->currency = $mappingService->getAccount('ar_control')->currency;
+        $this->currency = 'USD';
 
-        Account::query()->update(['currency' => $this->currency]);
+        $outputAccount = Account::query()->where('code', '2200')->first();
+        if ($outputAccount) {
+            AccountingAccountMapping::query()->updateOrCreate(
+                ['key' => 'output_tax_payable'],
+                ['account_id' => $outputAccount->id]
+            );
+        }
+
+        $inputAccount = Account::query()->where('code', '1300')->first();
+        if ($inputAccount) {
+            AccountingAccountMapping::query()->updateOrCreate(
+                ['key' => 'input_tax_receivable'],
+                ['account_id' => $inputAccount->id]
+            );
+        }
     }
 
     public function test_vat_register_includes_posted_sales_and_purchases_tax_documents_with_correct_signs(): void
@@ -366,10 +382,19 @@ class Phase7Slice5VatReportsTest extends TestCase
         $mappingService = app(AccountingAccountMappingService::class);
         $outputAccount = $mappingService->getAccount('output_tax_payable');
 
+        $dummyJournalLine = JournalLine::query()->create([
+            'journal_entry_id' => $postedInvoice->journal_entry_id,
+            'account_id' => $outputAccount->id,
+            'line_no' => 99,
+            'debit_minor' => 500,
+            'credit_minor' => 0,
+            'description' => 'Forced mismatch line',
+        ]);
+
         LedgerEntry::query()->create([
             'account_id' => $outputAccount->id,
             'journal_entry_id' => $postedInvoice->journal_entry_id,
-            'journal_line_id' => $postedInvoice->journalEntry->lines->first()->id,
+            'journal_line_id' => $dummyJournalLine->id,
             'financial_period_id' => $postedInvoice->financial_period_id,
             'entry_date' => $today,
             'debit_minor' => 500,
@@ -408,16 +433,29 @@ class Phase7Slice5VatReportsTest extends TestCase
 
     public function test_missing_tax_account_mappings_produce_localized_warning_codes(): void
     {
+        $existingMappings = AccountingAccountMapping::query()
+            ->whereIn('key', ['output_tax_payable', 'input_tax_receivable'])
+            ->get();
+
         AccountingAccountMapping::query()->whereIn('key', ['output_tax_payable', 'input_tax_receivable'])->delete();
 
-        $reconService = app(VatToGlReconciliationService::class);
-        $report = $reconService->generate(['from_date' => '2026-01-01', 'to_date' => '2026-12-31', 'currency' => $this->currency]);
+        try {
+            $reconService = app(VatToGlReconciliationService::class);
+            $report = $reconService->generate(['from_date' => '2026-01-01', 'to_date' => '2026-12-31', 'currency' => $this->currency]);
 
-        $this->assertFalse($report['is_reconciled']);
-        $this->assertCount(2, $report['warnings']);
-        $codes = array_column($report['warnings'], 'code');
-        $this->assertContains('ERR_OUTPUT_TAX_ACCOUNT_NOT_MAPPED', $codes);
-        $this->assertContains('ERR_INPUT_TAX_ACCOUNT_NOT_MAPPED', $codes);
+            $this->assertFalse($report['is_reconciled']);
+            $this->assertCount(2, $report['warnings']);
+            $codes = array_column($report['warnings'], 'code');
+            $this->assertContains('ERR_OUTPUT_TAX_ACCOUNT_NOT_MAPPED', $codes);
+            $this->assertContains('ERR_INPUT_TAX_ACCOUNT_NOT_MAPPED', $codes);
+        } finally {
+            foreach ($existingMappings as $mapping) {
+                AccountingAccountMapping::query()->updateOrCreate(
+                    ['key' => $mapping->key],
+                    ['account_id' => $mapping->account_id, 'description' => $mapping->description]
+                );
+            }
+        }
     }
 
     public function test_authorization_for_vat_report_view_and_export(): void

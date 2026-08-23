@@ -7,6 +7,7 @@ use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Application\Taxes\TaxCalculationService;
+use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\GoodsReceipt;
@@ -37,6 +38,7 @@ class PurchaseReturnService
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
         private readonly TaxCalculationService $taxCalcService,
+        private readonly TaxPeriodGuard $taxPeriodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): PurchaseReturn
@@ -367,6 +369,7 @@ class PurchaseReturnService
             }
 
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $return->financial_period_id, (string) $return->return_date);
+            $this->taxPeriodGuard->ensureDateNotFiled((string) $return->return_date);
             if ($period->fiscal_year_id !== $return->fiscal_year_id) {
                 throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the return fiscal year.']]);
             }

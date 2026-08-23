@@ -76,7 +76,7 @@ class VatRegisterReportService
             $creditNotes = CustomerCreditNote::query()
                 ->with(['customer', 'lines.taxCode'])
                 ->where('status', 'posted')
-                ->whereBetween('credit_note_date', [$fromDate, $toDate])
+                ->whereBetween('credit_date', [$fromDate, $toDate])
                 ->get();
 
             foreach ($creditNotes as $cn) {
@@ -96,7 +96,7 @@ class VatRegisterReportService
                         'document_type' => 'customer_credit_note',
                         'document_id' => (string) $cn->id,
                         'document_number' => $cn->number ?? 'DRAFT',
-                        'document_date' => Carbon::parse($cn->credit_note_date)->format('Y-m-d'),
+                        'document_date' => Carbon::parse($cn->credit_date)->format('Y-m-d'),
                         'entity_type' => 'customer',
                         'entity_name' => $cn->customer?->name ?? '—',
                         'tax_category' => 'output',

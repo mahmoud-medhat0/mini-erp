@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Taxes\TaxCalculationService;
+use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\GoodsReceipt;
@@ -34,6 +35,7 @@ class SupplierBillService
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
         private readonly TaxCalculationService $taxCalcService,
+        private readonly TaxPeriodGuard $taxPeriodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): SupplierBill
@@ -339,6 +341,7 @@ class SupplierBillService
             }
 
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $bill->financial_period_id, (string) $bill->bill_date);
+            $this->taxPeriodGuard->ensureDateNotFiled((string) $bill->bill_date);
             if ($period->fiscal_year_id !== $bill->fiscal_year_id) {
                 throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the bill fiscal year.']]);
             }

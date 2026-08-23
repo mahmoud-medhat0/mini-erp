@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
 use App\Models\CustomerInvoice;
@@ -35,6 +36,7 @@ class SalesReturnService
         private readonly MovingWeightedAverageInventoryService $inventoryService,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
+        private readonly TaxPeriodGuard $taxPeriodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): SalesReturn
@@ -360,6 +362,7 @@ class SalesReturnService
             }
 
             $returnDate = $salesReturn->return_date->format('Y-m-d');
+            $this->taxPeriodGuard->ensureDateNotFiled($returnDate);
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $salesReturn->financial_period_id, $returnDate);
             if ($period->fiscal_year_id !== $salesReturn->fiscal_year_id) {
                 throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the sales return fiscal year.']]);

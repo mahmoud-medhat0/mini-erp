@@ -66,6 +66,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\Taxes\TaxCodeController;
+use App\Http\Controllers\Taxes\TaxPeriodController;
 use App\Http\Controllers\Taxes\TaxRateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -442,6 +443,13 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/taxes/rates', [TaxRateController::class, 'store'])->name('taxes.rates.store');
     Route::put('/taxes/rates/{id}', [TaxRateController::class, 'update'])->name('taxes.rates.update');
     Route::delete('/taxes/rates/{id}', [TaxRateController::class, 'destroy'])->name('taxes.rates.destroy');
+
+    // Phase 7 Slice 6 Tax Period & Filing Routes
+    Route::get('/taxes/periods', [TaxPeriodController::class, 'index'])->name('taxes.periods.index');
+    Route::post('/taxes/periods', [TaxPeriodController::class, 'store'])->name('taxes.periods.store');
+    Route::get('/taxes/periods/{id}', [TaxPeriodController::class, 'show'])->name('taxes.periods.show');
+    Route::post('/taxes/periods/{id}/draft', [TaxPeriodController::class, 'generateDraft'])->name('taxes.periods.draft');
+    Route::post('/taxes/returns/{id}/file', [TaxPeriodController::class, 'fileReturn'])->name('taxes.returns.file');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

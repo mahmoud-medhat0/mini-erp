@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Taxes\TaxCalculationService;
+use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
 use App\Models\CustomerInvoice;
@@ -35,6 +36,7 @@ class CustomerInvoiceService
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
         private readonly TaxCalculationService $taxCalcService,
+        private readonly TaxPeriodGuard $taxPeriodGuard,
     ) {}
 
     public function create(array $data, ?int $actorId = null): CustomerInvoice
@@ -327,6 +329,7 @@ class CustomerInvoiceService
             $invoice = CustomerInvoice::query()->with(['lines.product', 'customer'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $invoice->financial_period_id, (string) $invoice->invoice_date);
+            $this->taxPeriodGuard->ensureDateNotFiled((string) $invoice->invoice_date);
 
             if ($invoice->status === 'posted') {
                 return $invoice->load(['customer', 'lines.product', 'lines.unitOfMeasure', 'journalEntry', 'receivableEntry']);

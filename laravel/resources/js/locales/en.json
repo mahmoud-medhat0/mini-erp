@@ -2967,6 +2967,35 @@
         "outputAccount": "Output Tax Account",
         "inputAccount": "Input Tax Account",
         "notMapped": "Not Configured"
+      },
+      "periods": {
+        "title": "Tax Periods & Filing",
+        "subtitle": "Manage monthly tax periods, generate tax return draft snapshots, and file official returns.",
+        "newPeriod": "New Tax Period",
+        "periodLabel": "Period Label",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "status": "Status",
+        "fileReference": "Filing Reference",
+        "filedAt": "Filed At",
+        "actions": "Actions",
+        "open": "OPEN",
+        "draftReturn": "DRAFT RETURN",
+        "filed": "FILED",
+        "viewDetails": "View & File",
+        "createPeriod": "Create Tax Period",
+        "notes": "Notes",
+        "generateDraft": "Generate Draft Return",
+        "reGenerateDraft": "Re-generate Draft Return",
+        "fileReturn": "File Return & Lock Period",
+        "fileConfirmationTitle": "Confirm Official Return Filing",
+        "fileConfirmationDesc": "Filing is permanent and immutable. Once filed, no new tax-affecting documents can be posted with a document date in this period range.",
+        "returnNumber": "Return Number",
+        "outputTax": "Output VAT",
+        "inputTax": "Input VAT",
+        "netPayable": "Net VAT Payable / (Claimable)",
+        "snapshotHeading": "Immutable Return Snapshot",
+        "emptyPeriods": "No tax periods created yet."
       }
     }
   }

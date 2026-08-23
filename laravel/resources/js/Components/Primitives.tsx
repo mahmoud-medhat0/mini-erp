@@ -127,6 +127,38 @@ export function StatusBadge({
   );
 }
 
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+      <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <h3 className="text-base font-bold text-[var(--text-primary)]">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-lg font-bold"
+          >
+            &times;
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export const tableClasses = {
   wrap: 'overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-md',
   table: 'min-w-full border-collapse text-sm',
