@@ -2,6 +2,20 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Tax / VAT Planning Prompts (2026-08-23)
+- Added `PHASE_7_TAX_VAT.md` as the bounded master planning contract for Tax / VAT.
+- Added seven strict Gemini execution prompts:
+  - `PHASE_7_SLICE_1_GEMINI_PROMPT.md` Tax/VAT Policy Decision Pack.
+  - `PHASE_7_SLICE_2_GEMINI_PROMPT.md` Tax Code and Tax Rate Foundation.
+  - `PHASE_7_SLICE_3_GEMINI_PROMPT.md` Sales Output VAT Integration.
+  - `PHASE_7_SLICE_4_GEMINI_PROMPT.md` Purchasing Input VAT Integration.
+  - `PHASE_7_SLICE_5_GEMINI_PROMPT.md` VAT Register, VAT Reports, and GL Reconciliation.
+  - `PHASE_7_SLICE_6_GEMINI_PROMPT.md` Tax Period Filing and Locking Controls.
+  - `PHASE_7_SLICE_7_GEMINI_PROMPT.md` UX, Export/Print, Source Scans, and Close-Out.
+- Updated `CONTINUE_HERE.md`, `NEXT_TASKS.md`, and `IMPLEMENTATION_STATUS.md` so the next bounded track starts with the docs-only Tax/VAT policy decision pack.
+- Reconfirmed Phase 7 must preserve no tenant/company/branch scope, integer-only tax/money math, dictionary-backed UI text, detailed current permissions, Spatie Activitylog audit, PeriodGuard posting protections, and synchronous local verification before completion claims.
+- No Phase 7 Laravel implementation code, migrations, routes, controllers, services, UI pages, seeders, commands, or tests were added in this planning pass.
+
 ### Added — Phase 6 Slice 7 Reports, UX, Export/Print, E2E Smoke & Close-Out (2026-08-23)
 - Built `FixedAssetReportService` so fixed asset register, net book value, depreciation schedule, depreciation run history, and disposal history reports read one service-calculated source of truth.
 - Rebuilt `FixedAssetReportController` with strict `reports.view` + `view_financials` report access and CSV export guarded by (`reports.export` OR `fixedAssets.export`) plus `reports.view` and `view_financials`.

@@ -1,6 +1,6 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 6 (Fixed Assets) is COMPLETE. Next bounded phase/module requires owner direction.
+- **Current phase:** Phase 7 (Tax / VAT) is PLANNED. Start with `PHASE_7_SLICE_1_GEMINI_PROMPT.md` for the owner-facing tax/VAT policy decision pack.
 - **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 7 local correction.
 - **Tests passing:** Full suite 514 tests, 511 passed, 3 skipped / 3855 assertions. Phase 6 Slice 7 suite 6 tests, 6 passed / 153 assertions. Phase 6 combined suite 64 tests, 64 passed / 456 assertions. Concurrency testsuite 7 tests, 7 passed / 16 assertions.
 - **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, and the PHPUnit Concurrency suite.
@@ -9,6 +9,7 @@
 - **Latest verified code commit:** pending after Phase 6 Slice 7 local correction.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 - **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared and complete. `PHASE_6_FINAL_VERIFICATION_REPORT.md` is updated after local correction.
+- **Phase 7 prompts:** `PHASE_7_TAX_VAT.md` and Slice 1-7 prompts are prepared. No Phase 7 Laravel implementation has been added yet.
 
 ## Legend
 
@@ -54,6 +55,7 @@
 | Phase 6 Slice 6 Fixed Asset Disposal | COMPLETE | `fixed_asset_disposal` table/model created with PostgreSQL check constraints `chk_fad_status`, `chk_fad_type`, `chk_fad_amounts`, `FixedAssetDisposalPostingService` supporting scrap/sale/retirement workflows, exact minor-unit GL posting (Credit asset cost, Debit accum dep, Debit/Credit disposal loss/gain, Debit clearing), disposal reversal via `ReversalService`, DB-level integrity hardening, web/UI workflows, concurrency stress command `accounting:fixed-asset-disposal-stress --workers=50`, and 15/15 passing feature tests (`Phase6Slice6FixedAssetDisposalTest`, 60 assertions). |
 | Phase 6 Slice 7 Reports, UX, Export/Print & Close-Out | COMPLETE | Added `FixedAssetReportService`, strict report/export authorization, five report pages (`FixedAssetRegisterReport.tsx`, `FixedAssetNetBookValueReport.tsx`, `FixedAssetDepreciationReport.tsx`, `FixedAssetDepreciationRunReport.tsx`, `FixedAssetDisposalReport.tsx`), CSV exports preserving integer minor units, dictionary-backed EN/AR report UI, Reports Hub integration, source scans, and `Phase6Slice7FixedAssetReportsTest.php` (6/6 tests / 153 assertions). |
 | Phase 6 Fixed Assets | COMPLETE | Phase 6 Slices 1 through 7 are 100% complete, fully tested (64/64 Phase 6 tests passed / 456 assertions), and locally verified on PostgreSQL. |
+| Phase 7 Tax / VAT | PLANNED | Created `PHASE_7_TAX_VAT.md` and bounded Slice 1-7 Gemini prompts covering Tax/VAT policy decision, tax code/rate foundation, sales output VAT, purchasing input VAT, VAT register/reports/GL reconciliation, tax period filing locks, and close-out verification. No implementation code yet. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -256,7 +258,8 @@ Result summary:
 | Inventory | PARTIAL | Moving Weighted Average stock balance and immutable stock movement ledger are implemented; sales/purchase returns are supported through reversal stock movements (`recordReturn`/`recordScrap`), with scrap disposition not increasing saleable stock. Warehouse/location, stock counts, and generic stock adjustments are not implemented. |
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
 | Fixed Assets | COMPLETE | Phase 6 master contract and Slices 1-7 are complete: policy decision pack, register, capitalization, depreciation schedule, depreciation run posting, disposal, reports/export/print/close-out, and final verification report. |
-| Payroll, Rentals, Taxes, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
+| Payroll, Rentals, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
+| Taxes / VAT | PLANNED | Phase 7 prompt files are prepared. Start with the docs-only policy decision pack before adding any tax migrations or posting behavior. |
 | Full financial statements | COMPLETE | Mapping, Balance Sheet, Income Statement, Cash Flow, Period Close controls, Year-End Close decision pack, and print/export UX close-out are complete. Physical retained-earnings closing entries are not approved or implemented. |
 
 ## Known Issues / Residual Risks
@@ -273,6 +276,8 @@ Result summary:
 Phase 3 is 100% complete for the agreed scope, and Phase 4 is complete through Slice 10 (Slices 1-10). Returns, credit notes, invoice revisions, purchase returns, supplier adjustment notes, manual tax basis points, manual AR/AP note settlement, and operational close-out hardening are implemented and locally verified.
 
 No required Phase 4, Phase 5, or Phase 6 correction remains. Phase 5 Slices 1-6 are complete, and Phase 6 Fixed Assets Slices 1-7 are complete with final verification report updated after local correction.
+
+Next bounded track is Phase 7 Tax / VAT. Execute `PHASE_7_SLICE_1_GEMINI_PROMPT.md` first. Slice 1 is docs-only and must record owner decisions before tax migrations, tax posting, VAT reports, filing locks, or any jurisdiction-specific behavior are implemented.
 
 Other owner options:
 

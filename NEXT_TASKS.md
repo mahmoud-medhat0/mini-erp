@@ -1,8 +1,21 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 6 (Fixed Assets & Depreciation Engine) is 100% fully implemented, concurrency-hardened, and locally verified on 2026-08-23. All 7 slices of Phase 6 are complete.
+Current status: Phase 6 (Fixed Assets & Depreciation Engine) is 100% fully implemented, concurrency-hardened, and locally verified on 2026-08-23. All 7 slices of Phase 6 are complete. Phase 7 (Tax / VAT) prompt files are prepared; no Phase 7 implementation code has been added yet.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
+
+## Next Planned Track
+
+- Phase 7 Tax / VAT (PROMPTS READY, NOT IMPLEMENTED):
+  - Master contract: `PHASE_7_TAX_VAT.md`.
+  - Slice 1: `PHASE_7_SLICE_1_GEMINI_PROMPT.md` - Tax/VAT Policy Decision Pack. Docs-only unless the owner explicitly approves implementation in the same request.
+  - Slice 2: `PHASE_7_SLICE_2_GEMINI_PROMPT.md` - Tax Code and Tax Rate Foundation.
+  - Slice 3: `PHASE_7_SLICE_3_GEMINI_PROMPT.md` - Sales Output VAT Integration.
+  - Slice 4: `PHASE_7_SLICE_4_GEMINI_PROMPT.md` - Purchasing Input VAT Integration.
+  - Slice 5: `PHASE_7_SLICE_5_GEMINI_PROMPT.md` - VAT Register, VAT Reports, and GL Reconciliation.
+  - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls.
+  - Slice 7: `PHASE_7_SLICE_7_GEMINI_PROMPT.md` - UX, Export/Print, Source Scans, and Close-Out.
+  - Start with Slice 1 and record owner choices for VAT scope, rates, rounding, inclusive/exclusive tax, tax periods, filing locks, GL mappings, and permissions before adding tax migrations or posting behavior.
 
 ## Completed
 

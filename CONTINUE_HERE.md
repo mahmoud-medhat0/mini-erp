@@ -49,6 +49,14 @@ Use the current Laravel code and these documents first:
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md` (Phase 6 Slice 6 Fixed Asset Disposal 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md` (Phase 6 Slice 7 Reports, UX, Export/Print & Close-Out 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_6_FINAL_VERIFICATION_REPORT.md` (Phase 6 Final Verification Report 100% COMPLETE & VERIFIED 2026-08-23)
+- `PHASE_7_TAX_VAT.md` (Phase 7 Tax / VAT planning contract - PROMPTS READY, NOT IMPLEMENTED)
+- `PHASE_7_SLICE_1_GEMINI_PROMPT.md` (Tax/VAT Policy Decision Pack - execute first, docs-only unless owner explicitly approves implementation)
+- `PHASE_7_SLICE_2_GEMINI_PROMPT.md` (Tax Code and Tax Rate Foundation - planned)
+- `PHASE_7_SLICE_3_GEMINI_PROMPT.md` (Sales Output VAT Integration - planned)
+- `PHASE_7_SLICE_4_GEMINI_PROMPT.md` (Purchasing Input VAT Integration - planned)
+- `PHASE_7_SLICE_5_GEMINI_PROMPT.md` (VAT Register, VAT Reports, and GL Reconciliation - planned)
+- `PHASE_7_SLICE_6_GEMINI_PROMPT.md` (Tax Period Filing and Locking Controls - planned)
+- `PHASE_7_SLICE_7_GEMINI_PROMPT.md` (UX, Export/Print, Source Scans, and Close-Out - planned)
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -176,7 +184,7 @@ Latest Phase 6 Slice 4 local correction notes:
 - Fixed Asset detail depreciation schedule UI uses dictionary-backed statuses, date separators, table labels, buttons, and empty states.
 - Verification: migrations up to date through `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability`, `vendor/bin/pint --test`, Slice 4 suite 13/13 / 64 assertions, full PHPUnit suite 483 tests / 480 passed / 3 skipped / 3588 assertions, Concurrency testsuite 7/7, PostgreSQL stress commands, `npm run typecheck`, and `npm run build`.
 
-Next execution step: no Phase 6 implementation slice remains. Choose the next bounded phase/module with the owner before creating new prompts.
+Next execution step: Phase 7 Tax / VAT is prepared. Execute `PHASE_7_SLICE_1_GEMINI_PROMPT.md` first to create the owner-facing Tax/VAT Policy Decision Pack. Do not add tax migrations, tax posting, VAT reports, filing locks, or jurisdiction-specific behavior until Slice 1 owner decisions are recorded.
 
 Latest Phase 6 Slice 1 notes:
 
@@ -515,6 +523,19 @@ Phase 6 planning is prepared:
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
 Phase 6 Slices 1-7 are complete. No Phase 6 implementation slice remains.
+
+Phase 7 planning is prepared:
+
+- `PHASE_7_TAX_VAT.md`
+- `PHASE_7_SLICE_1_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_2_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_4_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_5_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_6_GEMINI_PROMPT.md`
+- `PHASE_7_SLICE_7_GEMINI_PROMPT.md`
+
+Phase 7 is NOT implemented yet. Start with Slice 1 decision pack.
 
 Other possible owner choices:
 
