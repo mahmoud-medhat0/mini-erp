@@ -2,6 +2,20 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Slice 2 Tax Code and Tax Rate Foundation (2026-08-23)
+- Created database migration `2026_08_23_080000_create_phase7_slice2_tax_tables.php` creating `tax_codes` and `tax_rates` tables with PostgreSQL check constraints `chk_tc_tax_type`, `chk_tc_calc_mode`, `chk_tc_rec_mode`, and `chk_tr_rate_bps`.
+- Created Eloquent models `TaxCode` and `TaxRate` with JSON name casting, UUIDs, and relations.
+- Built `TaxMasterDataService` supporting tax code and tax rate CRUD, system tax code deletion protection (`is_system = true`), in-use protection, and Spatie Activitylog audit logging.
+- Built `TaxCalculationService` supporting effective tax rate lookup by document date (`resolveEffectiveRate`) and integer minor-unit tax calculation (`calculateTax`) for `exclusive`, `inclusive`, and `exempt` calculation modes using deterministic half-up integer division math.
+- Built `TaxCodeController` and `TaxRateController` guarded by permissions `taxes.view` and `taxes.edit`.
+- Registered web routes under `/taxes/codes` and `/taxes/rates`.
+- Created Inertia React pages `Taxes/Codes/Index.tsx`, `Taxes/Codes/Create.tsx`, `Taxes/Codes/Edit.tsx`, and `Taxes/Rates/Index.tsx`.
+- Updated EN/AR translation dictionaries in `en.json` and `ar.json` under `taxes`.
+- Updated navigation key union, permission mapping, and sidebar menu in `AppLayout.tsx`.
+- Created `TaxCodeSeeder` with default `VAT_STD_14` (14.00%), `VAT_ZERO` (0.00%), and `EXEMPT` (Exempt) master records.
+- Built feature test suite `Phase7Slice2TaxFoundationTest.php` (7/7 passing tests / 38 assertions).
+- Executed full verification gate pass cleanly: Pint passed, `npm run typecheck` passed (0 errors), `npm run build` completed cleanly.
+
 ### Added — Phase 7 Slice 1 Tax/VAT Policy Decision Pack (2026-08-23)
 - Created `PHASE_7_TAX_VAT_POLICY_DECISION.md` containing Arabic & English executive summaries, plain-language explanation of VAT concepts, comparison table for tax scope options, integer basis-points rate scale specification (`rate_bps`), tax calculation/rounding policy, sales output VAT and purchasing input VAT posting workflows, monthly tax period filing controls, 15 owner decision checklist items, and recommended implementation path.
 - Docs-only slice: zero implementation code added. Verified via `git diff --stat` and source scans.

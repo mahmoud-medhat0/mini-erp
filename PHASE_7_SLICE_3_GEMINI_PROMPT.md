@@ -21,6 +21,7 @@ Read and follow:
 - `PHASE_7_TAX_VAT.md`
 - `PHASE_7_TAX_VAT_POLICY_DECISION.md`
 - `PHASE_7_SLICE_2_GEMINI_PROMPT.md`
+- actual Slice 2 implementation: `TaxCode`, `TaxRate`, `TaxCalculationService`, `TaxMasterDataService`, tax controllers, routes, seeders, and tests
 - current `CustomerInvoiceService`
 - current `CustomerCreditNoteService`
 - current `SalesReturnService`
@@ -35,14 +36,20 @@ Inspect actual sales-side schemas before changing anything.
 Add only the minimum schema needed for sales output tax:
 
 - tax code/rate references on relevant sales document lines or dedicated tax detail rows
-- taxable base minor, tax minor, and gross totals as integer minor units
+- taxable base minor, tax minor, gross totals, and credited/returned tax totals as integer minor units
 - immutable posted tax snapshot values so historical documents do not change when tax rates change
 
 Rules:
 
+- reuse the existing Slice 2 `TaxCalculationService`; do not duplicate tax math in controllers, pages, or posting services
+- server-side services are the source of truth for tax calculation; TSX may display estimates/summaries only from server-provided props or persisted values
 - do not mutate posted customer invoices, posted credit notes, posted sales returns, journal entries, or ledger entries
 - corrections must use credit notes/returns/reversal paths already present
-- tax calculation must use the effective tax rate as of the document date
+- customer invoice tax calculation must use the effective tax rate as of the invoice document date
+- standalone credit notes must use the effective tax rate as of the credit note document date
+- credit notes / sales returns linked to an original invoice line must reverse the original posted tax snapshot proportionally to the credited/returned quantity or amount; do not recalculate linked returns from current master rates
+- mixed-tax documents must support standard-rated, zero-rated, and exempt lines in the same document
+- document tax total must equal the sum of line-level tax minor values; do not calculate tax once on an aggregate base if that can create rounding drift
 - tax postings must use `output_tax_payable`
 - no floats, no `(float)`, no `round()`, no JS floating-point division in new UI
 - no hardcoded tax rates or labels in TSX
@@ -61,6 +68,8 @@ For customer credit notes / sales returns that reduce taxable sales:
 - Dr output tax payable for credited tax amount
 - Dr sales returns or relevant return mapping for net amount where current behavior requires it
 - Cr AR/control or follow existing credit note settlement model
+- if the sales return already generates/links to a customer credit note, ensure output VAT reversal is posted exactly once
+- allocation/settlement balances must use gross AR impact, while tax reporting must keep net/tax split available
 
 Preserve existing stock/COGS/inventory posting behavior from Phase 4.
 
@@ -71,6 +80,7 @@ Update sales-side pages only where needed:
 - tax code selection sourced from backend active tax codes
 - tax summary panels
 - line/base/tax/gross display
+- clear display of original invoice tax snapshot on linked credit/return flows where available
 - permission-aware controls
 - dictionary-backed EN/AR visible text
 
@@ -82,6 +92,8 @@ Preserve existing sales permissions for sales document lifecycle actions.
 
 Tax configuration remains under `taxes.edit`; sales users must not be able to create/edit tax codes through sales pages unless they have tax permissions.
 
+Sales document create/edit users may receive active tax code options needed for document entry, but this must not grant access to tax code/rate CRUD pages.
+
 Posting still requires the existing sales posting permission plus `view_financials` where already required.
 
 ## Tests
@@ -92,9 +104,12 @@ Add tests covering:
 - tax rate snapshot does not change after rate master data changes
 - customer invoice posting creates balanced JV including output tax payable
 - credit note / sales return reverses output tax correctly
+- linked credit note / sales return uses original invoice tax snapshot after master tax rate changes
+- mixed standard/zero/exempt invoice lines produce exact line-summed totals
 - closed period blocks tax-affecting posting
 - missing output tax mapping blocks posting
 - invalid/inactive tax code rejection
+- document service rejects client-supplied tax totals that do not match server calculation, or ignores and recomputes them server-side
 - no tax on exempt/zero-rated lines as approved
 - duplicate/repeated posting remains idempotent
 - permissions and UI props

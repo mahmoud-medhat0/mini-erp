@@ -64,6 +64,8 @@ use App\Http\Controllers\SupplierBillController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierOpeningBalanceController;
 use App\Http\Controllers\SupplierPaymentController;
+use App\Http\Controllers\Taxes\TaxCodeController;
+use App\Http\Controllers\Taxes\TaxRateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -418,6 +420,19 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/fixed-assets/{assetId}/disposals/preview', [FixedAssetDisposalController::class, 'preview'])->name('fixed-assets.disposals.preview');
     Route::post('/fixed-assets/{assetId}/disposals', [FixedAssetDisposalController::class, 'store'])->name('fixed-assets.disposals.store');
     Route::post('/fixed-assets-disposals/{id}/reverse', [FixedAssetDisposalController::class, 'reverse'])->name('fixed-assets-disposals.reverse');
+
+    // Phase 7 Slice 2 Tax Code and Tax Rate Routes
+    Route::get('/taxes/codes', [TaxCodeController::class, 'index'])->name('taxes.codes.index');
+    Route::get('/taxes/codes/create', [TaxCodeController::class, 'create'])->name('taxes.codes.create');
+    Route::post('/taxes/codes', [TaxCodeController::class, 'store'])->name('taxes.codes.store');
+    Route::get('/taxes/codes/{id}/edit', [TaxCodeController::class, 'edit'])->name('taxes.codes.edit');
+    Route::put('/taxes/codes/{id}', [TaxCodeController::class, 'update'])->name('taxes.codes.update');
+    Route::delete('/taxes/codes/{id}', [TaxCodeController::class, 'destroy'])->name('taxes.codes.destroy');
+
+    Route::get('/taxes/rates', [TaxRateController::class, 'index'])->name('taxes.rates.index');
+    Route::post('/taxes/rates', [TaxRateController::class, 'store'])->name('taxes.rates.store');
+    Route::put('/taxes/rates/{id}', [TaxRateController::class, 'update'])->name('taxes.rates.update');
+    Route::delete('/taxes/rates/{id}', [TaxRateController::class, 'destroy'])->name('taxes.rates.destroy');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

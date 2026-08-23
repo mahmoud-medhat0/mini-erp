@@ -81,7 +81,9 @@ export type NavKey =
   | 'fixed-assets.index'
   | 'fixed-asset-categories.index'
   | 'fixed-assets.depreciation-runs.index'
-  | 'fixed-assets-disposals.index';
+  | 'fixed-assets-disposals.index'
+  | 'taxes.codes.index'
+  | 'taxes.rates.index';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -90,6 +92,8 @@ type AppLayoutProps = {
 
 const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'accounting.index': 'accounting.view',
+  'taxes.codes.index': 'taxes.view',
+  'taxes.rates.index': 'taxes.view',
   'accounting.coa': 'accounting.view',
   'accounting.journal': 'accounting.view',
   'accounting.ledger': 'accounting.view',
@@ -547,7 +551,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods || 'Fiscal Periods', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
                         { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances || 'Opening Balances', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
                         { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates || 'Exchange Rates', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
-                         { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { key: 'taxes.codes.index' as NavKey, href: '/taxes/codes', label: (dict.app as any).taxes?.title || 'Tax Codes & Rates', icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z' },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (

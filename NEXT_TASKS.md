@@ -1,21 +1,30 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 7 Slice 1 (Tax/VAT Policy Decision Pack) is 100% complete (docs-only) on 2026-08-23. Phase 7 Slice 2 (Tax Code & Tax Rate Foundation) is next.
+Current status: Phase 7 Slice 2 (Tax Code & Tax Rate Foundation) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1 and 2 are complete. Phase 7 Slice 3 (Sales Output VAT Integration) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Planned Track
 
-- Phase 7 Tax / VAT (SLICE 1 COMPLETE, SLICES 2-7 PLANNED):
+- Phase 7 Tax / VAT (SLICES 1-2 COMPLETE, SLICES 3-7 PLANNED):
   - Master contract: `PHASE_7_TAX_VAT.md`.
-  - Slice 2: `PHASE_7_SLICE_2_GEMINI_PROMPT.md` - Tax Code and Tax Rate Foundation (planned next).
-  - Slice 3: `PHASE_7_SLICE_3_GEMINI_PROMPT.md` - Sales Output VAT Integration.
+  - Slice 3: `PHASE_7_SLICE_3_GEMINI_PROMPT.md` - Sales Output VAT Integration (planned next).
   - Slice 4: `PHASE_7_SLICE_4_GEMINI_PROMPT.md` - Purchasing Input VAT Integration.
   - Slice 5: `PHASE_7_SLICE_5_GEMINI_PROMPT.md` - VAT Register, VAT Reports, and GL Reconciliation.
   - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls.
   - Slice 7: `PHASE_7_SLICE_7_GEMINI_PROMPT.md` - UX, Export/Print, Source Scans, and Close-Out.
 
 ## Completed
+
+- Phase 7 Slice 2 Tax Code and Tax Rate Foundation (FULLY COMPLETE):
+  - Database schema: `2026_08_23_080000_create_phase7_slice2_tax_tables.php` creating `tax_codes` and `tax_rates` tables with PostgreSQL check constraints `chk_tc_tax_type`, `chk_tc_calc_mode`, `chk_tc_rec_mode`, and `chk_tr_rate_bps`.
+  - Eloquent models: `TaxCode` and `TaxRate` with casts and relations.
+  - Application services: `TaxMasterDataService` (CRUD, system/in-use protection, Spatie Activitylog audit) and `TaxCalculationService` (effective rate resolution, integer minor-unit math for exclusive, inclusive, and exempt modes).
+  - Controllers & Routes: `TaxCodeController` and `TaxRateController` guarded by permissions `taxes.view` and `taxes.edit`.
+  - Inertia React UI: `Taxes/Codes/Index.tsx`, `Taxes/Codes/Create.tsx`, `Taxes/Codes/Edit.tsx`, and `Taxes/Rates/Index.tsx` with dictionary translations and modal rate creator.
+  - Navigation: added `taxes.codes.index` and `taxes.rates.index` to `AppLayout.tsx` nav union, permission map, and sidebar menu.
+  - Seeder: `TaxCodeSeeder` with default `VAT_STD_14` (14%), `VAT_ZERO` (0%), and `EXEMPT` (Exempt) tax codes and effective rates.
+  - Feature test suite: `Phase7Slice2TaxFoundationTest.php` (7/7 passing tests / 38 assertions).
 
 - Phase 7 Slice 1 Tax/VAT Policy Decision Pack (FULLY COMPLETE):
   - Created `PHASE_7_TAX_VAT_POLICY_DECISION.md` containing Arabic & English executive summaries, plain-language tax/VAT concepts, tax scope options, integer basis points rate scale (`rate_bps`), tax calculation/rounding standards, sales/purchasing GL mapping entries, monthly tax period filing controls, 15 owner decision items, and recommended path.

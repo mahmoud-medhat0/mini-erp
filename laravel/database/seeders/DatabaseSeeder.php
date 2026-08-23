@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             FinancialStatementLineSeeder::class,
             UnitOfMeasureSeeder::class,
             ProductCategorySeeder::class,
+            TaxCodeSeeder::class,
         ]);
 
         if (app()->environment('local', 'testing', 'development')) {
