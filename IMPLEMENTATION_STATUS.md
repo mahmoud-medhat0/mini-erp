@@ -1,14 +1,14 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 6 (Fixed Assets) is IN PROGRESS. Slices 1-2 are complete; Slice 3 is next.
-- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 2 local review.
-- **Tests passing:** Full suite 458 tests, 455 passed, 3 skipped / 3449 assertions. Phase 6 Slice 2 suite 8 tests, 8 passed / 65 assertions. Concurrency testsuite 7 tests, 7 passed / 16 assertions.
-- **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, and the PHPUnit Concurrency suite. `concurrency:stress --workers=100` is blocked locally by Windows paging-file memory exhaustion; lower worker counts pass.
+- **Current phase:** Phase 6 (Fixed Assets) is IN PROGRESS. Slices 1-3 are complete; Slice 4 is next.
+- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 3 local review.
+- **Tests passing:** Full suite 470 tests, 467 passed, 3 skipped / 3519 assertions. Phase 6 Slice 2 suite 9/9 / 71 assertions. Phase 6 Slice 3 suite 11/11 / 64 assertions. Concurrency testsuite 7/7 / 16 assertions.
+- **Stress passing:** Latest local correction pass reran `accounting:concurrency-stress --workers=50`; the PHPUnit Concurrency suite also passed.
 - **Frontend verification:** `npm run typecheck` passed, `npm run build` passed (chunk size warning only).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending after Phase 6 Slice 2 local review.
+- **Latest verified code commit:** pending after Phase 6 Slice 3 local review.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
-- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared. Slices 1-2 are complete; start the next pass with `PHASE_6_SLICE_3_GEMINI_PROMPT.md`. Review gates still require source-scan classification, synchronous command results only, no raw backend English in UI, no hardcoded visible TSX text, exact permissions, and no invented schema fields.
+- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared. Slices 1-3 are complete; start the next pass with `PHASE_6_SLICE_4_GEMINI_PROMPT.md`.
 
 ## Legend
 
@@ -47,8 +47,9 @@
 | Phase 5 Slice 6 UX, Export/Print & Close-Out | COMPLETE | Added permission-gated Print actions (`reports.print` + `view_financials`), `Phase5Slice6FinalCloseOutTest.php` (4/4 passing tests / 30 assertions after local schema-fixture correction), cleaned dictionary keys in `en.json` & `ar.json`, corrected Bank Reconciliation report journal number display to use `journal_entry.number`, ran full PHPUnit locally after review, and created `PHASE_5_FINAL_VERIFICATION_REPORT.md`. |
 | Phase 5 Financial Statements & Period Close | COMPLETE | Slices 1-6 are 100% complete and verified: financial statement mapping, Balance Sheet, Income Statement, Cash Flow, Period Close controls, Year-End Close decision pack, and final UX/Export/Print close-out. |
 | Phase 6 Slice 1 Fixed Asset Policy Decision Pack | COMPLETE | `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` is docs-only complete and marked `OWNER DECISION REQUIRED`. No migrations, models, services, routes, UI, seeders, commands, or tests were added. |
-| Phase 6 Slice 2 Fixed Asset Register Foundation | COMPLETE | `fixed_asset_category` and `fixed_asset` tables/models created with PostgreSQL check constraints, 6 fixed asset GL mapping keys registered, attachment entity registered, `FixedAssetCategoryService` & `FixedAssetRegisterService`, controllers, routes, Inertia React pages (`Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`), EN/AR translations, navigation items in `AppLayout.tsx`, local review fixes for multilingual form payloads / hardcoded TSX text / status transition scope / currency validation, and 8/8 passing feature tests (`Phase6Slice2FixedAssetRegisterTest`, 65 assertions). |
-| Phase 6 Fixed Assets | IN PROGRESS | Phase 6 Slices 1 & 2 are 100% complete and locally verified. Slices 3-7 are prepared. |
+| Phase 6 Slice 2 Fixed Asset Register Foundation | COMPLETE | `fixed_asset_category` and `fixed_asset` tables/models created with PostgreSQL check constraints, 6 fixed asset GL mapping keys registered, attachment entity registered, `FixedAssetCategoryService` & `FixedAssetRegisterService`, controllers, routes, Inertia React pages (`Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`), EN/AR translations, navigation items in `AppLayout.tsx`, local review fixes for multilingual form payloads / hardcoded TSX text / workflow-owned activation / currency validation, and 9/9 passing feature tests (`Phase6Slice2FixedAssetRegisterTest`, 71 assertions). |
+| Phase 6 Slice 3 Capitalization and Opening Asset Posting | COMPLETE | Capitalization metadata columns (`capitalization_mode`, `capitalization_date`, `journal_entry_id`, `capitalized_at`, `capitalized_by`) added via migration, `FixedAssetCapitalizationService` supporting `opening_already_capitalized` (0 GL entries) and `manual_capitalization` (PostingEngine Dr Asset Cost / Cr Fixed Asset Clearing), capitalization reversal (`ReversalService`), controller endpoints, web routes, Capitalize Modal in `Show.tsx`, dictionary translations, retry-safe row-lock/state-based capitalization idempotency, blocked non-draft capitalization/edit/update, blocked recapitalization with a different mode, machine-readable journal/memo descriptions, no hardcoded visible fixed-asset detail text, and 11/11 passing feature tests (`Phase6Slice3CapitalizationTest`, 64 assertions). |
+| Phase 6 Fixed Assets | IN PROGRESS | Phase 6 Slices 1, 2, and 3 are 100% complete and locally verified. Slices 4-7 are prepared. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -65,15 +66,17 @@
 
 ## Verification Snapshot
 
-Latest Phase 6 Slice 2 local review verification:
+Latest Phase 6 Slice 3 local review verification:
 
 ```powershell
 php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
 php artisan test --filter=Phase6Slice2FixedAssetRegisterTest
-php artisan test --testsuite=Concurrency
+php artisan test --filter=Phase6Slice3CapitalizationTest
 php artisan test
+php artisan test --testsuite=Concurrency
+php artisan accounting:concurrency-stress --workers=50
 npm run typecheck
 npm run build
 ```
@@ -81,11 +84,13 @@ npm run build
 Result summary:
 
 - `php artisan migrate --force`: Nothing to migrate.
-- `php artisan migrate:status`: all migrations Ran through `2026_08_23_030000_create_phase6_slice2_fixed_asset_tables`.
+- `php artisan migrate:status`: all migrations Ran through `2026_08_23_040000_create_phase6_slice3_capitalization_columns`.
 - `vendor/bin/pint --test`: passed.
-- `php artisan test --filter=Phase6Slice2FixedAssetRegisterTest`: 8 tests / 65 assertions passed.
+- `php artisan test --filter=Phase6Slice2FixedAssetRegisterTest`: 9 tests / 71 assertions passed.
+- `php artisan test --filter=Phase6Slice3CapitalizationTest`: 11 tests / 64 assertions passed.
+- `php artisan test`: 470 tests, 467 passed, 3 skipped / 3519 assertions.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
-- `php artisan test`: 458 tests, 455 passed, 3 skipped / 3449 assertions.
+- `php artisan accounting:concurrency-stress --workers=50`: passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed (chunk size warning only).
 

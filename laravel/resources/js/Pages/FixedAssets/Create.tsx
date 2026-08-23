@@ -42,7 +42,6 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
     useful_life_months: categories[0]?.useful_life_months || 60,
     opening_accumulated_depreciation_minor: 0,
     serial_number: '',
-    status: 'draft',
   });
 
   function handleCategoryChange(catId: string) {
@@ -70,7 +69,6 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
       useful_life_months: formData.useful_life_months,
       opening_accumulated_depreciation_minor: formData.opening_accumulated_depreciation_minor,
       serial_number: formData.serial_number,
-      status: formData.status,
     }));
     post('/fixed-assets');
   }

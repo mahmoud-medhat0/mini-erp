@@ -134,7 +134,6 @@ class Phase6Slice2FixedAssetRegisterTest extends TestCase
             'useful_life_months' => 36,
             'opening_accumulated_depreciation_minor' => 0,
             'serial_number' => 'SN-MBP-2026-001',
-            'status' => 'draft',
         ]);
 
         $response->assertSessionHasNoErrors();
@@ -154,13 +153,12 @@ class Phase6Slice2FixedAssetRegisterTest extends TestCase
         // Update asset
         $updateResp = $this->actingAs($this->manageUser)->put("/fixed-assets/{$asset->id}", [
             'cost_minor' => 1250000,
-            'status' => 'active',
         ]);
 
         $updateResp->assertRedirect();
         $asset->refresh();
         $this->assertEquals(1250000, $asset->cost_minor);
-        $this->assertEquals('active', $asset->status);
+        $this->assertEquals('draft', $asset->status);
         $this->assertEquals(1, $asset->lock_version);
     }
 
@@ -207,12 +205,60 @@ class Phase6Slice2FixedAssetRegisterTest extends TestCase
             'salvage_value_minor' => 0,
             'useful_life_months' => 36,
             'opening_accumulated_depreciation_minor' => 0,
-            'status' => 'draft',
         ]);
 
         $response->assertSessionHasErrors(['currency']);
         $this->assertDatabaseMissing('fixed_asset', [
             'asset_number' => 'FA-2026-BAD01',
+        ]);
+    }
+
+    public function test_register_requests_cannot_bypass_capitalization_by_sending_active_status(): void
+    {
+        $createResp = $this->actingAs($this->manageUser)->post('/fixed-assets', [
+            'asset_number' => 'FA-2026-ACTIVE',
+            'name' => ['en' => 'Manual Active Asset', 'ar' => 'أصل نشط يدوي'],
+            'fixed_asset_category_id' => $this->category->id,
+            'currency' => 'EGP',
+            'acquisition_date' => '2026-01-15',
+            'in_service_date' => '2026-01-15',
+            'cost_minor' => 1200000,
+            'salvage_value_minor' => 0,
+            'useful_life_months' => 36,
+            'opening_accumulated_depreciation_minor' => 0,
+            'status' => 'active',
+        ]);
+
+        $createResp->assertSessionHasErrors(['status']);
+        $this->assertDatabaseMissing('fixed_asset', [
+            'asset_number' => 'FA-2026-ACTIVE',
+        ]);
+
+        /** @var FixedAsset $asset */
+        $asset = FixedAsset::create([
+            'id' => (string) Str::uuid(),
+            'asset_number' => 'FA-2026-DRAFT1',
+            'name' => ['en' => 'Draft Asset', 'ar' => 'أصل مسودة'],
+            'fixed_asset_category_id' => $this->category->id,
+            'currency' => 'EGP',
+            'acquisition_date' => '2026-01-01',
+            'in_service_date' => '2026-01-01',
+            'cost_minor' => 100000,
+            'salvage_value_minor' => 0,
+            'useful_life_months' => 36,
+            'depreciation_method' => 'straight_line',
+            'opening_accumulated_depreciation_minor' => 0,
+            'status' => 'draft',
+        ]);
+
+        $updateResp = $this->actingAs($this->manageUser)->put("/fixed-assets/{$asset->id}", [
+            'status' => 'active',
+        ]);
+
+        $updateResp->assertSessionHasErrors(['status']);
+        $this->assertDatabaseHas('fixed_asset', [
+            'id' => $asset->id,
+            'status' => 'draft',
         ]);
     }
 

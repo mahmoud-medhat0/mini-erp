@@ -1,10 +1,20 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 6 Slice 2 (Fixed Asset Register Foundation) is fully implemented and locally verified on 2026-08-23. Phase 6 Slice 1 remains docs-only policy decision pack. Phase 6 Slices 3-7 are prepared.
+Current status: Phase 6 Slice 3 (Capitalization and Opening Asset Posting) is fully implemented and locally verified on 2026-08-23. Phase 6 Slices 1-3 are complete. Phase 6 Slice 4 (Depreciation Schedule Engine) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Completed
+
+- Phase 6 Slice 3 Capitalization and Opening Asset Posting (FULLY COMPLETE):
+  - Database schema: `2026_08_23_040000_create_phase6_slice3_capitalization_columns.php` adding `capitalization_mode`, `capitalization_date`, `journal_entry_id`, `capitalized_at`, `capitalized_by` to `fixed_asset`.
+  - Eloquent model: `FixedAsset` updated with fillable, casts, `journalEntry`, and `capitalizer` relations.
+  - Domain service: `FixedAssetCapitalizationService` supporting `opening_already_capitalized` (0 GL entries) and `manual_capitalization` (PostingEngine Dr Asset Cost / Cr Fixed Asset Clearing), capitalization reversal via `ReversalService`, and row-lock/state-based retry-safe idempotency.
+  - Controllers & Routes: `FixedAssetController::capitalize` and `reverseCapitalization` guarded by `fixedAssets.post`, `fixedAssets.reverse`, and `view_financials`.
+  - Inertia React UI: `Show.tsx` updated with Capitalize modal, status badges, linked journal voucher link, and Reverse Capitalization action.
+  - Translations: EN/AR dictionary keys added to `en.json` and `ar.json`.
+  - Local review corrections: removed hardcoded visible text from the fixed asset detail page, blocked direct register edit/update after activation, blocked non-draft capitalization, blocked recapitalization with a different mode, removed stale idempotency failure risk after closed-period attempts, and changed generated journal descriptions/memos to localization-ready machine keys.
+  - Feature test suite `Phase6Slice3CapitalizationTest.php` (11/11 passing tests / 64 assertions).
 
 - Phase 6 Slice 2 Fixed Asset Register Foundation (FULLY COMPLETE):
   - Database schema: `fixed_asset_category` and `fixed_asset` tables with PostgreSQL check constraints (`2026_08_23_030000_create_phase6_slice2_fixed_asset_tables.php`).
@@ -16,8 +26,8 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Routes: `/fixed-asset-categories` and `/fixed-assets` guarded by RBAC permissions (`fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `view_financials`).
   - Inertia React pages: `Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`.
   - EN/AR translations in `en.json` & `ar.json` and navigation links in `AppLayout.tsx`.
-  - Local review corrections: fixed multilingual form payloads, removed hardcoded visible text in the new TSX pages, restricted manual register status updates to `draft`/`active`, and hardened currency validation with `exists:currency,code`.
-  - Feature test suite `Phase6Slice2FixedAssetRegisterTest.php` (8/8 passing tests / 65 assertions after local review).
+  - Local review corrections: fixed multilingual form payloads, removed hardcoded visible text in the new TSX pages, made activation workflow-owned via capitalization instead of generic register updates, and hardened currency validation with `exists:currency,code`.
+  - Feature test suite `Phase6Slice2FixedAssetRegisterTest.php` (9/9 passing tests / 71 assertions after local review).
 
 - M2 Laravel/Inertia foundation.
 - M3 foundation schema, global RBAC, and no-team Spatie Permission.

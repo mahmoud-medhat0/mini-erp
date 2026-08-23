@@ -58,7 +58,6 @@ export default function FixedAssetEdit({ locale, asset }: EditProps) {
     useful_life_months: asset.useful_life_months,
     opening_accumulated_depreciation_minor: asset.opening_accumulated_depreciation_minor,
     serial_number: asset.serial_number || '',
-    status: asset.status,
   });
 
   function handleSubmit(e: FormEvent) {
@@ -73,7 +72,6 @@ export default function FixedAssetEdit({ locale, asset }: EditProps) {
       useful_life_months: formData.useful_life_months,
       opening_accumulated_depreciation_minor: formData.opening_accumulated_depreciation_minor,
       serial_number: formData.serial_number,
-      status: formData.status,
     }));
     put(`/fixed-assets/${asset.id}`);
   }
@@ -208,20 +206,6 @@ export default function FixedAssetEdit({ locale, asset }: EditProps) {
                   className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
                 />
                 {errors.opening_accumulated_depreciation_minor && <p className="mt-1 text-xs text-rose-600">{errors.opening_accumulated_depreciation_minor}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.status}
-                </label>
-                <select
-                  value={data.status}
-                  onChange={(e) => setData('status', e.target.value as any)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                >
-                  <option value="draft">{appDict.fixedAssetStatusDraft}</option>
-                  <option value="active">{appDict.fixedAssetStatusActive}</option>
-                </select>
               </div>
 
               <div>

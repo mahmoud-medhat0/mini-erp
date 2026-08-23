@@ -28,6 +28,11 @@ class FixedAsset extends Model
         'depreciation_method',
         'opening_accumulated_depreciation_minor',
         'status',
+        'capitalization_mode',
+        'capitalization_date',
+        'journal_entry_id',
+        'capitalized_at',
+        'capitalized_by',
         'serial_number',
         'lock_version',
         'created_by',
@@ -41,11 +46,14 @@ class FixedAsset extends Model
         return [
             'acquisition_date' => 'date:Y-m-d',
             'in_service_date' => 'date:Y-m-d',
+            'capitalization_date' => 'date:Y-m-d',
+            'capitalized_at' => 'datetime',
             'cost_minor' => 'integer',
             'salvage_value_minor' => 'integer',
             'useful_life_months' => 'integer',
             'opening_accumulated_depreciation_minor' => 'integer',
             'lock_version' => 'integer',
+            'capitalized_by' => 'integer',
             'created_by' => 'integer',
             'updated_by' => 'integer',
         ];
@@ -59,6 +67,16 @@ class FixedAsset extends Model
     public function currencyModel(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency', 'code');
+    }
+
+    public function journalEntry(): BelongsTo
+    {
+        return $this->belongsTo(JournalEntry::class, 'journal_entry_id');
+    }
+
+    public function capitalizer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'capitalized_by');
     }
 
     public function creator(): BelongsTo

@@ -43,7 +43,7 @@ Use the current Laravel code and these documents first:
 - `PHASE_6_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md`
 - `PHASE_6_SLICE_2_GEMINI_PROMPT.md` (Phase 6 Slice 2 Fixed Asset Register Foundation 100% COMPLETE & VERIFIED 2026-08-23)
-- `PHASE_6_SLICE_3_GEMINI_PROMPT.md`
+- `PHASE_6_SLICE_3_GEMINI_PROMPT.md` (Phase 6 Slice 3 Capitalization and Opening Asset Posting 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_6_SLICE_4_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_5_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
@@ -105,29 +105,39 @@ Before accepting any Gemini/AI implementation report:
 
 ## Current Verified Status
 
-The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out), and Phase 6 Slices 1-2 is verified on PostgreSQL.
+The Laravel migration through M10, Phase 3 Slices 1-10, Phase 4 Slices 1-10, Phase 5 Slices 1-6 (Financial Statement Mapping, Balance Sheet, Income Statement, Cash Flow Statement, Period Close Controls, Year-End Close Decision Pack, UX, Export/Print, E2E Smoke & Close-Out), and Phase 6 Slices 1-3 is verified on PostgreSQL.
 
 Phase 6 Slice 1 (Fixed Asset Policy Decision Pack) is FULLY COMPLETE (Docs-Only, Status: `OWNER DECISION REQUIRED`).
 
 Phase 6 Slice 2 (Fixed Asset Register Foundation) is FULLY COMPLETE after local review.
 
+Phase 6 Slice 3 (Capitalization and Opening Asset Posting) is FULLY COMPLETE after local review.
+
 Latest Phase 6 Slice 2 local correction notes:
 
 - Fixed Asset create/edit/category forms now submit nested multilingual `name.en` / `name.ar` payloads instead of local-only `name_en` / `name_ar` fields.
 - New Fixed Asset TSX pages use dictionary-backed labels, buttons, statuses, headings, confirmation prompts, and field labels.
-- Manual register status updates are restricted to `draft` and `active`; future workflow statuses `fully_depreciated` and `disposed` remain reserved for later depreciation/disposal services.
+- Manual register activation is blocked; fixed assets remain `draft` until workflow-owned capitalization changes them to `active`. Future workflow statuses `fully_depreciated` and `disposed` remain reserved for later depreciation/disposal services.
 - Fixed asset creation validates `currency` with `size:3` and `exists:currency,code`.
-- Added regression coverage for invalid currency rejection and blocked manual future-status updates.
-- Verification: migrations up to date, `vendor/bin/pint --test`, Slice 2 suite 8/8, Concurrency testsuite 7/7, full PHPUnit suite 458 tests / 455 passed / 3 skipped / 3449 assertions, `npm run typecheck`, and `npm run build`.
+- Added regression coverage for invalid currency rejection, blocked manual active-status requests, and blocked future-status updates.
+- Verification: migrations up to date, `vendor/bin/pint --test`, Slice 2 suite 9/9 / 71 assertions.
 
-Next execution step: `PHASE_6_SLICE_3_GEMINI_PROMPT.md` (Capitalization and Opening Asset Posting).
+Latest Phase 6 Slice 3 local correction notes:
+
+- `FixedAssetCapitalizationService` now uses fixed asset row locking plus capitalization state for retry-safe idempotency, avoiding stale failed idempotency keys after a closed-period attempt.
+- Manual capitalization still posts through `PostingEngine` and uses `fixed_asset_cost` / `fixed_asset_clearing`, but generated journal descriptions and line memos are machine-readable keys instead of raw English prose.
+- Non-draft uncapitalized assets cannot be capitalized, active assets cannot be edited or updated through generic register routes, and an already-capitalized asset cannot be recapitalized with a different mode.
+- Fixed Asset detail UI text is dictionary-backed, including confirmation prompts, headings, status labels, and attachment byte suffixes.
+- Verification: migrations up to date, `vendor/bin/pint --test`, Slice 3 suite 11/11 / 64 assertions, full PHPUnit suite 470 tests / 467 passed / 3 skipped / 3519 assertions, Concurrency testsuite 7/7, `accounting:concurrency-stress --workers=50`, `npm run typecheck`, and `npm run build`.
+
+Next execution step: `PHASE_6_SLICE_4_GEMINI_PROMPT.md` (Depreciation Schedule Engine).
 
 Latest Phase 6 Slice 1 notes:
 
 - Created `PHASE_6_FIXED_ASSETS_POLICY_DECISION.md` containing Arabic executive summary, technical overview, 12 policy dimensions, GL mapping strategy, RBAC permission specifications, owner decision checklist, recommended defaults, and future slice roadmap.
 - Recommended straight-line depreciation, useful life in months, optional salvage value defaulting to 0, depreciation starting in month after in-service date, opening asset registration without GL entries, and acquisition via Fixed Asset Clearing account (`fixed_asset_clearing`).
 - Preserved docs-only execution: 0 migrations, 0 models, 0 services, 0 routes, 0 UI components, 0 seeders, 0 commands, and 0 tests added. Status marked as `OWNER DECISION REQUIRED`.
-- Slice 2 has already implemented the register foundation. Continue with Slice 3.
+- Slice 2 has already implemented the register foundation. Slice 3 has already implemented capitalization/opening posting. Continue with Slice 4.
 
 Latest Phase 5 Slice 6 close-out notes:
 
@@ -458,7 +468,7 @@ Phase 6 planning is prepared:
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md`
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Phase 6 Slices 1-2 are complete. Execute `PHASE_6_SLICE_3_GEMINI_PROMPT.md` next for Capitalization and Opening Asset Posting.
+Phase 6 Slices 1-3 are complete. Execute `PHASE_6_SLICE_4_GEMINI_PROMPT.md` next for the Depreciation Schedule Engine.
 
 Other possible owner choices:
 

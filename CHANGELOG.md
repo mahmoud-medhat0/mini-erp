@@ -3,7 +3,19 @@
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ## [Unreleased] — Phase 1: Foundation (complete)
-### Added — Phase 6 Slice 2 Fixed Asset Register Foundation (2026-08-23)
+### Added — Phase 6 Slice 3 Capitalization and Opening Asset Posting (2026-08-23)
+- Created database migration `2026_08_23_040000_create_phase6_slice3_capitalization_columns.php` adding capitalization metadata columns (`capitalization_mode`, `capitalization_date`, `journal_entry_id`, `capitalized_at`, `capitalized_by`) and PostgreSQL check constraint `chk_fixed_asset_capitalization_mode` to `fixed_asset`.
+- Updated `FixedAsset` Eloquent model with capitalization fillable fields, date/timestamp casts, and Eloquent relationships `journalEntry` and `capitalizer`.
+- Built `FixedAssetCapitalizationService` supporting both owner-approved capitalization modes:
+  - `opening_already_capitalized`: Marks asset `active` without GL posting (0 journal/ledger entries created) for opening balance assets already represented in existing ledger.
+  - `manual_capitalization`: Posts a balanced journal entry (Dr Fixed Asset Cost / Cr Fixed Asset Clearing) via `PostingEngine`, validates open period via `PeriodGuard`, allocates JV number, and creates ledger entries.
+  - `reverseCapitalization`: Reverses capitalization journal entry via `ReversalService` and resets asset status back to `draft`.
+- Added controller endpoints `capitalize` and `reverseCapitalization` in `FixedAssetController` guarded by permissions `fixedAssets.post`, `fixedAssets.reverse`, and `view_financials`, with exception handling mapping `PeriodClosedException` to validation errors.
+- Registered web routes `POST /fixed-assets/{id}/capitalize` and `POST /fixed-assets/{id}/reverse-capitalization` in `routes/web.php`.
+- Updated Inertia React view `Show.tsx` with Capitalize Asset modal (mode selector & date picker), capitalization status badges, clickable linked journal voucher link, and Reverse Capitalization action button.
+- Added EN/AR translation dictionary keys in `en.json` and `ar.json`.
+- Built feature test suite `Phase6Slice3CapitalizationTest.php` (11/11 passing tests / 64 assertions after local review).
+- Executed local verification after review: migrations up to date, `vendor/bin/pint --test`, Slice 2 suite 9/9, Slice 3 suite 11/11, full PHPUnit suite 470 tests / 467 passed / 3 skipped / 3519 assertions, Concurrency testsuite 7/7, `accounting:concurrency-stress --workers=50`, `npm run typecheck`, and `npm run build`.
 - Created database migration `2026_08_23_030000_create_phase6_slice2_fixed_asset_tables.php` for `fixed_asset_category` and `fixed_asset` tables with PostgreSQL check constraints enforcing positive costs, non-negative salvage/opening accumulated values, valid depreciation methods (`straight_line`), and valid statuses (`draft`, `active`, `fully_depreciated`, `disposed`).
 - Created Eloquent models `FixedAssetCategory` and `FixedAsset` with Spatie `HasTranslations` (`name`) and UUID traits.
 - Added 6 fixed asset GL mapping keys (`fixed_asset_cost`, `accumulated_depreciation`, `depreciation_expense`, `fixed_asset_disposal_gain`, `fixed_asset_disposal_loss`, `fixed_asset_clearing`) to `AccountingAccountMappingService` with type/nature validation rules, and seeded standard COA accounts (1600, 1690, 1699, 4910, 5250, 5910) and default mappings in `AccountingCoreSeeder`.
@@ -11,13 +23,22 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 - Built application services `FixedAssetCategoryService` and `FixedAssetRegisterService` using `NumberSequenceAllocator::nextValue('fixed_asset')` for `FA-YYYY-00001` global asset code allocation and Spatie Activitylog audit logging.
 - Built controllers `FixedAssetCategoryController` and `FixedAssetController` with Inertia React pages (`Categories.tsx`, `Index.tsx`, `Create.tsx`, `Show.tsx`, `Edit.tsx`).
 - Added web routes in `routes/web.php` guarded by RBAC permissions (`fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `view_financials`), added EN/AR translations in `en.json` & `ar.json`, and added navigation items in `AppLayout.tsx`.
-- Created feature test suite `Phase6Slice2FixedAssetRegisterTest.php` (8/8 passing tests / 65 assertions after local review).
-- Executed local verification: migrations up to date, `vendor/bin/pint --test`, Slice 2 suite 8/8, Concurrency testsuite 7/7, full PHPUnit suite 458 tests / 455 passed / 3 skipped / 3449 assertions, `npm run typecheck`, and `npm run build`.
+- Created feature test suite `Phase6Slice2FixedAssetRegisterTest.php` (9/9 passing tests / 71 assertions after latest local review).
+- Executed local verification: migrations up to date, `vendor/bin/pint --test`, Slice 2 suite 9/9, Concurrency testsuite 7/7, full PHPUnit suite 470 tests / 467 passed / 3 skipped / 3519 assertions, `npm run typecheck`, and `npm run build`.
+
+### Corrected — Phase 6 Slice 3 Local Review (2026-08-23)
+- Removed stale outer capitalization idempotency key usage and made fixed asset capitalization retry-safe through row locking plus stored capitalization state; closed-period failures can be retried after reopening the period.
+- Blocked manual register activation: fixed assets are created/edited as `draft`, and `active` is now owned by capitalization workflows.
+- Blocked generic edit/update routes for active fixed assets and blocked capitalization of non-draft uncapitalized records.
+- Blocked recapitalization with a different capitalization mode while preserving replay behavior for the same completed mode.
+- Replaced fixed asset capitalization journal descriptions and line memos with localization-ready machine keys.
+- Removed hardcoded visible English text from `FixedAssets/Show.tsx` and added the missing EN/AR dictionary keys.
+- Added regression coverage for retry after closed-period failure, non-draft capitalization rejection, active asset edit/update rejection, manual active-status request rejection, and journal/memo key generation.
 
 ### Corrected — Phase 6 Slice 2 Local Review (2026-08-23)
 - Corrected Fixed Asset React forms so category and asset create/edit pages submit nested multilingual `name.en` / `name.ar` payloads instead of local-only `name_en` / `name_ar` fields.
 - Removed hardcoded visible English text from new Fixed Asset TSX pages and added the missing EN/AR dictionary keys for filters, buttons, statuses, section headings, confirmation prompts, and field labels.
-- Restricted manual register status updates to `draft` and `active`; future statuses `fully_depreciated` and `disposed` remain display/filter values only until depreciation/disposal workflows own those transitions.
+- Blocked manual register activation; fixed assets remain `draft` until capitalization owns the transition to `active`. Future statuses `fully_depreciated` and `disposed` remain display/filter values only until depreciation/disposal workflows own those transitions.
 - Hardened fixed asset creation validation so `currency` must be exactly 3 characters and exist in `currency.code`.
 - Added regression tests covering unsupported future status updates and invalid currency rejection.
 

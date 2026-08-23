@@ -387,6 +387,8 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/fixed-assets/{id}/edit', [FixedAssetController::class, 'edit'])->name('fixed-assets.edit');
     Route::put('/fixed-assets/{id}', [FixedAssetController::class, 'update'])->name('fixed-assets.update');
     Route::delete('/fixed-assets/{id}', [FixedAssetController::class, 'destroy'])->name('fixed-assets.destroy');
+    Route::post('/fixed-assets/{id}/capitalize', [FixedAssetController::class, 'capitalize'])->name('fixed-assets.capitalize');
+    Route::post('/fixed-assets/{id}/reverse-capitalization', [FixedAssetController::class, 'reverseCapitalization'])->name('fixed-assets.reverse_capitalization');
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

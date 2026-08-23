@@ -131,8 +131,10 @@ class FixedAssetRegisterService
         }
 
         $status = $data['status'] ?? 'draft';
-        if (! in_array($status, ['draft', 'active'], true)) {
-            $status = 'draft';
+        if ($status !== 'draft') {
+            throw ValidationException::withMessages([
+                'status' => ['Fixed assets must be created as draft and activated through capitalization.'],
+            ]);
         }
 
         return DB::transaction(function () use ($data, $category, $currencyCode, $cost, $salvage, $usefulLife, $openingAccum, $status, $actorId): FixedAsset {
@@ -205,6 +207,12 @@ class FixedAssetRegisterService
         $asset = FixedAsset::query()->findOrFail($id);
         $before = $asset->toArray();
 
+        if ($asset->status !== 'draft') {
+            throw ValidationException::withMessages([
+                'asset' => ['Only draft assets can be edited.'],
+            ]);
+        }
+
         if (isset($data['name'])) {
             $asset->name = $data['name'];
         }
@@ -268,9 +276,9 @@ class FixedAssetRegisterService
         $asset->opening_accumulated_depreciation_minor = $openingAccum;
 
         if (isset($data['status'])) {
-            if (! in_array($data['status'], ['draft', 'active'], true)) {
+            if ($data['status'] !== 'draft') {
                 throw ValidationException::withMessages([
-                    'status' => ["Invalid status [{$data['status']}]."],
+                    'status' => ['Fixed assets must be activated through capitalization.'],
                 ]);
             }
             $asset->status = $data['status'];

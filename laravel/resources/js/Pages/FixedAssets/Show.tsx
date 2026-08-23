@@ -1,4 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, PageHeader } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
@@ -8,6 +9,13 @@ type CategoryOption = {
   id: string;
   code: string;
   name: { en: string; ar: string } | string;
+};
+
+type JournalInfo = {
+  id: string;
+  number: string;
+  status: string;
+  entry_date: string;
 };
 
 type AssetDetail = {
@@ -25,9 +33,15 @@ type AssetDetail = {
   depreciation_method: string;
   opening_accumulated_depreciation_minor: number;
   status: 'draft' | 'active' | 'fully_depreciated' | 'disposed';
+  capitalization_mode?: 'opening_already_capitalized' | 'manual_capitalization' | null;
+  capitalization_date?: string | null;
+  journal_entry_id?: string | null;
+  capitalized_at?: string | null;
   serial_number?: string | null;
   created_at: string;
   category?: CategoryOption | null;
+  journal_entry?: JournalInfo | null;
+  capitalizer?: { id: number; name: string } | null;
   creator?: { id: number; name: string } | null;
   updater?: { id: number; name: string } | null;
 };
@@ -47,6 +61,7 @@ type ShowProps = SharedPageProps & {
     edit: boolean;
     delete: boolean;
     post: boolean;
+    reverse: boolean;
     view_financials: boolean;
   };
 };
@@ -55,9 +70,32 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
   const dict = getDictionary(locale);
   const appDict = (dict.app as any).accounting || {};
 
+  const [showCapitalizeModal, setShowCapitalizeModal] = useState(false);
+
+  const { data, setData, post, processing, errors, reset } = useForm({
+    capitalization_mode: 'manual_capitalization' as 'opening_already_capitalized' | 'manual_capitalization',
+    capitalization_date: asset.in_service_date || new Date().toISOString().split('T')[0],
+  });
+
   function handleDelete() {
     if (confirm(appDict.confirmDeleteDraftAsset)) {
       router.delete(`/fixed-assets/${asset.id}`);
+    }
+  }
+
+  function handleCapitalize(e: FormEvent) {
+    e.preventDefault();
+    post(`/fixed-assets/${asset.id}/capitalize`, {
+      onSuccess: () => {
+        setShowCapitalizeModal(false);
+        reset();
+      },
+    });
+  }
+
+  function handleReverseCapitalization() {
+    if (confirm(appDict.confirmReverseCapitalization)) {
+      router.post(`/fixed-assets/${asset.id}/reverse-capitalization`);
     }
   }
 
@@ -68,18 +106,17 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
     return String(name);
   }
 
-  function formatStatus(status: string): string {
+  function formatStatus(status: AssetDetail['status']): string {
     switch (status) {
-      case 'draft':
-        return appDict.fixedAssetStatusDraft;
       case 'active':
         return appDict.fixedAssetStatusActive;
       case 'fully_depreciated':
         return appDict.fixedAssetStatusFullyDepreciated;
       case 'disposed':
         return appDict.fixedAssetStatusDisposed;
+      case 'draft':
       default:
-        return appDict.statusUnknown;
+        return appDict.fixedAssetStatusDraft;
     }
   }
 
@@ -102,7 +139,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
               >
                 {appDict.back}
               </Link>
-              {can.edit && (
+              {can.edit && asset.status === 'draft' && (
                 <Link
                   href={`/fixed-assets/${asset.id}/edit`}
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
@@ -110,7 +147,25 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
                   {appDict.editFixedAsset}
                 </Link>
               )}
-              {can.delete && (
+              {can.post && asset.status === 'draft' && (
+                <button
+                  type="button"
+                  onClick={() => setShowCapitalizeModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700"
+                >
+                  {appDict.capitalizeAsset}
+                </button>
+              )}
+              {can.reverse && asset.status === 'active' && asset.capitalization_mode === 'manual_capitalization' && (
+                <button
+                  type="button"
+                  onClick={handleReverseCapitalization}
+                  className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700"
+                >
+                  {appDict.reverseCapitalization}
+                </button>
+              )}
+              {can.delete && asset.status === 'draft' && (
                 <button
                   type="button"
                   onClick={handleDelete}
@@ -169,8 +224,41 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
 
               <div>
                 <dt className="text-slate-500 dark:text-slate-400">{appDict.status}</dt>
-                <dd className="font-medium text-slate-900 dark:text-slate-100">{formatStatus(asset.status)}</dd>
+                <dd className="capitalize font-medium text-slate-900 dark:text-slate-100">
+                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${asset.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                    {formatStatus(asset.status)}
+                  </span>
+                </dd>
               </div>
+
+              {asset.capitalization_mode && (
+                <>
+                  <div>
+                    <dt className="text-slate-500 dark:text-slate-400">{appDict.capitalizationMode}</dt>
+                    <dd className="font-medium text-slate-900 dark:text-slate-100">
+                      {asset.capitalization_mode === 'opening_already_capitalized'
+                        ? appDict.openingAlreadyCapitalized
+                        : appDict.manualCapitalization}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-slate-500 dark:text-slate-400">{appDict.capitalizationDate}</dt>
+                    <dd className="font-medium text-slate-900 dark:text-slate-100">{asset.capitalization_date || '-'}</dd>
+                  </div>
+                </>
+              )}
+
+              {asset.journal_entry && (
+                <div className="col-span-2">
+                  <dt className="text-slate-500 dark:text-slate-400">{appDict.linkedJournal}</dt>
+                  <dd className="font-mono font-medium text-indigo-600 dark:text-indigo-400">
+                    <Link href={`/accounting/journal/${asset.journal_entry.id}`}>
+                      {asset.journal_entry.number} ({asset.journal_entry.entry_date})
+                    </Link>
+                  </dd>
+                </div>
+              )}
             </dl>
 
             {asset.description && (
@@ -226,6 +314,83 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
           </Card>
         </div>
       </div>
+
+      {showCapitalizeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+          <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {appDict.capitalizeAsset} ({asset.asset_number})
+            </h3>
+
+            <form onSubmit={handleCapitalize} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {appDict.capitalizationMode}
+                </label>
+                <div className="mt-2 space-y-2">
+                  <label className="flex items-start space-x-2 rtl:space-x-reverse cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="manual_capitalization"
+                      checked={data.capitalization_mode === 'manual_capitalization'}
+                      onChange={() => setData('capitalization_mode', 'manual_capitalization')}
+                      className="mt-0.5 text-indigo-600"
+                    />
+                    <span className="text-sm text-slate-800 dark:text-slate-200">
+                      {appDict.manualCapitalization}
+                    </span>
+                  </label>
+                  <label className="flex items-start space-x-2 rtl:space-x-reverse cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mode"
+                      value="opening_already_capitalized"
+                      checked={data.capitalization_mode === 'opening_already_capitalized'}
+                      onChange={() => setData('capitalization_mode', 'opening_already_capitalized')}
+                      className="mt-0.5 text-indigo-600"
+                    />
+                    <span className="text-sm text-slate-800 dark:text-slate-200">
+                      {appDict.openingAlreadyCapitalized}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {appDict.capitalizationDate}
+                </label>
+                <input
+                  type="date"
+                  value={data.capitalization_date}
+                  onChange={(e) => setData('capitalization_date', e.target.value)}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  required
+                />
+                {errors.capitalization_date && <p className="mt-1 text-xs text-rose-600">{errors.capitalization_date}</p>}
+              </div>
+
+              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCapitalizeModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
+                >
+                  {appDict.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={processing}
+                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {appDict.capitalizeAsset}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
