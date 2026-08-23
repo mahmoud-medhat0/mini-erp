@@ -447,7 +447,7 @@ class CustomerCreditNoteService
 
         $currency = $data['currency'] ?? 'USD';
 
-        $creditDate = $data['credit_date'] ?? null;
+        $creditDate = $data['credit_date'] ?? $data['credit_note_date'] ?? null;
         if (! $creditDate) {
             throw ValidationException::withMessages(['credit_date' => ['Credit date is required.']]);
         }

@@ -55,6 +55,7 @@ use App\Http\Controllers\Reports\SalesOrderReportController;
 use App\Http\Controllers\Reports\StockMovementReportController;
 use App\Http\Controllers\Reports\SupplierBillReportController;
 use App\Http\Controllers\Reports\SupplierStatementController;
+use App\Http\Controllers\Reports\VatReportController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\SettingsActionController;
@@ -278,6 +279,14 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/income-statement/export', [IncomeStatementReportController::class, 'exportCsv'])->name('reports.income_statement.export');
         Route::get('/cash-flow', [CashFlowReportController::class, 'index'])->name('reports.cash_flow');
         Route::get('/cash-flow/export', [CashFlowReportController::class, 'exportCsv'])->name('reports.cash_flow.export');
+
+        // Phase 7 Slice 5 VAT Reports
+        Route::get('/vat-register', [VatReportController::class, 'register'])->name('reports.vat-register');
+        Route::get('/vat-register/export', [VatReportController::class, 'exportRegister'])->name('reports.vat-register.export');
+        Route::get('/vat-summary', [VatReportController::class, 'summary'])->name('reports.vat-summary');
+        Route::get('/vat-summary/export', [VatReportController::class, 'exportSummary'])->name('reports.vat-summary.export');
+        Route::get('/vat-gl-reconciliation', [VatReportController::class, 'reconciliation'])->name('reports.vat-gl-reconciliation');
+        Route::get('/vat-gl-reconciliation/export', [VatReportController::class, 'exportReconciliation'])->name('reports.vat-gl-reconciliation.export');
     });
 
     // Phase 4 Slice 1 Catalog Routes

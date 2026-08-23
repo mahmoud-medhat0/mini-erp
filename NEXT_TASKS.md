@@ -1,18 +1,24 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 7 Slice 4 (Purchasing Input VAT Integration) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1, 2, 3, and 4 are complete. Phase 7 Slice 5 (VAT Register, VAT Reports, and GL Reconciliation) is next.
+Current status: Phase 7 Slice 5 (VAT Register, Reports, and GL Reconciliation) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1, 2, 3, 4, and 5 are complete. Phase 7 Slice 6 (Tax Period Filing and Locking Controls) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Planned Track
 
-- Phase 7 Tax / VAT (SLICES 1-4 COMPLETE, SLICES 5-7 PLANNED):
+- Phase 7 Tax / VAT (SLICES 1-5 COMPLETE, SLICES 6-7 PLANNED):
   - Master contract: `PHASE_7_TAX_VAT.md`.
-  - Slice 5: `PHASE_7_SLICE_5_GEMINI_PROMPT.md` - VAT Register, VAT Reports, and GL Reconciliation (planned next).
-  - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls.
+  - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls (planned next).
   - Slice 7: `PHASE_7_SLICE_7_GEMINI_PROMPT.md` - UX, Export/Print, Source Scans, and Close-Out.
 
 ## Completed
+
+- Phase 7 Slice 5 VAT Register, Reports, and GL Reconciliation (FULLY COMPLETE):
+  - Services: `VatRegisterReportService` (reads posted sales/purchase source document snapshots, applies exact sign rules for output/input VAT, calculates line/header totals), `VatSummaryReportService` (summarizes output/input VAT by tax code with 100% register mathematical equality), `VatToGlReconciliationService` (compares register totals against GL ledger movement for `output_tax_payable` and `input_tax_receivable`, produces signed differences, handles missing mapping warning codes).
+  - Controller & Routes: `VatReportController` registered under `/reports/vat-register`, `/reports/vat-summary`, `/reports/vat-gl-reconciliation` with CSV streaming export routes.
+  - UI Pages: `VatRegister.tsx`, `VatSummary.tsx`, `VatGlReconciliation.tsx` created and added to Reports Hub (`Index.tsx`).
+  - Translations: `en.json` and `ar.json` updated with tax report headers, summary labels, and localized warning codes (`taxes.warnings`).
+  - Feature Suite: `Phase7Slice5VatReportsTest.php` (9/9 passing tests / 40 assertions, 25/25 total Phase 7 tests passing).
 
 - Phase 7 Slice 4 Purchasing Input VAT Integration (FULLY COMPLETE):
   - Migration: `2026_08_23_100000_create_phase7_slice4_purchasing_tax_columns.php` adding purchasing tax columns (`tax_amount_minor` on `supplier_bill`, `supplier_adjustment_note`, `purchase_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).

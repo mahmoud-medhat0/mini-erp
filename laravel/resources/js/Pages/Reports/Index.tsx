@@ -176,6 +176,30 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
           },
         ]
       : []),
+    ...(canViewFinancials
+      ? [
+          {
+            title: 'Tax & VAT Reports',
+            reports: [
+              {
+                name: 'VAT Register',
+                desc: 'Detailed line-item audit trail of output and input tax for posted transactions.',
+                href: '/reports/vat-register',
+              },
+              {
+                name: 'VAT Summary Report',
+                desc: 'Summary of output and input VAT grouped by tax code for return preparation.',
+                href: '/reports/vat-summary',
+              },
+              {
+                name: 'VAT to GL Reconciliation',
+                desc: 'Compares posted tax register totals against GL ledger movement for Output and Input VAT.',
+                href: '/reports/vat-gl-reconciliation',
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   return (

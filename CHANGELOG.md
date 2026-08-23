@@ -2,6 +2,17 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Slice 5 VAT Register, Reports, and GL Reconciliation (2026-08-23)
+- Created `VatRegisterReportService.php` reading posted source document tax snapshots (`customer_invoice`, `customer_credit_note`, `sales_return`, `supplier_bill`, `supplier_adjustment_note`, `purchase_return`) applying explicit sign rules and integer minor-unit arithmetic.
+- Created `VatSummaryReportService.php` summarizing output and input VAT grouped by tax code with 100% register mathematical equality.
+- Created `VatToGlReconciliationService.php` comparing register totals against GL ledger movement for `output_tax_payable` and `input_tax_receivable` accounts, computing signed differences, and reporting localized warning codes (`ERR_OUTPUT_TAX_ACCOUNT_NOT_MAPPED`, `ERR_INPUT_TAX_ACCOUNT_NOT_MAPPED`, `WARN_VAT_GL_MISMATCH`).
+- Created `VatReportController.php` with web routes (`/reports/vat-register`, `/reports/vat-summary`, `/reports/vat-gl-reconciliation`) and streamed CSV export endpoints.
+- Built Inertia React pages `VatRegister.tsx`, `VatSummary.tsx`, `VatGlReconciliation.tsx` and updated Reports Hub (`Index.tsx`).
+- Updated EN/AR translation dictionaries in `en.json` and `ar.json` with tax report headers, summary labels, and localized warning codes.
+- Added nav key entries `'reports.vat-register'`, `'reports.vat-summary'`, `'reports.vat-gl-reconciliation'` to `AppLayout.tsx`.
+- Built feature test suite `Phase7Slice5VatReportsTest.php` (9/9 passing tests / 40 assertions, 25/25 total Phase 7 tests passing).
+- Executed full verification gate cleanly: Pint passed, `php artisan test --filter=Phase7Slice5` passed (9/9 tests), `php artisan test --filter=Phase7` passed (25/25 tests), `php artisan accounting:sales-tax-stress` passed, `php artisan accounting:purchasing-tax-stress` passed, `npm run typecheck` passed (0 errors), `npm run build` built cleanly.
+
 ### Added — Phase 7 Slice 4 Purchasing Input VAT Integration (2026-08-23)
 - Created database migration `2026_08_23_100000_create_phase7_slice4_purchasing_tax_columns.php` adding purchasing tax columns (`tax_amount_minor` on `supplier_bill`, `supplier_adjustment_note`, `purchase_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
 - Updated Eloquent models (`SupplierBill`, `SupplierBillLine`, `SupplierAdjustmentNote`, `SupplierAdjustmentNoteLine`, `PurchaseReturn`, `PurchaseReturnLine`) with integer tax casts, fillables, and `taxCode` BelongsTo relations.
