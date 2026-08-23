@@ -2,6 +2,10 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Slice 1 Tax/VAT Policy Decision Pack (2026-08-23)
+- Created `PHASE_7_TAX_VAT_POLICY_DECISION.md` containing Arabic & English executive summaries, plain-language explanation of VAT concepts, comparison table for tax scope options, integer basis-points rate scale specification (`rate_bps`), tax calculation/rounding policy, sales output VAT and purchasing input VAT posting workflows, monthly tax period filing controls, 15 owner decision checklist items, and recommended implementation path.
+- Docs-only slice: zero implementation code added. Verified via `git diff --stat` and source scans.
+
 ### Added — Phase 7 Tax / VAT Planning Prompts (2026-08-23)
 - Added `PHASE_7_TAX_VAT.md` as the bounded master planning contract for Tax / VAT.
 - Added seven strict Gemini execution prompts:
