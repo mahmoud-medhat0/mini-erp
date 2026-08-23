@@ -2,6 +2,18 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 7 Slice 4 Purchasing Input VAT Integration (2026-08-23)
+- Created database migration `2026_08_23_100000_create_phase7_slice4_purchasing_tax_columns.php` adding purchasing tax columns (`tax_amount_minor` on `supplier_bill`, `supplier_adjustment_note`, `purchase_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
+- Updated Eloquent models (`SupplierBill`, `SupplierBillLine`, `SupplierAdjustmentNote`, `SupplierAdjustmentNoteLine`, `PurchaseReturn`, `PurchaseReturnLine`) with integer tax casts, fillables, and `taxCode` BelongsTo relations.
+- Enhanced `SupplierBillService`: Injected `TaxCalculationService`, computed line input tax amounts as of `bill_date`, updated draft totals (`subtotal_minor`, `tax_amount_minor`, `total_minor`), and posted balanced JVs (Dr `purchase_expense`/`grni_clearing` for net, Dr `input_tax_receivable` for tax, Cr `ap_control` for gross).
+- Enhanced `SupplierAdjustmentNoteService`: Injected `TaxCalculationService`, preserved linked supplier bill line tax snapshots (`tax_code_id`, `tax_rate_bps`), computed line tax amounts, and posted input VAT reversal (Dr `ap_control` for gross total, Cr `purchase_returns_allowances` for net, Cr `input_tax_receivable` for tax).
+- Enhanced `PurchaseReturnService`: Preserved original supplier bill line tax fields onto `purchase_return_line`.
+- Updated Controllers (`SupplierBillController`, `SupplierAdjustmentNoteController`, `PurchaseReturnController`) to pass active `taxCodes` to Inertia views and validate line tax code IDs.
+- Updated TSX views (`SupplierBills.tsx`, `SupplierAdjustmentNotes.tsx`, `PurchaseReturns.tsx`) to accept `taxCodes` props.
+- Built `PurchasingTaxPostingStressCommand.php` (`php artisan accounting:purchasing-tax-stress`) verifying concurrent purchasing tax posting and adjustment note reversal idempotency.
+- Built feature test suite `Phase7Slice4PurchasingInputVatTest.php` (4/4 passing tests / 25 assertions, 16/16 total Phase 7 tests passing).
+- Executed full verification gate cleanly: Pint passed, `php artisan test --filter=Phase7Slice4` passed (4/4 tests), `php artisan test --filter=Phase7` passed (16/16 tests), `php artisan accounting:purchasing-tax-stress` passed cleanly, `npm run typecheck` passed (0 errors), `npm run build` built cleanly.
+
 ### Added — Phase 7 Slice 3 Sales Output VAT Integration (2026-08-23)
 - Created database migration `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` adding sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
 - Updated Eloquent models (`CustomerInvoice`, `CustomerInvoiceLine`, `CustomerCreditNoteLine`, `SalesReturnLine`) with integer tax casts, fillables, and `taxCode` BelongsTo relations.

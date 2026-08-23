@@ -23,6 +23,10 @@ class SupplierBillLine extends Model
         'quantity_e6',
         'unit_cost_minor',
         'line_total_minor',
+        'tax_code_id',
+        'tax_rate_bps',
+        'tax_amount_minor',
+        'gross_amount_minor',
     ];
 
     protected function casts(): array
@@ -32,7 +36,15 @@ class SupplierBillLine extends Model
             'quantity_e6' => 'integer',
             'unit_cost_minor' => 'integer',
             'line_total_minor' => 'integer',
+            'tax_rate_bps' => 'integer',
+            'tax_amount_minor' => 'integer',
+            'gross_amount_minor' => 'integer',
         ];
+    }
+
+    public function taxCode(): BelongsTo
+    {
+        return $this->belongsTo(TaxCode::class, 'tax_code_id');
     }
 
     public function supplierBill(): BelongsTo

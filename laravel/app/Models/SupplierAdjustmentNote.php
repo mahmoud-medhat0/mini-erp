@@ -22,6 +22,8 @@ class SupplierAdjustmentNote extends Model
             'adjustment_date' => 'date:Y-m-d',
             'fx_rate_e6' => 'integer',
             'subtotal_minor' => 'integer',
+            'tax_minor' => 'integer',
+            'tax_amount_minor' => 'integer',
             'total_minor' => 'integer',
             'submitted_at' => 'datetime',
             'approved_at' => 'datetime',

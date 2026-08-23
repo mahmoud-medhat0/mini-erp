@@ -66,6 +66,7 @@ type SupplierAdjustmentNotesProps = SharedPageProps & {
   activeSuppliers: SupplierOption[];
   postedSupplierBills: PostedBillOption[];
   postedPurchaseReturns: Array<{ id: string; number?: string | null; supplier_id: string }>;
+  taxCodes?: Array<{ id: string; code: string; name: Record<string, string> | string; calculation_mode: string }>;
   filters: {
     search?: string;
     status?: string;
@@ -80,6 +81,7 @@ export default function SupplierAdjustmentNotesIndex({
   activeSuppliers,
   postedSupplierBills,
   postedPurchaseReturns,
+  taxCodes = [],
   filters,
 }: SupplierAdjustmentNotesProps) {
   const dict = getDictionary(locale);

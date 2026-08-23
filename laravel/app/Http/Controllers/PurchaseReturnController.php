@@ -6,6 +6,7 @@ use App\Application\Purchasing\PurchaseReturnService;
 use App\Models\GoodsReceipt;
 use App\Models\PurchaseReturn;
 use App\Models\Supplier;
+use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -62,10 +63,13 @@ class PurchaseReturnController extends Controller
             ->orderBy('number', 'asc')
             ->get();
 
+        $taxCodes = TaxCode::query()->where('is_active', true)->orderBy('code', 'asc')->get();
+
         return Inertia::render('Purchasing/PurchaseReturns', [
             'purchaseReturns' => $purchaseReturns,
             'activeSuppliers' => $activeSuppliers,
             'confirmedGoodsReceipts' => $confirmedGoodsReceipts,
+            'taxCodes' => $taxCodes,
             'filters' => [
                 'search' => $search,
                 'status' => $status,

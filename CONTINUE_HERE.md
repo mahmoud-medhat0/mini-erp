@@ -54,8 +54,8 @@ Use the current Laravel code and these documents first:
 - `PHASE_7_TAX_VAT_POLICY_DECISION.md` (Phase 7 Tax/VAT Policy Decision Pack 100% COMPLETE 2026-08-23)
 - `PHASE_7_SLICE_2_GEMINI_PROMPT.md` (Phase 7 Slice 2 Tax Code and Tax Rate Foundation 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_7_SLICE_3_GEMINI_PROMPT.md` (Sales Output VAT Integration 100% COMPLETE & VERIFIED 2026-08-23)
-- `PHASE_7_SLICE_4_GEMINI_PROMPT.md` (Purchasing Input VAT Integration - planned next)
-- `PHASE_7_SLICE_5_GEMINI_PROMPT.md` (VAT Register, VAT Reports, and GL Reconciliation - planned)
+- `PHASE_7_SLICE_4_GEMINI_PROMPT.md` (Purchasing Input VAT Integration 100% COMPLETE & VERIFIED 2026-08-23)
+- `PHASE_7_SLICE_5_GEMINI_PROMPT.md` (VAT Register, VAT Reports, and GL Reconciliation - planned next)
 - `PHASE_7_SLICE_6_GEMINI_PROMPT.md` (Tax Period Filing and Locking Controls - planned)
 - `PHASE_7_SLICE_7_GEMINI_PROMPT.md` (UX, Export/Print, Source Scans, and Close-Out - planned)
 - `docs/CONCURRENCY_AUDIT.md`

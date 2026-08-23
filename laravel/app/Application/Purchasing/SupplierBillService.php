@@ -5,6 +5,7 @@ namespace App\Application\Purchasing;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Taxes\TaxCalculationService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\GoodsReceipt;
@@ -32,6 +33,7 @@ class SupplierBillService
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
+        private readonly TaxCalculationService $taxCalcService,
     ) {}
 
     public function create(array $data, ?int $actorId = null): SupplierBill
@@ -103,10 +105,11 @@ class SupplierBillService
                 }
             }
 
-            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $purchaseOrder, $goodsReceipt);
+            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $purchaseOrder, $goodsReceipt, null, $billDate);
 
             $subtotalMinor = array_sum(array_column($validatedLines, 'line_total_minor'));
-            $totalMinor = $subtotalMinor;
+            $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
+            $totalMinor = $subtotalMinor + $taxAmountMinor;
 
             /** @var SupplierBill $bill */
             $bill = SupplierBill::query()->create([
@@ -123,6 +126,7 @@ class SupplierBillService
                 'currency' => $currency,
                 'fx_rate_e6' => $fxRateE6,
                 'subtotal_minor' => $subtotalMinor,
+                'tax_amount_minor' => $taxAmountMinor,
                 'total_minor' => $totalMinor,
                 'status' => 'draft',
                 'created_by' => $actorId,
@@ -141,10 +145,14 @@ class SupplierBillService
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_cost_minor' => $line['unit_cost_minor'],
                     'line_total_minor' => $line['line_total_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
-            $bill->load(['supplier', 'purchaseOrder', 'goodsReceipt', 'lines.product', 'lines.unitOfMeasure']);
+            $bill->load(['supplier', 'purchaseOrder', 'goodsReceipt', 'lines.product', 'lines.unitOfMeasure', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -179,10 +187,11 @@ class SupplierBillService
             $purchaseOrder = $bill->purchase_order_id ? PurchaseOrder::query()->where('id', $bill->purchase_order_id)->lockForUpdate()->first() : null;
             $goodsReceipt = $bill->goods_receipt_id ? GoodsReceipt::query()->where('id', $bill->goods_receipt_id)->lockForUpdate()->first() : null;
 
-            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $purchaseOrder, $goodsReceipt, $bill->id);
+            $validatedLines = $this->validateAndCalculateLines($data['lines'] ?? [], $purchaseOrder, $goodsReceipt, $bill->id, $billDate);
 
             $subtotalMinor = array_sum(array_column($validatedLines, 'line_total_minor'));
-            $totalMinor = $subtotalMinor;
+            $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
+            $totalMinor = $subtotalMinor + $taxAmountMinor;
 
             $before = $bill->toArray();
 
@@ -195,6 +204,7 @@ class SupplierBillService
                 'reference' => $data['reference'] ?? $bill->reference,
                 'description' => $data['description'] ?? $bill->description,
                 'subtotal_minor' => $subtotalMinor,
+                'tax_amount_minor' => $taxAmountMinor,
                 'total_minor' => $totalMinor,
                 'updated_by' => $actorId,
                 'lock_version' => $bill->lock_version + 1,
@@ -213,6 +223,10 @@ class SupplierBillService
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_cost_minor' => $line['unit_cost_minor'],
                     'line_total_minor' => $line['line_total_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
@@ -378,7 +392,15 @@ class SupplierBillService
                 $number = 'BILL-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
             }
 
-            $billTotalMinor = (int) ($bill->total_minor ?: $bill->lines->sum('line_total_minor'));
+            $subtotalMinor = (int) ($bill->subtotal_minor ?: $bill->lines->sum('line_total_minor'));
+            $taxAmountMinor = (int) ($bill->tax_amount_minor ?: $bill->lines->sum('tax_amount_minor'));
+            $billTotalMinor = $subtotalMinor + $taxAmountMinor;
+
+            $inputTaxAccount = $taxAmountMinor > 0 ? $this->mappingService->getAccount('input_tax_receivable') : null;
+
+            if ($inputTaxAccount && $inputTaxAccount->currency !== $bill->currency) {
+                throw ValidationException::withMessages(['currency' => ['Mapped Input Tax Receivable account currency must match bill currency.']]);
+            }
 
             $before = $bill->toArray();
 
@@ -424,6 +446,20 @@ class SupplierBillService
                     'debit_minor' => $expenseTotalMinor,
                     'credit_minor' => 0,
                     'debit_txn_minor' => $expenseTotalMinor,
+                    'credit_txn_minor' => 0,
+                    'currency' => $bill->currency,
+                    'fx_rate_e6' => $bill->fx_rate_e6,
+                ]);
+            }
+
+            if ($taxAmountMinor > 0 && $inputTaxAccount) {
+                $journalEntry->lines()->create([
+                    'line_no' => $lineNo++,
+                    'account_id' => $inputTaxAccount->id,
+                    'memo' => "Input Tax Receivable - Bill {$number}",
+                    'debit_minor' => $taxAmountMinor,
+                    'credit_minor' => 0,
+                    'debit_txn_minor' => $taxAmountMinor,
                     'credit_txn_minor' => 0,
                     'currency' => $bill->currency,
                     'fx_rate_e6' => $bill->fx_rate_e6,
@@ -543,7 +579,7 @@ class SupplierBillService
         return $period;
     }
 
-    private function validateAndCalculateLines(array $lines, ?PurchaseOrder $purchaseOrder, ?GoodsReceipt $goodsReceipt, ?string $currentBillId = null): array
+    private function validateAndCalculateLines(array $lines, ?PurchaseOrder $purchaseOrder, ?GoodsReceipt $goodsReceipt, ?string $currentBillId = null, string $billDate = ''): array
     {
         if (empty($lines)) {
             throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
@@ -768,6 +804,19 @@ class SupplierBillService
 
             $lineTotalMinor = $this->calculateLineTotalMinor($quantityE6, $unitCostMinor, $lineIndex);
 
+            $taxCodeId = $line['tax_code_id'] ?? null;
+            $taxRateBps = 0;
+            $taxAmountMinor = 0;
+            $grossAmountMinor = $lineTotalMinor;
+
+            if ($taxCodeId) {
+                $calcDate = $billDate ?: now()->format('Y-m-d');
+                $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $lineTotalMinor, $calcDate);
+                $taxRateBps = $taxResult['rate_bps'];
+                $taxAmountMinor = $taxResult['tax_minor'];
+                $grossAmountMinor = $taxResult['gross_minor'];
+            }
+
             $validatedLines[] = [
                 'purchase_order_line_id' => $polId,
                 'goods_receipt_line_id' => $grlId,
@@ -777,6 +826,10 @@ class SupplierBillService
                 'quantity_e6' => $quantityE6,
                 'unit_cost_minor' => $unitCostMinor,
                 'line_total_minor' => $lineTotalMinor,
+                'tax_code_id' => $taxCodeId,
+                'tax_rate_bps' => $taxRateBps,
+                'tax_amount_minor' => $taxAmountMinor,
+                'gross_amount_minor' => $grossAmountMinor,
             ];
         }
 

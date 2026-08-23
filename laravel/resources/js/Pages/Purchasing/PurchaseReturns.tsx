@@ -76,6 +76,7 @@ type PurchaseReturnsProps = SharedPageProps & {
   };
   activeSuppliers: SupplierOption[];
   confirmedGoodsReceipts: GoodsReceiptOption[];
+  taxCodes?: Array<{ id: string; code: string; name: Record<string, string> | string; calculation_mode: string }>;
   filters: {
     search?: string;
     status?: string;
@@ -90,6 +91,7 @@ export default function PurchaseReturnsIndex({
   purchaseReturns,
   activeSuppliers,
   confirmedGoodsReceipts,
+  taxCodes = [],
   filters,
 }: PurchaseReturnsProps) {
   const dict = getDictionary(locale);

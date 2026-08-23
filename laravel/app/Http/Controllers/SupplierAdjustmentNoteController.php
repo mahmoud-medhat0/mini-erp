@@ -7,6 +7,7 @@ use App\Models\PurchaseReturn;
 use App\Models\Supplier;
 use App\Models\SupplierAdjustmentNote;
 use App\Models\SupplierBill;
+use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -70,11 +71,14 @@ class SupplierAdjustmentNoteController extends Controller
             ->orderBy('number', 'asc')
             ->get();
 
+        $taxCodes = TaxCode::query()->where('is_active', true)->orderBy('code', 'asc')->get();
+
         return Inertia::render('Purchasing/SupplierAdjustmentNotes', [
             'supplierAdjustmentNotes' => $supplierAdjustmentNotes,
             'activeSuppliers' => $activeSuppliers,
             'postedSupplierBills' => $postedSupplierBills,
             'postedPurchaseReturns' => $postedPurchaseReturns,
+            'taxCodes' => $taxCodes,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
@@ -101,6 +105,7 @@ class SupplierAdjustmentNoteController extends Controller
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.supplier_bill_line_id' => ['nullable', 'uuid'],
             'lines.*.purchase_return_line_id' => ['nullable', 'uuid'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
             'lines.*.description' => ['required', 'string'],
             'lines.*.quantity_e6' => ['nullable', 'integer', 'min:1'],
             'lines.*.unit_cost_minor' => ['required', 'integer', 'min:0'],
@@ -130,6 +135,7 @@ class SupplierAdjustmentNoteController extends Controller
             'lines' => ['required', 'array', 'min:1'],
             'lines.*.supplier_bill_line_id' => ['nullable', 'uuid'],
             'lines.*.purchase_return_line_id' => ['nullable', 'uuid'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
             'lines.*.description' => ['required', 'string'],
             'lines.*.quantity_e6' => ['nullable', 'integer', 'min:1'],
             'lines.*.unit_cost_minor' => ['required', 'integer', 'min:0'],

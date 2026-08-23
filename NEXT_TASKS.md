@@ -1,19 +1,26 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 7 Slice 3 (Sales Output VAT Integration) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1, 2, and 3 are complete. Phase 7 Slice 4 (Purchasing Input VAT Integration) is next.
+Current status: Phase 7 Slice 4 (Purchasing Input VAT Integration) is fully implemented and locally verified on 2026-08-23. Phase 7 Slices 1, 2, 3, and 4 are complete. Phase 7 Slice 5 (VAT Register, VAT Reports, and GL Reconciliation) is next.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Planned Track
 
-- Phase 7 Tax / VAT (SLICES 1-3 COMPLETE, SLICES 4-7 PLANNED):
+- Phase 7 Tax / VAT (SLICES 1-4 COMPLETE, SLICES 5-7 PLANNED):
   - Master contract: `PHASE_7_TAX_VAT.md`.
-  - Slice 4: `PHASE_7_SLICE_4_GEMINI_PROMPT.md` - Purchasing Input VAT Integration (planned next).
-  - Slice 5: `PHASE_7_SLICE_5_GEMINI_PROMPT.md` - VAT Register, VAT Reports, and GL Reconciliation.
+  - Slice 5: `PHASE_7_SLICE_5_GEMINI_PROMPT.md` - VAT Register, VAT Reports, and GL Reconciliation (planned next).
   - Slice 6: `PHASE_7_SLICE_6_GEMINI_PROMPT.md` - Tax Period Filing and Locking Controls.
   - Slice 7: `PHASE_7_SLICE_7_GEMINI_PROMPT.md` - UX, Export/Print, Source Scans, and Close-Out.
 
 ## Completed
+
+- Phase 7 Slice 4 Purchasing Input VAT Integration (FULLY COMPLETE):
+  - Migration: `2026_08_23_100000_create_phase7_slice4_purchasing_tax_columns.php` adding purchasing tax columns (`tax_amount_minor` on `supplier_bill`, `supplier_adjustment_note`, `purchase_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).
+  - Eloquent Models: `SupplierBill`, `SupplierBillLine`, `SupplierAdjustmentNote`, `SupplierAdjustmentNoteLine`, `PurchaseReturn`, `PurchaseReturnLine` updated with integer tax casts, fillables, and `taxCode` BelongsTo relations.
+  - Domain Services: `SupplierBillService` calculates line input tax, computes exact totals, and posts balanced JVs (Dr `purchase_expense`/`grni_clearing`, Dr `input_tax_receivable`, Cr `ap_control`). `SupplierAdjustmentNoteService` preserves linked bill line tax snapshots and posts input VAT reversal (Dr `ap_control`, Cr `purchase_returns_allowances`, Cr `input_tax_receivable`). `PurchaseReturnService` preserves bill line tax fields on purchase returns.
+  - UI & Controllers: `SupplierBillController`, `SupplierAdjustmentNoteController`, and `PurchaseReturnController` pass active `taxCodes` to Inertia views and validate line tax codes. Updated `SupplierBills.tsx`, `SupplierAdjustmentNotes.tsx`, and `PurchaseReturns.tsx`.
+  - Concurrency Stress Command: `PurchasingTaxPostingStressCommand.php` (`php artisan accounting:purchasing-tax-stress`) verifying concurrent purchasing tax posting and adjustment note reversal idempotency.
+  - Feature Suite: `Phase7Slice4PurchasingInputVatTest.php` (4/4 passing tests / 25 assertions, 16/16 total Phase 7 tests passing).
 
 - Phase 7 Slice 3 Sales Output VAT Integration (FULLY COMPLETE):
   - Migration: `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` adding sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines).

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierBill;
+use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -76,12 +77,15 @@ class SupplierBillController extends Controller
             ->orderBy('number', 'asc')
             ->get();
 
+        $taxCodes = TaxCode::query()->where('is_active', true)->orderBy('code', 'asc')->get();
+
         return Inertia::render('Purchasing/SupplierBills', [
             'supplierBills' => $supplierBills,
             'activeSuppliers' => $activeSuppliers,
             'eligibleProducts' => $eligibleProducts,
             'confirmedPurchaseOrders' => $confirmedPurchaseOrders,
             'confirmedGoodsReceipts' => $confirmedGoodsReceipts,
+            'taxCodes' => $taxCodes,
             'filters' => [
                 'search' => $search,
                 'status' => $status,
@@ -107,6 +111,7 @@ class SupplierBillController extends Controller
             'lines.*.unit_of_measure_id' => ['nullable', 'uuid'],
             'lines.*.purchase_order_line_id' => ['nullable', 'uuid'],
             'lines.*.goods_receipt_line_id' => ['nullable', 'uuid'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
             'lines.*.description' => ['nullable', 'string'],
             'lines.*.quantity_e6' => ['required', 'integer', 'min:1'],
             'lines.*.unit_cost_minor' => ['required', 'integer', 'min:0'],
@@ -131,6 +136,7 @@ class SupplierBillController extends Controller
             'lines.*.unit_of_measure_id' => ['nullable', 'uuid'],
             'lines.*.purchase_order_line_id' => ['nullable', 'uuid'],
             'lines.*.goods_receipt_line_id' => ['nullable', 'uuid'],
+            'lines.*.tax_code_id' => ['nullable', 'uuid', 'exists:tax_codes,id'],
             'lines.*.description' => ['nullable', 'string'],
             'lines.*.quantity_e6' => ['required', 'integer', 'min:1'],
             'lines.*.unit_cost_minor' => ['required', 'integer', 'min:0'],

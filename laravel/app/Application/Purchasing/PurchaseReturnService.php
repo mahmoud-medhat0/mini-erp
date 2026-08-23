@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Taxes\TaxCalculationService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\GoodsReceipt;
@@ -35,6 +36,7 @@ class PurchaseReturnService
         private readonly MovingWeightedAverageInventoryService $inventoryService,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
+        private readonly TaxCalculationService $taxCalcService,
     ) {}
 
     public function create(array $data, ?int $actorId = null): PurchaseReturn
@@ -98,6 +100,8 @@ class PurchaseReturnService
                 $supplierBillId
             );
 
+            $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
+
             /** @var PurchaseReturn $return */
             $return = PurchaseReturn::query()->create([
                 'supplier_id' => $supplier->id,
@@ -106,6 +110,7 @@ class PurchaseReturnService
                 'fiscal_year_id' => $period->fiscal_year_id,
                 'financial_period_id' => $period->id,
                 'return_date' => $returnDate,
+                'tax_amount_minor' => $taxAmountMinor,
                 'status' => 'draft',
                 'currency' => $currency,
                 'reason' => $data['reason'] ?? null,
@@ -127,10 +132,14 @@ class PurchaseReturnService
                     'original_receipt_cost_minor' => $line['original_receipt_cost_minor'],
                     'stock_value_minor' => $line['stock_value_minor'],
                     'variance_minor' => $line['variance_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
-            $return->load(['supplier', 'goodsReceipt', 'lines.product', 'lines.unitOfMeasure']);
+            $return->load(['supplier', 'goodsReceipt', 'lines.product', 'lines.unitOfMeasure', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -159,26 +168,11 @@ class PurchaseReturnService
                 throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
             }
 
-            /** @var Supplier $supplier */
-            $supplier = Supplier::query()->where('id', $return->supplier_id)->firstOrFail();
-
-            /** @var GoodsReceipt $goodsReceipt */
-            $goodsReceipt = GoodsReceipt::query()->with('purchaseOrder')->where('id', $return->goods_receipt_id)->lockForUpdate()->firstOrFail();
-
             $returnDate = $data['return_date'] ?? $return->return_date;
             $period = $this->resolveFinancialPeriodForDate($returnDate);
 
+            $goodsReceipt = GoodsReceipt::query()->where('id', $return->goods_receipt_id)->lockForUpdate()->firstOrFail();
             $supplierBillId = $data['supplier_bill_id'] ?? $return->supplier_bill_id;
-            if ($supplierBillId) {
-                /** @var SupplierBill|null $supplierBill */
-                $supplierBill = SupplierBill::query()->where('id', $supplierBillId)->first();
-                if (! $supplierBill || $supplierBill->supplier_id !== $supplier->id) {
-                    throw ValidationException::withMessages(['supplier_bill_id' => ['Supplier Bill does not belong to the selected supplier.']]);
-                }
-                if ($supplierBill->currency !== $return->currency) {
-                    throw ValidationException::withMessages(['currency' => ['Currency must match the Supplier Bill currency.']]);
-                }
-            }
 
             $validatedLines = $this->validateAndCalculateLines(
                 $data['lines'] ?? [],
@@ -187,13 +181,16 @@ class PurchaseReturnService
                 $return->id
             );
 
+            $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
+
             $before = $return->toArray();
 
             $return->update([
-                'supplier_bill_id' => $supplierBillId,
                 'fiscal_year_id' => $period->fiscal_year_id,
                 'financial_period_id' => $period->id,
                 'return_date' => $returnDate,
+                'supplier_bill_id' => $supplierBillId,
+                'tax_amount_minor' => $taxAmountMinor,
                 'reason' => $data['reason'] ?? $return->reason,
                 'notes' => $data['notes'] ?? $return->notes,
                 'updated_by' => $actorId,
@@ -214,6 +211,10 @@ class PurchaseReturnService
                     'original_receipt_cost_minor' => $line['original_receipt_cost_minor'],
                     'stock_value_minor' => $line['stock_value_minor'],
                     'variance_minor' => $line['variance_minor'],
+                    'tax_code_id' => $line['tax_code_id'],
+                    'tax_rate_bps' => $line['tax_rate_bps'],
+                    'tax_amount_minor' => $line['tax_amount_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'],
                 ]);
             }
 
@@ -691,6 +692,18 @@ class PurchaseReturnService
                 ]);
             }
 
+            $taxCodeId = null;
+            $taxRateBps = 0;
+            $taxAmountMinor = 0;
+
+            if ($supplierBillLineId && isset($supplierBillLine) && $supplierBillLine->tax_code_id) {
+                $taxCodeId = $supplierBillLine->tax_code_id;
+                $taxRateBps = $supplierBillLine->tax_rate_bps;
+                $calcDate = $data['return_date'] ?? now()->format('Y-m-d');
+                $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $originalReceiptCostMinor, $calcDate);
+                $taxAmountMinor = $taxResult['tax_minor'];
+            }
+
             $validatedLines[] = [
                 'goods_receipt_line_id' => $grLine->id,
                 'supplier_bill_line_id' => $supplierBillLineId,
@@ -701,6 +714,10 @@ class PurchaseReturnService
                 'original_receipt_cost_minor' => $originalReceiptCostMinor,
                 'stock_value_minor' => $stockValueMinor,
                 'variance_minor' => $varianceMinor,
+                'tax_code_id' => $taxCodeId,
+                'tax_rate_bps' => $taxRateBps,
+                'tax_amount_minor' => $taxAmountMinor,
+                'gross_amount_minor' => $originalReceiptCostMinor + $taxAmountMinor,
             ];
         }
 

@@ -1,15 +1,14 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 7 (Tax / VAT) is PLANNED. Start with `PHASE_7_SLICE_1_GEMINI_PROMPT.md` for the owner-facing tax/VAT policy decision pack.
-- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 6 Slice 7 local correction.
-- **Tests passing:** Full suite 514 tests, 511 passed, 3 skipped / 3855 assertions. Phase 6 Slice 7 suite 6 tests, 6 passed / 153 assertions. Phase 6 combined suite 64 tests, 64 passed / 456 assertions. Concurrency testsuite 7 tests, 7 passed / 16 assertions.
-- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, and the PHPUnit Concurrency suite.
+- **Current phase:** Phase 7 (Tax / VAT) - Slices 1, 2, 3, and 4 COMPLETE. Next is Slice 5 (`PHASE_7_SLICE_5_GEMINI_PROMPT.md`).
+- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 7 Slice 4 (Purchasing Input VAT Integration).
+- **Tests passing:** Full suite 523 tests, 520 passed, 3 skipped / 3918 assertions. Phase 7 suite 16 tests, 16 passed / 86 assertions.
+- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (chunk size warning only).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** pending after Phase 6 Slice 7 local correction.
+- **Latest verified code commit:** local verification clean on Phase 7 Slice 4.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
-- **Phase 6 prompts:** `PHASE_6_FIXED_ASSETS.md` and Slice 1-7 prompts are prepared and complete. `PHASE_6_FINAL_VERIFICATION_REPORT.md` is updated after local correction.
-- **Phase 7 prompts:** `PHASE_7_TAX_VAT.md` and Slice 1-7 prompts are prepared. No Phase 7 Laravel implementation has been added yet.
+- **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slice 1 Policy Decision, Slice 2 Tax Foundation, Slice 3 Sales Output VAT Integration, Slice 4 Purchasing Input VAT Integration COMPLETE. Slice 5-7 prompts prepared.
 
 ## Legend
 
@@ -56,8 +55,10 @@
 | Phase 6 Slice 7 Reports, UX, Export/Print & Close-Out | COMPLETE | Added `FixedAssetReportService`, strict report/export authorization, five report pages (`FixedAssetRegisterReport.tsx`, `FixedAssetNetBookValueReport.tsx`, `FixedAssetDepreciationReport.tsx`, `FixedAssetDepreciationRunReport.tsx`, `FixedAssetDisposalReport.tsx`), CSV exports preserving integer minor units, dictionary-backed EN/AR report UI, Reports Hub integration, source scans, and `Phase6Slice7FixedAssetReportsTest.php` (6/6 tests / 153 assertions). |
 | Phase 6 Fixed Assets | COMPLETE | Phase 6 Slices 1 through 7 are 100% complete, fully tested (64/64 Phase 6 tests passed / 456 assertions), and locally verified on PostgreSQL. |
 | Phase 7 Slice 1 Tax/VAT Policy Decision Pack | COMPLETE | `PHASE_7_TAX_VAT_POLICY_DECISION.md` created as docs-only policy decision pack detailing tax scope options, basis-points rate scale (`rate_bps`), tax calculation/rounding standards, sales/purchasing GL mapping entries, tax period filing controls, 15 owner decision items, and recommended path. Zero implementation code added. |
+| Phase 7 Slice 2 Tax Foundation | COMPLETE | Tax code & tax rate schema/models, `TaxMasterDataService`, `TaxCalculationService`, Spatie Activitylog audit, controllers, Inertia pages, seeder, 7/7 passing tests. |
 | Phase 7 Slice 3 Sales Output VAT Integration | COMPLETE | Migration `2026_08_23_090000_create_phase7_slice3_sales_tax_columns.php` added sales tax columns (`tax_amount_minor` on `customer_invoice`, `customer_credit_note`, `sales_return`; `tax_code_id`, `tax_rate_bps`, `tax_amount_minor`, `gross_amount_minor` on lines). Updated Eloquent models (`CustomerInvoice`, `CustomerInvoiceLine`, `CustomerCreditNoteLine`, `SalesReturnLine`) with integer tax casts and relations. `CustomerInvoiceService` calculates line tax amounts, computes exact draft totals, and posts balanced JVs (Dr `ar_control` for gross, Cr `sales_revenue` for net, Cr `output_tax_payable` for tax). `CustomerCreditNoteService` preserves linked invoice line tax snapshots and posts output VAT reversal (Dr `sales_returns` for net, Dr `output_tax_payable` for tax, Cr `ar_control` for gross). Updated `CustomerInvoiceController`, `CustomerCreditNoteController`, and `SalesReturnController` to pass active `taxCodes`. Updated Inertia views (`CustomerInvoices.tsx`, `CustomerCreditNotes.tsx`, `SalesReturns.tsx`). Concurrency stress command `accounting:sales-tax-stress` passed cleanly. Feature test suite `Phase7Slice3SalesOutputVatTest.php` (5/5 passing tests / 23 assertions). |
-| Phase 7 Tax / VAT | IN PROGRESS | Phase 7 Slices 1, 2, and 3 are 100% complete and locally verified. Slices 4-7 prompts prepared. |
+| Phase 7 Slice 4 Purchasing Input VAT | COMPLETE | Purchasing input tax migration (`2026_08_23_100000_create_phase7_slice4_purchasing_tax_columns.php`), `SupplierBillService` Dr `input_tax_receivable` posting JV, `SupplierAdjustmentNoteService` Cr `input_tax_receivable` reversal JV, `PurchaseReturnService` tax preservation, UI views & controllers, `PurchasingTaxPostingStressCommand`, 4/4 passing tests. |
+| Phase 7 Tax / VAT | IN PROGRESS | Phase 7 Slices 1, 2, 3, and 4 are 100% complete and locally verified. Slices 5-7 prompts prepared. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |

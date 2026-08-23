@@ -5,6 +5,7 @@ namespace App\Application\Purchasing;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Taxes\TaxCalculationService;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
@@ -34,6 +35,7 @@ class SupplierAdjustmentNoteService
         private readonly PostingEngine $postingEngine,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
+        private readonly TaxCalculationService $taxCalcService,
     ) {}
 
     public function create(array $data, ?int $actorId = null): SupplierAdjustmentNote
@@ -101,6 +103,7 @@ class SupplierAdjustmentNoteService
                 'subtotal_minor' => $subtotalMinor,
                 'tax_rate_bps' => $headerTaxRateBps,
                 'tax_minor' => $taxMinor,
+                'tax_amount_minor' => $taxMinor,
                 'total_minor' => $totalMinor,
                 'tax_mode' => $taxMode,
                 'reason' => $data['reason'] ?? null,
@@ -115,17 +118,22 @@ class SupplierAdjustmentNoteService
                     'line_no' => $index + 1,
                     'supplier_bill_line_id' => $line['supplier_bill_line_id'],
                     'purchase_return_line_id' => $line['purchase_return_line_id'],
+                    'product_id' => $line['product_id'] ?? null,
+                    'unit_of_measure_id' => $line['unit_of_measure_id'] ?? null,
                     'description' => $line['description'],
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_cost_minor' => $line['unit_cost_minor'],
                     'line_subtotal_minor' => $line['line_subtotal_minor'],
+                    'tax_code_id' => $line['tax_code_id'] ?? null,
                     'tax_rate_bps' => $line['tax_rate_bps'],
                     'tax_minor' => $line['tax_minor'],
+                    'tax_amount_minor' => $line['tax_amount_minor'] ?? $line['tax_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'] ?? $line['line_total_minor'],
                     'line_total_minor' => $line['line_total_minor'],
                 ]);
             }
 
-            $note->load(['supplier', 'supplierBill', 'purchaseReturn', 'lines']);
+            $note->load(['supplier', 'supplierBill', 'purchaseReturn', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -157,26 +165,21 @@ class SupplierAdjustmentNoteService
             /** @var Supplier $supplier */
             $supplier = Supplier::query()->where('id', $note->supplier_id)->firstOrFail();
 
-            $direction = $this->validateDirection($data['direction'] ?? $note->direction);
-            [$taxMode, $taxRateBps, $manualTaxAmountMinor] = $this->resolveTaxConfiguration(
-                $data,
-                $note->tax_mode,
-                $note->tax_mode === 'manual_rate' ? (int) $note->tax_rate_bps : 0,
-                (int) $note->tax_minor
-            );
+            $adjustmentDate = $data['adjustment_date'] ?? $note->adjustment_date;
+            $period = $this->resolveFinancialPeriodForDate($adjustmentDate);
 
             $supplierBillId = $data['supplier_bill_id'] ?? $note->supplier_bill_id;
             if ($supplierBillId) {
-                $this->validateSupplierBillSource($supplierBillId, $supplier->id, $note->currency);
+                $this->validateSupplierBillSource($supplierBillId, $note->supplier_id, $note->currency);
             }
 
             $purchaseReturnId = $data['purchase_return_id'] ?? $note->purchase_return_id;
             if ($purchaseReturnId) {
-                $this->validatePurchaseReturnSource($purchaseReturnId, $supplier->id, $note->currency);
+                $this->validatePurchaseReturnSource($purchaseReturnId, $note->supplier_id, $note->currency);
             }
 
-            $adjustmentDate = $data['adjustment_date'] ?? $note->adjustment_date;
-            $period = $this->resolveFinancialPeriodForDate($adjustmentDate);
+            $direction = $this->validateDirection($data['direction'] ?? $note->direction);
+            [$taxMode, $taxRateBps, $manualTaxAmountMinor] = $this->resolveTaxConfiguration($data, $note->tax_mode, $note->tax_rate_bps, $note->tax_minor);
 
             $validatedLines = $this->validateAndCalculateLines(
                 $data['lines'] ?? [],
@@ -205,6 +208,7 @@ class SupplierAdjustmentNoteService
                 'subtotal_minor' => $subtotalMinor,
                 'tax_rate_bps' => $headerTaxRateBps,
                 'tax_minor' => $taxMinor,
+                'tax_amount_minor' => $taxMinor,
                 'total_minor' => $totalMinor,
                 'tax_mode' => $taxMode,
                 'reason' => $data['reason'] ?? $note->reason,
@@ -220,17 +224,22 @@ class SupplierAdjustmentNoteService
                     'line_no' => $index + 1,
                     'supplier_bill_line_id' => $line['supplier_bill_line_id'],
                     'purchase_return_line_id' => $line['purchase_return_line_id'],
+                    'product_id' => $line['product_id'] ?? null,
+                    'unit_of_measure_id' => $line['unit_of_measure_id'] ?? null,
                     'description' => $line['description'],
                     'quantity_e6' => $line['quantity_e6'],
                     'unit_cost_minor' => $line['unit_cost_minor'],
                     'line_subtotal_minor' => $line['line_subtotal_minor'],
+                    'tax_code_id' => $line['tax_code_id'] ?? null,
                     'tax_rate_bps' => $line['tax_rate_bps'],
                     'tax_minor' => $line['tax_minor'],
+                    'tax_amount_minor' => $line['tax_amount_minor'] ?? $line['tax_minor'],
+                    'gross_amount_minor' => $line['gross_amount_minor'] ?? $line['line_total_minor'],
                     'line_total_minor' => $line['line_total_minor'],
                 ]);
             }
 
-            $note->load(['supplier', 'supplierBill', 'purchaseReturn', 'lines']);
+            $note->load(['supplier', 'supplierBill', 'purchaseReturn', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -443,47 +452,93 @@ class SupplierAdjustmentNoteService
 
             $lineNo = 1;
 
-            if ($subtotalMinor > 0 && $contraAccount) {
-                $contraMemo = $isDecrease ? 'Purchase Returns & Allowances' : 'Purchase Expense';
-
-                $journalEntry->lines()->create([
+            if ($isDecrease) {
+                // Dr AP Control totalMinor
+                $apLine = $journalEntry->lines()->create([
                     'line_no' => $lineNo++,
-                    'account_id' => $contraAccount->id,
-                    'memo' => "{$contraMemo} - Note {$number}",
-                    'debit_minor' => $subtotalMinor,
+                    'account_id' => $apAccount->id,
+                    'memo' => "AP Control - Note {$number}",
+                    'debit_minor' => $totalMinor,
                     'credit_minor' => 0,
-                    'debit_txn_minor' => $subtotalMinor,
+                    'debit_txn_minor' => $totalMinor,
                     'credit_txn_minor' => 0,
                     'currency' => $note->currency,
                     'fx_rate_e6' => 1000000,
                 ]);
-            }
 
-            if ($taxMinor > 0 && $taxAccount) {
-                $journalEntry->lines()->create([
+                // Cr Purchase Returns & Allowances subtotalMinor
+                if ($subtotalMinor > 0 && $contraAccount) {
+                    $journalEntry->lines()->create([
+                        'line_no' => $lineNo++,
+                        'account_id' => $contraAccount->id,
+                        'memo' => "Purchase Returns & Allowances - Note {$number}",
+                        'debit_minor' => 0,
+                        'credit_minor' => $subtotalMinor,
+                        'debit_txn_minor' => 0,
+                        'credit_txn_minor' => $subtotalMinor,
+                        'currency' => $note->currency,
+                        'fx_rate_e6' => 1000000,
+                    ]);
+                }
+
+                // Cr Input Tax Receivable taxMinor
+                if ($taxMinor > 0 && $taxAccount) {
+                    $journalEntry->lines()->create([
+                        'line_no' => $lineNo++,
+                        'account_id' => $taxAccount->id,
+                        'memo' => "Input Tax Receivable - Note {$number}",
+                        'debit_minor' => 0,
+                        'credit_minor' => $taxMinor,
+                        'debit_txn_minor' => 0,
+                        'credit_txn_minor' => $taxMinor,
+                        'currency' => $note->currency,
+                        'fx_rate_e6' => 1000000,
+                    ]);
+                }
+            } else {
+                // Dr Purchase Expense subtotalMinor
+                if ($subtotalMinor > 0 && $contraAccount) {
+                    $journalEntry->lines()->create([
+                        'line_no' => $lineNo++,
+                        'account_id' => $contraAccount->id,
+                        'memo' => "Purchase Expense - Note {$number}",
+                        'debit_minor' => $subtotalMinor,
+                        'credit_minor' => 0,
+                        'debit_txn_minor' => $subtotalMinor,
+                        'credit_txn_minor' => 0,
+                        'currency' => $note->currency,
+                        'fx_rate_e6' => 1000000,
+                    ]);
+                }
+
+                // Dr Input Tax Receivable taxMinor
+                if ($taxMinor > 0 && $taxAccount) {
+                    $journalEntry->lines()->create([
+                        'line_no' => $lineNo++,
+                        'account_id' => $taxAccount->id,
+                        'memo' => "Input Tax Receivable - Note {$number}",
+                        'debit_minor' => $taxMinor,
+                        'credit_minor' => 0,
+                        'debit_txn_minor' => $taxMinor,
+                        'credit_txn_minor' => 0,
+                        'currency' => $note->currency,
+                        'fx_rate_e6' => 1000000,
+                    ]);
+                }
+
+                // Cr AP Control totalMinor
+                $apLine = $journalEntry->lines()->create([
                     'line_no' => $lineNo++,
-                    'account_id' => $taxAccount->id,
-                    'memo' => "Input Tax Receivable - Note {$number}",
-                    'debit_minor' => $taxMinor,
-                    'credit_minor' => 0,
-                    'debit_txn_minor' => $taxMinor,
-                    'credit_txn_minor' => 0,
+                    'account_id' => $apAccount->id,
+                    'memo' => "AP Control - Note {$number}",
+                    'debit_minor' => 0,
+                    'credit_minor' => $totalMinor,
+                    'debit_txn_minor' => 0,
+                    'credit_txn_minor' => $totalMinor,
                     'currency' => $note->currency,
                     'fx_rate_e6' => 1000000,
                 ]);
             }
-
-            $apLine = $journalEntry->lines()->create([
-                'line_no' => $lineNo++,
-                'account_id' => $apAccount->id,
-                'memo' => "AP Control - Note {$number}",
-                'debit_minor' => 0,
-                'credit_minor' => $totalMinor,
-                'debit_txn_minor' => 0,
-                'credit_txn_minor' => $totalMinor,
-                'currency' => $note->currency,
-                'fx_rate_e6' => 1000000,
-            ]);
 
             $postedJournal = $this->postingEngine->post($journalEntry, $actorId, allowControlAccounts: true);
 
@@ -643,11 +698,7 @@ class SupplierAdjustmentNoteService
                 $lineSubtotalMinor = $unitCostMinor;
             }
 
-            $lineTaxRateBps = $taxMode === 'manual_rate' ? $taxRateBps : 0;
-            $lineTaxMinor = $taxMode === 'manual_rate'
-                ? $this->calculateTaxMinor($lineSubtotalMinor, $taxRateBps, "lines.{$index}.tax_minor")
-                : 0;
-
+            $taxCodeId = $line['tax_code_id'] ?? null;
             $supplierBillLineId = $line['supplier_bill_line_id'] ?? null;
             if ($supplierBillLineId) {
                 if (! $supplierBillId) {
@@ -658,6 +709,10 @@ class SupplierAdjustmentNoteService
                 $billLine = SupplierBillLine::query()->where('id', $supplierBillLineId)->first();
                 if (! $billLine || $billLine->supplier_bill_id !== $supplierBillId) {
                     throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Line {$lineIndex} does not belong to the selected Supplier Bill."]]);
+                }
+
+                if (! $taxCodeId && $billLine->tax_code_id) {
+                    $taxCodeId = $billLine->tax_code_id;
                 }
             }
 
@@ -672,17 +727,39 @@ class SupplierAdjustmentNoteService
                 if (! $returnLine || $returnLine->purchase_return_id !== $purchaseReturnId) {
                     throw ValidationException::withMessages(["lines.{$index}.purchase_return_line_id" => ["Line {$lineIndex} does not belong to the selected Purchase Return."]]);
                 }
+
+                if (! $taxCodeId && $returnLine->tax_code_id) {
+                    $taxCodeId = $returnLine->tax_code_id;
+                }
+            }
+
+            $lineTaxRateBps = 0;
+            $lineTaxMinor = 0;
+
+            if ($taxCodeId) {
+                $calcDate = $data['adjustment_date'] ?? now()->format('Y-m-d');
+                $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $lineSubtotalMinor, $calcDate);
+                $lineTaxRateBps = $taxResult['rate_bps'];
+                $lineTaxMinor = $taxResult['tax_minor'];
+            } elseif ($taxMode === 'manual_rate') {
+                $lineTaxRateBps = $taxRateBps;
+                $lineTaxMinor = $this->calculateTaxMinor($lineSubtotalMinor, $taxRateBps, "lines.{$index}.tax_minor");
             }
 
             $validatedLines[] = [
                 'supplier_bill_line_id' => $supplierBillLineId,
                 'purchase_return_line_id' => $purchaseReturnLineId,
+                'product_id' => $line['product_id'] ?? null,
+                'unit_of_measure_id' => $line['unit_of_measure_id'] ?? null,
                 'description' => $description,
                 'quantity_e6' => $quantityE6,
                 'unit_cost_minor' => $unitCostMinor,
                 'line_subtotal_minor' => $lineSubtotalMinor,
+                'tax_code_id' => $taxCodeId,
                 'tax_rate_bps' => $lineTaxRateBps,
                 'tax_minor' => $lineTaxMinor,
+                'tax_amount_minor' => $lineTaxMinor,
+                'gross_amount_minor' => $this->checkedAdd($lineSubtotalMinor, $lineTaxMinor),
                 'line_total_minor' => $this->checkedAdd($lineSubtotalMinor, $lineTaxMinor),
             ];
         }
