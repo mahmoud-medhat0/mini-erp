@@ -87,4 +87,3 @@ Report:
 4. storage/mail/logging operations documented
 5. sensitive-value scan result
 6. scope-assumption scan result
-

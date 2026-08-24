@@ -7,6 +7,8 @@ For step-by-step deployment and rollback operations, see:
 - `spec/ROLLBACK_RUNBOOK.md`
 - `spec/ENVIRONMENT_CHECKLIST.md`
 - `spec/BACKUP_RESTORE_DRILL.md`
+- `spec/RUNTIME_PROCESSES.md`
+- `spec/GO_LIVE_ACCEPTANCE.md`
 
 The old Next.js application under `app/` is historical reference only. Active runtime and deployment planning apply to `laravel/`.
 

@@ -1,15 +1,15 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 9 (Staging / Production Cutover Pack) - IN PROGRESS; Slices 1, 2, 3, and 4 COMPLETE.
-- **Latest verified:** 2026-08-24, Phase 9 Slice 4 backup and restore drill pack (`spec/BACKUP_RESTORE_DRILL.md`). Latest full local Laravel verification remains Phase 8 (`PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`).
+- **Current phase:** Phase 9 (Staging / Production Cutover Pack) - COMPLETE & VERIFIED.
+- **Latest verified:** 2026-08-24, Phase 9 final cutover close-out (`PHASE_9_FINAL_CUTOVER_REPORT.md`).
 - **Tests passing:** Full suite 554 tests, 551 passed / 3 skipped / 4,068 assertions. Phase 8 suite 6 tests, 6 passed / 49 assertions.
 - **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:tax-filing-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (Vite bundle clean).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** local verification clean on Phase 8 operational readiness close-out.
+- **Latest verified code commit:** local verification clean on Phase 9 final cutover close-out.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 - **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slices 1-7 COMPLETE. All 7 slices implemented and verified.
-- **Next prepared track:** Continue Phase 9 with `PHASE_9_SLICE_5_GEMINI_PROMPT.md`.
+- **Next prepared track:** Owner/operator deployment decisions, or select the next ERP business module after cutover planning.
 
 ## Legend
 
@@ -69,7 +69,10 @@
 | Phase 9 Slice 2 Environment & Secrets Checklist | COMPLETE | Created `spec/ENVIRONMENT_CHECKLIST.md` documenting environment variable rules, purpose, required environments, value categories, operator notes, and validation methods across 35 configuration variables. Audited `laravel/.env.example` adding `DB_SSLMODE` and `MAIL_ENCRYPTION` template comments. Refreshed `spec/DEPLOYMENT.md`. |
 | Phase 9 Slice 3 Deployment & Rollback Runbooks | COMPLETE | Created `spec/DEPLOYMENT_RUNBOOK.md` detailing a 12-step provider-neutral deployment workflow and `spec/ROLLBACK_RUNBOOK.md` detailing rollback conditions, approval authority, code/asset/migration rollback policies, DB restore escalation path, and post-mortem incident audit. Refreshed `spec/DEPLOYMENT.md`. Runbook slice. |
 | Phase 9 Slice 4 Backup & Restore Drill Pack | COMPLETE | Created `spec/BACKUP_RESTORE_DRILL.md` detailing PostgreSQL backup objectives, frequency/retention policy options, staging restore drill workflow with placeholder commands, post-restore verification suite (`migrate:status`, `Phase8` tests, `accounting:phase3-integrity-check`, `tokens:gc --batch=100`, `/health`), production restore approval protocol, and restore drill log template. Refreshed `spec/DEPLOYMENT.md`. Operations doc slice. |
-| Phase 9 Staging / Production Cutover Pack | IN PROGRESS | Slices 1-7 prompt files prepared. Slices 1, 2, 3, and 4 complete. Covers cutover decision pack, environment/secrets checklist, deployment and rollback runbooks, backup/restore drill pack, runtime processes, go-live smoke/security acceptance, and final close-out. |
+| Phase 9 Slice 5 Runtime Processes, Storage, Mail & Logs | COMPLETE | Created `spec/RUNTIME_PROCESSES.md` detailing provider-neutral runtime operations for Artisan Scheduler external cron trigger requirement, queue worker supervision (Supervisor & systemd templates) & restart policy, `failed_jobs` inspection/retry, `tokens:gc --batch=100` schedule, attachment storage configuration, mail transport modes, log rotation/retention, `/health` endpoint, and 5-point post-restart operator checklist. Refreshed `spec/DEPLOYMENT.md`. Operations doc slice. |
+| Phase 9 Slice 6 Go-Live Smoke, Security Checklist & Acceptance Gate | COMPLETE | Created `spec/GO_LIVE_ACCEPTANCE.md` covering pre-go-live approvals, non-secret environment sanity checks, login/dashboard/report/tax smoke, attachment/notification checks, permission/security checks, scheduler/queue readiness, backup/restore evidence, and formal go/no-go sign-off. |
+| Phase 9 Slice 7 Final Cutover Close-Out | COMPLETE | Created `PHASE_9_FINAL_CUTOVER_REPORT.md`, updated handoff docs, ran the required Laravel verification suite, and classified source-scan matches. |
+| Phase 9 Staging / Production Cutover Pack | COMPLETE | Slices 1-7 are complete and verified. Covers cutover decision pack, environment/secrets checklist, deployment and rollback runbooks, backup/restore drill pack, runtime processes, go-live smoke/security acceptance, and final close-out. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -86,14 +89,13 @@
 
 ## Verification Snapshot
 
-Latest Phase 8 operational readiness local verification:
+Latest Phase 9 final cutover local verification:
 
 ```powershell
 php artisan migrate --force
 php artisan migrate:status
 vendor/bin/pint --test
 php artisan test
-php artisan test --filter=Phase7
 php artisan test --filter=Phase8
 php artisan test --testsuite=Concurrency
 php artisan concurrency:stress --workers=10
@@ -113,7 +115,6 @@ Result summary:
 - `php artisan migrate:status`: all 64 migrations Ran.
 - `vendor/bin/pint --test`: passed.
 - `php artisan test`: 554 tests, 551 passed, 3 skipped, 4,068 assertions.
-- `php artisan test --filter=Phase7`: 34 tests / 148 assertions passed.
 - `php artisan test --filter=Phase8`: 6 tests / 49 assertions passed.
 - `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
 - `php artisan concurrency:stress --workers=10`: passed.

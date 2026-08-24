@@ -2,6 +2,18 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added - Phase 9 Final Cutover Close-Out (2026-08-24)
+- Created `PHASE_9_FINAL_CUTOVER_REPORT.md` documenting all completed Phase 9 slices, files created/updated, owner/operator decisions still pending, runbook status, verification command results, source-scan classifications, and no-new-business-module confirmation.
+- Created and linked `spec/GO_LIVE_ACCEPTANCE.md` covering pre-go-live approvals, non-secret environment sanity checks, login/dashboard/report/tax/attachment/notification smoke checks, permission/security checks, scheduler/queue readiness, backup/restore evidence, and formal go/no-go sign-off.
+- Updated `README.md`, `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, and `CONTINUE_HERE.md` to mark Phase 9 complete and verified.
+- Final verification passed: full PHPUnit suite (554 tests, 551 passed, 3 skipped, 4,068 assertions), Phase 8 suite, Concurrency suite, required stress commands, token GC, Pint, TypeScript typecheck, and Vite production build.
+
+### Added — Phase 9 Slice 5 Runtime Processes, Storage, Mail, and Logs (2026-08-24)
+- Created `spec/RUNTIME_PROCESSES.md` detailing provider-neutral runtime operations documentation for Artisan Scheduler external cron trigger requirement, queue worker supervision (Supervisor and systemd templates) & `queue:restart` policy, failed job inspection/retry workflow (`failed_jobs`), `tokens:gc --batch=100` hourly garbage collection schedule, attachment storage configuration (`storage/app/private` vs private S3 bucket), mail delivery modes (`log`, `smtp`, `ses`), logging retention/rotation expectations (`LOG_CHANNEL=daily`), HTTP health endpoint (`/health`), and operator 5-point post-restart verification checklist.
+- Refreshed `spec/DEPLOYMENT.md` referencing `RUNTIME_PROCESSES.md`.
+- Operations documentation slice: zero server configuration performed, zero provider account setup.
+- Executed verification scans (`git diff --stat`, sensitive-value `rg` scan, scope assumption `rg` scan).
+
 ### Added — Phase 9 Slice 4 Backup and Restore Drill Pack (2026-08-24)
 - Created `spec/BACKUP_RESTORE_DRILL.md` detailing PostgreSQL backup objectives (RPO/RTO), backup frequency options (daily dumps, continuous WAL archiving PITR, hybrid cloud snapshots), retention options (30-day, 90-day, 7-year), restore test frequency options, staging restore drill workflow with generic placeholder `pg_dump`/`pg_restore`/`psql` examples, required post-restore verification suite (`migrate:status`, `Phase8` tests, `accounting:phase3-integrity-check`, `tokens:gc --batch=100`, `/health`), production restore approval protocol, and restore drill log template.
 - Refreshed `spec/DEPLOYMENT.md` referencing `BACKUP_RESTORE_DRILL.md`.
