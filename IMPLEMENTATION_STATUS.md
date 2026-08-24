@@ -1,14 +1,15 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 7 (Tax / VAT) - Slices 1-7 100% COMPLETE & VERIFIED.
-- **Latest verified:** 2026-08-23, local Laravel + PostgreSQL full verification pass after Phase 7 close-out (`PHASE_7_FINAL_VERIFICATION_REPORT.md`).
-- **Tests passing:** Full suite 253 tests, 253 passed / 1,462 assertions. Phase 7 suite 34 tests, 34 passed / 163 assertions.
+- **Current phase:** Phase 8 (Operational Readiness & E2E Smoke) - COMPLETE & VERIFIED.
+- **Latest verified:** 2026-08-24, local Laravel + PostgreSQL operational readiness pass (`PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`).
+- **Tests passing:** Full suite 554 tests, 551 passed / 3 skipped / 4,068 assertions. Phase 8 suite 6 tests, 6 passed / 49 assertions.
 - **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:tax-filing-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (Vite bundle clean).
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** local verification clean on Phase 7 Slice 7 close-out.
+- **Latest verified code commit:** local verification clean on Phase 8 operational readiness close-out.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 - **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slices 1-7 COMPLETE. All 7 slices implemented and verified.
+- **Next prepared track:** Owner/deployment decision: choose hosting, queue worker process manager, scheduler trigger, and whether to add formal browser automation/CI later.
 
 ## Legend
 
@@ -62,6 +63,7 @@
 | Phase 7 Slice 6 Tax Period Filing & Locking Controls | COMPLETE | `tax_periods` and `tax_returns` schema/models, `TaxPeriodGuard`, `TaxPeriodService`, `TaxReturnService`, filing UI under `/taxes/periods`, filed-period blocking across all sales/purchasing tax-affecting posting paths, `TaxFilingStressCommand`, and 9/9 passing feature tests. |
 | Phase 7 Slice 7 UX, Export/Print, Source Scans & Close-Out | COMPLETE | Created `PHASE_7_FINAL_VERIFICATION_REPORT.md`, completed source scan classifications, route/page/export/permission review, test hygiene corrections, full PHPUnit verification (253/253 tests), all stress commands, Pint, typecheck, and Vite build. |
 | Phase 7 Tax / VAT | COMPLETE | Phase 7 Slices 1 through 7 are 100% complete and locally verified. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`. |
+| Phase 8 Operational Readiness & E2E Smoke | COMPLETE | Safe prompt files prepared, Laravel deployment docs refreshed, scheduler/queue/health readiness tests added, Inertia route smoke foundation added, VAT GL date-filter bug fixed, and `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md` created. No business module or tenant/company/branch scope was introduced. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -78,7 +80,47 @@
 
 ## Verification Snapshot
 
-Latest Phase 6 Slice 7 local correction verification:
+Latest Phase 8 operational readiness local verification:
+
+```powershell
+php artisan migrate --force
+php artisan migrate:status
+vendor/bin/pint --test
+php artisan test
+php artisan test --filter=Phase7
+php artisan test --filter=Phase8
+php artisan test --testsuite=Concurrency
+php artisan concurrency:stress --workers=10
+php artisan accounting:concurrency-stress --workers=50
+php artisan accounting:phase3-integrity-check
+php artisan accounting:sales-tax-stress --workers=50
+php artisan accounting:purchasing-tax-stress --workers=50
+php artisan accounting:tax-filing-stress --workers=50
+php artisan tokens:gc --batch=100
+npm run typecheck
+npm run build
+```
+
+Result summary:
+
+- `php artisan migrate --force`: Nothing to migrate.
+- `php artisan migrate:status`: all 64 migrations Ran.
+- `vendor/bin/pint --test`: passed.
+- `php artisan test`: 554 tests, 551 passed, 3 skipped, 4,068 assertions.
+- `php artisan test --filter=Phase7`: 34 tests / 148 assertions passed.
+- `php artisan test --filter=Phase8`: 6 tests / 49 assertions passed.
+- `php artisan test --testsuite=Concurrency`: 7 tests / 16 assertions passed.
+- `php artisan concurrency:stress --workers=10`: passed.
+- `php artisan accounting:concurrency-stress --workers=50`: passed.
+- `php artisan accounting:phase3-integrity-check`: passed.
+- `php artisan accounting:sales-tax-stress --workers=50`: passed.
+- `php artisan accounting:purchasing-tax-stress --workers=50`: passed.
+- `php artisan accounting:tax-filing-stress --workers=50`: passed.
+- `php artisan tokens:gc --batch=100`: deleted sessions=0 password_reset_tokens=0 idempotency_keys=0.
+- `npm run typecheck`: passed.
+- `npm run build`: passed, 679 modules transformed.
+
+Previous Phase 6 Slice 7 local correction verification:
 
 ```powershell
 php artisan migrate --force
@@ -282,7 +324,8 @@ Phases 1-7 of the Laravel migration track are 100% complete and verified: Founda
 
 All 253 feature tests and 13 concurrency stress test commands pass cleanly with 100% data integrity.
 
-Next owner options for future enhancement:
+Next prepared track:
 
-- Optional: E2E Browser Automation Hardening
-- Optional: Production Deployment Readiness & External Cron Scheduler Setup
+- Phase 8 Operational Readiness & E2E Smoke.
+- Execute `PHASE_8_SLICE_1_GEMINI_PROMPT.md` first.
+- Phase 8 must stay operational only: no new ERP business module, no provider account setup, no private environment values, and no tenant/company/branch assumptions.

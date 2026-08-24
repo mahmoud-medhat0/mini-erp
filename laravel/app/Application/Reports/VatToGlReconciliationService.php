@@ -4,7 +4,6 @@ namespace App\Application\Reports;
 
 use App\Models\AccountingAccountMapping;
 use App\Models\LedgerEntry;
-use Illuminate\Support\Facades\DB;
 
 class VatToGlReconciliationService
 {
@@ -66,21 +65,25 @@ class VatToGlReconciliationService
         // Output VAT: credits minus debits
         $glOutputTaxMinor = 0;
         if ($outputAccountMapped) {
-            $glOutputTaxMinor = (int) LedgerEntry::query()
+            $outputQuery = LedgerEntry::query()
                 ->where('account_id', $outputMapping->account_id)
                 ->where('currency', $currency)
-                ->whereBetween('entry_date', [$effectiveFromDate, $effectiveToDate])
-                ->sum(DB::raw('credit_minor - debit_minor'));
+                ->whereDate('entry_date', '>=', $effectiveFromDate)
+                ->whereDate('entry_date', '<=', $effectiveToDate);
+
+            $glOutputTaxMinor = (int) $outputQuery->sum('credit_minor') - (int) $outputQuery->sum('debit_minor');
         }
 
         // Input VAT: debits minus credits
         $glInputTaxMinor = 0;
         if ($inputAccountMapped) {
-            $glInputTaxMinor = (int) LedgerEntry::query()
+            $inputQuery = LedgerEntry::query()
                 ->where('account_id', $inputMapping->account_id)
                 ->where('currency', $currency)
-                ->whereBetween('entry_date', [$effectiveFromDate, $effectiveToDate])
-                ->sum(DB::raw('debit_minor - credit_minor'));
+                ->whereDate('entry_date', '>=', $effectiveFromDate)
+                ->whereDate('entry_date', '<=', $effectiveToDate);
+
+            $glInputTaxMinor = (int) $inputQuery->sum('debit_minor') - (int) $inputQuery->sum('credit_minor');
         }
 
         $glNetVatMinor = $glOutputTaxMinor - $glInputTaxMinor;

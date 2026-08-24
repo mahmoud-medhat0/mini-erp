@@ -4,6 +4,8 @@ Current target: Laravel + Inertia.js + React + TypeScript + Tailwind + PostgreSQ
 
 The repository still contains the older Next.js reference app under `app/`, but the active migration target is `laravel/`.
 
+Latest verified status: Phase 8 Operational Readiness & E2E Smoke is complete as of 2026-08-24. See `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
+
 ## Current Rule
 
 The Mini ERP is not currently a multi-tenant SaaS.
@@ -109,14 +111,13 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - strict Purchase Order/Goods Receipt source matching, exact integer bill totals, PostingEngine integration, and AP `payable_entry` credit.
 - Idempotency store, bounded `tokens:gc`, and PostgreSQL stress commands.
 
-## Not Implemented Yet
+## Remaining Major Decisions / Future Scope
 
-- Inventory costing implementation and stock-product posting behavior. The owner selected Moving Weighted Average Costing; implementation prompt is prepared in `PHASE_4_SLICE_8_GEMINI_PROMPT.md`.
-- Sales/Purchasing returns, credit notes, debit notes, and post-invoice corrections.
-- Inventory valuation, COGS, stock movement, and warehouse semantics.
-- Payroll, Rentals, Fixed Assets, Projects, Budgeting, Recurring workflows.
-- Full financial statements such as Balance Sheet, Income Statement, Cash Flow, and Equity Statement.
-- Laravel browser E2E parity with the old Next.js Playwright suite.
+- Choose staging/production hosting, PostgreSQL hosting/backups, queue worker process manager, and scheduler trigger.
+- Decide whether to add formal browser automation/CI later. No GitHub Actions pipeline is currently connected.
+- Year-end physical retained-earnings close remains an owner decision. Current path keeps soft close/reporting behavior.
+- Payroll, Rentals, Projects, Budgeting, Recurring workflows, external filing/collection integrations, and e-invoicing APIs are not part of the implemented scope yet.
+- Any future multi-company, branch ownership, warehouse/location, employee/custodian, or tenant-like relationship remains `UNDEFINED - DO NOT ASSUME` unless explicitly approved later.
 
 ## Setup
 
@@ -163,6 +164,9 @@ php artisan accounting:cheque-concurrency-stress --workers=50
 php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
 php artisan accounting:phase3-integrity-check
 php artisan accounting:phase3-stress --workers=50
+php artisan accounting:sales-tax-stress --workers=50
+php artisan accounting:purchasing-tax-stress --workers=50
+php artisan accounting:tax-filing-stress --workers=50
 php artisan tokens:gc --batch=100
 npm run typecheck
 npm run build
@@ -170,15 +174,11 @@ npm run build
 
 Latest verified result:
 
-- 342 PHPUnit tests / 340 passed / 2 skipped / 2675 assertions after Phase 4 Slice 6 hardening.
-- Phase 4 Slices 1-7 are complete for their agreed scope; Slice 8 prompt is ready for owner-selected Moving Weighted Average Costing.
-- Phase4Slice5CustomerInvoiceTest: 19 tests / 86 assertions passed after local source-line hardening.
-- Phase 3 Slice 9 stress/integrity suite: 6 tests / 262 assertions passed.
-- Phase 3 Slice 8 report suite: 12 tests / 180 assertions passed.
-- 7 Concurrency suite tests / 16 assertions passed.
-- PostgreSQL concurrency, accounting, allocation, cheque, bank reconciliation, and phase3 stress commands passed.
-- Phase 3 integrity check passed.
-- TypeScript typecheck passed and Vite build passed.
+- Full PHPUnit suite: 554 tests, 551 passed, 3 skipped, 4,068 assertions.
+- Phase 8 suite: 6 tests / 49 assertions passed.
+- Concurrency suite: 7 tests / 16 assertions passed.
+- PostgreSQL concurrency, accounting, Phase 3 integrity, sales tax, purchasing tax, and tax filing stress commands passed.
+- Pint, TypeScript typecheck, and Vite production build passed.
 
 ## Documentation Entry Points
 
@@ -186,6 +186,10 @@ Use these first:
 
 - `CONTINUE_HERE.md`
 - `IMPLEMENTATION_STATUS.md`
+- `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`
+- `PHASE_7_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_6_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_5_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_3_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_4_SALES_PURCHASING_OPERATIONS.md`
 - `PHASE_4_SLICE_1_GEMINI_PROMPT.md`

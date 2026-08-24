@@ -80,9 +80,24 @@ class Phase7Slice5VatReportsTest extends TestCase
             'unit_of_measure_id' => $uom->id,
         ]);
 
-        $mappingService = app(AccountingAccountMappingService::class);
-        $this->currency = $mappingService->getAccount('ar_control')->currency;
-        Account::query()->update(['currency' => $this->currency]);
+        Account::query()->update(['currency' => 'USD']);
+        $this->currency = 'USD';
+
+        $outputAccount = Account::query()->where('code', '2200')->first();
+        if ($outputAccount) {
+            AccountingAccountMapping::query()->updateOrCreate(
+                ['key' => 'output_tax_payable'],
+                ['account_id' => $outputAccount->id]
+            );
+        }
+
+        $inputAccount = Account::query()->where('code', '1300')->first();
+        if ($inputAccount) {
+            AccountingAccountMapping::query()->updateOrCreate(
+                ['key' => 'input_tax_receivable'],
+                ['account_id' => $inputAccount->id]
+            );
+        }
     }
 
     public function test_vat_register_includes_posted_sales_and_purchases_tax_documents_with_correct_signs(): void
@@ -91,7 +106,7 @@ class Phase7Slice5VatReportsTest extends TestCase
         $billService = app(SupplierBillService::class);
         $creditNoteService = app(CustomerCreditNoteService::class);
 
-        $today = now()->format('Y-m-d');
+        $today = '2026-08-15';
 
         // 1. Post Invoice ($100 base + $14 tax = $114 total) => Output +1400
         $invoice = $invoiceService->create([
@@ -165,7 +180,7 @@ class Phase7Slice5VatReportsTest extends TestCase
     public function test_vat_register_excludes_draft_and_cancelled_documents(): void
     {
         $invoiceService = app(CustomerInvoiceService::class);
-        $today = now()->format('Y-m-d');
+        $today = '2026-08-16';
 
         // Create draft invoice
         $invoiceService->create([
@@ -194,7 +209,7 @@ class Phase7Slice5VatReportsTest extends TestCase
     public function test_changing_current_tax_master_rates_after_posting_does_not_change_vat_register_totals(): void
     {
         $invoiceService = app(CustomerInvoiceService::class);
-        $today = now()->format('Y-m-d');
+        $today = '2026-08-15';
 
         $invoice = $invoiceService->create([
             'customer_id' => $this->customer->id,
@@ -233,7 +248,7 @@ class Phase7Slice5VatReportsTest extends TestCase
     {
         $invoiceService = app(CustomerInvoiceService::class);
         $billService = app(SupplierBillService::class);
-        $today = now()->format('Y-m-d');
+        $today = '2026-08-16';
 
         $invoice = $invoiceService->create([
             'customer_id' => $this->customer->id,
@@ -287,7 +302,7 @@ class Phase7Slice5VatReportsTest extends TestCase
     {
         $invoiceService = app(CustomerInvoiceService::class);
         $billService = app(SupplierBillService::class);
-        $today = now()->format('Y-m-d');
+        $today = '2026-08-15';
 
         $invoice = $invoiceService->create([
             'customer_id' => $this->customer->id,
@@ -342,7 +357,7 @@ class Phase7Slice5VatReportsTest extends TestCase
     public function test_vat_gl_reconciliation_reports_forced_mismatch_with_warning_code(): void
     {
         $invoiceService = app(CustomerInvoiceService::class);
-        $today = now()->format('Y-m-d');
+        $today = '2026-08-16';
 
         $invoice = $invoiceService->create([
             'customer_id' => $this->customer->id,

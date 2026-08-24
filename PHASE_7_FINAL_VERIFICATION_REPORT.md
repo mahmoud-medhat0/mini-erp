@@ -169,6 +169,7 @@ All 28 verification commands were executed sequentially with 100% passing result
 
 ## 10. Test Hygiene & Pollution Audit
 
+- **VAT Reconciliation Date/Aggregate Fix**: Replaced same-day `whereBetween('entry_date', ['YYYY-MM-DD', 'YYYY-MM-DD'])` filtering with explicit `whereDate` bounds and replaced `DB::raw('credit_minor - debit_minor')` inside `sum()` with explicit, ANSI-compliant `sum('credit_minor') - sum('debit_minor')` calculations. This prevents SQLite date-time rows from being missed and prevents raw subtraction expressions from being quoted as string literal column names during full suite runs.
 - **Schema Prohibition Alignment**: Removed `tax_amount_minor` from `$prohibitedColumns` arrays in `Phase4Slice5CustomerInvoiceTest.php` and `Phase4Slice6SupplierBillTest.php` to reflect the valid addition of tax columns in Phase 7 Slices 3 and 4.
 - **Journal Line Side Alignment**: Corrected debit vs credit line expectations in `Phase4Slice10ReturnsCreditNotesTest.php` for `decrease_payable` supplier adjustment notes (AP Control is debited while Purchase Returns & Allowances and Input Tax Receivable are credited).
 - **Isolation Rule**: Standardized `Phase7Slice5VatReportsTest` to isolate database mapping state changes using `try...finally` blocks instead of un-isolated `db:seed` wipes.

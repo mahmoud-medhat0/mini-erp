@@ -2,6 +2,19 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 8 Operational Readiness & E2E Smoke Close-Out (2026-08-24)
+- Created `PHASE_8_OPERATIONAL_READINESS.md` as the master contract for deployment documentation, scheduler/queue readiness, health checks, and browser smoke coverage.
+- Created safe prompt files `PHASE_8_SLICE_1_GEMINI_PROMPT.md` through `PHASE_8_SLICE_5_GEMINI_PROMPT.md`.
+- Created `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
+- Refreshed `spec/DEPLOYMENT.md` for the active Laravel + Inertia + PostgreSQL target and removed obsolete Next.js/Prisma deployment guidance.
+- Refreshed `README.md` current status, remaining future scope, verification snapshot, and documentation entry points.
+- Added `Phase8Slice3OperationalReadinessTest.php` covering `/health`, scheduler token GC registration, and queue baseline tables.
+- Added `Phase8Slice4RouteSmokeTest.php` covering public login, authenticated operational routes, and report permission denial.
+- Fixed VAT-to-GL reconciliation same-day ledger date filtering and aggregate compatibility in `VatToGlReconciliationService.php`.
+- Updated `NEXT_TASKS.md`, `IMPLEMENTATION_STATUS.md`, and `CONTINUE_HERE.md` so Phase 8 starts with operational readiness instead of re-running Phase 7.
+- Prompt wording intentionally avoids private environment values, provider account setup, new ERP business modules, and tenant/company/branch assumptions.
+- Verified with full PHPUnit suite (554 tests, 551 passed, 3 skipped, 4,068 assertions), Phase 8 suite, Concurrency suite, required stress commands, token GC, Pint, TypeScript typecheck, and Vite build.
+
 ### Added — Phase 7 Slice 7 UX, Export/Print, E2E Smoke, Source Scans, and Close-Out (2026-08-23)
 - Created `PHASE_7_FINAL_VERIFICATION_REPORT.md` documenting completion of all 7 slices, migration status, routes, models, permissions, GL mappings, tax posting examples, reconciliation formulas, scan classifications, test results, and stress results.
 - Translated Tax & VAT Reports section in `Reports/Index.tsx` to use translation dictionary keys (`dict.app.taxes`).

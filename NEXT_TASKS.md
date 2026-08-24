@@ -1,15 +1,39 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 7 (Tax / VAT Slices 1-7) is 100% COMPLETE and fully verified on 2026-08-23. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`.
+Current status: Phase 8 (Operational Readiness & E2E Smoke) is COMPLETE and fully verified on 2026-08-24. See `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Milestones & Future Options
 
-- All core migration phases (Phase 1 through Phase 7) are 100% complete and verified.
-- Optional future tracks:
-  - Production deployment readiness & external scheduler configuration.
-  - End-to-end browser automation suite hardening.
+- All core migration phases (Phase 1 through Phase 8) are 100% complete and verified.
+- Next owner/deployment decisions:
+  - choose the staging/production hosting environment
+  - choose PostgreSQL hosting/backups
+  - choose queue worker process manager
+  - choose scheduler trigger mechanism
+  - decide whether to add formal browser automation and/or CI/CD later
+
+## Prepared Phase 8 Track
+
+- `PHASE_8_OPERATIONAL_READINESS.md`: master contract for operational readiness and browser smoke coverage.
+- `PHASE_8_SLICE_1_GEMINI_PROMPT.md`: docs-only operational decision pack.
+- `PHASE_8_SLICE_2_GEMINI_PROMPT.md`: Laravel deployment documentation refresh.
+- `PHASE_8_SLICE_3_GEMINI_PROMPT.md`: scheduler, queue, and health readiness.
+- `PHASE_8_SLICE_4_GEMINI_PROMPT.md`: browser smoke / E2E foundation.
+- `PHASE_8_SLICE_5_GEMINI_PROMPT.md`: final operational close-out.
+- `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`: final report, verification results, source scan classifications, and remaining deployment decisions.
+- `spec/DEPLOYMENT.md`: refreshed for Laravel + Inertia + PostgreSQL; old Next.js/Prisma deployment guidance removed.
+
+## Completed Phase 8 Track
+
+- Phase 8 Operational Readiness & E2E Smoke (FULLY COMPLETE):
+  - Safe prompts rewritten to avoid private values, provider setup, GitHub Actions requirements, tenant/company/branch scope, and new business modules.
+  - Deployment docs refreshed in `spec/DEPLOYMENT.md` for Laravel + Inertia + PostgreSQL.
+  - Added `Phase8Slice3OperationalReadinessTest.php` covering `/health`, scheduler token GC registration, and queue baseline tables.
+  - Added `Phase8Slice4RouteSmokeTest.php` covering login, dashboard, reports hub, tax codes, VAT register, and report permission denial.
+  - Fixed VAT-to-GL reconciliation same-day date filtering and raw aggregate compatibility.
+  - Verification passed: full PHPUnit suite, Phase 7, Phase 8, Concurrency suite, required stress commands, token GC, Pint, TypeScript typecheck, and Vite build.
 
 ## Completed Phase 7 Track
 

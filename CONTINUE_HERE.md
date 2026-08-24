@@ -1,6 +1,6 @@
 # CONTINUE HERE - Mini ERP Laravel handoff
 
-Current date/context: 2026-08-24. Phase 7 Tax / VAT (Slices 1-7) is 100% COMPLETE & VERIFIED. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`.
+Current date/context: 2026-08-24. Phase 8 Operational Readiness & E2E Smoke is COMPLETE & VERIFIED. See `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -11,6 +11,7 @@ Use the current Laravel code and these documents first:
 - `README.md`
 - `IMPLEMENTATION_STATUS.md`
 - `NEXT_TASKS.md`
+- `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`
 - `PHASE_7_FINAL_VERIFICATION_REPORT.md`
 - `DOMAIN_MODEL_REVIEW.md`
 - `DOMAIN_RELATIONSHIP_AUDIT.md`
@@ -60,6 +61,13 @@ Use the current Laravel code and these documents first:
 - `PHASE_7_SLICE_6_GEMINI_PROMPT.md` (Tax Period Filing and Locking Controls 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_7_SLICE_7_GEMINI_PROMPT.md` (UX, Export/Print, Source Scans, and Close-Out 100% COMPLETE & VERIFIED 2026-08-23)
 - `PHASE_7_FINAL_VERIFICATION_REPORT.md` (Phase 7 Final Verification Report 100% COMPLETE & VERIFIED 2026-08-23)
+- `PHASE_8_OPERATIONAL_READINESS.md` (Phase 8 operational readiness master contract; prepared 2026-08-24)
+- `PHASE_8_SLICE_1_GEMINI_PROMPT.md` (Operational readiness decision pack; prepared 2026-08-24)
+- `PHASE_8_SLICE_2_GEMINI_PROMPT.md` (Laravel deployment documentation refresh; prepared 2026-08-24)
+- `PHASE_8_SLICE_3_GEMINI_PROMPT.md` (Scheduler, queue, and health readiness; prepared 2026-08-24)
+- `PHASE_8_SLICE_4_GEMINI_PROMPT.md` (Browser smoke / E2E foundation; prepared 2026-08-24)
+- `PHASE_8_SLICE_5_GEMINI_PROMPT.md` (Final operational close-out; prepared 2026-08-24)
+- `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md` (Phase 8 Operational Readiness final report 100% COMPLETE & VERIFIED 2026-08-24)
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -116,6 +124,19 @@ Before accepting any Gemini/AI implementation report:
 - Financial reporting and period guards must use accounting/document dates and `financial_period_id`, not row timestamps such as `created_at` or `updated_at`.
 
 ## Current Verified Status
+
+Phase 8 Operational Readiness & E2E Smoke is FULLY COMPLETE after local review and verification.
+
+Latest Phase 8 completion notes:
+
+- Created policy-safe Phase 8 prompt files that avoid private environment values, provider account setup, GitHub Actions requirements, tenant/company/branch scope, and new ERP business modules.
+- Refreshed `spec/DEPLOYMENT.md` for Laravel + Inertia + PostgreSQL.
+- Added operational readiness tests for `/health`, scheduler `tokens:gc --batch=100`, and queue baseline tables.
+- Added Inertia route smoke tests for login, dashboard, reports hub, tax codes, VAT register, and permission denial.
+- Fixed VAT-to-GL reconciliation same-day date filtering and raw aggregate compatibility.
+- Verification passed: full PHPUnit suite (554 tests, 551 passed, 3 skipped, 4,068 assertions), Phase 8 suite (6/6), Concurrency suite, required stress commands, token GC, Pint, TypeScript typecheck, and Vite build.
+
+Previous Phase 7 detail:
 
 Phase 7 Slice 3 (Sales Output VAT Integration) is FULLY COMPLETE after local review and verification.
 
@@ -198,7 +219,7 @@ Latest Phase 6 Slice 4 local correction notes:
 - Fixed Asset detail depreciation schedule UI uses dictionary-backed statuses, date separators, table labels, buttons, and empty states.
 - Verification: migrations up to date through `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability`, `vendor/bin/pint --test`, Slice 4 suite 13/13 / 64 assertions, full PHPUnit suite 483 tests / 480 passed / 3 skipped / 3588 assertions, Concurrency testsuite 7/7, PostgreSQL stress commands, `npm run typecheck`, and `npm run build`.
 
-Next execution step: Phase 7 Tax / VAT is closed out. Do not execute Phase 7 prompts again unless performing a targeted correction. Future work should start from `NEXT_TASKS.md`: production deployment readiness, scheduler/queue operationalization, end-to-end browser automation hardening, or a new owner-approved business phase.
+Next execution step: Phase 7 Tax / VAT is closed out. Execute `PHASE_8_SLICE_1_GEMINI_PROMPT.md` next for the operational readiness decision pack. Phase 8 prompts are policy-safe and must not request private environment values, provider account setup, new ERP business modules, or tenant/company/branch ownership assumptions.
 
 Latest Phase 6 Slice 1 notes:
 
