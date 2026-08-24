@@ -1,5 +1,8 @@
 # Changelog
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ### Added - Phase 9 Final Cutover Close-Out (2026-08-24)
@@ -697,7 +700,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ### Added
 - Project scaffold: Next.js (App Router) + TypeScript + Prisma + Zod + Tailwind, modular-monolith structure (24 modules + core kernel).
-- Core kernel (tested): exact **Money** value object (BigInt minor units, exact allocation), **accounting-kernel** (`assertBalanced` Σdr=Σcr), concurrency-safe **numbering**, server-side **RBAC** with scope + tenant isolation, typed **errors**, **audit** types, **currency** registry (EGP seed, multi-currency).
+- Core kernel (tested, legacy Next.js snapshot): exact **Money** value object (BigInt minor units, exact allocation), **accounting-kernel** (`assertBalanced` Σdr=Σcr), concurrency-safe **numbering**, legacy RBAC experiment, typed **errors**, **audit** types, **currency** registry (EGP seed, multi-currency). Tenant-isolation wording from this historical snapshot is superseded by `NO_MULTI_TENANT_POLICY.md`.
 - Prisma kernel schema (company, branch, user, role, permission, currency, exchange rate, fiscal year/period, number sequence, audit log, attachment, notification).
 - i18n (EN/AR) + RTL/LTR + design tokens/theming wired into the App Router.
 - CI workflow with a **blocking accounting-invariant job**.
@@ -707,11 +710,11 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 ### Added — Phase 1 application layer (real + unit-tested)
 - **Auth:** credentials authentication service (anti-enumeration, generic errors, no hash leakage), Argon2id hasher adapter, fixed-window rate limiter, session + route guards.
 - **RBAC:** full permission catalog (24 modules × actions + sensitive capabilities), 9 deny-by-default role templates (SUPER_ADMIN…VIEWER), pure seed plan + Prisma seed.
-- **Tenant:** server-derived tenant context + cross-company isolation guards.
+- **Legacy tenant experiment:** superseded by the Laravel no-multi-tenant policy.
 - **Audit:** append-only audit service with field diff, sensitive-field redaction, requestId.
 - **Numbering:** configuration + allocation application service over the concurrency-safe engine.
-- **Attachments:** storage abstraction + validation + company scope + local-disk adapter.
-- **Notifications:** in-app notification service (create/list/read, company scope, channel interface).
+- **Attachments:** storage abstraction + validation + local-disk adapter in the legacy reference app; company-scope wording is superseded in Laravel.
+- **Notifications:** in-app notification service (create/list/read, channel interface) in the legacy reference app; company-scope wording is superseded in Laravel.
 - **Jobs:** queue-agnostic job runner (idempotency + exponential backoff) + pg-boss adapter + worker entrypoint.
 - **Company:** company/branch onboarding + settings service (validated; owner admin role seeded).
 
@@ -738,12 +741,12 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ### Added — auth route + Settings (locally verified)
 - **NextAuth route handler** (`/api/auth/[...nextauth]`, Node runtime) — credentials flow is now end-to-end.
-- **Company settings**: `SettingsService` (validated) + `PrismaSettingsRepository` (JSON column `settingsJson`), a **Settings hub** and a **Company settings screen** (currency/locale/timezone/fiscal-start) built from the UI components, EN/AR, server-action persistence with server-derived tenant context.
+- **Company settings**: `SettingsService` (validated) + `PrismaSettingsRepository` (JSON column `settingsJson`), a **Settings hub** and a **Company settings screen** (currency/locale/timezone/fiscal-start) built from the UI components, EN/AR, server-action persistence in the legacy reference app; tenant-context wording is superseded in Laravel.
 - Verified: `eslint --max-warnings=0` clean; `vitest` **60 passed**; `tsc` clean except Prisma-client generation (CI).
 
 ### Added — Branches + Numbering settings (locally verified)
 - **BranchService** (unique code per company, validation) + `PrismaBranchRepository` + tests.
-- **Branches settings screen** (list + add) and **Numbering settings screen** (list configs + add/update sequence with reset policy + next-number preview), wired to the tested services, EN/AR, server-derived tenant context.
+- **Branches settings screen** (list + add) and **Numbering settings screen** (list configs + add/update sequence with reset policy + next-number preview), wired to the tested services, EN/AR in the legacy reference app; tenant-context wording is superseded in Laravel.
 - Verified: lint clean; `tsc` clean except Prisma-client generation (CI); `vitest` **62 passed / 1 skipped**.
 
 ### Added — onboarding, users, attachments, notifications, and E2E smoke

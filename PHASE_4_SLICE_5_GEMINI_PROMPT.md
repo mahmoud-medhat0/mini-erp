@@ -1,5 +1,8 @@
 # PHASE 4 SLICE 5 - CUSTOMER INVOICE POSTING TO AR/GL
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 You are continuing the active Laravel + Inertia Mini ERP migration.
 
 Execute only Phase 4 Slice 5.

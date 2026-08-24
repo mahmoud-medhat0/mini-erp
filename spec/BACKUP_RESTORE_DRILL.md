@@ -1,5 +1,8 @@
 # POSTGRESQL BACKUP & RESTORE DRILL PACK
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Target Database:** PostgreSQL 15+  
 **Application Target:** Laravel 13.x + Inertia.js + React  
 **Scope:** Operational backup policies, disaster recovery objectives, restore drill procedures, and post-restore integrity validation.  

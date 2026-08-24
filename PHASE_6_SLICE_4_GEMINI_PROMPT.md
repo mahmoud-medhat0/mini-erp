@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 6 SLICE 4 DEPRECIATION SCHEDULE ENGINE
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only Phase 6 Slice 4 after the asset register and owner-approved depreciation policy are complete.
 
 Do not post depreciation to GL in this pass.

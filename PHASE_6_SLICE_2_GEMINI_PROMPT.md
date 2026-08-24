@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 6 SLICE 2 FIXED ASSET REGISTER FOUNDATION
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 You are continuing the active Laravel + Inertia Mini ERP migration.
 
 Execute only Phase 6 Slice 2 after Slice 1 has recorded the owner-approved fixed asset policy.

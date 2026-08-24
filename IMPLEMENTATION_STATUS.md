@@ -1,5 +1,8 @@
 # IMPLEMENTATION STATUS
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 - **Current phase:** Phase 9 (Staging / Production Cutover Pack) - COMPLETE & VERIFIED.
 - **Latest verified:** 2026-08-24, Phase 9 final cutover close-out (`PHASE_9_FINAL_CUTOVER_REPORT.md`).
 - **Tests passing:** Full suite 554 tests, 551 passed / 3 skipped / 4,068 assertions. Phase 8 suite 6 tests, 6 passed / 49 assertions.

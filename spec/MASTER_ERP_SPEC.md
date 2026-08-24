@@ -1,5 +1,8 @@
 # MASTER ERP SPECIFICATION - Final Target System
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Current status:** legacy/generated target specification and planning reference. It does not override original owner requirements, explicit later owner decisions, or the corrected Laravel architecture.
 
 **Post-audit correction rule, 2026-08-21:** Company is not a tenant. Do not implement Company/User/Branch ownership, `company_user`, `users.company_id`, `branch.company_id`, company-scoped roles/permissions, Spatie Teams, `currentCompany`, `currentBranch`, or company/branch numbering dimensions unless an explicit owner decision approves that exact relationship. FiscalYear ownership/context is explicitly `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope.

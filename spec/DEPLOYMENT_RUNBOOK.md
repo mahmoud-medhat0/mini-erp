@@ -1,5 +1,8 @@
 # LARAVEL ERP DEPLOYMENT RUNBOOK
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Target Stack:** Laravel 13.x + Inertia.js + React + PostgreSQL 15+  
 **Scope:** Provider-neutral release procedures for Staging and Production environments.  
 **Execution Note:** Commands in this runbook are provider-neutral examples to be executed by a qualified System Operator in the target server host environment. Do not execute directly against un-approved environments.

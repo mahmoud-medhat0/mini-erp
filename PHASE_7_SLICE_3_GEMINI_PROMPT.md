@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 7 SLICE 3 SALES OUTPUT VAT INTEGRATION
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only Phase 7 Slice 3 after Slice 2 is complete and verified.
 
 Do not implement purchasing input VAT, tax filing, tax period locks, withholding tax, e-invoicing, or online filing in this slice.

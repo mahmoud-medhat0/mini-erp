@@ -79,10 +79,67 @@ export function formatPeriodLabel(
 }
 
 export function formatMoney(amountMinor: number, currency: string = 'EGP'): string {
-  const major = (amountMinor || 0) / 100;
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(major) + ' ' + currency;
+  return formatMinorUnits(amountMinor, currency);
 }
 
+export function formatMinorUnits(
+  amountMinor: number | string | null | undefined,
+  currency: string = 'EGP',
+  decimalPlaces: number = 2
+): string {
+  const normalized = normalizeMinorUnits(amountMinor);
+  const isNegative = normalized.startsWith('-');
+  let digits = isNegative ? normalized.slice(1) : normalized;
+
+  digits = digits.replace(/^0+(?=\d)/, '') || '0';
+
+  if (decimalPlaces > 0) {
+    while (digits.length <= decimalPlaces) {
+      digits = `0${digits}`;
+    }
+  }
+
+  const major = decimalPlaces > 0 ? digits.slice(0, -decimalPlaces) || '0' : digits;
+  const fraction = decimalPlaces > 0 ? digits.slice(-decimalPlaces).padStart(decimalPlaces, '0') : '';
+  const groupedMajor = major.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const sign = isNegative && digits.replace(/0/g, '') !== '' ? '-' : '';
+  const numeric = decimalPlaces > 0 ? `${sign}${groupedMajor}.${fraction}` : `${sign}${groupedMajor}`;
+
+  return `${numeric} ${currency}`;
+}
+
+export function formatAccountingAmount(
+  amountMinor: number | string | null | undefined,
+  currency: string = 'EGP',
+  options: { zeroAsDash?: boolean; parenthesesForNegative?: boolean; showCurrency?: boolean } = {}
+): string {
+  const { zeroAsDash = true, parenthesesForNegative = false, showCurrency = true } = options;
+  const normalized = normalizeMinorUnits(amountMinor);
+  const isZero = normalized.replace('-', '').replace(/^0+/, '') === '';
+
+  if (zeroAsDash && isZero) return '—';
+
+  const formatted = formatMinorUnits(normalized, showCurrency ? currency : '');
+  const trimmed = formatted.trim();
+
+  if (parenthesesForNegative && normalized.startsWith('-')) {
+    return `(${trimmed.replace(/^-/, '')})`;
+  }
+
+  return trimmed;
+}
+
+function normalizeMinorUnits(amountMinor: number | string | null | undefined): string {
+  if (amountMinor === null || amountMinor === undefined || amountMinor === '') return '0';
+
+  if (typeof amountMinor === 'number') {
+    if (!Number.isFinite(amountMinor)) return '0';
+    return String(Math.trunc(amountMinor));
+  }
+
+  const raw = String(amountMinor).trim();
+  const isNegative = raw.startsWith('-');
+  const digits = raw.replace(/^-/, '').replace(/[^\d]/g, '');
+
+  return `${isNegative ? '-' : ''}${digits || '0'}`;
+}

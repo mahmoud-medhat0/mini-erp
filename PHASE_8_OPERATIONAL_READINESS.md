@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 8 OPERATIONAL READINESS & E2E SMOKE
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Phase 8 starts after Phase 7 Tax / VAT is fully closed out.
 
 This phase does not add a new ERP business module.

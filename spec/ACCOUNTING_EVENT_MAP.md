@@ -1,5 +1,8 @@
 # ACCOUNTING EVENT MAP
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Every financial transaction type, its trigger, and the exact journal it produces. All entries are **balanced** (Σ Dr = Σ Cr, base currency), posted **atomically** with any subledger/stock effect, into an **open period**, and are **reversible** (mirror entry, original preserved). All carry `source_type/source_id`, `branch`, optional `project`/`cost_center`, `currency`/`fx_rate`. Accounts are **resolved from configurable mappings** (Settings → Accounting), never literals.
 
 **Legend:** Dr = debit, Cr = credit. "Subledger" = the party/asset ledger updated in the same transaction. Multi-currency lines store txn + base amounts; settlement posts realized FX gain/loss.

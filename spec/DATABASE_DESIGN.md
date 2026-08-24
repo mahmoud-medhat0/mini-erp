@@ -1,5 +1,8 @@
 # DATABASE DESIGN - Domain Data Model
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 > Current status: legacy/generated target design, not current Laravel source of truth.
 >
 > Post-audit correction rule, 2026-08-21: do not treat Company as a tenant and do not add Company/User/Branch ownership, `company_id`, `branch_id`, Spatie Teams, current-company/current-branch context, or company/branch numbering dimensions unless an explicit owner decision requires that exact relationship. FiscalYear ownership/context is explicitly `SINGLE-ERP CONTEXT`: global fiscal years, no Company/Tenant scope. Any older company/branch scoping claim in this file is stale unless re-approved.

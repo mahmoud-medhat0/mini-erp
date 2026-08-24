@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 9 SLICE 7 FINAL CUTOVER CLOSE-OUT
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only after Slices 1-6 are complete or explicitly skipped with a documented reason.
 
 This is the Phase 9 close-out slice.

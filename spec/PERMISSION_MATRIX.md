@@ -1,6 +1,9 @@
 # PERMISSION MATRIX
 
-Model: **Role → Module → Action → Scope**. Actions: `View, Create, Edit, Delete, Submit, Approve, Reject, Post, Cancel, Reverse, Export, Print, Configure`. **Approval actions (Submit/Approve/Reject) are tracked separately from operational actions.** Scopes: company, branch, warehouse, project, cost center, document type. Enforced server-side; permission-denied is an explicit UI state.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
+Model: **Role → Module → Action** with explicit server-side authorization rules. Actions: `View, Create, Edit, Delete, Submit, Approve, Reject, Post, Cancel, Reverse, Export, Print, Configure`. **Approval actions (Submit/Approve/Reject) are tracked separately from operational actions.** Optional business dimensions such as warehouse, project, cost center, or document type are owner-decision items and must not be treated as tenant/company/branch scope. Enforced server-side; permission-denied is an explicit UI state.
 
 ## Role templates
 `Admin` (all), `Accountant`, `Sales`, `Purchases`, `Warehouse`, `Management` — plus **custom roles** composed from the same permission catalog.
@@ -10,8 +13,8 @@ Model: **Role → Module → Action → Scope**. Actions: `View, Create, Edit, D
 |---|---|---|---|---|---|---|
 |Accounting / Journal|all|V C E Po Rv X|—|—|—|V X|
 |Financial Statements|all|V X|—|—|—|V X|
-|Sales|all|V Po X|V C E X (own/branch)|—|V|V X|
-|Purchasing|all|V Po X|—|V C E X (own/branch)|V (GRN C/E)|V X|
+|Sales|all|V Po X|V C E X|—|V|V X|
+|Purchasing|all|V Po X|—|V C E X|V (GRN C/E)|V X|
 |Inventory|all|V X|V|V|V C E (moves/transfers/adjust/count)|V X|
 |Tools & Equipment|all|V X|—|—|V C E (custody/maint)|V X|
 |Rentals|all|V Po X|V C E|—|V (deliver/return)|V X|
@@ -29,7 +32,7 @@ Model: **Role → Module → Action → Scope**. Actions: `View, Create, Edit, D
 |Projects/Cost Centers|all|V C E X|V (tag)|V (tag)|V (tag)|V X|
 |Budgeting/Forecasting|all|V C E X|—|—|—|V C E X|
 |Recurring|all|V C E X|—|—|—|V X|
-|Reports|all|all|Sales scope|Purchasing scope|Inventory scope|all|
+|Reports|all|all|Sales reports|Purchasing reports|Inventory reports|all|
 |Audit Trail|all|V X|—|—|—|V X|
 |Settings/Numbering/RBAC|Configure|Tax config (review)|—|—|—|V|
 
@@ -45,11 +48,11 @@ Model: **Role → Module → Action → Scope**. Actions: `View, Create, Edit, D
 |Period Close / Reopen|Accountant|Admin (Reopen perm)|Admin|
 |Rental Contract|Rental user|Management|Management|
 
-## Scope rules
-- **Branch scope:** a user limited to Branch B only sees/acts on Branch B records.
-- **Warehouse scope:** warehouse users act only on assigned warehouses.
-- **Project/Cost-center scope:** optional restriction for project managers.
-- **Document-type scope:** e.g., a role may post Receipts but not Journal Entries.
+## Authorization dimension rules
+- **No Company/Branch scope:** Company and Branch are not tenant/security boundaries in the active Laravel ERP.
+- **Warehouse restrictions:** owner decision required before implementing assigned-warehouse restrictions.
+- **Project/Cost-center restrictions:** owner decision required before implementing project manager or cost-center restrictions.
+- **Document-type restriction:** e.g., a role may post Receipts but not Journal Entries.
 - **Record-level examples (from brief):** Sales user may create invoices but not post journals; Warehouse user may create stock transfers but not touch accounting; Manager may approve but not edit.
 
 ## Defaults

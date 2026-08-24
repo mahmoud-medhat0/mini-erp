@@ -1,5 +1,8 @@
 # REQUIREMENTS TRACEABILITY MATRIX v2
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Expands `REQUIREMENTS_TRACEABILITY.md` with the dimensions brief §42 requires: **Requirement → Module → Entity → Application Service → Workflow → Accounting Event → DB → Screen → Report → Permission → Test → Phase.** Below is the matrix for the load-bearing transactional requirements plus the newly-added infrastructure requirements. (The full requirement-by-requirement coverage list with COVERED/PARTIAL/DECISION status remains in v1; this v2 adds the service/test/phase columns and closes the infra gaps.)
 
 ## Transactional requirements

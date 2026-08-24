@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 9 SLICE 5 RUNTIME PROCESSES, STORAGE, MAIL, AND LOGS
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only this slice.
 
 This is an operations documentation slice. Do not configure a real server or provider account.

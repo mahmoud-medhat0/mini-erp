@@ -1,5 +1,8 @@
 # Mini ERP — Application
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 > Legacy reference only. The active implementation target is now `../laravel`. Do not use this README as current project status, and do not restore old tenant/company-scope assumptions from the Next.js reference app.
 
 Production-grade modular-monolith ERP. **Next.js (App Router) · TypeScript · PostgreSQL · Prisma · Zod · Tailwind.** Node.js runtime only (never Edge for accounting/DB).
@@ -24,7 +27,7 @@ tests/invariants/         # BLOCKING accounting-invariant suite
 `dev` · `build` · `typecheck` · `lint` · `test` · `test:invariants` · `e2e` · `prisma:generate` · `prisma:migrate` · `ci`.
 
 ## Phase 1 status (this deliverable)
-**Implemented & unit-tested (23 passing):** money value object (exact minor-unit math, exact allocation), accounting-kernel (`assertBalanced` Σdr=Σcr), concurrency-safe numbering (format + atomic allocate), RBAC (server-side, scope + tenant isolation), audit types/diff, currency registry, typed domain errors. Prisma kernel schema (company/branch/user/role/permission/currency/fx/fiscal period/number-sequence/audit/attachment/notification). i18n (EN/AR) + RTL + tokens/theming wired. CI with a **blocking invariant job**.
+**Implemented & unit-tested (23 passing):** money value object (exact minor-unit math, exact allocation), accounting-kernel (`assertBalanced` Σdr=Σcr), concurrency-safe numbering (format + atomic allocate), legacy RBAC snapshot, audit types/diff, currency registry, typed domain errors. Prisma kernel schema was part of the old reference app and must not be copied as tenant/company/branch scope into Laravel. i18n (EN/AR) + RTL + tokens/theming wired. CI with a **blocking invariant job**.
 
 **Next in Phase 1:** Auth.js wiring + password hashing, RBAC seed (role templates → permission catalog), company/branch onboarding + settings UI, numbering config UI, attachments storage adapter, notifications foundation, pg-boss job runner bootstrap, Playwright smoke E2E. Then Phase 2 (Accounting core).
 

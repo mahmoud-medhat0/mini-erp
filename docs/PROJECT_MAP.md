@@ -1,5 +1,8 @@
 # Mini ERP — Project Map & Implementation Blueprint
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Status:** Legacy greenfield planning reference. Current Laravel source of truth is the owner corrections plus `DOMAIN_MODEL_REVIEW.md` / `IMPLEMENTATION_STATUS.md`.
 **Owner:** Mahmoud Medhat · **Date:** 2026-08-20 · **Timezone:** Africa/Cairo
 **Core principle:** *ENTER DATA ONCE → AUTOMATE EVERYTHING ELSE.*
@@ -172,16 +175,16 @@ Permissions operate at **Module → Feature → Action**. Actions: View, Create,
 | Cash / Bank / Cheques | Full | Create·Post·Reconcile | — | — | — | View·Approve |
 | Payroll | Full | Create·Approve·Post | — | — | — | Approve |
 | Settings / Tax / Numbering | Full | Tax (review) | — | — | — | View |
-| Reports | Full | Full | Sales scope | Purchasing scope | Inventory scope | Full |
+| Reports | Full | Full | Sales reports | Purchasing reports | Inventory reports | Full |
 | Period close | Full | Close·Reopen(perm) | — | — | — | View |
 
-Record-level scoping where appropriate (e.g., Sales user sees own/branch docs). Everything enforced **server-side**; UI shows a **permission-denied state**, never a dead button.
+Record-level authorization, where explicitly defined by a module, must be enforced **server-side**; UI shows a **permission-denied state**, never a dead button. Do not infer branch/company ownership from role names.
 
 ---
 
 ## 6. Document numbering & lifecycle
 
-- Centralized `NumberSequence`: `PREFIX-YYYY-NNNNN` (e.g., `INV-2026-00001`, `PUR-`, `REC-`, `PAY-`, `JV-`, `RENT-`). Configurable prefix / year / branch / reset policy. Uniqueness guaranteed by DB constraint + sequence table (no client-side generation).
+- Centralized `NumberSequence`: `PREFIX-YYYY-NNNNN` (e.g., `INV-2026-00001`, `PUR-`, `REC-`, `PAY-`, `JV-`, `RENT-`). Configurable prefix / year / reset policy. Company/branch numbering dimensions are not approved. Uniqueness guaranteed by DB constraint + sequence table (no client-side generation).
 - Standard lifecycle: **Draft → Submitted → Approved → Posted → Paid/Completed → Closed**; alternates: Rejected, Cancelled, Reversed, Returned. Status is always visually explicit (badge + color + icon + label — never color alone).
 
 ---

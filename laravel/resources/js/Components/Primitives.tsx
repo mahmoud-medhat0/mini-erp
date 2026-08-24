@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
+import { formatAccountingAmount } from '../lib/accountingHelpers';
+
 export function PageHeader({
   title,
   description,
@@ -28,6 +30,64 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
     <section className={`rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm ${className}`}>
       {children}
     </section>
+  );
+}
+
+export function MetricCard({
+  label,
+  value,
+  tone = 'muted',
+  hint,
+}: {
+  label: string;
+  value: ReactNode;
+  tone?: 'blue' | 'emerald' | 'purple' | 'amber' | 'danger' | 'muted';
+  hint?: ReactNode;
+}) {
+  const tones = {
+    blue: 'border-s-blue-500',
+    emerald: 'border-s-emerald-500',
+    purple: 'border-s-purple-500',
+    amber: 'border-s-amber-500',
+    danger: 'border-s-red-500',
+    muted: 'border-s-[var(--border)]',
+  };
+
+  return (
+    <Card className={`border-s-4 p-4 ${tones[tone]}`}>
+      <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{label}</span>
+      <span className="accounting-amount mt-2 block text-xl font-extrabold text-[var(--text-primary)]">{value}</span>
+      {hint ? <span className="mt-1 block text-xs text-[var(--text-muted)]">{hint}</span> : null}
+    </Card>
+  );
+}
+
+export function AccountingAmount({
+  amountMinor,
+  currency = 'EGP',
+  tone,
+  className = '',
+  showCurrency = true,
+}: {
+  amountMinor: number | string | null | undefined;
+  currency?: string;
+  tone?: 'debit' | 'credit' | 'net' | 'muted' | 'danger' | 'success';
+  className?: string;
+  showCurrency?: boolean;
+}) {
+  const tones = {
+    debit: 'text-blue-600 dark:text-blue-400',
+    credit: 'text-purple-600 dark:text-purple-400',
+    net: 'text-[var(--text-primary)]',
+    muted: 'text-[var(--text-secondary)]',
+    danger: 'text-red-600 dark:text-red-400',
+    success: 'text-emerald-600 dark:text-emerald-400',
+  };
+
+  return (
+    <span className={`accounting-amount font-mono font-bold ${tones[tone || 'net']} ${className}`}>
+      {formatAccountingAmount(amountMinor, currency, { showCurrency })}
+    </span>
   );
 }
 
@@ -160,10 +220,10 @@ export function Modal({
 }
 
 export const tableClasses = {
-  wrap: 'overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-md',
-  table: 'min-w-full border-collapse text-sm',
-  th: 'border-b border-[var(--border)] px-5 py-3.5 text-start text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] bg-[var(--background)]/60',
-  td: 'border-b border-[var(--border)] px-5 py-4 align-middle text-[var(--text-primary)]',
+  wrap: 'accounting-table-wrap overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm',
+  table: 'accounting-table min-w-full border-collapse text-sm',
+  th: 'sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)] px-4 py-3 text-start text-xs font-bold uppercase text-[var(--text-muted)]',
+  td: 'border-b border-[var(--border)] px-4 py-3 align-middle text-[var(--text-primary)]',
 };
 
 export { default as SearchableSelect } from './SearchableSelect';

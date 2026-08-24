@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 8 SLICE 3 SCHEDULER, QUEUE, AND HEALTH READINESS
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only after Slice 2 is complete.
 
 This slice may add small operational checks if they are missing, but must not add ERP business behavior.

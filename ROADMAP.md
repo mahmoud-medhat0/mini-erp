@@ -1,5 +1,8 @@
 # ROADMAP
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Dependency-ordered. Scope is the complete ERP; phases are implementation order only. A phase is COMPLETE only when its Definition of Done (spec/PHASE1_STATUS + master §15/§47) is genuinely met.
 
 | Phase | Milestone | Scope | Status |

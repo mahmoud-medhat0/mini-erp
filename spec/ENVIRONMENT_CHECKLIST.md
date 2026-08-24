@@ -1,5 +1,8 @@
 # DEPLOYMENT ENVIRONMENT & SECRETS CHECKLIST
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Target Stack:** Laravel 13.x + Inertia.js + React + PostgreSQL 15+  
 **Scope:** Variable name documentation, deployment environment rules, validation methods, and audit rules.  
 **Security Policy:** Variable names only. Zero private values, secrets, or production credentials stored in repository documentation.

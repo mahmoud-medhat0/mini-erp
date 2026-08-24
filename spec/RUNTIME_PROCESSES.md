@@ -1,5 +1,8 @@
 # LARAVEL ERP RUNTIME PROCESSES, STORAGE, MAIL, AND LOGS OPERATIONS
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Target Application:** Laravel 13.x + Inertia.js + React + PostgreSQL 15+  
 **Scope:** Provider-neutral operational guide for background processes, scheduler, queue workers, attachment storage, email delivery, logging, and health monitoring.  
 **Execution Note:** Use generic configuration templates and placeholders only (`/path/to/laravel`, `$APP_USER`). Do not store provider secrets or execute commands on un-approved production hosts.

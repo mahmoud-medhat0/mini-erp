@@ -1,5 +1,8 @@
 # PHASE 4: RETURNS, CREDIT NOTES & DEBIT NOTES DECISION PACK
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Document Status:** IMPLEMENTATION MODEL SELECTED  
 **Created:** 2026-08-22  
 **Target Architecture:** Laravel + Inertia.js Single-Installation Mini ERP  

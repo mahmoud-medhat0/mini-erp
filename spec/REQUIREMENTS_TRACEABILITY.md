@@ -1,5 +1,8 @@
 # REQUIREMENTS TRACEABILITY AUDIT
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Every requirement area from the original ERP brief (sections 1–73 and the localization/theming addendum 72–89) mapped to its destination. Status legend:
 **C** = Covered (fully specified) · **P** = Partially covered (specified, depends on a listed decision) · **M** = Missing (none — target is zero) · **A** = Ambiguous · **DR** = Decision required (explicitly listed at the end; specified as configurable, choice pending).
 

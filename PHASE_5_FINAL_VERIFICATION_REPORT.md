@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 5 FINAL VERIFICATION & CLOSE-OUT REPORT
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Status**: ALL PHASE 5 SLICES (1–6) FULLY VERIFIED & COMPLETE
 **Date**: 2026-08-23
 **Track**: Laravel 13.x + Inertia + React + PostgreSQL Single-ERP Architecture

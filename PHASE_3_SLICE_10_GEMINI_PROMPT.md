@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 3 SLICE 10 GEMINI PROMPT
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 You are continuing the existing Mini ERP Laravel + Inertia + React migration.
 
 Implement **Phase 3 Slice 10 only**:

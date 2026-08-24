@@ -1,5 +1,8 @@
 # Domain Relationship Audit
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Date: 2026-08-21
 
 Evidence rule: if a relationship is not explicitly supported by original owner requirements or latest owner correction, classify it as `UNDEFINED - DO NOT ASSUME`. Do not infer ownership from ERP convention, generated docs, Prisma schema, Laravel migrations, or tests.

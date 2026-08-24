@@ -1,8 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
-import { formatDate, formatPeriodLabel } from '../../lib/accountingHelpers';
+import { AccountingAmount, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { formatAccountingAmount, formatDate, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { LedgerRow, SharedPageProps } from '../../Types';
 
@@ -26,6 +26,7 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
 
   const [accountId, setAccountId] = useState(filters.account_id ?? '');
   const [periodId, setPeriodId] = useState(filters.period_id ?? '');
+  const displayCurrency = ledger.data[0]?.currency || ledger.data[0]?.currency_code || 'EGP';
 
   const getName = (nameObj?: Record<string, string> | string | null) => {
     if (!nameObj) return '';
@@ -103,18 +104,9 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
 
       {/* Totals Summary */}
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
-        <Card className="p-4 border-l-4 border-l-blue-500">
-          <span className="text-xs font-bold text-[var(--text-secondary)] uppercase block">{accDict.totalDebits || 'Total Debits'}</span>
-          <span className="text-xl font-mono font-extrabold text-blue-600 dark:text-blue-400">{totals.debit}</span>
-        </Card>
-        <Card className="p-4 border-l-4 border-l-emerald-500">
-          <span className="text-xs font-bold text-[var(--text-secondary)] uppercase block">{accDict.totalCredits || 'Total Credits'}</span>
-          <span className="text-xl font-mono font-extrabold text-emerald-600 dark:text-emerald-400">{totals.credit}</span>
-        </Card>
-        <Card className="p-4 border-l-4 border-l-purple-500">
-          <span className="text-xs font-bold text-[var(--text-secondary)] uppercase block">{accDict.netMovement || 'Net Movement'}</span>
-          <span className="text-xl font-mono font-extrabold text-[var(--text-primary)]">{totals.net}</span>
-        </Card>
+        <MetricCard label={accDict.totalDebits || 'Total Debits'} value={formatAccountingAmount(totals.debit, displayCurrency)} tone="blue" />
+        <MetricCard label={accDict.totalCredits || 'Total Credits'} value={formatAccountingAmount(totals.credit, displayCurrency)} tone="emerald" />
+        <MetricCard label={accDict.netMovement || 'Net Movement'} value={formatAccountingAmount(totals.net, displayCurrency, { zeroAsDash: false })} tone="purple" />
       </div>
 
       {ledger.data.length === 0 ? (
@@ -131,18 +123,18 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
                 <th className={tableClasses.th}>{accDict.accountCode || 'Account Code'}</th>
                 <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
                 <th className={tableClasses.th}>{accDict.voucherNumber || 'Voucher #'}</th>
-                <th className={`${tableClasses.th} text-right`}>{accDict.debitMinor || 'Debit (Minor)'}</th>
-                <th className={`${tableClasses.th} text-right`}>{accDict.creditMinor || 'Credit (Minor)'}</th>
+                <th className={`${tableClasses.th} text-end`}>{accDict.debitMinor || 'Debit (Minor)'}</th>
+                <th className={`${tableClasses.th} text-end`}>{accDict.creditMinor || 'Credit (Minor)'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
               {ledger.data.map((l) => (
                 <tr key={l.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={tableClasses.td}>
-                    <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(l.entry_date)}</span>
+                    <span className="accounting-date font-mono text-xs text-[var(--text-primary)]">{formatDate(l.entry_date)}</span>
                   </td>
                   <td className={tableClasses.td}>
-                    <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
+                    <span className="accounting-code font-mono font-bold text-xs text-blue-600 dark:text-blue-400">
                       {l.account?.code}
                     </span>
                   </td>
@@ -166,11 +158,11 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], p
                       '-'
                     )}
                   </td>
-                  <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
-                    {l.debit_minor > 0 ? l.debit_minor : '-'}
+                  <td className={`${tableClasses.td} text-end text-xs`}>
+                    <AccountingAmount amountMinor={l.debit_minor} currency={l.currency || l.currency_code || displayCurrency} tone="debit" />
                   </td>
-                  <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-purple-600 dark:text-purple-400`}>
-                    {l.credit_minor > 0 ? l.credit_minor : '-'}
+                  <td className={`${tableClasses.td} text-end text-xs`}>
+                    <AccountingAmount amountMinor={l.credit_minor} currency={l.currency || l.currency_code || displayCurrency} tone="credit" />
                   </td>
                 </tr>
               ))}

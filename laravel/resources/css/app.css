@@ -68,6 +68,26 @@ body {
     unicode-bidi: isolate;
 }
 
+.accounting-amount,
+.accounting-code,
+.accounting-date {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+}
+
+.accounting-table-wrap {
+    max-width: 100%;
+}
+
+.accounting-table {
+    font-variant-numeric: tabular-nums;
+}
+
+.accounting-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
 /* Global Custom Professional Scrollbar System */
 * {
     scrollbar-width: thin;

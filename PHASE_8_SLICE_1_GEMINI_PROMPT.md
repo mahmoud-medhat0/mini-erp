@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 8 SLICE 1 OPERATIONAL READINESS DECISION PACK
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only this slice.
 
 This is a docs-only slice. Do not modify Laravel application code, migrations, routes, models, services, React pages, or tests.

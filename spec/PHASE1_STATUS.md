@@ -1,6 +1,9 @@
 # IMPLEMENTATION READINESS & PHASE 1 STATUS
 
-> Legacy Next.js Phase-1 snapshot. Current Laravel status lives in `../IMPLEMENTATION_STATUS.md` and `../CONTINUE_HERE.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
+> Legacy Next.js Phase-1 snapshot. Current Laravel status lives in `../IMPLEMENTATION_STATUS.md` and `../CONTINUE_HERE.md`. Any tenant-isolation wording below is historical only and is superseded by `NO_MULTI_TENANT_POLICY.md`.
 
 > 2026-08-21 final update: Phase 1 Foundation is COMPLETE. PostgreSQL-backed integration, Playwright E2E, production build, and GitHub Actions CI have all passed. Later business modules remain scaffold-only until their roadmap phases.
 
@@ -22,7 +25,7 @@ Phase 1 (Foundation) has no upstream dependencies. Ready. Confirmed.
 | Exact allocation (landed cost/tax/payment splits) | `src/core/money` allocate | ✅ incl. 500-case property test |
 | Accounting kernel — Σdebit=Σcredit guard | `src/core/accounting-kernel` | ✅ 5 tests |
 | Concurrency-safe numbering (format + atomic allocate) | `src/core/numbering` | ✅ 4 tests incl. 1000-parallel uniqueness |
-| RBAC (server-side, scope + tenant isolation) | `src/core/rbac` | ✅ 5 tests |
+| RBAC (server-side, legacy scope/tenant-isolation snapshot) | `src/core/rbac` | Historical only; superseded in Laravel |
 | Typed domain errors | `src/core/errors` | ✅ used across suite |
 | Audit types + field diff | `src/core/audit` | (types) |
 | Currency registry (EGP seed, multi-currency) | `src/core/currency` | ✅ |

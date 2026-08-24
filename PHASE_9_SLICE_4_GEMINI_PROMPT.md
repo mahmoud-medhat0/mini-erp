@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 9 SLICE 4 BACKUP AND RESTORE DRILL PACK
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only this slice.
 
 This is an operations documentation slice. Do not run backup or restore commands against production.

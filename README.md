@@ -1,5 +1,8 @@
 # Mini ERP - Laravel Migration
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Current target: Laravel + Inertia.js + React + TypeScript + Tailwind + PostgreSQL.
 
 The repository still contains the older Next.js reference app under `app/`, but the active migration target is `laravel/`.

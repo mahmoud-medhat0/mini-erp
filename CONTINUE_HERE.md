@@ -1,5 +1,8 @@
 # CONTINUE HERE - Mini ERP Laravel handoff
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Current date/context: 2026-08-24. Phase 8 Operational Readiness & E2E Smoke is COMPLETE & VERIFIED. Phase 9 Staging / Production Cutover Pack is COMPLETE & VERIFIED. See `PHASE_9_FINAL_CUTOVER_REPORT.md`.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.

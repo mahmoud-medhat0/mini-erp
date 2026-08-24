@@ -1,5 +1,8 @@
 # MINI ERP - PHASE 6 SLICE 3 CAPITALIZATION AND OPENING ASSET POSTING
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Execute only Phase 6 Slice 3 after Slice 2 is complete and the owner-approved acquisition/opening policy exists.
 
 Do not implement depreciation schedules, depreciation run posting, disposals, supplier bill integration, or tax books in this pass.

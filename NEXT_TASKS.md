@@ -1,5 +1,8 @@
 # NEXT TASKS - Current Laravel Track
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Current status: Phase 9 (Staging / Production Cutover Pack) is COMPLETE & VERIFIED. See `PHASE_9_FINAL_CUTOVER_REPORT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
