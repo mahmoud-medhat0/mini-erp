@@ -4,7 +4,7 @@ Current target: Laravel + Inertia.js + React + TypeScript + Tailwind + PostgreSQ
 
 The repository still contains the older Next.js reference app under `app/`, but the active migration target is `laravel/`.
 
-Latest verified status: Phase 8 Operational Readiness & E2E Smoke is complete as of 2026-08-24. See `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
+Latest verified status: Phase 8 Operational Readiness & E2E Smoke is complete as of 2026-08-24. Phase 9 Staging / Production Cutover is in progress; Slices 1, 2, and 3 are complete and the next file is `PHASE_9_SLICE_4_GEMINI_PROMPT.md`.
 
 ## Current Rule
 
@@ -186,6 +186,8 @@ Use these first:
 
 - `CONTINUE_HERE.md`
 - `IMPLEMENTATION_STATUS.md`
+- `PHASE_9_STAGING_PRODUCTION_CUTOVER.md`
+- `PHASE_9_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`
 - `PHASE_7_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_6_FINAL_VERIFICATION_REPORT.md`

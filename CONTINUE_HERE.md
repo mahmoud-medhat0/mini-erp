@@ -1,6 +1,6 @@
 # CONTINUE HERE - Mini ERP Laravel handoff
 
-Current date/context: 2026-08-24. Phase 8 Operational Readiness & E2E Smoke is COMPLETE & VERIFIED. See `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
+Current date/context: 2026-08-24. Phase 8 Operational Readiness & E2E Smoke is COMPLETE & VERIFIED. Phase 9 Staging / Production Cutover Pack is IN PROGRESS; Slices 1, 2, and 3 are complete and the next file is `PHASE_9_SLICE_4_GEMINI_PROMPT.md`.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -69,6 +69,18 @@ Use the current Laravel code and these documents first:
 - `PHASE_8_SLICE_4_GEMINI_PROMPT.md` (Browser smoke / E2E foundation; prepared 2026-08-24)
 - `PHASE_8_SLICE_5_GEMINI_PROMPT.md` (Final operational close-out; prepared 2026-08-24)
 - `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md` (Phase 8 Operational Readiness final report 100% COMPLETE & VERIFIED 2026-08-24)
+- `PHASE_9_STAGING_PRODUCTION_CUTOVER.md` (Phase 9 staging/production cutover master contract; prepared 2026-08-24)
+- `PHASE_9_SLICE_1_GEMINI_PROMPT.md` (Cutover decision pack 100% COMPLETE 2026-08-24)
+- `PHASE_9_CUTOVER_DECISION_PACK.md` (Cutover decision pack 100% COMPLETE 2026-08-24)
+- `PHASE_9_SLICE_2_GEMINI_PROMPT.md` (Environment and secrets checklist 100% COMPLETE 2026-08-24)
+- `spec/ENVIRONMENT_CHECKLIST.md` (Deployment environment checklist 100% COMPLETE 2026-08-24)
+- `PHASE_9_SLICE_3_GEMINI_PROMPT.md` (Deployment and rollback runbooks 100% COMPLETE 2026-08-24)
+- `spec/DEPLOYMENT_RUNBOOK.md` & `spec/ROLLBACK_RUNBOOK.md` (Deployment and rollback runbooks 100% COMPLETE 2026-08-24)
+- `PHASE_9_SLICE_4_GEMINI_PROMPT.md` (Backup and restore drill pack 100% COMPLETE 2026-08-24)
+- `spec/BACKUP_RESTORE_DRILL.md` (PostgreSQL backup and restore drill pack 100% COMPLETE 2026-08-24)
+- `PHASE_9_SLICE_5_GEMINI_PROMPT.md` (Runtime processes, storage, mail, and logs; prepared 2026-08-24)
+- `PHASE_9_SLICE_6_GEMINI_PROMPT.md` (Go-live smoke, security checklist, and acceptance gate; prepared 2026-08-24)
+- `PHASE_9_SLICE_7_GEMINI_PROMPT.md` (Final cutover close-out; prepared 2026-08-24)
 - `docs/CONCURRENCY_AUDIT.md`
 
 Historical specs can still be useful for ERP scope, but owner corrections override old generated architecture.
@@ -127,6 +139,12 @@ Before accepting any Gemini/AI implementation report:
 ## Current Verified Status
 
 Phase 8 Operational Readiness & E2E Smoke is FULLY COMPLETE after local review and verification.
+
+Phase 9 Staging / Production Cutover Pack is IN PROGRESS. Slices 1, 2, and 3 are complete.
+
+Next file to execute:
+
+- `PHASE_9_SLICE_4_GEMINI_PROMPT.md`
 
 Latest Phase 8 completion notes:
 

@@ -1,7 +1,7 @@
 # IMPLEMENTATION STATUS
 
-- **Current phase:** Phase 8 (Operational Readiness & E2E Smoke) - COMPLETE & VERIFIED.
-- **Latest verified:** 2026-08-24, local Laravel + PostgreSQL operational readiness pass (`PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`).
+- **Current phase:** Phase 9 (Staging / Production Cutover Pack) - IN PROGRESS; Slices 1, 2, 3, and 4 COMPLETE.
+- **Latest verified:** 2026-08-24, Phase 9 Slice 4 backup and restore drill pack (`spec/BACKUP_RESTORE_DRILL.md`). Latest full local Laravel verification remains Phase 8 (`PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`).
 - **Tests passing:** Full suite 554 tests, 551 passed / 3 skipped / 4,068 assertions. Phase 8 suite 6 tests, 6 passed / 49 assertions.
 - **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:tax-filing-stress --workers=50`.
 - **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (Vite bundle clean).
@@ -9,7 +9,7 @@
 - **Latest verified code commit:** local verification clean on Phase 8 operational readiness close-out.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 - **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slices 1-7 COMPLETE. All 7 slices implemented and verified.
-- **Next prepared track:** Owner/deployment decision: choose hosting, queue worker process manager, scheduler trigger, and whether to add formal browser automation/CI later.
+- **Next prepared track:** Continue Phase 9 with `PHASE_9_SLICE_5_GEMINI_PROMPT.md`.
 
 ## Legend
 
@@ -65,6 +65,11 @@
 | Phase 7 Tax / VAT | COMPLETE | Phase 7 Slices 1 through 7 are 100% complete and locally verified. See `PHASE_7_FINAL_VERIFICATION_REPORT.md`. |
 | Phase 8 Slice 1 Operational Readiness Decision Pack | COMPLETE | Created `PHASE_8_OPERATIONAL_READINESS_DECISION.md` containing owner-facing operational readiness decision pack in English and Arabic covering current stack, required runtime services, environment variable guide, staging vs production checklist, and 9 pending owner operational decisions. Docs-only slice. |
 | Phase 8 Operational Readiness & E2E Smoke | COMPLETE | Safe prompt files prepared, Laravel deployment docs refreshed, scheduler/queue/health readiness tests added, Inertia route smoke foundation added, VAT GL date-filter bug fixed, and `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md` created. No business module or tenant/company/branch scope was introduced. |
+| Phase 9 Slice 1 Cutover Decision Pack | COMPLETE | Created `PHASE_9_CUTOVER_DECISION_PACK.md` containing owner/operator decision pack for staging and production cutover in English and Arabic. Documents staging vs production cutover definitions, technology stack, deployment responsibilities by role, 12-item pending owner/operator decision matrix, go/no-go criteria, rollback approval process, and minimum smoke acceptance criteria. Docs-only slice. |
+| Phase 9 Slice 2 Environment & Secrets Checklist | COMPLETE | Created `spec/ENVIRONMENT_CHECKLIST.md` documenting environment variable rules, purpose, required environments, value categories, operator notes, and validation methods across 35 configuration variables. Audited `laravel/.env.example` adding `DB_SSLMODE` and `MAIL_ENCRYPTION` template comments. Refreshed `spec/DEPLOYMENT.md`. |
+| Phase 9 Slice 3 Deployment & Rollback Runbooks | COMPLETE | Created `spec/DEPLOYMENT_RUNBOOK.md` detailing a 12-step provider-neutral deployment workflow and `spec/ROLLBACK_RUNBOOK.md` detailing rollback conditions, approval authority, code/asset/migration rollback policies, DB restore escalation path, and post-mortem incident audit. Refreshed `spec/DEPLOYMENT.md`. Runbook slice. |
+| Phase 9 Slice 4 Backup & Restore Drill Pack | COMPLETE | Created `spec/BACKUP_RESTORE_DRILL.md` detailing PostgreSQL backup objectives, frequency/retention policy options, staging restore drill workflow with placeholder commands, post-restore verification suite (`migrate:status`, `Phase8` tests, `accounting:phase3-integrity-check`, `tokens:gc --batch=100`, `/health`), production restore approval protocol, and restore drill log template. Refreshed `spec/DEPLOYMENT.md`. Operations doc slice. |
+| Phase 9 Staging / Production Cutover Pack | IN PROGRESS | Slices 1-7 prompt files prepared. Slices 1, 2, 3, and 4 complete. Covers cutover decision pack, environment/secrets checklist, deployment and rollback runbooks, backup/restore drill pack, runtime processes, go-live smoke/security acceptance, and final close-out. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |

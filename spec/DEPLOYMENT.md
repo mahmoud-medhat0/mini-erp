@@ -2,6 +2,12 @@
 
 Current target: Laravel + Inertia + React + TypeScript + PostgreSQL.
 
+For step-by-step deployment and rollback operations, see:
+- `spec/DEPLOYMENT_RUNBOOK.md`
+- `spec/ROLLBACK_RUNBOOK.md`
+- `spec/ENVIRONMENT_CHECKLIST.md`
+- `spec/BACKUP_RESTORE_DRILL.md`
+
 The old Next.js application under `app/` is historical reference only. Active runtime and deployment planning apply to `laravel/`.
 
 ## Topology
@@ -21,13 +27,13 @@ Recommended lifecycle:
 - staging
 - production
 
-Configuration is environment-based. Document required variable names, but do not store private values in the repository.
+Configuration is environment-based. Document required variable names, but do not store private values in the repository. See `spec/ENVIRONMENT_CHECKLIST.md` for the complete variable-by-variable checklist.
 
 Minimum environment groups:
 
 - application: `APP_NAME`, `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL`
 - locale: `APP_LOCALE`, `APP_FALLBACK_LOCALE`
-- database: `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- database: `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSLMODE`
 - session/cache/queue: `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION`
 - mail/logging/storage: `MAIL_*`, `LOG_*`, `FILESYSTEM_DISK`
 - frontend name: `VITE_APP_NAME`

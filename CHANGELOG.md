@@ -2,6 +2,39 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 9 Slice 4 Backup and Restore Drill Pack (2026-08-24)
+- Created `spec/BACKUP_RESTORE_DRILL.md` detailing PostgreSQL backup objectives (RPO/RTO), backup frequency options (daily dumps, continuous WAL archiving PITR, hybrid cloud snapshots), retention options (30-day, 90-day, 7-year), restore test frequency options, staging restore drill workflow with generic placeholder `pg_dump`/`pg_restore`/`psql` examples, required post-restore verification suite (`migrate:status`, `Phase8` tests, `accounting:phase3-integrity-check`, `tokens:gc --batch=100`, `/health`), production restore approval protocol, and restore drill log template.
+- Refreshed `spec/DEPLOYMENT.md` referencing `BACKUP_RESTORE_DRILL.md`.
+- Operations documentation slice: zero production command execution, zero real credentials or database connection strings.
+- Executed verification scans (`git diff --stat`, sensitive-value `rg` scan, destructive text classification scan).
+
+### Added — Phase 9 Slice 3 Deployment and Rollback Runbooks (2026-08-24)
+- Created `spec/DEPLOYMENT_RUNBOOK.md` detailing a 12-step provider-neutral deployment workflow (pre-release checks, maintenance window approval, source/artifact preparation, dependency installation, asset build, environment validation, database migration, cache optimization, scheduler/queue worker restart, health check, smoke verification, post-release monitoring).
+- Created `spec/ROLLBACK_RUNBOOK.md` detailing rollback trigger scenarios, approval authority, code/asset rollback steps, migration rollback policies with production safety rules against unqualified destructive commands, database backup restore escalation path (`pg_restore` / `psql`), queue/scheduler restart notes, and incident post-mortem requirements.
+- Refreshed `spec/DEPLOYMENT.md` referencing runbooks.
+- Runbook slice: zero application code, database migrations, controllers, services, routes, models, React views, tests, or configuration behavior were modified. Zero production execution performed.
+- Executed verification scans (`git diff --stat`, sensitive-value `rg` scan, destructive command text classification scan).
+
+### Added — Phase 9 Slice 2 Environment & Secrets Checklist (2026-08-24)
+- Created `spec/ENVIRONMENT_CHECKLIST.md` documenting environment variable rules, purpose, required environments, value category, owner/operator notes, and validation methods for app identity, debug mode, app key, locale, PostgreSQL connection, Argon2id hashing, bootstrap seeding, session/cache/queue drivers, storage disks, mail transport, and logging channels.
+- Audited `laravel/.env.example` template and added missing comments for `DB_SSLMODE` and `MAIL_ENCRYPTION`.
+- Refreshed `spec/DEPLOYMENT.md` referencing `ENVIRONMENT_CHECKLIST.md`.
+- Documentation & template-audit slice: zero real passwords, secret keys, tokens, or credentials added to codebase or documentation.
+- Executed verification scans (`git diff --stat`, sensitive-value `rg` scan, historical Next.js/Prisma `rg` scan).
+
+### Added — Phase 9 Slice 1 Cutover Decision Pack (2026-08-24)
+- Created `PHASE_9_CUTOVER_DECISION_PACK.md` containing owner/operator decision pack for staging and production cutover in English and Arabic.
+- Documented staging vs production cutover definitions, technology stack, deployment responsibilities by role, 12-item pending owner/operator decision matrix (hosting, DB owner, domain/SSL, scheduler, queue manager, storage, mail, log review, restore frequency, staging availability, cutover window, rollback approver), go/no-go criteria, rollback approval process, and minimum smoke acceptance criteria.
+- Docs-only slice: zero application code, database migrations, controllers, services, routes, models, React views, tests, or configuration behavior were modified.
+- Ran sensitive-value and scope assumption scans (`rg` checks confirmed clean).
+
+### Added - Phase 9 Staging / Production Cutover Prompt Set (2026-08-24)
+- Created `PHASE_9_STAGING_PRODUCTION_CUTOVER.md` as the master contract for staging/production cutover.
+- Created strict prompt files `PHASE_9_SLICE_1_GEMINI_PROMPT.md` through `PHASE_9_SLICE_7_GEMINI_PROMPT.md`.
+- Covered cutover decisions, environment/secrets checklist, deployment and rollback runbooks, backup/restore drill, runtime processes, go-live smoke/security acceptance, and final close-out.
+- Prompt wording intentionally avoids private environment values, provider account setup, GitHub Actions requirements, production command execution, new ERP business modules, and tenant/company/branch assumptions.
+- Updated `NEXT_TASKS.md`, `IMPLEMENTATION_STATUS.md`, and `CONTINUE_HERE.md` so the next prepared track starts at `PHASE_9_SLICE_1_GEMINI_PROMPT.md`.
+
 ### Added — Phase 8 Slice 1 Operational Readiness Decision Pack (2026-08-24)
 - Created `PHASE_8_OPERATIONAL_READINESS_DECISION.md` containing owner-facing operational readiness decision pack in English and Arabic.
 - Documented current Laravel 13 + Inertia + PostgreSQL stack, required runtime services (Web Server, Asset Delivery, PostgreSQL, Scheduler Daemon, Queue Worker Daemon, File Storage, Mail Gateway), environment variable names guide, staging vs production checklist, and 9 pending owner operational decisions.

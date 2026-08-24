@@ -1,18 +1,28 @@
 # NEXT TASKS - Current Laravel Track
 
-Current status: Phase 8 (Operational Readiness & E2E Smoke) is COMPLETE and fully verified on 2026-08-24. See `PHASE_8_FINAL_OPERATIONAL_READINESS_REPORT.md`.
+Current status: Phase 9 (Staging / Production Cutover Pack) is IN PROGRESS. Slices 1, 2, and 3 are complete; next task is `PHASE_9_SLICE_4_GEMINI_PROMPT.md`.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Milestones & Future Options
 
-- All core migration phases (Phase 1 through Phase 8) are 100% complete and verified.
-- Next owner/deployment decisions:
-  - choose the staging/production hosting environment
-  - choose PostgreSQL hosting/backups
-  - choose queue worker process manager
-  - choose scheduler trigger mechanism
-  - decide whether to add formal browser automation and/or CI/CD later
+- All core migration phases (Phase 1 through Phase 8) are 100% complete and verified. Phase 9 is an operational cutover documentation track, not a new ERP business module.
+- Next prepared track:
+  - Phase 9 Staging / Production Cutover Pack.
+  - Slices 1, 2, 3 & 4 (`PHASE_9_SLICE_1_GEMINI_PROMPT.md`, `PHASE_9_SLICE_2_GEMINI_PROMPT.md`, `PHASE_9_SLICE_3_GEMINI_PROMPT.md`, `PHASE_9_SLICE_4_GEMINI_PROMPT.md`) are COMPLETE.
+  - Next task: `PHASE_9_SLICE_5_GEMINI_PROMPT.md` (Runtime Processes, Storage, Mail, and Logs).
+  - Prompts are intentionally strict: no private environment values, no provider account setup, no GitHub Actions requirement, no production command execution, no new ERP business module, and no tenant/company/branch scope.
+
+## Prepared Phase 9 Track
+
+- `PHASE_9_STAGING_PRODUCTION_CUTOVER.md`: master contract for staging/production cutover.
+- `PHASE_9_SLICE_1_GEMINI_PROMPT.md` / `PHASE_9_CUTOVER_DECISION_PACK.md`: cutover decision pack (100% COMPLETE 2026-08-24).
+- `PHASE_9_SLICE_2_GEMINI_PROMPT.md` / `spec/ENVIRONMENT_CHECKLIST.md`: environment and secrets checklist (100% COMPLETE 2026-08-24).
+- `PHASE_9_SLICE_3_GEMINI_PROMPT.md` / `spec/DEPLOYMENT_RUNBOOK.md` & `spec/ROLLBACK_RUNBOOK.md`: deployment and rollback runbooks (100% COMPLETE 2026-08-24).
+- `PHASE_9_SLICE_4_GEMINI_PROMPT.md` / `spec/BACKUP_RESTORE_DRILL.md`: backup and restore drill pack (100% COMPLETE 2026-08-24).
+- `PHASE_9_SLICE_5_GEMINI_PROMPT.md`: runtime processes, storage, mail, and logs.
+- `PHASE_9_SLICE_6_GEMINI_PROMPT.md`: go-live smoke, security checklist, and acceptance gate.
+- `PHASE_9_SLICE_7_GEMINI_PROMPT.md`: final cutover close-out.
 
 ## Prepared Phase 8 Track
 
