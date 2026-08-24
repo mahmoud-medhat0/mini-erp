@@ -4,6 +4,7 @@ namespace App\Http\Controllers\FixedAssets;
 
 use App\Application\FixedAssets\FixedAssetDepreciationPostingService;
 use App\Domain\Accounting\PeriodClosedException;
+use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
 use App\Models\FinancialPeriod;
 use App\Models\FixedAssetDepreciationRun;
@@ -17,6 +18,8 @@ use InvalidArgumentException;
 
 class FixedAssetDepreciationRunController extends Controller
 {
+    use AuthorizesFixedAssetRequests;
+
     public function __construct(
         private readonly FixedAssetDepreciationPostingService $postingService,
     ) {}
@@ -146,19 +149,5 @@ class FixedAssetDepreciationRunController extends Controller
 
         return redirect()->route('fixed-assets.depreciation-runs.show', $run->id)
             ->with('success', __('Depreciation run reversed successfully.'));
-    }
-
-    private function authorizePermission(Request $request, string $permission): void
-    {
-        if (! $request->user()?->can($permission)) {
-            abort(403);
-        }
-    }
-
-    private function authorizeSensitiveCapability(Request $request, string $capability): void
-    {
-        if (! $request->user()?->can($capability)) {
-            abort(403);
-        }
     }
 }

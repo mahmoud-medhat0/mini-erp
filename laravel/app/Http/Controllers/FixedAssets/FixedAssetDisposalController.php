@@ -4,6 +4,7 @@ namespace App\Http\Controllers\FixedAssets;
 
 use App\Application\FixedAssets\FixedAssetDisposalPostingService;
 use App\Domain\Accounting\PeriodClosedException;
+use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
 use App\Models\FixedAssetDisposal;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,8 @@ use Inertia\Response;
 
 class FixedAssetDisposalController extends Controller
 {
+    use AuthorizesFixedAssetRequests;
+
     public function __construct(
         private readonly FixedAssetDisposalPostingService $disposalPostingService,
     ) {}
@@ -137,19 +140,5 @@ class FixedAssetDisposalController extends Controller
 
         return redirect()->back()
             ->with('success', __('Fixed asset disposal [::number] reversed successfully.', ['number' => $disposal->number]));
-    }
-
-    private function authorizePermission(Request $request, string $permission): void
-    {
-        if (! $request->user()?->can($permission)) {
-            abort(403);
-        }
-    }
-
-    private function authorizeSensitiveCapability(Request $request, string $capability): void
-    {
-        if (! $request->user()?->can($capability)) {
-            abort(403);
-        }
     }
 }

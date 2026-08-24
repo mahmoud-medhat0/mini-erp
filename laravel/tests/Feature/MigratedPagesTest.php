@@ -61,9 +61,12 @@ class MigratedPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('counts.companies', 1)
-                ->where('counts.branches', 1)
+                ->where('counts.accounts', 0)
+                ->where('counts.postedJournals', 0)
+                ->where('counts.ledgerEntries', 0)
                 ->where('counts.unreadNotifications', 1)
+                ->missing('counts.companies')
+                ->missing('counts.branches')
                 ->etc());
 
         $this->get('/settings')

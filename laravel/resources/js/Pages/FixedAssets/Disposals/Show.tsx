@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '../../../Components/AppLayout';
 import { Card, PageHeader } from '../../../Components/Primitives';
+import { formatMoney } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
 
@@ -71,13 +72,6 @@ type ShowProps = SharedPageProps & {
 export default function DisposalShow({ locale, disposal }: ShowProps) {
   const dict = getDictionary(locale);
   const appDict = (dict.app as any).fixedAssetsDisposals;
-
-  function formatMoney(amountMinor: number, currency = 'EGP') {
-    return new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amountMinor / 100) + ' ' + currency;
-  }
 
   function getTransName(nameObj?: Record<string, string> | string | null): string {
     if (!nameObj) return '-';

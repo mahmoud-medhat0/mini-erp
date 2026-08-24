@@ -1,6 +1,7 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import { formatMoney } from '../../lib/accountingHelpers';
 
 type Customer = {
   id: string;
@@ -129,10 +130,7 @@ export default function ReceivableSettlements({
     );
   }
 
-  const fmtMoney = (amount: number, curr: string) =>
-    new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount / 100) +
-    ' ' +
-    curr;
+  const fmtMoney = (amount: number, curr: string) => formatMoney(amount, curr);
 
   return (
     <AppLayout active="customer-credit-notes.index">

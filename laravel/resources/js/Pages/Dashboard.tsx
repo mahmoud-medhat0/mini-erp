@@ -1,51 +1,61 @@
 import { Head, Link } from '@inertiajs/react';
 
 import AppLayout from '../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge } from '../Components/Primitives';
+import { Card, EmptyState, PageHeader } from '../Components/Primitives';
 import { getDictionary, interpolate } from '../lib/i18n';
+import { useCanAny } from '../lib/permissions';
 import type { NotificationItem, SharedPageProps } from '../Types';
 
+type DashboardCountKey =
+  | 'accounts'
+  | 'postedJournals'
+  | 'ledgerEntries'
+  | 'currencies'
+  | 'customers'
+  | 'suppliers'
+  | 'unreadNotifications';
+
 type DashboardProps = SharedPageProps & {
-  counts: Record<'companies' | 'branches' | 'users' | 'roles' | 'permissions' | 'numberSequences' | 'unreadNotifications', number>;
+  counts: Record<DashboardCountKey, number>;
   recentNotifications?: NotificationItem[];
 };
 
 const metricConfig = [
   {
-    key: 'companies' as const,
-    icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1',
+    key: 'accounts' as const,
+    icon: 'M9 7h6m-6 4h6m-6 4h3m-7 6h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z',
     gradient: 'from-blue-600 to-indigo-600',
-    href: '/settings/company',
+    href: '/accounting/coa',
   },
   {
-    key: 'branches' as const,
-    icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z',
+    key: 'postedJournals' as const,
+    icon: 'M9 12l2 2 4-4M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z',
     gradient: 'from-emerald-600 to-teal-600',
-    href: '/settings/branches',
+    href: '/accounting/journal',
   },
   {
-    key: 'users' as const,
-    icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+    key: 'ledgerEntries' as const,
+    icon: 'M4 6h16M4 10h16M4 14h10M4 18h8',
     gradient: 'from-violet-600 to-purple-600',
-    href: '/settings/users',
+    href: '/accounting/ledger',
   },
   {
-    key: 'roles' as const,
-    icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+    key: 'currencies' as const,
+    icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 10v2m8-6a8 8 0 11-16 0 8 8 0 0116 0z',
     gradient: 'from-amber-600 to-orange-600',
-    href: '/settings/users',
+    href: '/accounting/currencies',
   },
   {
-    key: 'permissions' as const,
-    icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
+    key: 'customers' as const,
+    icon: 'M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-6a4 4 0 11-8 0 4 4 0 018 0zm8 2a3 3 0 11-6 0 3 3 0 016 0z',
     gradient: 'from-sky-600 to-cyan-600',
-    href: '/settings/users',
+    href: '/customers',
   },
   {
-    key: 'numberSequences' as const,
-    icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14',
+    key: 'suppliers' as const,
+    icon: 'M3 7h18M5 7l1 12h12l1-12M9 7V5a3 3 0 016 0v2',
     gradient: 'from-fuchsia-600 to-pink-600',
-    href: '/settings/numbering',
+    href: '/suppliers',
   },
   {
     key: 'unreadNotifications' as const,
@@ -57,8 +67,38 @@ const metricConfig = [
 
 export default function Dashboard({ counts, recentNotifications = [], auth, locale }: DashboardProps) {
   const dict = getDictionary(locale);
-  const isAr = locale === 'ar';
+  const canAny = useCanAny();
   const userName = auth?.user?.name || 'User';
+  const accountingShortcuts = [
+    {
+      href: '/accounting/journal/create',
+      label: dict.app.dashboard.shortcuts.createJournal,
+      desc: dict.app.dashboard.shortcuts.createJournalDesc,
+      permissions: ['accounting.create'],
+      icon: 'M12 4v16m8-8H4',
+    },
+    {
+      href: '/accounting/ledger',
+      label: dict.app.dashboard.shortcuts.generalLedger,
+      desc: dict.app.dashboard.shortcuts.generalLedgerDesc,
+      permissions: ['accounting.view'],
+      icon: 'M4 6h16M4 10h16M4 14h10M4 18h8',
+    },
+    {
+      href: '/accounting/trial-balance',
+      label: dict.app.dashboard.shortcuts.trialBalance,
+      desc: dict.app.dashboard.shortcuts.trialBalanceDesc,
+      permissions: ['accounting.view'],
+      icon: 'M7 11h10M9 7h6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z',
+    },
+    {
+      href: '/reports',
+      label: dict.app.dashboard.shortcuts.reports,
+      desc: dict.app.dashboard.shortcuts.reportsDesc,
+      permissions: ['reports.view'],
+      icon: 'M9 17v-6m4 6V7m4 10v-4M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z',
+    },
+  ].filter((shortcut) => canAny(shortcut.permissions));
 
   const formatter = new Intl.DateTimeFormat(dict.app.pages.dashboard.enUs, {
     dateStyle: 'medium',
@@ -111,6 +151,45 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
           </div>
         </div>
       </Card>
+
+      {accountingShortcuts.length > 0 ? (
+        <Card className="mb-8 p-5">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">
+                {dict.app.dashboard.accountingWorkspace}
+              </h2>
+              <p className="m-0 text-xs text-[var(--text-secondary)]">
+                {dict.app.dashboard.accountingWorkspaceDescription}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {accountingShortcuts.map((shortcut) => (
+              <Link
+                key={shortcut.href}
+                href={shortcut.href}
+                className="group flex min-h-24 items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4 no-underline transition-all hover:border-[var(--primary)] hover:bg-[var(--surface)] hover:shadow-sm"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={shortcut.icon} />
+                  </svg>
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-extrabold text-[var(--text-primary)] group-hover:text-[var(--primary)]">
+                    {shortcut.label}
+                  </span>
+                  <span className="mt-1 block text-xs leading-relaxed text-[var(--text-muted)]">
+                    {shortcut.desc}
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       {/* Metrics Grid */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -245,14 +324,14 @@ export default function Dashboard({ counts, recentNotifications = [], auth, loca
               {[
                 {
                   href: '/settings/company',
-                  label: dict.app.settings.sections.company.title,
+                  label: dict.app.dashboard.businessProfile,
                   desc: dict.app.pages.dashboard.corporateEntitiesBaseCurrency,
                   icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1 M14 7h1m-1 4h1m-1 4h1',
                   badgeColor: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
                 },
                 {
                   href: '/settings/branches',
-                  label: dict.app.settings.sections.branches.title,
+                  label: dict.app.dashboard.referenceBranches,
                   desc: dict.app.pages.dashboard.operationalBranchLocations,
                   icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z',
                   badgeColor: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',

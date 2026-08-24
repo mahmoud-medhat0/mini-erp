@@ -78,7 +78,7 @@ export function formatPeriodLabel(
   return `${yearPrefix}${monthText}`;
 }
 
-export function formatMoney(amountMinor: number, currency: string = 'EGP'): string {
+export function formatMoney(amountMinor: number | string | null | undefined, currency: string = 'EGP'): string {
   return formatMinorUnits(amountMinor, currency);
 }
 

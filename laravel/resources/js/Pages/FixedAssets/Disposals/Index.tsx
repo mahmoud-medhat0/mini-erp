@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
 import { Card, PageHeader } from '../../../Components/Primitives';
+import { formatMoney } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
 
@@ -51,13 +52,6 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
   const [search, setSearch] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
   const [typeFilter, setTypeFilter] = useState(filters.disposal_type || '');
-
-  function formatMoney(amountMinor: number, currency = 'EGP') {
-    return new Intl.NumberFormat(locale === 'ar' ? 'ar-EG' : 'en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amountMinor / 100) + ' ' + currency;
-  }
 
   function getAssetName(asset?: FixedAsset | null): string {
     if (!asset) return '-';

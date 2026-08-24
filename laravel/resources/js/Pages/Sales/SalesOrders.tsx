@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -370,8 +371,8 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     </td>
                     <td className={`${tableClasses.td} font-medium`}>{order.customer?.name || '-'}</td>
                     <td className={tableClasses.td}>{order.order_date}</td>
-                    <td className={`${tableClasses.td} font-semibold`}>
-                      {(order.total_minor / 100).toFixed(2)} {order.currency}
+                    <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
+                      {formatMoney(order.total_minor, order.currency)}
                     </td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={getStatusTone(order.status)}>

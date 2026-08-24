@@ -3,28 +3,24 @@
 namespace App\Http\Controllers\FixedAssets;
 
 use App\Application\Attachments\AttachmentService;
-use App\Application\FixedAssets\FixedAssetCapitalizationService;
 use App\Application\FixedAssets\FixedAssetCategoryService;
-use App\Application\FixedAssets\FixedAssetDepreciationEngineService;
 use App\Application\FixedAssets\FixedAssetRegisterService;
-use App\Domain\Accounting\PeriodClosedException;
+use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\FixedAsset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use InvalidArgumentException;
 
 class FixedAssetController extends Controller
 {
+    use AuthorizesFixedAssetRequests;
+
     public function __construct(
         private readonly FixedAssetRegisterService $assetService,
         private readonly FixedAssetCategoryService $categoryService,
-        private readonly FixedAssetCapitalizationService $capitalizationService,
-        private readonly FixedAssetDepreciationEngineService $depreciationEngine,
         private readonly AttachmentService $attachmentService,
     ) {}
 
@@ -184,88 +180,5 @@ class FixedAssetController extends Controller
 
         return redirect()->route('fixed-assets.index')
             ->with('success', __('Fixed asset deleted successfully.'));
-    }
-
-    public function capitalize(Request $request, string $id): RedirectResponse
-    {
-        $this->authorizePermission($request, 'fixedAssets.post');
-        $this->authorizeSensitiveCapability($request, 'view_financials');
-
-        $validated = $request->validate([
-            'capitalization_mode' => ['required', 'string', 'in:opening_already_capitalized,manual_capitalization'],
-            'capitalization_date' => ['nullable', 'date'],
-        ]);
-
-        $actorId = $request->user()?->getAuthIdentifier();
-        $userActorId = is_numeric($actorId) ? (int) $actorId : null;
-
-        try {
-            $asset = $this->capitalizationService->capitalize(
-                $id,
-                $validated['capitalization_mode'],
-                $validated['capitalization_date'] ?? null,
-                $userActorId
-            );
-        } catch (PeriodClosedException $e) {
-            throw ValidationException::withMessages([
-                'capitalization_date' => [$e->getMessage()],
-            ]);
-        } catch (InvalidArgumentException $e) {
-            throw ValidationException::withMessages([
-                'capitalization_mode' => [$e->getMessage()],
-            ]);
-        }
-
-        return redirect()->route('fixed-assets.show', $asset->id)
-            ->with('success', __('Fixed asset capitalized successfully.'));
-    }
-
-    public function reverseCapitalization(Request $request, string $id): RedirectResponse
-    {
-        $this->authorizePermission($request, 'fixedAssets.reverse');
-        $this->authorizeSensitiveCapability($request, 'view_financials');
-
-        $actorId = $request->user()?->getAuthIdentifier();
-        $userActorId = is_numeric($actorId) ? (int) $actorId : null;
-
-        try {
-            $asset = $this->capitalizationService->reverseCapitalization($id, $userActorId);
-        } catch (PeriodClosedException $e) {
-            throw ValidationException::withMessages([
-                'asset' => [$e->getMessage()],
-            ]);
-        } catch (InvalidArgumentException $e) {
-            throw ValidationException::withMessages([
-                'asset' => [$e->getMessage()],
-            ]);
-        }
-
-        return redirect()->route('fixed-assets.show', $asset->id)
-            ->with('success', __('Fixed asset capitalization reversed successfully.'));
-    }
-
-    public function generateSchedule(Request $request, string $id): RedirectResponse
-    {
-        $this->authorizePermission($request, 'fixedAssets.edit');
-        $this->authorizeSensitiveCapability($request, 'view_financials');
-
-        $this->depreciationEngine->generateSchedule($id);
-
-        return redirect()->route('fixed-assets.show', $id)
-            ->with('success', __('Depreciation schedule generated successfully.'));
-    }
-
-    private function authorizePermission(Request $request, string $permission): void
-    {
-        if (! $request->user()?->can($permission)) {
-            abort(403);
-        }
-    }
-
-    private function authorizeSensitiveCapability(Request $request, string $capability): void
-    {
-        if (! $request->user()?->can($capability)) {
-            abort(403);
-        }
     }
 }

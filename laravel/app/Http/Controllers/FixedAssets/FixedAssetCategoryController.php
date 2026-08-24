@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\FixedAssets;
 
 use App\Application\FixedAssets\FixedAssetCategoryService;
+use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Inertia\Response;
 
 class FixedAssetCategoryController extends Controller
 {
+    use AuthorizesFixedAssetRequests;
+
     public function __construct(
         private readonly FixedAssetCategoryService $categoryService,
     ) {}
@@ -86,12 +89,5 @@ class FixedAssetCategoryController extends Controller
         $this->categoryService->deleteCategory($id, $userActorId);
 
         return redirect()->back()->with('success', __('Fixed asset category deleted successfully.'));
-    }
-
-    private function authorizePermission(Request $request, string $permission): void
-    {
-        if (! $request->user()?->can($permission)) {
-            abort(403, 'Unauthorized.');
-        }
     }
 }
