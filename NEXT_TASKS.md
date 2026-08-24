@@ -27,6 +27,11 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 ## Completed Phase 8 Track
 
+- Phase 8 Slice 1 Operational Readiness Decision Pack (FULLY COMPLETE):
+  - Created `PHASE_8_OPERATIONAL_READINESS_DECISION.md` containing owner-facing decision pack in English and Arabic.
+  - Documented current stack, required runtime services, environment variable guide, staging vs production checklist, and 9 pending owner operational decisions.
+  - Docs-only slice with zero application code changes.
+
 - Phase 8 Operational Readiness & E2E Smoke (FULLY COMPLETE):
   - Safe prompts rewritten to avoid private values, provider setup, GitHub Actions requirements, tenant/company/branch scope, and new business modules.
   - Deployment docs refreshed in `spec/DEPLOYMENT.md` for Laravel + Inertia + PostgreSQL.

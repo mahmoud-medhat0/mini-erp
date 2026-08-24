@@ -2,6 +2,12 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added — Phase 8 Slice 1 Operational Readiness Decision Pack (2026-08-24)
+- Created `PHASE_8_OPERATIONAL_READINESS_DECISION.md` containing owner-facing operational readiness decision pack in English and Arabic.
+- Documented current Laravel 13 + Inertia + PostgreSQL stack, required runtime services (Web Server, Asset Delivery, PostgreSQL, Scheduler Daemon, Queue Worker Daemon, File Storage, Mail Gateway), environment variable names guide, staging vs production checklist, and 9 pending owner operational decisions.
+- Docs-only slice: zero application code, database migrations, controllers, services, routes, models, React views, or unit/feature tests were modified.
+- Ran docs-safe verification suite (`git diff --stat` and `rg` source scans).
+
 ### Added — Phase 8 Operational Readiness & E2E Smoke Close-Out (2026-08-24)
 - Created `PHASE_8_OPERATIONAL_READINESS.md` as the master contract for deployment documentation, scheduler/queue readiness, health checks, and browser smoke coverage.
 - Created safe prompt files `PHASE_8_SLICE_1_GEMINI_PROMPT.md` through `PHASE_8_SLICE_5_GEMINI_PROMPT.md`.
