@@ -2,13 +2,10 @@
 
 namespace App\Http\Controllers\FixedAssets;
 
-use App\Application\Attachments\AttachmentService;
-use App\Application\FixedAssets\FixedAssetCategoryService;
+use App\Application\FixedAssets\FixedAssetPageData;
 use App\Application\FixedAssets\FixedAssetRegisterService;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
-use App\Models\Currency;
-use App\Models\FixedAsset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,45 +17,23 @@ class FixedAssetController extends Controller
 
     public function __construct(
         private readonly FixedAssetRegisterService $assetService,
-        private readonly FixedAssetCategoryService $categoryService,
-        private readonly AttachmentService $attachmentService,
+        private readonly FixedAssetPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'fixedAssets.view');
 
-        $filters = $request->only(['search', 'category_id', 'status']);
-        $assets = $this->assetService->listAssets($filters);
-        $categories = $this->categoryService->listCategories();
+        $filters = $request->only(['search', 'category_id', 'status', 'branch_id', 'location_id']);
 
-        return Inertia::render('FixedAssets/Index', [
-            'assets' => $assets,
-            'categories' => $categories,
-            'filters' => $filters,
-            'can' => [
-                'create' => $request->user()?->can('fixedAssets.create') ?? false,
-                'edit' => $request->user()?->can('fixedAssets.edit') ?? false,
-                'delete' => $request->user()?->can('fixedAssets.delete') ?? false,
-                'post' => $request->user()?->can('fixedAssets.post') ?? false,
-                'reverse' => $request->user()?->can('fixedAssets.reverse') ?? false,
-                'export' => $request->user()?->can('fixedAssets.export') ?? false,
-                'view_financials' => $request->user()?->can('view_financials') ?? false,
-            ],
-        ]);
+        return Inertia::render('FixedAssets/Index', $this->pageData->indexData($filters, $request->user()));
     }
 
     public function create(Request $request): Response
     {
         $this->authorizePermission($request, 'fixedAssets.create');
 
-        $categories = $this->categoryService->listCategories()->where('is_active', true)->values();
-        $currencies = Currency::query()->get(['code', 'name', 'symbol']);
-
-        return Inertia::render('FixedAssets/Create', [
-            'categories' => $categories,
-            'currencies' => $currencies,
-        ]);
+        return Inertia::render('FixedAssets/Create', $this->pageData->createData());
     }
 
     public function store(Request $request): RedirectResponse
@@ -96,49 +71,20 @@ class FixedAssetController extends Controller
     {
         $this->authorizePermission($request, 'fixedAssets.view');
 
-        /** @var FixedAsset $asset */
-        $asset = FixedAsset::query()
-            ->with(['category', 'currencyModel', 'journalEntry', 'capitalizer', 'creator', 'updater', 'depreciationSchedules.financialPeriod'])
-            ->findOrFail($id);
-
-        $attachments = [];
-        if ($request->user()) {
-            $attachments = $this->attachmentService->listForEntity('fixed_asset', $asset->id, $request->user());
-        }
-
-        return Inertia::render('FixedAssets/Show', [
-            'asset' => $asset,
-            'attachments' => $attachments,
-            'can' => [
-                'edit' => ($request->user()?->can('fixedAssets.edit') ?? false) && $asset->status === 'draft',
-                'delete' => ($request->user()?->can('fixedAssets.delete') ?? false) && $asset->status === 'draft',
-                'post' => ($request->user()?->can('fixedAssets.post') ?? false) && ($request->user()?->can('view_financials') ?? false) && $asset->status === 'draft',
-                'reverse' => ($request->user()?->can('fixedAssets.reverse') ?? false) && ($request->user()?->can('view_financials') ?? false) && $asset->status === 'active' && $asset->capitalization_mode === 'manual_capitalization',
-                'generate_schedule' => ($request->user()?->can('fixedAssets.edit') ?? false) && ($request->user()?->can('view_financials') ?? false) && $asset->status === 'active',
-                'view_financials' => $request->user()?->can('view_financials') ?? false,
-            ],
-        ]);
+        return Inertia::render('FixedAssets/Show', $this->pageData->showData($id, $request->user()));
     }
 
     public function edit(Request $request, string $id): Response
     {
         $this->authorizePermission($request, 'fixedAssets.edit');
 
-        /** @var FixedAsset $asset */
-        $asset = FixedAsset::query()->with('category')->findOrFail($id);
+        $asset = $this->pageData->assetForEditing($id);
 
         if ($asset->status !== 'draft') {
             abort(403);
         }
 
-        $categories = $this->categoryService->listCategories()->where('is_active', true)->values();
-        $currencies = Currency::query()->get(['code', 'name', 'symbol']);
-
-        return Inertia::render('FixedAssets/Edit', [
-            'asset' => $asset,
-            'categories' => $categories,
-            'currencies' => $currencies,
-        ]);
+        return Inertia::render('FixedAssets/Edit', $this->pageData->editData($asset));
     }
 
     public function update(Request $request, string $id): RedirectResponse

@@ -11,12 +11,16 @@ type AccountTypesProps = SharedPageProps & {
   accountCategories?: AccountCategoryItem[];
 };
 
+type NormalBalance = 'debit' | 'credit';
+type StatementType = 'balance_sheet' | 'income_statement';
+
 export default function AccountTypes({ locale, accountTypes = [], accountCategories = [] }: AccountTypesProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
-  const actionsDict = (dict.app as any).actions || {};
-  const fieldsDict = (dict.app as any).fields || {};
-  const statusDict = (dict.app as any).status || {};
+  const pageDict = dict.app.pages.accountingAccountTypes;
+  const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
+  const fieldsDict = dict.app.fields;
+  const statusDict = dict.app.status;
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingType, setEditingType] = useState<AccountTypeItem | null>(null);
@@ -28,8 +32,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
     code: '',
     name_en: '',
     name_ar: '',
-    normal_balance: 'debit',
-    statement_type: 'balance_sheet',
+    normal_balance: 'debit' as NormalBalance,
+    statement_type: 'balance_sheet' as StatementType,
     category: 'asset',
     is_contra: false,
     sort_order: 0,
@@ -96,7 +100,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
   function handleDelete(at: AccountTypeItem) {
     if (at.is_system) return;
     if ((at.groups_count ?? 0) > 0 || (at.accounts_count ?? 0) > 0) return;
-    if (confirm(actionsDict.confirmDelete || dict.app.pages.accountingAccountTypes.areYouSureYouWantTo)) {
+    const accountTypeName = getLocalizedName(at.name, locale) || at.code;
+    if (confirm(dict.app.pages.accountingAccountTypes.confirmDeleteAccountType.replace('{name}', accountTypeName))) {
       router.delete(`/accounting/account-types/${at.id}`);
     }
   }
@@ -123,22 +128,30 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
   };
 
   const normalBalanceOptions = [
-    { value: 'debit', label: accDict.debitOption || dict.app.pages.accountingAccountTypes.debit },
-    { value: 'credit', label: accDict.creditOption || dict.app.pages.accountingAccountTypes.credit },
+    { value: 'debit', label: accDict.debitOption || pageDict.debit },
+    { value: 'credit', label: accDict.creditOption || pageDict.credit },
   ];
 
   const statementTypeOptions = [
-    { value: 'balance_sheet', label: accDict.balanceSheet || dict.app.pages.accountingAccountTypes.balanceSheet },
-    { value: 'income_statement', label: accDict.incomeStatement || dict.app.pages.accountingAccountTypes.incomeStatement },
+    { value: 'balance_sheet', label: accDict.balanceSheet || pageDict.balanceSheet },
+    { value: 'income_statement', label: accDict.incomeStatement || pageDict.incomeStatement },
   ];
+
+  function toNormalBalance(value: string | number | null): NormalBalance {
+    return value === 'credit' ? 'credit' : 'debit';
+  }
+
+  function toStatementType(value: string | number | null): StatementType {
+    return value === 'income_statement' ? 'income_statement' : 'balance_sheet';
+  }
 
   return (
     <AppLayout active="accounting.account_types">
-      <Head title={accDict.accountTypes || 'Account Types'} />
+      <Head title={accDict.accountTypes || pageDict.accountTypes} />
 
       <PageHeader
-        title={accDict.accountTypes || 'Account Types'}
-        description={accDict.accountTypesDesc || 'Manage relational accounting classifications, normal balances, and financial statement categorization.'}
+        title={accDict.accountTypes || pageDict.accountTypes}
+        description={accDict.accountTypesDesc || pageDict.accountTypesDesc}
         actions={
           <button
             type="button"
@@ -148,7 +161,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>{accDict.addAccountType || 'Add Account Type'}</span>
+            <span>{accDict.addAccountType || pageDict.addAccountType}</span>
           </button>
         }
       />
@@ -158,7 +171,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
         <Card className="p-6 mb-6 border-2 border-[var(--primary)]/40 shadow-2xl bg-[var(--surface)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
             <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-              {editingType ? (accDict.editAccountType || 'Edit Account Type') : (accDict.addAccountType || 'Add Account Type')}
+              {editingType ? (accDict.editAccountType || pageDict.editAccountType) : (accDict.addAccountType || pageDict.addAccountType)}
             </h3>
             <button
               type="button"
@@ -168,7 +181,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span>{actionsDict.cancel || 'Cancel'}</span>
+              <span>{actionsDict.cancel}</span>
             </button>
           </div>
 
@@ -181,7 +194,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 type="text"
                 value={form.data.code}
                 onChange={(e) => form.setData('code', e.target.value.toUpperCase())}
-                placeholder="e.g. ASSET_CURRENT"
+                placeholder={pageDict.codePlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-mono"
                 required
               />
@@ -196,7 +209,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 type="text"
                 value={form.data.name_en}
                 onChange={(e) => form.setData('name_en', e.target.value)}
-                placeholder="e.g. Current Assets"
+                placeholder={pageDict.nameEnPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
                 required
               />
@@ -211,7 +224,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 type="text"
                 value={form.data.name_ar}
                 onChange={(e) => form.setData('name_ar', e.target.value)}
-                placeholder="مثال: الأصول المتداولة"
+                placeholder={pageDict.nameArPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
                 required
               />
@@ -220,7 +233,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.category || 'Category'}
+                {accDict.category || pageDict.category}
               </label>
               <SearchableSelect
                 options={categoryOptions}
@@ -235,24 +248,24 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.normalBalance || 'Normal Balance'}
+                {accDict.normalBalance || pageDict.normalBalance}
               </label>
               <SearchableSelect
                 options={normalBalanceOptions}
                 value={form.data.normal_balance}
-                onChange={(val) => form.setData('normal_balance', (val as any) || 'debit')}
+                onChange={(val) => form.setData('normal_balance', toNormalBalance(val))}
                 isClearable={false}
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.statementType || 'Statement Type'}
+                {accDict.statementType || pageDict.statement}
               </label>
               <SearchableSelect
                 options={statementTypeOptions}
                 value={form.data.statement_type}
-                onChange={(val) => form.setData('statement_type', (val as any) || 'balance_sheet')}
+                onChange={(val) => form.setData('statement_type', toStatementType(val))}
                 isClearable={false}
               />
             </div>
@@ -261,13 +274,13 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
               <ToggleSwitch
                 checked={form.data.is_contra}
                 onChange={(chk) => form.setData('is_contra', chk)}
-                label={accDict.isContra || 'Contra Account Type'}
+                label={accDict.isContra || pageDict.contraAccountType}
               />
 
               <ToggleSwitch
                 checked={form.data.is_active}
                 onChange={(chk) => form.setData('is_active', chk)}
-                label={fieldsDict.isActive || 'Active'}
+                label={statusDict.active}
               />
             </div>
 
@@ -277,14 +290,14 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 onClick={() => setShowAddModal(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="submit"
                 disabled={form.processing}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
-                {actionsDict.save || 'Save'}
+                {actionsDict.save}
               </button>
             </div>
           </form>
@@ -296,15 +309,15 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{fieldsDict.code || dict.app.pages.accountingAccountTypes.code}</th>
-              <th className={tableClasses.th}>{fieldsDict.name || dict.app.pages.accountingAccountTypes.name}</th>
-              <th className={tableClasses.th}>{accDict.category || dict.app.pages.accountingAccountTypes.category}</th>
-              <th className={tableClasses.th}>{accDict.normalBalance || dict.app.pages.accountingAccountTypes.normalBalance}</th>
-              <th className={tableClasses.th}>{accDict.statementType || dict.app.pages.accountingAccountTypes.statement}</th>
-              <th className={tableClasses.th}>{accDict.accountGroups || dict.app.pages.accountingAccountTypes.groups}</th>
-              <th className={tableClasses.th}>{accDict.accounts || dict.app.pages.accountingAccountTypes.accounts}</th>
-              <th className={tableClasses.th}>{fieldsDict.status || dict.app.pages.accountingAccountTypes.status}</th>
-              <th className={`${tableClasses.th} text-right`}>{actionsDict.actionsTitle || actionsDict.actions || dict.app.pages.accountingAccountTypes.actions}</th>
+              <th className={tableClasses.th}>{fieldsDict.code || pageDict.code}</th>
+              <th className={tableClasses.th}>{fieldsDict.name || pageDict.name}</th>
+              <th className={tableClasses.th}>{accDict.category || pageDict.category}</th>
+              <th className={tableClasses.th}>{accDict.normalBalance || pageDict.normalBalance}</th>
+              <th className={tableClasses.th}>{accDict.statementType || pageDict.statement}</th>
+              <th className={tableClasses.th}>{pageDict.groups}</th>
+              <th className={tableClasses.th}>{accDict.accounts || pageDict.accounts}</th>
+              <th className={tableClasses.th}>{fieldsDict.status || pageDict.status}</th>
+              <th className={`${tableClasses.th} text-right`}>{actionsDict.actionsTitle || pageDict.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -317,9 +330,9 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{at.code}</span>
                       {at.is_system ? (
-                        <StatusBadge tone="muted">{accDict.systemBadge || 'SYSTEM'}</StatusBadge>
+                        <StatusBadge tone="muted">{accDict.systemBadge || pageDict.systemBadge}</StatusBadge>
                       ) : (
-                        <StatusBadge tone="info">{accDict.customBadge || 'CUSTOM'}</StatusBadge>
+                        <StatusBadge tone="info">{accDict.customBadge || pageDict.customBadge}</StatusBadge>
                       )}
                     </div>
                   </td>
@@ -334,17 +347,17 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                   <td className={tableClasses.td}>
                     {at.normal_balance === 'debit' ? (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                        {accDict.debitBadge || dict.app.pages.accountingAccountTypes.debit_2}
+                        {accDict.debitBadge || pageDict.debit_2}
                       </span>
                     ) : (
                       <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                        {accDict.creditBadge || dict.app.pages.accountingAccountTypes.credit_2}
+                        {accDict.creditBadge || pageDict.credit_2}
                       </span>
                     )}
                   </td>
                   <td className={tableClasses.td}>
                     <span className="text-xs text-[var(--text-secondary)]">
-                      {at.statement_type === 'balance_sheet' ? (accDict.balanceSheet || dict.app.pages.accountingAccountTypes.balanceSheet_2) : (accDict.incomeStatement || dict.app.pages.accountingAccountTypes.incomeStatement_2)}
+                      {at.statement_type === 'balance_sheet' ? (accDict.balanceSheet || pageDict.balanceSheet_2) : (accDict.incomeStatement || pageDict.incomeStatement_2)}
                     </span>
                   </td>
                   <td className={tableClasses.td}>
@@ -352,7 +365,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       type="button"
                       onClick={() => setSelectedTypeGroupsDetails(at)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 active:scale-95 border border-indigo-500/20"
-                      title={dict.app.pages.accountingAccountTypes.viewAccountGroupsDetails}
+                      title={pageDict.viewAccountGroupsDetails}
                     >
                       <span>{at.groups_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -366,7 +379,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       type="button"
                       onClick={() => setSelectedTypeAccountsDetails(at)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 border border-emerald-500/20"
-                      title={dict.app.pages.accountingAccountTypes.viewAccountsDetails}
+                      title={pageDict.viewAccountsDetails}
                     >
                       <span>{at.accounts_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -376,8 +389,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                     </button>
                   </td>
                   <td className={tableClasses.td}>
-                    <StatusBadge tone={at.is_active ? 'ok' : 'muted'}>
-                      {at.is_active ? (statusDict.active || 'Active') : (statusDict.inactive || 'Inactive')}
+                   <StatusBadge tone={at.is_active ? 'ok' : 'muted'}>
+                      {at.is_active ? statusDict.active : statusDict.inactive}
                     </StatusBadge>
                   </td>
                   <td className={`${tableClasses.td} text-right`}>
@@ -387,7 +400,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         onClick={() => openEditModal(at)}
                         className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
                       >
-                        {actionsDict.edit || 'Edit'}
+                        {actionsDict.edit}
                       </button>
                       <button
                         type="button"
@@ -400,13 +413,13 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         }`}
                         title={
                           at.is_system
-                            ? (accDict.systemCannotDelete || dict.app.pages.accountingAccountTypes.systemAccountTypesCannotBeDeleted)
+                            ? (accDict.systemCannotDelete || pageDict.systemAccountTypesCannotBeDeleted)
                             : !isDeletable
-                            ? (accDict.inUseCannotDelete || dict.app.pages.accountingAccountTypes.cannotDeleteAccountTypeInUse)
+                            ? pageDict.cannotDeleteAccountTypeInUse
                             : undefined
                         }
                       >
-                        {actionsDict.delete || 'Delete'}
+                        {actionsDict.delete}
                       </button>
                     </div>
                   </td>
@@ -432,9 +445,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                   </h3>
                 </div>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {locale === 'ar'
-                    ? `تفاصيل المجموعات المحاسبية المرتبطة بهذا النوع (${selectedTypeGroupsDetails.groups_count ?? 0})`
-                    : `Account Groups linked to this Type (${selectedTypeGroupsDetails.groups_count ?? 0})`}
+                  {pageDict.accountGroupsLinkedDescription.replace('{count}', String(selectedTypeGroupsDetails.groups_count ?? 0))}
                 </p>
               </div>
               <button
@@ -445,22 +456,22 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                <span>{actionsDict.cancel || 'Close'}</span>
+                <span>{actionsDict.close}</span>
               </button>
             </div>
 
             <div className="overflow-y-auto flex-1">
               {(selectedTypeGroupsDetails.groups?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
-                  {dict.app.pages.accountingAccountTypes.noAccountGroupsLinkedToThis}
+                  {pageDict.noAccountGroupsLinkedToThis}
                 </div>
               ) : (
                 <table className={tableClasses.table}>
                   <thead>
                     <tr>
-                      <th className={tableClasses.th}>{fieldsDict.code || 'Code'}</th>
-                      <th className={tableClasses.th}>{fieldsDict.name || 'Name'}</th>
-                      <th className={tableClasses.th}>{accDict.statementType || 'Statement Section'}</th>
+                      <th className={tableClasses.th}>{fieldsDict.code || pageDict.code}</th>
+                      <th className={tableClasses.th}>{fieldsDict.name || pageDict.name}</th>
+                      <th className={tableClasses.th}>{accDict.statementType || pageDict.statementSection}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
@@ -500,9 +511,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                   </h3>
                 </div>
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {locale === 'ar'
-                    ? `تفاصيل الحسابات المرتبطة بهذا النوع (${selectedTypeAccountsDetails.accounts_count ?? 0})`
-                    : `Accounts linked to this Type (${selectedTypeAccountsDetails.accounts_count ?? 0})`}
+                  {pageDict.accountsLinkedDescription.replace('{count}', String(selectedTypeAccountsDetails.accounts_count ?? 0))}
                 </p>
               </div>
               <button
@@ -513,24 +522,24 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                <span>{actionsDict.cancel || 'Close'}</span>
+                <span>{actionsDict.close}</span>
               </button>
             </div>
 
             <div className="overflow-y-auto flex-1">
               {(selectedTypeAccountsDetails.accounts?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
-                  {dict.app.pages.accountingAccountTypes.noAccountsLinkedToThisType}
+                  {pageDict.noAccountsLinkedToThisType}
                 </div>
               ) : (
                 <table className={tableClasses.table}>
                   <thead>
                     <tr>
-                      <th className={tableClasses.th}>{fieldsDict.code || 'Code'}</th>
-                      <th className={tableClasses.th}>{fieldsDict.name || 'Name'}</th>
-                      <th className={tableClasses.th}>{accDict.normalBalance || 'Nature'}</th>
-                      <th className={tableClasses.th}>{accDict.currency || 'Currency'}</th>
-                      <th className={tableClasses.th}>{accDict.isControl || 'Control Account'}</th>
+                      <th className={tableClasses.th}>{fieldsDict.code || pageDict.code}</th>
+                      <th className={tableClasses.th}>{fieldsDict.name || pageDict.name}</th>
+                      <th className={tableClasses.th}>{accDict.normalBalance || pageDict.nature}</th>
+                      <th className={tableClasses.th}>{accDict.currency || pageDict.currency}</th>
+                      <th className={tableClasses.th}>{pageDict.controlAccount}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
@@ -545,11 +554,11 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         <td className={tableClasses.td}>
                           {acc.nature === 'debit' ? (
                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400">
-                              {accDict.debitBadge || dict.app.pages.accountingAccountTypes.debit_3}
+                              {accDict.debitBadge || pageDict.debit_3}
                             </span>
                           ) : (
                             <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400">
-                              {accDict.creditBadge || dict.app.pages.accountingAccountTypes.credit_3}
+                              {accDict.creditBadge || pageDict.credit_3}
                             </span>
                           )}
                         </td>
@@ -558,9 +567,9 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                         </td>
                         <td className={tableClasses.td}>
                           {acc.is_control ? (
-                            <StatusBadge tone="info">{accDict.controlBadge || dict.app.pages.accountingAccountTypes.control}</StatusBadge>
+                            <StatusBadge tone="info">{accDict.controlBadge || pageDict.control}</StatusBadge>
                           ) : (
-                            <span className="text-xs text-[var(--text-muted)]">—</span>
+                            <span className="text-xs text-[var(--text-muted)]">{pageDict.emptyValue}</span>
                           )}
                         </td>
                       </tr>

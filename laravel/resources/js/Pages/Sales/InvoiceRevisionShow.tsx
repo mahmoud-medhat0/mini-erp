@@ -62,6 +62,7 @@ const formatQuantity = (qtyE6?: number | null) => String(parseFloat((((qtyE6 || 
 
 export default function InvoiceRevisionShow({ locale, revision, snapshot }: InvoiceRevisionShowProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   
   const getProductName = (prod?: { code: string; name: ProductName } | null): string => {
     if (!prod) return '';
@@ -116,7 +117,7 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
             <div className="text-start sm:text-end text-xs space-y-1">
               <p className="m-0">
                 <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.originalInvoice}:</span>{' '}
-                <span className="font-mono">{snapshot?.invoice_number || revision.customerInvoice?.number || '-'}</span>
+                <span className="font-mono">{snapshot?.invoice_number || revision.customerInvoice?.number || accDict.notAvailable}</span>
               </p>
               {revision.customerInvoice?.invoice_date ? (
                 <p className="m-0">
@@ -124,7 +125,7 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
                 </p>
               ) : null}
               <p className="m-0">
-                <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.customer}:</span> {revision.customerInvoice?.customer?.name || '-'}
+                <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.customer}:</span> {revision.customerInvoice?.customer?.name || accDict.notAvailable}
               </p>
               <p className="m-0">
                 <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.revisionDate_2}:</span> {revision.revision_date}
@@ -176,9 +177,9 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
               <tbody>
                 {(revision.lines || []).map((line) => (
                   <tr key={line.id}>
-                    <td className={`${cellStyle} font-medium`}>{getProductName(line.product) || '-'}</td>
-                    <td className={cellStyle}>{line.description || '-'}</td>
-                    <td className={cellStyle}>{line.unitOfMeasure?.name || '-'}</td>
+                    <td className={`${cellStyle} font-medium`}>{getProductName(line.product) || accDict.notAvailable}</td>
+                    <td className={cellStyle}>{line.description || accDict.notAvailable}</td>
+                    <td className={cellStyle}>{line.unitOfMeasure?.name || accDict.notAvailable}</td>
                     <td className={`${cellStyle} text-end font-mono`}>{formatQuantity(line.original_quantity_e6)}</td>
                     <td className={`${cellStyle} text-end font-mono`}>{formatQuantity(line.returned_quantity_e6)}</td>
                     <td className={`${cellStyle} text-end font-mono`}>{formatQuantity(line.net_quantity_e6)}</td>
@@ -197,13 +198,13 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
               <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.relatedCreditNotes}:</span>{' '}
               {(snapshot?.credit_note_numbers && snapshot.credit_note_numbers.length > 0
                 ? snapshot.credit_note_numbers.join(', ')
-                : '-')}
+                : accDict.notAvailable)}
             </p>
             <p className="mt-1 mb-0">
               <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.relatedSalesReturns}:</span>{' '}
               {(snapshot?.sales_return_numbers && snapshot.sales_return_numbers.length > 0
                 ? snapshot.sales_return_numbers.join(', ')
-                : '-')}
+                : accDict.notAvailable)}
             </p>
           </div>
         </div>

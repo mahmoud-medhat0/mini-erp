@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Application\Support\BaseCurrencyResolver;
 use App\Models\Account;
 use App\Models\AccountGroup;
 use App\Models\AccountingAccountMapping;
@@ -207,6 +208,42 @@ class AccountingCoreSeeder extends Seeder
                 'is_control' => false,
             ],
             [
+                'code' => '4300',
+                'name' => ['en' => 'Rental Revenue', 'ar' => 'إيرادات الإيجار'],
+                'type' => 'revenue',
+                'type_code' => 'REVENUE_OPERATING',
+                'nature' => 'credit',
+                'group_code' => '4000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '4310',
+                'name' => ['en' => 'Rental Damage Revenue', 'ar' => 'إيرادات أضرار الإيجار'],
+                'type' => 'revenue',
+                'type_code' => 'REVENUE_OPERATING',
+                'nature' => 'credit',
+                'group_code' => '4000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '4320',
+                'name' => ['en' => 'Rental Late Fee Revenue', 'ar' => 'إيرادات غرامات تأخير الإيجار'],
+                'type' => 'revenue',
+                'type_code' => 'REVENUE_OPERATING',
+                'nature' => 'credit',
+                'group_code' => '4000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '4330',
+                'name' => ['en' => 'Rental Other Revenue', 'ar' => 'إيرادات إيجار أخرى'],
+                'type' => 'revenue',
+                'type_code' => 'REVENUE_OPERATING',
+                'nature' => 'credit',
+                'group_code' => '4000',
+                'is_control' => false,
+            ],
+            [
                 'code' => '5200',
                 'name' => ['en' => 'Inventory Return Variance', 'ar' => 'فرق مرتجعات المخزون'],
                 'type' => 'expense',
@@ -218,6 +255,24 @@ class AccountingCoreSeeder extends Seeder
             [
                 'code' => '5300',
                 'name' => ['en' => 'Inventory Scrap Loss', 'ar' => 'خسائر الهالك من المخزون'],
+                'type' => 'expense',
+                'type_code' => 'EXPENSE_OPERATING',
+                'nature' => 'debit',
+                'group_code' => '5000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '4920',
+                'name' => ['en' => 'Inventory Adjustment Gain', 'ar' => 'أرباح تسوية المخزون'],
+                'type' => 'revenue',
+                'type_code' => 'INCOME_OTHER',
+                'nature' => 'credit',
+                'group_code' => '4000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '5600',
+                'name' => ['en' => 'Inventory Adjustment Loss', 'ar' => 'خسائر تسوية المخزون'],
                 'type' => 'expense',
                 'type_code' => 'EXPENSE_OPERATING',
                 'nature' => 'debit',
@@ -270,6 +325,51 @@ class AccountingCoreSeeder extends Seeder
                 'is_control' => false,
             ],
             [
+                'code' => '1800',
+                'name' => ['en' => 'Prepaid Expenses', 'ar' => 'مصروفات مدفوعة مقدماً'],
+                'type' => 'asset',
+                'type_code' => 'ASSET_CURRENT',
+                'nature' => 'debit',
+                'group_code' => '1000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '2500',
+                'name' => ['en' => 'Accrued Expenses Payable', 'ar' => 'مصروفات مستحقة الدفع'],
+                'type' => 'liability',
+                'type_code' => 'LIABILITY_CURRENT',
+                'nature' => 'credit',
+                'group_code' => '2000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '2600',
+                'name' => ['en' => 'Payroll Payable', 'ar' => 'مرتبات مستحقة الدفع'],
+                'type' => 'liability',
+                'type_code' => 'LIABILITY_CURRENT',
+                'nature' => 'credit',
+                'group_code' => '2000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '2610',
+                'name' => ['en' => 'Payroll Deductions Payable', 'ar' => 'استقطاعات مرتبات مستحقة'],
+                'type' => 'liability',
+                'type_code' => 'LIABILITY_CURRENT',
+                'nature' => 'credit',
+                'group_code' => '2000',
+                'is_control' => false,
+            ],
+            [
+                'code' => '2620',
+                'name' => ['en' => 'Rental Deposits Liability', 'ar' => 'التزامات ودائع الإيجار'],
+                'type' => 'liability',
+                'type_code' => 'LIABILITY_CURRENT',
+                'nature' => 'credit',
+                'group_code' => '2000',
+                'is_control' => false,
+            ],
+            [
                 'code' => '4910',
                 'name' => ['en' => 'Gain on Asset Disposal', 'ar' => 'أرباح استبعاد الأصول'],
                 'type' => 'revenue',
@@ -296,7 +396,18 @@ class AccountingCoreSeeder extends Seeder
                 'group_code' => '5000',
                 'is_control' => false,
             ],
+            [
+                'code' => '5700',
+                'name' => ['en' => 'Salaries and Wages Expense', 'ar' => 'مصروف الأجور والمرتبات'],
+                'type' => 'expense',
+                'type_code' => 'EXPENSE_OPERATING',
+                'nature' => 'debit',
+                'group_code' => '5000',
+                'is_control' => false,
+            ],
         ];
+
+        $currency = app(BaseCurrencyResolver::class)->resolve();
 
         foreach ($accounts as $aData) {
             $accountType = AccountType::where('code', $aData['type_code'])->first()
@@ -314,7 +425,7 @@ class AccountingCoreSeeder extends Seeder
                     'account_group_id' => $createdGroups[$aData['group_code']]->id,
                     'is_control' => $aData['is_control'],
                     'allow_manual_posting' => $aData['allow_manual_posting'] ?? true,
-                    'currency' => 'EGP',
+                    'currency' => $currency,
                 ]
             );
         }
@@ -335,6 +446,8 @@ class AccountingCoreSeeder extends Seeder
                 'cogs' => ['account_code' => '5500', 'description' => 'Default cost of goods sold account'],
                 'inventory_return_variance' => ['account_code' => '5200', 'description' => 'Default inventory return variance account'],
                 'inventory_scrap_loss' => ['account_code' => '5300', 'description' => 'Default inventory scrap loss account'],
+                'inventory_adjustment_gain' => ['account_code' => '4920', 'description' => 'Default inventory adjustment gain account'],
+                'inventory_adjustment_loss' => ['account_code' => '5600', 'description' => 'Default inventory adjustment loss account'],
                 'output_tax_payable' => ['account_code' => '2200', 'description' => 'Default output tax payable account'],
                 'input_tax_receivable' => ['account_code' => '1300', 'description' => 'Default input tax receivable account'],
                 'fixed_asset_cost' => ['account_code' => '1600', 'description' => 'Default fixed assets cost account'],
@@ -343,6 +456,16 @@ class AccountingCoreSeeder extends Seeder
                 'fixed_asset_disposal_gain' => ['account_code' => '4910', 'description' => 'Default gain on asset disposal account'],
                 'fixed_asset_disposal_loss' => ['account_code' => '5910', 'description' => 'Default loss on asset disposal account'],
                 'fixed_asset_clearing' => ['account_code' => '1699', 'description' => 'Default fixed asset clearing account'],
+                'prepaid_expense_asset' => ['account_code' => '1800', 'description' => 'Default prepaid expenses asset account'],
+                'accrued_expense_liability' => ['account_code' => '2500', 'description' => 'Default accrued expenses payable account'],
+                'payroll_expense' => ['account_code' => '5700', 'description' => 'Default payroll salaries and wages expense account'],
+                'payroll_payable' => ['account_code' => '2600', 'description' => 'Default payroll net payable account'],
+                'payroll_deductions_payable' => ['account_code' => '2610', 'description' => 'Default payroll deductions payable account'],
+                'rental_revenue' => ['account_code' => '4300', 'description' => 'Default rental revenue account'],
+                'rental_damage_revenue' => ['account_code' => '4310', 'description' => 'Default rental damage revenue account'],
+                'rental_late_fee_revenue' => ['account_code' => '4320', 'description' => 'Default rental late fee revenue account'],
+                'rental_other_revenue' => ['account_code' => '4330', 'description' => 'Default rental other revenue account'],
+                'rental_deposit_liability' => ['account_code' => '2620', 'description' => 'Default refundable rental deposits liability account'],
             ];
 
             foreach ($mappings as $key => $mappingData) {
@@ -351,9 +474,9 @@ class AccountingCoreSeeder extends Seeder
                     continue;
                 }
 
-                $existingMapping = AccountingAccountMapping::where('key', $key)->first();
+                $existingMapping = AccountingAccountMapping::where('key', $key)->whereNull('branch_id')->first();
                 AccountingAccountMapping::updateOrCreate(
-                    ['key' => $key],
+                    ['key' => $key, 'branch_id' => null],
                     [
                         'account_id' => $account->id,
                         'description' => $existingMapping?->description ?? $mappingData['description'],

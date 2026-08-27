@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Application\Accounting\ChartOfAccountsPageData;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\AccountGroup;
 use App\Models\AccountType;
-use App\Models\Currency;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -18,27 +18,13 @@ class ChartOfAccountsController extends Controller
 {
     use AuthorizesAccountingRequests;
 
+    public function __construct(private readonly ChartOfAccountsPageData $pageData) {}
+
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        return Inertia::render('Accounting/ChartOfAccounts', [
-            'groups' => AccountGroup::query()
-                ->with(['accountType', 'children', 'accounts'])
-                ->whereNull('parent_id')
-                ->orderBy('sort_order')
-                ->get(),
-            'accounts' => Account::query()
-                ->with(['accountType', 'group', 'currencyRef'])
-                ->orderBy('code')
-                ->get(),
-            'accountTypes' => AccountType::query()
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('code')
-                ->get(),
-            'currencies' => Currency::query()->orderBy('code')->get(),
-        ]);
+        return Inertia::render('Accounting/ChartOfAccounts', $this->pageData->indexData());
     }
 
     public function storeGroup(Request $request): RedirectResponse
@@ -93,7 +79,7 @@ class ChartOfAccountsController extends Controller
             'nature' => ['nullable', 'string', 'in:debit,credit'],
             'account_group_id' => ['nullable', 'uuid', 'exists:account_group,id'],
             'parent_id' => ['nullable', 'uuid', 'exists:account,id'],
-            'currency' => ['nullable', 'string', 'size:3', 'exists:currency,code'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'is_control' => ['nullable', 'boolean'],
             'allow_manual_posting' => ['nullable', 'boolean'],
         ]);
@@ -119,7 +105,7 @@ class ChartOfAccountsController extends Controller
             'nature' => $validated['nature'] ?? $accountType->normal_balance,
             'account_group_id' => $validated['account_group_id'] ?? null,
             'parent_id' => $validated['parent_id'] ?? null,
-            'currency' => $validated['currency'] ?? 'EGP',
+            'currency' => $validated['currency'],
             'is_control' => $validated['is_control'] ?? false,
             'allow_manual_posting' => $validated['allow_manual_posting'] ?? true,
         ]);

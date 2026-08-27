@@ -49,9 +49,11 @@ class Phase3Slice8ReportsTest extends TestCase
         parent::setUp();
 
         Permission::findOrCreate('reports.view', 'web');
+        Permission::findOrCreate('reports.export', 'web');
+        Permission::findOrCreate('view_financials', 'web');
 
         $this->adminUser = User::factory()->create();
-        $this->adminUser->givePermissionTo('reports.view');
+        $this->adminUser->givePermissionTo(['reports.view', 'reports.export', 'view_financials']);
 
         $this->unauthorizedUser = User::factory()->create();
 

@@ -6,7 +6,7 @@ import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClass
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
 type OutgoingChequeRow = {
   id: string;
@@ -26,7 +26,7 @@ type OutgoingChequeRow = {
 type OutgoingChequesProps = SharedPageProps & {
   cheques: {
     data: OutgoingChequeRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   suppliers: Array<{ id: string; code: string; name: string }>;
   bankAccounts: Array<{ id: string; code: string; name: string }>;
@@ -51,6 +51,7 @@ export default function OutgoingChequesIndex({
 }: OutgoingChequesProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -63,7 +64,7 @@ export default function OutgoingChequesIndex({
     bank_account_id: bankAccounts[0]?.id || '',
     cheque_number: '',
     due_date: new Date().toISOString().split('T')[0],
-    currency: 'EGP',
+    currency: '',
     amount: '',
     amount_minor: 0,
     notes: '',
@@ -192,9 +193,9 @@ export default function OutgoingChequesIndex({
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : '—'}
+                    {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : accDict.notAvailable}
                   </td>
-                  <td className={tableClasses.td}>{row.bank_account?.name || '—'}</td>
+                  <td className={tableClasses.td}>{row.bank_account?.name || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
                     {formatMoney(row.amount_minor, row.currency)}
@@ -324,7 +325,7 @@ export default function OutgoingChequesIndex({
                   <SearchableSelect
                     options={currencyOptions}
                     value={createForm.data.currency}
-                    onChange={(val) => createForm.setData('currency', val || 'EGP')}
+                    onChange={(val) => createForm.setData('currency', val || '')}
                     isClearable={false}
                   />
                 </div>

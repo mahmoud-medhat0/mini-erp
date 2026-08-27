@@ -33,21 +33,21 @@ class FixedAssetCategoryService
         $code = trim($data['code']);
         if (FixedAssetCategory::query()->where('code', $code)->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Category code [{$code}] already exists."],
+                'code' => [__('Category code [:code] already exists.', ['code' => $code])],
             ]);
         }
 
         $usefulLife = (int) ($data['useful_life_months'] ?? 60);
         if ($usefulLife <= 0) {
             throw ValidationException::withMessages([
-                'useful_life_months' => ['Useful life must be a positive number of months.'],
+                'useful_life_months' => [__('Useful life must be a positive number of months.')],
             ]);
         }
 
         $salvage = (int) ($data['salvage_value_minor'] ?? 0);
         if ($salvage < 0) {
             throw ValidationException::withMessages([
-                'salvage_value_minor' => ['Salvage value cannot be negative.'],
+                'salvage_value_minor' => [__('Salvage value cannot be negative.')],
             ]);
         }
 
@@ -89,7 +89,7 @@ class FixedAssetCategoryService
             $code = trim($data['code']);
             if (FixedAssetCategory::query()->where('code', $code)->where('id', '!=', $id)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Category code [{$code}] already exists."],
+                    'code' => [__('Category code [:code] already exists.', ['code' => $code])],
                 ]);
             }
             $category->code = $code;
@@ -103,7 +103,7 @@ class FixedAssetCategoryService
             $usefulLife = (int) $data['useful_life_months'];
             if ($usefulLife <= 0) {
                 throw ValidationException::withMessages([
-                    'useful_life_months' => ['Useful life must be a positive number of months.'],
+                    'useful_life_months' => [__('Useful life must be a positive number of months.')],
                 ]);
             }
             $category->useful_life_months = $usefulLife;
@@ -113,7 +113,7 @@ class FixedAssetCategoryService
             $salvage = (int) $data['salvage_value_minor'];
             if ($salvage < 0) {
                 throw ValidationException::withMessages([
-                    'salvage_value_minor' => ['Salvage value cannot be negative.'],
+                    'salvage_value_minor' => [__('Salvage value cannot be negative.')],
                 ]);
             }
             $category->salvage_value_minor = $salvage;
@@ -144,7 +144,7 @@ class FixedAssetCategoryService
 
         if ($category->fixed_assets_count > 0) {
             throw ValidationException::withMessages([
-                'category' => ['Cannot delete category with linked assets.'],
+                'category' => [__('Cannot delete category with linked assets.')],
             ]);
         }
 

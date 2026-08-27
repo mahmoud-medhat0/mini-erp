@@ -36,6 +36,7 @@ type VatRegisterProps = SharedPageProps & {
     to_date: string;
     type: string;
     tax_code_id: string | null;
+    currency?: string | null;
     rows: VatRegisterRow[];
     summary: {
       total_output_subtotal_minor: number;
@@ -57,14 +58,17 @@ type VatRegisterProps = SharedPageProps & {
 };
 
 export default function VatRegister({ locale, report, taxCodes, filters }: VatRegisterProps) {
-  const dict = getDictionary(locale) as any;
+  const dict = getDictionary(locale);
 
   const [fromDate, setFromDate] = useState(filters.from_date || report.from_date);
   const [toDate, setToDate] = useState(filters.to_date || report.to_date);
   const [type, setType] = useState(filters.type || 'all');
   const [taxCodeId, setTaxCodeId] = useState(filters.tax_code_id || '');
 
-  const t = dict.taxes?.vatRegister || {};
+  const t = dict.app.taxes.vatRegister;
+  const appName = dict.app.accounting.appName;
+  const accDict = dict.app.accounting;
+  const formatVatMoney = (amountMinor: number) => (report.currency ? formatMoney(amountMinor, report.currency) : accDict.notAvailable);
 
   const handleFilter = () => {
     router.get('/reports/vat-register', {
@@ -84,13 +88,13 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
   };
 
   const categoryOptions = [
-    { value: 'all', label: t.allCategories || 'All Categories' },
-    { value: 'output', label: t.outputSales || 'Sales Output VAT' },
-    { value: 'input', label: t.inputPurchases || 'Purchasing Input VAT' },
+    { value: 'all', label: t.allCategories },
+    { value: 'output', label: t.outputSales },
+    { value: 'input', label: t.inputPurchases },
   ];
 
   const taxCodeOptions = [
-    { value: '', label: t.allTaxCodes || 'All Tax Codes' },
+    { value: '', label: t.allTaxCodes },
     ...taxCodes.map((tc) => {
       const name = typeof tc.name === 'object' ? (tc.name[locale] || tc.name.en || tc.code) : tc.name;
       return { value: tc.id, label: `${tc.code} - ${name}` };
@@ -102,14 +106,14 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
 
   return (
     <AppLayout active="reports.vat-register">
-      <Head title={`${t.title || 'VAT Register'} - Mini ERP`} />
+      <Head title={`${t.title} - ${appName}`} />
 
       <PageHeader
-        title={t.title || 'VAT Register'}
-        description={t.subtitle || 'Detailed line-item audit trail of output and input tax for posted documents.'}
+        title={t.title}
+        description={t.subtitle}
         actions={
           <Button variant="secondary" onClick={handleExport}>
-            {t.exportCsv || 'Export CSV'}
+            {t.exportCsv}
           </Button>
         }
       />
@@ -119,19 +123,19 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.fromDate || 'From Date'}
+                {t.fromDate}
               </label>
               <DatePicker value={fromDate} onChange={(val) => setFromDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.toDate || 'To Date'}
+                {t.toDate}
               </label>
               <DatePicker value={toDate} onChange={(val) => setToDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.taxCategory || 'Tax Category'}
+                {t.taxCategory}
               </label>
               <SearchableSelect
                 options={categoryOptions}
@@ -141,7 +145,7 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.taxCode || 'Tax Code'}
+                {t.taxCode}
               </label>
               <SearchableSelect
                 options={taxCodeOptions}
@@ -151,7 +155,7 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {t.updateReport || 'Update Register'}
+                {t.updateReport}
               </Button>
             </div>
           </div>
@@ -159,29 +163,29 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.totalOutput || 'Total Output VAT'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.totalOutput}</div>
             <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {formatMoney(report.summary.total_output_tax_minor)}
+              {formatVatMoney(report.summary.total_output_tax_minor)}
             </div>
             <div className="text-xs text-[var(--text-secondary)] mt-1">
-              Net: {formatMoney(report.summary.total_output_subtotal_minor)}
+              {t.netSubtotal}: {formatVatMoney(report.summary.total_output_subtotal_minor)}
             </div>
           </div>
 
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.totalInput || 'Total Input VAT'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.totalInput}</div>
             <div className="text-lg font-bold text-sky-600 dark:text-sky-400">
-              {formatMoney(report.summary.total_input_tax_minor)}
+              {formatVatMoney(report.summary.total_input_tax_minor)}
             </div>
             <div className="text-xs text-[var(--text-secondary)] mt-1">
-              Net: {formatMoney(report.summary.total_input_subtotal_minor)}
+              {t.netSubtotal}: {formatVatMoney(report.summary.total_input_subtotal_minor)}
             </div>
           </div>
 
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.netVatPayable || 'Net VAT Payable'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.netVatPayable}</div>
             <div className={`text-lg font-bold ${report.summary.net_vat_payable_minor >= 0 ? 'text-[var(--text-primary)]' : 'text-amber-600'}`}>
-              {formatMoney(report.summary.net_vat_payable_minor)}
+              {formatVatMoney(report.summary.net_vat_payable_minor)}
             </div>
           </div>
         </div>
@@ -189,23 +193,23 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
         <Card>
           {report.rows.length === 0 ? (
             <EmptyState
-              title={t.noRecords || 'No posted tax entries found'}
-              description="Adjust date range or tax category filters to view registered transactions."
+              title={t.noRecords}
+              description={t.noRecordsDescription}
             />
           ) : (
             <div className="overflow-x-auto">
               <table className={tableClasses.table}>
                 <thead className="bg-[var(--surface-color)]">
                   <tr>
-                    <th className={tableClasses.th}>{t.documentDate || 'Doc Date'}</th>
-                    <th className={tableClasses.th}>{t.documentType || 'Doc Type'}</th>
-                    <th className={tableClasses.th}>{t.documentNumber || 'Document #'}</th>
-                    <th className={tableClasses.th}>{t.entity || 'Party / Name'}</th>
-                    <th className={tableClasses.th}>{t.taxCategory || 'Category'}</th>
-                    <th className={tableClasses.th}>{t.taxCode || 'Tax Code'}</th>
-                    <th className={thRightClass}>{t.subtotal || 'Net Subtotal'}</th>
-                    <th className={thRightClass}>{t.taxAmount || 'Tax Amount'}</th>
-                    <th className={thRightClass}>{t.grossAmount || 'Gross Total'}</th>
+                    <th className={tableClasses.th}>{t.documentDate}</th>
+                    <th className={tableClasses.th}>{t.documentType}</th>
+                    <th className={tableClasses.th}>{t.documentNumber}</th>
+                    <th className={tableClasses.th}>{t.entity}</th>
+                    <th className={tableClasses.th}>{t.taxCategory}</th>
+                    <th className={tableClasses.th}>{t.taxCode}</th>
+                    <th className={thRightClass}>{t.subtotal}</th>
+                    <th className={thRightClass}>{t.taxAmount}</th>
+                    <th className={thRightClass}>{t.grossAmount}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
@@ -225,11 +229,11 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
                       <td className={tableClasses.td}>
                         <span className="font-semibold">{row.tax_code}</span> ({row.tax_rate_bps / 100}%)
                       </td>
-                      <td className={`${tdRightClass} font-mono`}>{formatMoney(row.subtotal_minor)}</td>
+                      <td className={`${tdRightClass} font-mono`}>{formatVatMoney(row.subtotal_minor)}</td>
                       <td className={`${tdRightClass} font-mono font-bold ${row.tax_amount_minor < 0 ? 'text-rose-600' : ''}`}>
-                        {formatMoney(row.tax_amount_minor)}
+                        {formatVatMoney(row.tax_amount_minor)}
                       </td>
-                      <td className={`${tdRightClass} font-mono`}>{formatMoney(row.gross_amount_minor)}</td>
+                      <td className={`${tdRightClass} font-mono`}>{formatVatMoney(row.gross_amount_minor)}</td>
                     </tr>
                   ))}
                 </tbody>

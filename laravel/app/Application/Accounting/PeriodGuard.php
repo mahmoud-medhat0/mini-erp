@@ -17,18 +17,18 @@ class PeriodGuard
     public function assertPeriodOpenForPosting(?string $periodId, ?string $postingDate = null): FinancialPeriod
     {
         if (! $periodId) {
-            throw new PeriodClosedException('Financial period ID is required for posting.');
+            throw new PeriodClosedException(__('Financial period ID is required for posting.'));
         }
 
         /** @var FinancialPeriod|null $period */
         $period = FinancialPeriod::query()->where('id', $periodId)->first();
 
         if (! $period) {
-            throw new InvalidArgumentException("Financial period {$periodId} does not exist.");
+            throw new InvalidArgumentException(__('Financial period :period does not exist.', ['period' => $periodId]));
         }
 
         if (! $period->isOpen()) {
-            throw new PeriodClosedException("Target financial period {$periodId} is closed or locked.", periodId: $period->id, date: $postingDate);
+            throw new PeriodClosedException(__('Target financial period :period is closed or locked.', ['period' => $periodId]), periodId: $period->id, date: $postingDate);
         }
 
         if ($postingDate !== null && $postingDate !== '') {
@@ -37,7 +37,11 @@ class PeriodGuard
             $pEnd = Carbon::parse($period->end_date)->toDateString();
 
             if ($pDate < $pStart || $pDate > $pEnd) {
-                throw new InvalidArgumentException("Posting date {$pDate} is outside target financial period bounds ({$pStart} to {$pEnd}).");
+                throw new InvalidArgumentException(__('Posting date :date is outside target financial period bounds (:start to :end).', [
+                    'date' => $pDate,
+                    'start' => $pStart,
+                    'end' => $pEnd,
+                ]));
             }
         }
 
@@ -58,11 +62,11 @@ class PeriodGuard
             ->first();
 
         if (! $period) {
-            throw new InvalidArgumentException("Financial period {$periodId} does not exist.");
+            throw new InvalidArgumentException(__('Financial period :period does not exist.', ['period' => $periodId]));
         }
 
         if (! $period->isOpen()) {
-            throw new PeriodClosedException("Target financial period {$periodId} is closed or locked.", periodId: $period->id, date: $postingDate);
+            throw new PeriodClosedException(__('Target financial period :period is closed or locked.', ['period' => $periodId]), periodId: $period->id, date: $postingDate);
         }
 
         if ($postingDate !== null && $postingDate !== '') {
@@ -71,7 +75,11 @@ class PeriodGuard
             $pEnd = Carbon::parse($period->end_date)->toDateString();
 
             if ($pDate < $pStart || $pDate > $pEnd) {
-                throw new InvalidArgumentException("Posting date {$pDate} is outside target financial period bounds ({$pStart} to {$pEnd}).");
+                throw new InvalidArgumentException(__('Posting date :date is outside target financial period bounds (:start to :end).', [
+                    'date' => $pDate,
+                    'start' => $pStart,
+                    'end' => $pEnd,
+                ]));
             }
         }
 
@@ -95,11 +103,11 @@ class PeriodGuard
             ->first();
 
         if (! $period) {
-            throw new InvalidArgumentException("No financial period covers posting date {$pDate}.");
+            throw new InvalidArgumentException(__('No financial period covers posting date :date.', ['date' => $pDate]));
         }
 
         if (! $period->isOpen()) {
-            throw new PeriodClosedException("Target financial period {$period->id} is closed or locked.", periodId: $period->id, date: $pDate);
+            throw new PeriodClosedException(__('Target financial period :period is closed or locked.', ['period' => $period->id]), periodId: $period->id, date: $pDate);
         }
 
         return $period;

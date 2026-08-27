@@ -12,15 +12,21 @@ type ExchangeRatesProps = SharedPageProps & {
     links: any[];
   };
   currencies?: CurrencyRow[];
+  baseCurrency?: string | null;
+  baseCurrencyRef?: CurrencyRow | null;
 };
 
-export default function ExchangeRates({ locale, rates, currencies = [] }: ExchangeRatesProps) {
+export default function ExchangeRates({ locale, rates, currencies = [], baseCurrency = null, baseCurrencyRef = null }: ExchangeRatesProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
-  const actionsDict = dict.app.actions || {};
+  const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
 
   const [search, setSearch] = useState('');
-  const defaultCurrency = currencies.find((c) => c.code !== 'EGP')?.code ?? currencies[0]?.code ?? 'USD';
+  const baseCurrencyCode = baseCurrency ?? '';
+  const foreignCurrencies = currencies.filter((c) => c.code !== baseCurrencyCode);
+  const defaultCurrency = foreignCurrencies[0]?.code ?? '';
+  const baseCurrencyLabel = baseCurrencyRef ? `${baseCurrencyRef.code} (${baseCurrencyRef.symbol})` : (baseCurrencyCode || accDict.noBaseCurrency);
+  const baseCurrencyDisplay = baseCurrencyCode || accDict.noBaseCurrency;
 
   const [showModal, setShowModal] = useState(false);
   const form = useForm({
@@ -45,7 +51,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
     return locale === 'ar' ? nameObj.ar || nameObj.en : nameObj.en || nameObj.ar;
   };
 
-  const currencyOptions = currencies.map((c) => ({
+  const currencyOptions = foreignCurrencies.map((c) => ({
     value: c.code,
     label: `${c.code} - ${getName(c.name)} (${c.symbol})`,
   }));
@@ -61,11 +67,11 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
 
   return (
     <AppLayout active="accounting.fx_rates">
-      <Head title={accDict.fxRates || 'Exchange Rates'} />
+      <Head title={accDict.fxRates} />
 
       <PageHeader
-        title={accDict.fxRates || 'Exchange Rates'}
-        description={accDict.fxRatesDesc || 'Exact exchange rate records stored using rate_e6 scaled 6-decimal integers.'}
+        title={accDict.fxRates}
+        description={accDict.fxRatesDesc}
         actions={
           <button
             type="button"
@@ -75,7 +81,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>+ {accDict.setFxRate || 'Set Exchange Rate'}</span>
+            <span>{accDict.setFxRate}</span>
           </button>
         }
       />
@@ -86,12 +92,12 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {accDict.baseCurrency || 'Base Currency'}
+                {accDict.baseCurrency}
               </span>
-              <p className="mt-1 text-2xl font-black font-mono text-[var(--primary)]">EGP ({accDict.currencyEgpLabel || 'EGP'})</p>
+              <p className="mt-1 text-2xl font-black font-mono text-[var(--primary)]">{baseCurrencyLabel}</p>
             </div>
             <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs">
-              {accDict.baseTag || 'BASE'}
+              {accDict.baseTag}
             </div>
           </div>
         </Card>
@@ -100,7 +106,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {accDict.totalRateEntries || 'Total Rate Entries'}
+                {accDict.totalRateEntries}
               </span>
               <p className="mt-1 text-2xl font-black font-mono text-[var(--text-primary)]">{rates.data.length}</p>
             </div>
@@ -116,7 +122,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {accDict.activeFxCurrencies || 'Active FX Currencies'}
+                {accDict.activeFxCurrencies}
               </span>
               <p className="mt-1 text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                 {new Set(rates.data.map((r) => r.currency)).size}
@@ -136,7 +142,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
         <Card className="p-6 mb-6 border-2 border-[var(--primary)]/40 shadow-2xl bg-[var(--surface)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
             <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-              {accDict.addFxRate || 'Add Exchange Rate Record'}
+              {accDict.addFxRate}
             </h3>
             <button
               type="button"
@@ -146,15 +152,20 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span>{actionsDict.cancel || 'Close'}</span>
+              <span>{actionsDict.close}</span>
             </button>
           </div>
 
           <form onSubmit={submit} className="grid gap-4 sm:grid-cols-3 items-end">
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.currency || 'Target Currency'}
+                {accDict.targetCurrency}
               </label>
+              {currencyOptions.length === 0 ? (
+                <p className="mb-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                  {accDict.noForeignCurrencyOptions}
+                </p>
+              ) : null}
               <SearchableSelect
                 options={currencyOptions}
                 value={form.data.currency}
@@ -166,7 +177,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
 
             <div>
               <DatePicker
-                label={accDict.effectiveDate || 'Effective Date'}
+                label={accDict.effectiveDate}
                 value={form.data.date}
                 onChange={(val) => form.setData('date', val || '')}
                 error={form.errors.date}
@@ -176,13 +187,13 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.rateAgainstBase || 'Rate against Base (e.g. 50.25)'}
+                {accDict.rateAgainstBaseWithCurrency.replace('{currency}', baseCurrencyDisplay)}
               </label>
               <input
                 type="number"
                 step="0.000001"
                 min="0.000001"
-                placeholder="50.2500"
+                placeholder={accDict.fxRatePlaceholder}
                 value={form.data.rate}
                 onChange={(e) => form.setData('rate', e.target.value)}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs font-mono"
@@ -197,14 +208,14 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
                 onClick={() => setShowModal(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="submit"
-                disabled={form.processing}
+                disabled={form.processing || currencyOptions.length === 0}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
-                {accDict.saveFxRate || 'Save FX Rate'}
+                {accDict.saveFxRate}
               </button>
             </div>
           </form>
@@ -222,7 +233,7 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
             </div>
             <input
               type="text"
-              placeholder={accDict.searchFxRatesPlaceholder || 'Search FX rates by currency code, name, or date...'}
+              placeholder={accDict.searchFxRatesPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] ps-10 pe-3.5 py-2.5 text-xs text-[var(--text-primary)] focus:ring-2 focus:ring-blue-500/20"
@@ -236,10 +247,10 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{accDict.currency || 'Currency'}</th>
-              <th className={tableClasses.th}>{accDict.effectiveDate || 'Effective Date'}</th>
-              <th className={tableClasses.th}>{accDict.rateDecimal || 'Rate (Decimal)'}</th>
-              <th className={tableClasses.th}>{accDict.rateE6 || 'Rate E6 (Scaled Integer)'}</th>
+              <th className={tableClasses.th}>{accDict.currency}</th>
+              <th className={tableClasses.th}>{accDict.effectiveDate}</th>
+              <th className={tableClasses.th}>{accDict.rateDecimal}</th>
+              <th className={tableClasses.th}>{accDict.rateE6}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -266,7 +277,10 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-xs text-[var(--primary)]">{decimalValue}</span>
                       <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                        (1 {r.currency} = {decimalValue} EGP)
+                        {accDict.fxConversionLine
+                          .replace('{currency}', r.currency)
+                          .replace('{rate}', decimalValue)
+                          .replace('{baseCurrency}', baseCurrencyDisplay)}
                       </span>
                     </div>
                   </td>
@@ -276,6 +290,13 @@ export default function ExchangeRates({ locale, rates, currencies = [] }: Exchan
                 </tr>
               );
             })}
+            {filteredRates.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-6 text-center text-xs font-bold text-[var(--text-muted)]">
+                  {accDict.noFxRates}
+                </td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>

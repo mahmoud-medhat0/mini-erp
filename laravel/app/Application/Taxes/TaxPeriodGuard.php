@@ -20,7 +20,11 @@ class TaxPeriodGuard
             $endDate = is_string($filedPeriod->end_date) ? $filedPeriod->end_date : $filedPeriod->end_date->format('Y-m-d');
 
             throw ValidationException::withMessages([
-                'tax_period' => ["Tax-affecting postings are blocked because tax period '{$filedPeriod->period_label}' ({$startDate} to {$endDate}) is filed."],
+                'tax_period' => [__('Tax-affecting postings are blocked because tax period :period (:start to :end) is filed.', [
+                    'period' => $filedPeriod->period_label,
+                    'start' => $startDate,
+                    'end' => $endDate,
+                ])],
             ]);
         }
     }

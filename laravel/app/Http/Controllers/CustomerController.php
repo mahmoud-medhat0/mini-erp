@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\MasterData\CustomerPageData;
 use App\Application\MasterData\CustomerService;
-use App\Models\Currency;
-use App\Models\Customer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,42 +13,12 @@ class CustomerController extends Controller
 {
     public function __construct(
         private readonly CustomerService $customerService,
+        private readonly CustomerPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-
-        $query = Customer::query();
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
-
-        if ($status && in_array($status, ['active', 'inactive'], true)) {
-            $query->where('status', $status);
-        }
-
-        $customers = $query->orderBy('code', 'asc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $currencies = Currency::query()->where('is_active', true)->get();
-
-        return Inertia::render('Customers/Index', [
-            'customers' => $customers,
-            'currencies' => $currencies,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
-        ]);
+        return Inertia::render('Customers/Index', $this->pageData->indexData($request->only(['search', 'status'])));
     }
 
     public function store(Request $request): RedirectResponse
@@ -66,7 +35,7 @@ class CustomerController extends Controller
 
         $this->customerService->create($validated, $request->user()?->id);
 
-        return back()->with('success', 'Customer created successfully.');
+        return back()->with('success', __('Customer created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -87,6 +56,6 @@ class CustomerController extends Controller
 
         $this->customerService->update($id, $validated, $expectedVersion, $request->user()?->id);
 
-        return back()->with('success', 'Customer updated successfully.');
+        return back()->with('success', __('Customer updated successfully.'));
     }
 }

@@ -250,13 +250,16 @@ class Phase6Slice7FixedAssetReportsTest extends TestCase
         );
     }
 
-    public function test_schema_does_not_add_unsupported_scope_columns_for_reports(): void
+    public function test_schema_does_not_add_unsupported_company_tenant_or_custodian_scope_columns_for_reports(): void
     {
-        foreach (['company_id', 'branch_id', 'tenant_id', 'custodian_id', 'employee_id', 'warehouse_id', 'location_id'] as $column) {
+        foreach (['company_id', 'tenant_id', 'custodian_id', 'employee_id', 'warehouse_id', 'location_id'] as $column) {
             $this->assertFalse(Schema::hasColumn('fixed_asset', $column));
             $this->assertFalse(Schema::hasColumn('fixed_asset_depreciation_schedule', $column));
             $this->assertFalse(Schema::hasColumn('fixed_asset_depreciation_run', $column));
             $this->assertFalse(Schema::hasColumn('fixed_asset_disposal', $column));
         }
+
+        $this->assertTrue(Schema::hasColumn('fixed_asset', 'branch_id'));
+        $this->assertTrue(Schema::hasColumn('fixed_asset', 'fixed_asset_location_id'));
     }
 }

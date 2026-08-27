@@ -26,19 +26,19 @@ class FixedAssetDepreciationEngineService
 
             if ($asset->status !== 'active') {
                 throw ValidationException::withMessages([
-                    'asset' => ['Only active fixed assets can have depreciation schedules.'],
+                    'asset' => [__('Only active fixed assets can have depreciation schedules.')],
                 ]);
             }
 
             if ($asset->depreciation_method !== 'straight_line') {
                 throw ValidationException::withMessages([
-                    'depreciation_method' => ['Only straight-line depreciation is supported in Phase 6.'],
+                    'depreciation_method' => [__('Only straight-line depreciation is supported in Phase 6.')],
                 ]);
             }
 
             if ($asset->useful_life_months <= 0) {
                 throw ValidationException::withMessages([
-                    'useful_life_months' => ['Asset useful life in months must be greater than zero.'],
+                    'useful_life_months' => [__('Asset useful life in months must be greater than zero.')],
                 ]);
             }
 
@@ -88,7 +88,7 @@ class FixedAssetDepreciationEngineService
 
             if (! $startPeriod) {
                 throw ValidationException::withMessages([
-                    'financial_periods' => ['No financial period is available for the depreciation schedule start date.'],
+                    'financial_periods' => [__('No financial period is available for the depreciation schedule start date.')],
                 ]);
             }
 
@@ -103,7 +103,10 @@ class FixedAssetDepreciationEngineService
 
             if ($periods->count() < $usefulLifeMonths) {
                 throw ValidationException::withMessages([
-                    'financial_periods' => ["Insufficient fiscal periods configured. Required: [{$usefulLifeMonths}], Available: [{$periods->count()}]."],
+                    'financial_periods' => [__('Insufficient fiscal periods configured. Required: [:required], Available: [:available].', [
+                        'required' => $usefulLifeMonths,
+                        'available' => $periods->count(),
+                    ])],
                 ]);
             }
 

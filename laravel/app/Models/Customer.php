@@ -47,6 +47,16 @@ class Customer extends Model
         return $this->hasMany(IncomingCheque::class, 'customer_id');
     }
 
+    public function rentalContracts(): HasMany
+    {
+        return $this->hasMany(RentalContract::class, 'customer_id');
+    }
+
+    public function rentalInvoices(): HasMany
+    {
+        return $this->hasMany(RentalInvoice::class, 'customer_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

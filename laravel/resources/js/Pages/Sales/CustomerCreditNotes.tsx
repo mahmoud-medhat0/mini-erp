@@ -53,6 +53,7 @@ type CreditNoteRow = {
   currency: string;
   subtotal_minor: number;
   tax_minor: number;
+  tax_minor_override?: number | null;
   total_minor: number;
   tax_mode: 'none' | 'manual_rate' | 'manual_amount';
   tax_rate_bps: number;
@@ -96,6 +97,7 @@ export default function CustomerCreditNotesIndex({
   filters,
 }: CustomerCreditNotesProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -109,7 +111,7 @@ export default function CustomerCreditNotesIndex({
     customer_invoice_id: '',
     sales_return_id: '',
     credit_date: todayStr,
-    currency: 'USD',
+    currency: '',
     tax_mode: 'none',
     tax_rate_bps: '' as number | '',
     tax_minor_override: '' as number | '',
@@ -139,12 +141,12 @@ export default function CustomerCreditNotesIndex({
     ]);
   };
 
-  const updateLineItem = (index: number, field: keyof CreditLineForm, value: any) => {
+  const updateLineItem = <K extends keyof CreditLineForm>(index: number, field: K, value: CreditLineForm[K]) => {
     setLineItems((prev) => {
       const next = [...prev];
       const item = { ...next[index], [field]: value };
       if (field === 'customer_invoice_line_id' && selectedInvoice) {
-        const invLine = selectedInvoice.lines.find((l) => l.id === value);
+        const invLine = selectedInvoice.lines.find((l) => l.id === String(value ?? ''));
         if (invLine) {
           item.description = item.description || invLine.description || '';
         }
@@ -175,7 +177,7 @@ export default function CustomerCreditNotesIndex({
       currency: note.currency,
       tax_mode: note.tax_mode || 'none',
       tax_rate_bps: note.tax_mode === 'manual_rate' ? note.tax_rate_bps : '',
-      tax_minor_override: note.tax_mode === 'manual_amount' ? (note as any).tax_minor_override ?? note.tax_minor : '',
+      tax_minor_override: note.tax_mode === 'manual_amount' ? note.tax_minor_override ?? note.tax_minor : '',
       reason: note.reason || '',
       notes: note.notes || '',
       lock_version: note.lock_version,
@@ -372,9 +374,9 @@ export default function CustomerCreditNotesIndex({
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {note.number || dict.app.pages.salesCustomerCreditNotes.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-medium`}>{note.customer?.name || '-'}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.customerInvoice?.number || '-'}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.salesReturn?.number || '-'}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{note.customer?.name || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{note.customerInvoice?.number || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{note.salesReturn?.number || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{note.credit_date}</td>
                     <td className={`${tableClasses.td} font-mono font-semibold`}>
                       {formatMoney(note.total_minor, note.currency)}
@@ -385,7 +387,7 @@ export default function CustomerCreditNotesIndex({
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {note.status === 'draft' && can('sales.edit') ? (
+                      {note.status === 'draft' && can('sales.credit_notes') ? (
                         <button
                           type="button"
                           onClick={() => openEditModal(note)}
@@ -395,7 +397,7 @@ export default function CustomerCreditNotesIndex({
                         </button>
                       ) : null}
 
-                      {note.status === 'draft' && can('sales.submit') ? (
+                      {note.status === 'draft' && can('sales.credit_notes') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note, 'submit')}
@@ -405,7 +407,7 @@ export default function CustomerCreditNotesIndex({
                         </button>
                       ) : null}
 
-                      {['draft', 'submitted'].includes(note.status) && can('sales.approve') ? (
+                      {['draft', 'submitted'].includes(note.status) && can('sales.credit_notes') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note, 'approve')}
@@ -415,7 +417,7 @@ export default function CustomerCreditNotesIndex({
                         </button>
                       ) : null}
 
-                      {note.status === 'approved' && can('sales.post') ? (
+                      {note.status === 'approved' && can('sales.credit_notes') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note, 'post')}
@@ -425,16 +427,16 @@ export default function CustomerCreditNotesIndex({
                         </button>
                       ) : null}
 
-                      {note.status === 'posted' && note.receivable_entry_id ? (
+                      {note.status === 'posted' && note.receivable_entry_id && can('sales.credit_notes') ? (
                         <Link
                           href={`/sales/receivable-settlements?customer_id=${note.customer_id}&source_entry_id=${note.receivable_entry_id}`}
                           className="text-xs font-bold text-purple-600 hover:text-purple-800"
                         >
-                          Settle
+                          {dict.app.pages.salesCustomerCreditNotes.settle}
                         </Link>
                       ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(note.status) && can('sales.cancel') ? (
+                      {['draft', 'submitted', 'approved'].includes(note.status) && can('sales.credit_notes') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note, 'cancel')}

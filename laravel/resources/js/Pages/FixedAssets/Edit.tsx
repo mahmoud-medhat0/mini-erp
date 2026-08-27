@@ -43,7 +43,7 @@ type EditProps = SharedPageProps & {
 
 export default function FixedAssetEdit({ locale, asset }: EditProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
 
   const nameObj = typeof asset.name === 'object' && asset.name !== null ? asset.name : { en: String(asset.name), ar: String(asset.name) };
 

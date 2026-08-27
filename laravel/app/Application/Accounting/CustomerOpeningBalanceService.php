@@ -73,7 +73,7 @@ class CustomerOpeningBalanceService
 
         if ($cob->status !== 'draft') {
             throw ValidationException::withMessages([
-                'status' => ['Only draft opening balances can be cancelled.'],
+                'status' => [__('Only draft opening balances can be cancelled.')],
             ]);
         }
 
@@ -116,7 +116,10 @@ class CustomerOpeningBalanceService
                     }
 
                     if ($cob->status !== 'draft') {
-                        throw new InvalidArgumentException("Customer opening balance [{$id}] cannot be posted from status [{$cob->status}].");
+                        throw new InvalidArgumentException(__('Customer opening balance :id cannot be posted from status :status.', [
+                            'id' => $id,
+                            'status' => $cob->status,
+                        ]));
                     }
 
                     // 2. Lock & Guard Financial Period Row
@@ -248,13 +251,13 @@ class CustomerOpeningBalanceService
 
         if (! Customer::query()->where('id', $data['customer_id'])->exists()) {
             throw ValidationException::withMessages([
-                'customer_id' => ["Customer [{$data['customer_id']}] does not exist."],
+                'customer_id' => [__('Customer :customer does not exist.', ['customer' => $data['customer_id']])],
             ]);
         }
 
         if (! FiscalYear::query()->where('id', $data['fiscal_year_id'])->exists()) {
             throw ValidationException::withMessages([
-                'fiscal_year_id' => ["Fiscal year [{$data['fiscal_year_id']}] does not exist."],
+                'fiscal_year_id' => [__('Fiscal year :year does not exist.', ['year' => $data['fiscal_year_id']])],
             ]);
         }
 
@@ -262,19 +265,19 @@ class CustomerOpeningBalanceService
         $period = FinancialPeriod::query()->find($data['financial_period_id']);
         if (! $period) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ["Financial period [{$data['financial_period_id']}] does not exist."],
+                'financial_period_id' => [__('Financial period :period does not exist.', ['period' => $data['financial_period_id']])],
             ]);
         }
 
         if ((string) $period->fiscal_year_id !== (string) $data['fiscal_year_id']) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ['Financial period must belong to the selected fiscal year.'],
+                'financial_period_id' => [__('Financial period must belong to the selected fiscal year.')],
             ]);
         }
 
         if (! $period->isOpen()) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ['Financial period is closed.'],
+                'financial_period_id' => [__('Financial period is closed.')],
             ]);
         }
 
@@ -282,7 +285,7 @@ class CustomerOpeningBalanceService
 
         if (! Currency::query()->where('code', $data['currency'])->exists()) {
             throw ValidationException::withMessages([
-                'currency' => ["Currency [{$data['currency']}] does not exist."],
+                'currency' => [__('Currency :currency does not exist.', ['currency' => $data['currency']])],
             ]);
         }
 
@@ -292,7 +295,7 @@ class CustomerOpeningBalanceService
             ->where('status', '!=', 'cancelled')
             ->exists()) {
             throw ValidationException::withMessages([
-                'customer_id' => ['Customer already has an active opening balance for this fiscal year.'],
+                'customer_id' => [__('Customer already has an active opening balance for this fiscal year.')],
             ]);
         }
     }
@@ -306,7 +309,7 @@ class CustomerOpeningBalanceService
         foreach ($fields as $field) {
             if (! array_key_exists($field, $data) || $data[$field] === null || $data[$field] === '') {
                 throw ValidationException::withMessages([
-                    $field => ["Field [{$field}] is required."],
+                    $field => [__('Field :field is required.', ['field' => $field])],
                 ]);
             }
         }
@@ -320,7 +323,7 @@ class CustomerOpeningBalanceService
 
         if (! is_int($value) || $value <= 0) {
             throw ValidationException::withMessages([
-                $field => ["Field [{$field}] must be a positive integer."],
+                $field => [__('Field :field must be a positive integer.', ['field' => $field])],
             ]);
         }
 
@@ -331,13 +334,13 @@ class CustomerOpeningBalanceService
     {
         if ($amountMinor <= 0) {
             throw ValidationException::withMessages([
-                'amount_minor' => ['Amount must be a positive minor integer.'],
+                'amount_minor' => [__('Amount must be a positive minor integer.')],
             ]);
         }
 
         if ($fxRateE6 !== 1000000) {
             throw ValidationException::withMessages([
-                'fx_rate_e6' => ['Slice 2 opening balances currently require 1:1 FX rate until exact FX posting is implemented.'],
+                'fx_rate_e6' => [__('Opening balances currently require 1:1 FX rate until exact FX posting is implemented.')],
             ]);
         }
     }
@@ -350,7 +353,10 @@ class CustomerOpeningBalanceService
         foreach ($accounts as $key => $account) {
             if ($account->currency !== $currency) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Mapped account [{$key}] currency must match opening balance currency [{$currency}]."],
+                    'currency' => [__('Mapped account :key currency must match opening balance currency :currency.', [
+                        'key' => $key,
+                        'currency' => $currency,
+                    ])],
                 ]);
             }
         }

@@ -26,7 +26,7 @@ class TaxReturnService
             $period = TaxPeriod::query()->where('id', $taxPeriodId)->lockForUpdate()->firstOrFail();
 
             if ($period->status === 'filed') {
-                throw ValidationException::withMessages(['tax_period' => ['Cannot generate draft tax return for a filed tax period.']]);
+                throw ValidationException::withMessages(['tax_period' => [__('Cannot generate draft tax return for a filed tax period.')]]);
             }
 
             $startDateStr = is_string($period->start_date) ? $period->start_date : $period->start_date->format('Y-m-d');
@@ -105,7 +105,7 @@ class TaxReturnService
                 if ($alreadyFiledReturn !== null) {
                     return $alreadyFiledReturn;
                 }
-                throw ValidationException::withMessages(['tax_period' => ['Tax period is already filed.']]);
+                throw ValidationException::withMessages(['tax_period' => [__('Tax period is already filed.')]]);
             }
 
             $beforeReturn = $taxReturn->toArray();

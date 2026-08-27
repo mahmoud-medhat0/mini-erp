@@ -42,6 +42,7 @@ type AdjustmentNoteRow = {
   currency: string;
   subtotal_minor: number;
   tax_minor: number;
+  tax_amount_minor?: number | null;
   total_minor: number;
   tax_mode: 'none' | 'manual_rate' | 'manual_amount';
   tax_rate_bps: number;
@@ -85,6 +86,7 @@ export default function SupplierAdjustmentNotesIndex({
   filters,
 }: SupplierAdjustmentNotesProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -100,7 +102,7 @@ export default function SupplierAdjustmentNotesIndex({
     adjustment_date: todayStr,
     direction: 'decrease_payable',
     ui_label: '',
-    currency: 'USD',
+    currency: '',
     tax_mode: 'none',
     tax_rate_bps: '' as number | '',
     tax_amount_minor: '' as number | '',
@@ -121,7 +123,7 @@ export default function SupplierAdjustmentNotesIndex({
     setLineItems((prev) => [...prev, { description: '', quantity: 1, unit_cost_minor: '' }]);
   };
 
-  const updateLineItem = (index: number, field: keyof AdjustmentLineForm, value: any) => {
+  const updateLineItem = <K extends keyof AdjustmentLineForm>(index: number, field: K, value: AdjustmentLineForm[K]) => {
     setLineItems((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
@@ -152,7 +154,7 @@ export default function SupplierAdjustmentNotesIndex({
       currency: note.currency,
       tax_mode: note.tax_mode || 'none',
       tax_rate_bps: note.tax_mode === 'manual_rate' ? note.tax_rate_bps : '',
-      tax_amount_minor: note.tax_mode === 'manual_amount' ? (note as any).tax_amount_minor ?? note.tax_minor : '',
+      tax_amount_minor: note.tax_mode === 'manual_amount' ? note.tax_amount_minor ?? note.tax_minor : '',
       reason: note.reason || '',
       notes: note.notes || '',
       lock_version: note.lock_version,
@@ -354,9 +356,9 @@ export default function SupplierAdjustmentNotesIndex({
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {note.number || dict.app.pages.purchasingSupplierAdjustmentNotes.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-medium`}>{note.supplier?.name || '-'}</td>
-                    <td className={tableClasses.td}>{note.ui_label || '-'}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.supplierBill?.number || '-'}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{note.supplier?.name || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{note.ui_label || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{note.supplierBill?.number || accDict.notAvailable}</td>
                     <td className={`${tableClasses.td} font-semibold ${note.direction === 'increase_payable' ? 'text-red-600' : 'text-emerald-600'}`}>
                       {getDirectionLabel(note.direction)}
                     </td>
@@ -370,7 +372,7 @@ export default function SupplierAdjustmentNotesIndex({
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {note.status === 'draft' && can('purchasing.edit') ? (
+                      {note.status === 'draft' && can('purchasing.adjustment_notes') ? (
                         <button
                           type="button"
                           onClick={() => openEditModal(note)}
@@ -380,7 +382,7 @@ export default function SupplierAdjustmentNotesIndex({
                         </button>
                       ) : null}
 
-                      {note.status === 'draft' && can('purchasing.submit') ? (
+                      {note.status === 'draft' && can('purchasing.adjustment_notes') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note.id, 'submit')}
@@ -390,7 +392,7 @@ export default function SupplierAdjustmentNotesIndex({
                         </button>
                       ) : null}
 
-                      {['draft', 'submitted'].includes(note.status) && can('purchasing.approve') ? (
+                      {['draft', 'submitted'].includes(note.status) && can('purchasing.adjustment_notes') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note.id, 'approve')}
@@ -400,7 +402,7 @@ export default function SupplierAdjustmentNotesIndex({
                         </button>
                       ) : null}
 
-                      {note.status === 'approved' && can('purchasing.post') ? (
+                      {note.status === 'approved' && can('purchasing.adjustment_notes') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note.id, 'post')}
@@ -410,16 +412,16 @@ export default function SupplierAdjustmentNotesIndex({
                         </button>
                       ) : null}
 
-                      {note.status === 'posted' && note.direction === 'decrease_payable' && note.payable_entry_id ? (
+                      {note.status === 'posted' && note.direction === 'decrease_payable' && note.payable_entry_id && can('purchasing.adjustment_notes') ? (
                         <Link
                           href={`/purchasing/payable-settlements?supplier_id=${note.supplier_id}&source_entry_id=${note.payable_entry_id}`}
                           className="text-xs font-bold text-purple-600 hover:text-purple-800"
                         >
-                          Settle
+                          {dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
                         </Link>
                       ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(note.status) && can('purchasing.cancel') ? (
+                      {['draft', 'submitted', 'approved'].includes(note.status) && can('purchasing.adjustment_notes') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(note.id, 'cancel')}

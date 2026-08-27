@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\FixedAssets;
 
+use App\Application\FixedAssets\FixedAssetDisposalPageData;
 use App\Application\FixedAssets\FixedAssetDisposalPostingService;
 use App\Domain\Accounting\PeriodClosedException;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
-use App\Models\FixedAssetDisposal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +20,7 @@ class FixedAssetDisposalController extends Controller
 
     public function __construct(
         private readonly FixedAssetDisposalPostingService $disposalPostingService,
+        private readonly FixedAssetDisposalPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
@@ -27,33 +28,7 @@ class FixedAssetDisposalController extends Controller
         $this->authorizePermission($request, 'fixedAssets.view');
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
-        $query = FixedAssetDisposal::query()->with(['asset', 'financialPeriod', 'journalEntry']);
-
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhereHas('asset', function ($assetQuery) use ($search) {
-                        $assetQuery->where('asset_number', 'like', "%{$search}%")
-                            ->orWhere('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('disposal_type')) {
-            $query->where('disposal_type', $request->input('disposal_type'));
-        }
-
-        $disposals = $query->latest('created_at')->paginate(15)->withQueryString();
-
-        return Inertia::render('FixedAssets/Disposals/Index', [
-            'disposals' => $disposals,
-            'filters' => $request->only(['search', 'status', 'disposal_type']),
-        ]);
+        return Inertia::render('FixedAssets/Disposals/Index', $this->pageData->indexData($request->only(['search', 'status', 'disposal_type'])));
     }
 
     public function show(Request $request, string $id): Response
@@ -61,13 +36,7 @@ class FixedAssetDisposalController extends Controller
         $this->authorizePermission($request, 'fixedAssets.view');
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
-        $disposal = FixedAssetDisposal::query()
-            ->with(['asset.category', 'financialPeriod', 'journalEntry.lines.account', 'reversalJournalEntry', 'poster'])
-            ->findOrFail($id);
-
-        return Inertia::render('FixedAssets/Disposals/Show', [
-            'disposal' => $disposal,
-        ]);
+        return Inertia::render('FixedAssets/Disposals/Show', $this->pageData->showData($id));
     }
 
     public function preview(Request $request, string $assetId): JsonResponse

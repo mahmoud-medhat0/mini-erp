@@ -28,6 +28,7 @@ type CategoriesProps = SharedPageProps & {
 
 export default function ProductCategoriesIndex({ locale, categories, filters }: CategoriesProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -79,7 +80,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
   };
 
   const handleDelete = (category: ProductCategoryRow) => {
-    if (confirm(dict.app.pages.catalogProductCategories.areYouSureYouWantTo)) {
+    if (confirm(dict.app.pages.catalogProductCategories.confirmDeleteCategory.replace('{name}', category.name || category.code))) {
       destroy(`/catalog/categories/${category.id}`);
     }
   };
@@ -150,7 +151,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                   <tr key={cat.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>{cat.code}</td>
                     <td className={`${tableClasses.td} font-medium`}>{cat.name}</td>
-                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{cat.description || '-'}</td>
+                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{cat.description || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={cat.is_active ? 'ok' : 'muted'}>
                         {cat.is_active ? dict.app.pages.catalogProductCategories.active_2 : dict.app.pages.catalogProductCategories.inactive}
@@ -204,7 +205,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                   value={data.code}
                   onChange={(e) => setData('code', e.target.value.toUpperCase())}
                   required
-                  placeholder="e.g. RAW, FG, SERV"
+                  placeholder={dict.app.pages.catalogProductCategories.codePlaceholder}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none uppercase font-mono"
                 />
                 {errors.code ? <p className="mt-1 text-[10px] text-red-500">{errors.code}</p> : null}

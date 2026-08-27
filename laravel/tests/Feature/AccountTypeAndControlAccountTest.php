@@ -122,6 +122,7 @@ class AccountTypeAndControlAccountTest extends TestCase
             'name_en' => 'Invalid Account',
             'name_ar' => 'حساب غير صالح',
             'account_type_id' => 'not-a-uuid',
+            'currency' => 'EGP',
         ]);
 
         $response->assertSessionHasErrors(['account_type_id']);
@@ -211,6 +212,7 @@ class AccountTypeAndControlAccountTest extends TestCase
             'name_en' => 'Equity Account',
             'name_ar' => 'حساب حقوق ملكية',
             'account_type_id' => $equityType->id,
+            'currency' => 'EGP',
         ]);
 
         $response->assertRedirect();
@@ -239,6 +241,7 @@ class AccountTypeAndControlAccountTest extends TestCase
             'name_ar' => 'حساب غير متوافق',
             'account_type_id' => $assetType->id,
             'account_group_id' => $liabilityGroup->id,
+            'currency' => 'EGP',
         ]);
 
         $response->assertSessionHasErrors(['account_group_id']);

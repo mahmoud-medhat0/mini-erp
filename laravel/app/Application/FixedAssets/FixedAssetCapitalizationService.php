@@ -28,7 +28,7 @@ class FixedAssetCapitalizationService
     {
         if (! in_array($mode, ['opening_already_capitalized', 'manual_capitalization'], true)) {
             throw ValidationException::withMessages([
-                'capitalization_mode' => ["Invalid capitalization mode [{$mode}]."],
+                'capitalization_mode' => [__('Invalid capitalization mode [:mode].', ['mode' => $mode])],
             ]);
         }
 
@@ -42,13 +42,13 @@ class FixedAssetCapitalizationService
                 }
 
                 throw ValidationException::withMessages([
-                    'asset' => ['Asset is already capitalized.'],
+                    'asset' => [__('Asset is already capitalized.')],
                 ]);
             }
 
             if ($asset->status !== 'draft') {
                 throw ValidationException::withMessages([
-                    'asset' => ['Only draft assets can be capitalized.'],
+                    'asset' => [__('Only draft assets can be capitalized.')],
                 ]);
             }
 
@@ -157,7 +157,7 @@ class FixedAssetCapitalizationService
 
             if ($asset->status !== 'active' || $asset->capitalization_mode !== 'manual_capitalization' || ! $asset->journal_entry_id) {
                 throw ValidationException::withMessages([
-                    'asset' => ['Only manually capitalized active assets can be reversed.'],
+                    'asset' => [__('Only manually capitalized active assets can be reversed.')],
                 ]);
             }
 

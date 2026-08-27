@@ -69,6 +69,7 @@ export default function BankReconciliationShow({
 }: BankReconciliationShowProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showAddLineModal, setShowAddLineModal] = useState(false);
@@ -125,12 +126,13 @@ export default function BankReconciliationShow({
   };
 
   const handleFinalize = () => {
-    if (confirm(dict.app.pages.bankReconciliationsShow.areYouSureYouWantTo_2)) {
+    if (confirm(dict.app.pages.bankReconciliationsShow.confirmFinalizeReconciliation)) {
       router.post(`/bank-reconciliations/${reconciliation.id}/finalize`);
     }
   };
 
-  const currency = reconciliation.bankAccount?.currency || 'EGP';
+  const currency = reconciliation.bankAccount?.currency;
+  const formatReconciliationMoney = (amountMinor: number): string => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
 
   return (
     <AppLayout active="bank-reconciliations.show">
@@ -171,19 +173,19 @@ export default function BankReconciliationShow({
         <Card className="p-4">
           <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.statementClosing}</p>
           <p className="text-base font-mono font-bold text-[var(--text-primary)] mt-1">
-            {formatMoney(summary.statement_closing_balance_minor, currency)}
+            {formatReconciliationMoney(summary.statement_closing_balance_minor)}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.glBookClosing}</p>
           <p className="text-base font-mono font-bold text-[var(--text-primary)] mt-1">
-            {formatMoney(summary.ledger_closing_balance_minor, currency)}
+            {formatReconciliationMoney(summary.ledger_closing_balance_minor)}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{dict.app.pages.bankReconciliationsShow.reconciledDifference}</p>
           <p className={`text-base font-mono font-bold mt-1 ${summary.reconciled_difference_minor === 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-            {formatMoney(summary.reconciled_difference_minor, currency)}
+            {formatReconciliationMoney(summary.reconciled_difference_minor)}
           </p>
         </Card>
         <Card className="p-4">
@@ -225,19 +227,19 @@ export default function BankReconciliationShow({
                 {reconciliation.lines.map((line) => (
                   <tr key={line.id} className="hover:bg-[var(--background)]/50 transition-colors">
                     <td className={`${tableClasses.td} font-mono text-xs`}>{line.statement_date}</td>
-                    <td className={`${tableClasses.td} font-mono text-xs`}>{line.reference || '—'}</td>
-                    <td className={tableClasses.td}>{line.description || '—'}</td>
+                    <td className={`${tableClasses.td} font-mono text-xs`}>{line.reference || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{line.description || accDict.notAvailable}</td>
                     <td className={`${tableClasses.td} font-mono text-xs`}>
-                      {line.debit_minor > 0 ? formatMoney(line.debit_minor, currency) : '—'}
+                      {line.debit_minor > 0 ? formatReconciliationMoney(line.debit_minor) : accDict.notAvailable}
                     </td>
                     <td className={`${tableClasses.td} font-mono text-xs`}>
-                      {line.credit_minor > 0 ? formatMoney(line.credit_minor, currency) : '—'}
+                      {line.credit_minor > 0 ? formatReconciliationMoney(line.credit_minor) : accDict.notAvailable}
                     </td>
                     <td className={tableClasses.td}>
                       {line.matchedLedgerEntry ? (
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                           <span>
-                            {line.matchedLedgerEntry.journalEntry?.entry_number || line.matchedLedgerEntry.id.substring(0, 8)} ({formatMoney(line.matchedLedgerEntry.debit_minor || line.matchedLedgerEntry.credit_minor, currency)})
+                            {line.matchedLedgerEntry.journalEntry?.entry_number || line.matchedLedgerEntry.id.substring(0, 8)} ({formatReconciliationMoney(line.matchedLedgerEntry.debit_minor || line.matchedLedgerEntry.credit_minor)})
                           </span>
                         </div>
                       ) : (
@@ -275,7 +277,7 @@ export default function BankReconciliationShow({
                           ) : null}
                         </div>
                       ) : (
-                        <span className="text-xs text-[var(--text-muted)] font-mono">—</span>
+                        <span className="text-xs text-[var(--text-muted)] font-mono">{accDict.notAvailable}</span>
                       )}
                     </td>
                   </tr>
@@ -385,8 +387,8 @@ export default function BankReconciliationShow({
               {interpolate(dict.app.pages.bankReconciliationsShow.matchLineLabel, {
                 date: selectedLineForMatch.statement_date,
                 desc: selectedLineForMatch.description || dict.app.pages.bankReconciliationsShow.noDesc,
-                debit: formatMoney(selectedLineForMatch.debit_minor, currency),
-                credit: formatMoney(selectedLineForMatch.credit_minor, currency),
+                debit: formatReconciliationMoney(selectedLineForMatch.debit_minor),
+                credit: formatReconciliationMoney(selectedLineForMatch.credit_minor),
               })}
             </p>
 
@@ -411,9 +413,9 @@ export default function BankReconciliationShow({
                       <tr key={cand.id} className="hover:bg-[var(--background)]/50">
                         <td className={`${tableClasses.td} font-mono text-xs`}>{cand.entry_date}</td>
                         <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{cand.journalEntry?.entry_number || cand.id.substring(0, 8)}</td>
-                        <td className={tableClasses.td}>{cand.description || '—'}</td>
+                        <td className={tableClasses.td}>{cand.description || accDict.notAvailable}</td>
                         <td className={`${tableClasses.td} font-mono text-xs font-bold`}>
-                          {formatMoney(cand.debit_minor || cand.credit_minor, currency)}
+                          {formatReconciliationMoney(cand.debit_minor || cand.credit_minor)}
                         </td>
                         <td className={tableClasses.td}>
                           <button

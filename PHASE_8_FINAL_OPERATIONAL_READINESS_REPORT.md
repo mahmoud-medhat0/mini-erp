@@ -1,6 +1,6 @@
 # Phase 8 Final Operational Readiness Report
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Phase 8 Operational Readiness & E2E Smoke has been completed as a bounded operational hardening pass.
@@ -179,5 +179,5 @@ Remaining owner/deployment decisions:
 - No provider account setup was introduced.
 - No private environment values were requested or documented.
 - No GitHub Actions requirement was introduced.
-- No tenant/company/branch ownership scope was introduced.
+- No tenant/company ownership scope or branch tenancy/security ownership scope was introduced.
 - Existing RBAC, audit, attachments, notifications, scheduler, queue, accounting, tax, and reporting invariants remain intact.

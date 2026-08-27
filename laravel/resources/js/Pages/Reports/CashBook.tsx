@@ -36,6 +36,7 @@ type CashBookProps = SharedPageProps & {
 
 export default function CashBook({ locale, report, cashAccounts, filters }: CashBookProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
 
   const [cashAccountId, setCashAccountId] = useState(filters.cash_account_id || '');
   const [dateFrom, setDateFrom] = useState(filters.date_from);
@@ -156,10 +157,10 @@ export default function CashBook({ locale, report, cashAccounts, filters }: Cash
                       <td className="p-3 font-mono">{item.journal_number}</td>
                       <td className="p-3 text-[var(--text-secondary)]">{item.description}</td>
                       <td className="p-3 text-end font-mono">
-                        {item.debit_minor > 0 ? formatMoney(item.debit_minor, report.currency) : '—'}
+                        {item.debit_minor > 0 ? formatMoney(item.debit_minor, report.currency) : accDict.zeroAmount}
                       </td>
                       <td className="p-3 text-end font-mono">
-                        {item.credit_minor > 0 ? formatMoney(item.credit_minor, report.currency) : '—'}
+                        {item.credit_minor > 0 ? formatMoney(item.credit_minor, report.currency) : accDict.zeroAmount}
                       </td>
                       <td className="p-3 text-end font-mono font-bold">
                         {formatMoney(item.balance_after_minor, report.currency)}

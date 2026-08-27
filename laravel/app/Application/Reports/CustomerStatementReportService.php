@@ -11,10 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerStatementReportService
 {
+    public function __construct(
+        private readonly ReportCurrencyResolver $currencyResolver,
+    ) {}
+
     public function generate(string $customerId, string $dateFrom, string $dateTo, ?string $currency = null): array
     {
         $customer = Customer::query()->findOrFail($customerId);
-        $targetCurrency = $currency ?? 'EGP';
+        $targetCurrency = $this->currencyResolver->resolve($currency);
 
         // 1. Calculate opening balance before dateFrom (Opening Balance + Receivable Entries - Customer Receipts)
         $obPrior = (int) CustomerOpeningBalance::query()

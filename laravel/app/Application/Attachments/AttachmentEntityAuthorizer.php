@@ -19,8 +19,22 @@ class AttachmentEntityAuthorizer
 
         $permissions = is_array($permissions) ? $permissions : [$permissions];
         $hasAccess = collect($permissions)
-            ->filter(fn (mixed $permission): bool => is_string($permission) && $permission !== '')
-            ->contains(fn (string $permission): bool => $user->can($permission));
+            ->contains(function (mixed $permission) use ($user): bool {
+                if (is_string($permission) && $permission !== '') {
+                    return $user->can($permission);
+                }
+
+                if (is_array($permission)) {
+                    $required = collect($permission)
+                        ->filter(fn (mixed $nested): bool => is_string($nested) && $nested !== '')
+                        ->values();
+
+                    return $required->isNotEmpty()
+                        && $required->every(fn (string $nested): bool => $user->can($nested));
+                }
+
+                return false;
+            });
 
         abort_unless($hasAccess, 403);
         abort_unless($this->entityExists($definition, $entityId), 404);
@@ -35,7 +49,7 @@ class AttachmentEntityAuthorizer
     }
 
     /**
-     * @return array{table: string, key: string, permissions: array<string, string|list<string>>}|null
+     * @return array{table: string, key: string, permissions: array<string, mixed>}|null
      */
     private function definition(string $entityType): ?array
     {
@@ -57,7 +71,7 @@ class AttachmentEntityAuthorizer
             return null;
         }
 
-        /** @var array<string, string|list<string>> $permissions */
+        /** @var array<string, mixed> $permissions */
         return [
             'table' => $table,
             'key' => $key,

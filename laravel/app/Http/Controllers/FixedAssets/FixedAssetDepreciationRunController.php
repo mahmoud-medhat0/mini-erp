@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\FixedAssets;
 
 use App\Application\FixedAssets\FixedAssetDepreciationPostingService;
+use App\Application\FixedAssets\FixedAssetDepreciationRunPageData;
 use App\Domain\Accounting\PeriodClosedException;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
-use App\Models\FinancialPeriod;
-use App\Models\FixedAssetDepreciationRun;
-use App\Models\FixedAssetDepreciationSchedule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +20,7 @@ class FixedAssetDepreciationRunController extends Controller
 
     public function __construct(
         private readonly FixedAssetDepreciationPostingService $postingService,
+        private readonly FixedAssetDepreciationRunPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
@@ -29,24 +28,7 @@ class FixedAssetDepreciationRunController extends Controller
         $this->authorizePermission($request, 'fixedAssets.view');
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
-        $runs = FixedAssetDepreciationRun::query()
-            ->with(['financialPeriod', 'journalEntry', 'poster'])
-            ->orderByDesc('created_at')
-            ->paginate(15);
-
-        $openPeriods = FinancialPeriod::query()
-            ->whereIn('status', ['open', 'reopened'])
-            ->orderBy('start_date')
-            ->get();
-
-        return Inertia::render('FixedAssets/DepreciationRuns/Index', [
-            'runs' => $runs,
-            'openPeriods' => $openPeriods,
-            'can' => [
-                'post' => ($request->user()?->can('fixedAssets.post') ?? false) && ($request->user()?->can('view_financials') ?? false),
-                'reverse' => ($request->user()?->can('fixedAssets.reverse') ?? false) && ($request->user()?->can('view_financials') ?? false),
-            ],
-        ]);
+        return Inertia::render('FixedAssets/DepreciationRuns/Index', $this->pageData->indexData($request->user()));
     }
 
     public function store(Request $request): RedirectResponse
@@ -85,16 +67,7 @@ class FixedAssetDepreciationRunController extends Controller
         $this->authorizePermission($request, 'fixedAssets.view');
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
-        $run = FixedAssetDepreciationRun::query()
-            ->with(['financialPeriod', 'journalEntry', 'poster', 'schedules.asset.category'])
-            ->findOrFail($id);
-
-        return Inertia::render('FixedAssets/DepreciationRuns/Show', [
-            'run' => $run,
-            'can' => [
-                'reverse' => ($request->user()?->can('fixedAssets.reverse') ?? false) && ($request->user()?->can('view_financials') ?? false) && $run->status === 'posted',
-            ],
-        ]);
+        return Inertia::render('FixedAssets/DepreciationRuns/Show', $this->pageData->showData($id, $request->user()));
     }
 
     public function preview(Request $request, string $financialPeriodId): Response
@@ -102,29 +75,7 @@ class FixedAssetDepreciationRunController extends Controller
         $this->authorizePermission($request, 'fixedAssets.view');
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
-        $period = FinancialPeriod::query()->findOrFail($financialPeriodId);
-
-        $schedules = FixedAssetDepreciationSchedule::query()
-            ->with(['asset.category'])
-            ->where('financial_period_id', $period->id)
-            ->where('status', 'planned')
-            ->whereHas('asset', function ($q) {
-                $q->where('status', 'active');
-            })
-            ->orderBy('id')
-            ->get();
-
-        $totalDepreciationMinor = (int) $schedules->sum('depreciation_minor');
-
-        return Inertia::render('FixedAssets/DepreciationRuns/Preview', [
-            'period' => $period,
-            'schedules' => $schedules,
-            'totalDepreciationMinor' => $totalDepreciationMinor,
-            'assetCount' => $schedules->pluck('fixed_asset_id')->unique()->count(),
-            'can' => [
-                'post' => ($request->user()?->can('fixedAssets.post') ?? false) && ($request->user()?->can('view_financials') ?? false),
-            ],
-        ]);
+        return Inertia::render('FixedAssets/DepreciationRuns/Preview', $this->pageData->previewData($financialPeriodId, $request->user()));
     }
 
     public function reverse(Request $request, string $id): RedirectResponse

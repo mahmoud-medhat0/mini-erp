@@ -5,6 +5,7 @@ namespace App\Application\Sales;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Support\CurrencyInput;
 use App\Application\Taxes\TaxCalculationService;
 use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
@@ -85,15 +86,15 @@ class CustomerCreditNoteService
             $note = CustomerCreditNote::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($note->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft customer credit notes can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft customer credit notes can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $note->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             if (! isset($data['lines']) || empty($data['lines'])) {
-                throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+                throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
             }
 
             $effective = [
@@ -181,11 +182,11 @@ class CustomerCreditNoteService
             $note = CustomerCreditNote::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($note->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft customer credit notes can be submitted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft customer credit notes can be submitted.')]]);
             }
 
             if ($note->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Customer credit note must have at least one line item before submitting.']]);
+                throw ValidationException::withMessages(['lines' => [__('Customer credit note must have at least one line item before submitting.')]]);
             }
 
             $before = $note->toArray();
@@ -222,11 +223,11 @@ class CustomerCreditNoteService
             }
 
             if (! in_array($note->status, ['draft', 'submitted'], true)) {
-                throw ValidationException::withMessages(['status' => ['Only draft or submitted customer credit notes can be approved.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft or submitted customer credit notes can be approved.')]]);
             }
 
             if ($note->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Customer credit note must have at least one line item before approving.']]);
+                throw ValidationException::withMessages(['lines' => [__('Customer credit note must have at least one line item before approving.')]]);
             }
 
             $before = $note->toArray();
@@ -259,7 +260,7 @@ class CustomerCreditNoteService
             $note = CustomerCreditNote::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($note->status === 'posted') {
-                throw ValidationException::withMessages(['status' => ['Posted customer credit notes cannot be cancelled in this slice.']]);
+                throw ValidationException::withMessages(['status' => [__('Posted customer credit notes cannot be cancelled in this slice.')]]);
             }
 
             if ($note->status === 'cancelled') {
@@ -300,18 +301,18 @@ class CustomerCreditNoteService
             }
 
             if ($note->status !== 'approved') {
-                throw ValidationException::withMessages(['status' => ['Only approved customer credit notes can be posted to AR/GL.']]);
+                throw ValidationException::withMessages(['status' => [__('Only approved customer credit notes can be posted to AR/GL.')]]);
             }
 
             if ($note->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Customer credit note must have at least one line item before posting.']]);
+                throw ValidationException::withMessages(['lines' => [__('Customer credit note must have at least one line item before posting.')]]);
             }
 
             $creditDate = $note->credit_date->format('Y-m-d');
             $this->taxPeriodGuard->ensureDateNotFiled($creditDate);
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $note->financial_period_id, $creditDate);
             if ($period->fiscal_year_id !== $note->fiscal_year_id) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the credit note fiscal year.']]);
+                throw ValidationException::withMessages(['financial_period_id' => [__('Financial period does not belong to the credit note fiscal year.')]]);
             }
 
             $salesReturnsAccount = $this->mappingService->getAccount('sales_returns');
@@ -319,10 +320,10 @@ class CustomerCreditNoteService
             $outputTaxAccount = (int) $note->tax_minor > 0 ? $this->mappingService->getAccount('output_tax_payable') : null;
 
             if ($salesReturnsAccount->currency !== $note->currency || $arAccount->currency !== $note->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped GL account currency must match credit note currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Mapped GL account currency must match credit note currency.')]]);
             }
             if ($outputTaxAccount && $outputTaxAccount->currency !== $note->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped GL account currency must match credit note currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Mapped GL account currency must match credit note currency.')]]);
             }
 
             $number = $note->number;
@@ -439,33 +440,33 @@ class CustomerCreditNoteService
     {
         $customerId = $data['customer_id'] ?? null;
         if (! $customerId) {
-            throw ValidationException::withMessages(['customer_id' => ['Customer is required.']]);
+            throw ValidationException::withMessages(['customer_id' => [__('Customer is required.')]]);
         }
 
         /** @var Customer|null $customer */
         $customer = Customer::query()->where('id', $customerId)->first();
         if (! $customer || $customer->status !== 'active') {
-            throw ValidationException::withMessages(['customer_id' => ['Customer must be active.']]);
+            throw ValidationException::withMessages(['customer_id' => [__('Customer must be active.')]]);
         }
 
-        $currency = $data['currency'] ?? 'USD';
+        $currency = CurrencyInput::required($data['currency'] ?? null);
 
         $creditDate = $data['credit_date'] ?? $data['credit_note_date'] ?? null;
         if (! $creditDate) {
-            throw ValidationException::withMessages(['credit_date' => ['Credit date is required.']]);
+            throw ValidationException::withMessages(['credit_date' => [__('Credit date is required.')]]);
         }
 
         $period = $this->resolveFinancialPeriodForDate($creditDate);
 
         $taxMode = $data['tax_mode'] ?? 'none';
         if (! in_array($taxMode, self::TAX_MODES, true)) {
-            throw ValidationException::withMessages(['tax_mode' => ['Tax mode must be one of: '.implode(', ', self::TAX_MODES).'.']]);
+            throw ValidationException::withMessages(['tax_mode' => [__('Tax mode must be one of: :allowed.', ['allowed' => implode(', ', self::TAX_MODES)])]]);
         }
 
         $taxRateBps = 0;
         if ($taxMode === 'manual_rate') {
             if (! isset($data['tax_rate_bps']) || ! is_numeric($data['tax_rate_bps']) || (int) $data['tax_rate_bps'] < 0) {
-                throw ValidationException::withMessages(['tax_rate_bps' => ['Tax rate in basis points is required for manual rate mode and must be an integer >= 0.']]);
+                throw ValidationException::withMessages(['tax_rate_bps' => [__('Tax rate in basis points is required for manual rate mode and must be an integer >= 0.')]]);
             }
             $taxRateBps = (int) $data['tax_rate_bps'];
         }
@@ -473,7 +474,7 @@ class CustomerCreditNoteService
         $taxMinorOverride = null;
         if ($taxMode === 'manual_amount') {
             if (! isset($data['tax_minor_override']) || ! is_numeric($data['tax_minor_override']) || (int) $data['tax_minor_override'] < 0) {
-                throw ValidationException::withMessages(['tax_minor_override' => ['Tax amount override is required for manual amount mode and must be an integer >= 0.']]);
+                throw ValidationException::withMessages(['tax_minor_override' => [__('Tax amount override is required for manual amount mode and must be an integer >= 0.')]]);
             }
             $taxMinorOverride = (int) $data['tax_minor_override'];
         }
@@ -483,13 +484,13 @@ class CustomerCreditNoteService
             /** @var CustomerInvoice|null $customerInvoice */
             $customerInvoice = CustomerInvoice::query()->where('id', $data['customer_invoice_id'])->first();
             if (! $customerInvoice || $customerInvoice->status !== 'posted') {
-                throw ValidationException::withMessages(['customer_invoice_id' => ['Referenced Customer Invoice must be posted.']]);
+                throw ValidationException::withMessages(['customer_invoice_id' => [__('Referenced Customer Invoice must be posted.')]]);
             }
             if ($customerInvoice->customer_id !== $customer->id) {
-                throw ValidationException::withMessages(['customer_invoice_id' => ['Customer Invoice must belong to this customer.']]);
+                throw ValidationException::withMessages(['customer_invoice_id' => [__('Customer Invoice must belong to this customer.')]]);
             }
             if ($customerInvoice->currency !== $currency) {
-                throw ValidationException::withMessages(['currency' => ['Currency must match the referenced Customer Invoice currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Currency must match the referenced Customer Invoice currency.')]]);
             }
         }
 
@@ -497,13 +498,13 @@ class CustomerCreditNoteService
             /** @var SalesReturn|null $salesReturn */
             $salesReturn = SalesReturn::query()->where('id', $data['sales_return_id'])->first();
             if (! $salesReturn || $salesReturn->customer_id !== $customer->id) {
-                throw ValidationException::withMessages(['sales_return_id' => ['Sales Return must belong to this customer.']]);
+                throw ValidationException::withMessages(['sales_return_id' => [__('Sales Return must belong to this customer.')]]);
             }
         }
 
         $lines = $data['lines'] ?? [];
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         $validatedLines = [];
@@ -513,25 +514,25 @@ class CustomerCreditNoteService
 
             $description = $line['description'] ?? null;
             if (! is_string($description) || trim($description) === '') {
-                throw ValidationException::withMessages(["lines.{$index}.description" => ["Description on line {$lineIndex} is required."]]);
+                throw ValidationException::withMessages(["lines.{$index}.description" => [__('Description on line :line is required.', ['line' => $lineIndex])]]);
             }
 
             $quantityE6 = array_key_exists('quantity_e6', $line) && $line['quantity_e6'] !== null
                 ? (int) $line['quantity_e6']
                 : null;
             if ($quantityE6 !== null && $quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
+                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex])]]);
             }
 
             $unitPriceMinor = (int) ($line['unit_price_minor'] ?? 0);
             if ($unitPriceMinor < 0) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_price_minor" => ["Unit price on line {$lineIndex} cannot be negative."]]);
+                throw ValidationException::withMessages(["lines.{$index}.unit_price_minor" => [__('Unit price on line :line cannot be negative.', ['line' => $lineIndex])]]);
             }
 
             $customerInvoiceLineId = $line['customer_invoice_line_id'] ?? null;
             if ($customerInvoiceLineId) {
                 if (! $customerInvoice) {
-                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => ["Line {$lineIndex} references a Customer Invoice line but no Customer Invoice was selected."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => [__('Line :line references a Customer Invoice line but no Customer Invoice was selected.', ['line' => $lineIndex])]]);
                 }
 
                 /** @var CustomerInvoiceLine|null $cil */
@@ -540,7 +541,7 @@ class CustomerCreditNoteService
                     ->where('customer_invoice_id', $customerInvoice->id)
                     ->first();
                 if (! $cil) {
-                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => ["Customer Invoice line on line {$lineIndex} does not belong to the referenced invoice."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => [__('Customer Invoice line on line :line does not belong to the referenced invoice.', ['line' => $lineIndex])]]);
                 }
 
                 if ($quantityE6 !== null) {
@@ -558,7 +559,10 @@ class CustomerCreditNoteService
                         $whole = intdiv($maxAllowedE6, 1000000);
                         $fraction = str_pad((string) abs($maxAllowedE6 % 1000000), 6, '0', STR_PAD_LEFT);
                         throw ValidationException::withMessages([
-                            "lines.{$index}.quantity_e6" => ["Credited quantity on line {$lineIndex} exceeds remaining invoiced quantity. Maximum remaining allowed is {$whole}.{$fraction}."],
+                            "lines.{$index}.quantity_e6" => [__('Credited quantity on line :line exceeds remaining invoiced quantity. Maximum remaining allowed is :maximum.', [
+                                'line' => $lineIndex,
+                                'maximum' => "{$whole}.{$fraction}",
+                            ])],
                         ]);
                     }
                 }
@@ -587,7 +591,7 @@ class CustomerCreditNoteService
                 $overrideRate = $line['tax_rate_bps'] ?? null;
                 $effectiveRateBps = $overrideRate !== null ? (int) $overrideRate : $taxRateBps;
                 if ($effectiveRateBps < 0) {
-                    throw ValidationException::withMessages(["lines.{$index}.tax_rate_bps" => ["Tax rate on line {$lineIndex} cannot be negative."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.tax_rate_bps" => [__('Tax rate on line :line cannot be negative.', ['line' => $lineIndex])]]);
                 }
                 $lineTaxMinor = intdiv(($lineSubtotalMinor * $effectiveRateBps) + 5000, 10000);
             }
@@ -644,7 +648,7 @@ class CustomerCreditNoteService
             ->first();
 
         if (! $period) {
-            throw ValidationException::withMessages(['credit_date' => ["No open financial period covers date {$date}."]]);
+            throw ValidationException::withMessages(['credit_date' => [__('No open financial period covers date :date.', ['date' => $date])]]);
         }
 
         return $period;

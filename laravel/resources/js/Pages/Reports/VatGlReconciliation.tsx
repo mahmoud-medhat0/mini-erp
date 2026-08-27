@@ -36,14 +36,16 @@ type VatGlReconciliationProps = SharedPageProps & {
 };
 
 export default function VatGlReconciliation({ locale, report, currencies, filters }: VatGlReconciliationProps) {
-  const dict = getDictionary(locale) as any;
+  const dict = getDictionary(locale);
 
   const [fromDate, setFromDate] = useState(filters.from_date || report.from_date);
   const [toDate, setToDate] = useState(filters.to_date || report.to_date);
-  const [currency, setCurrency] = useState(filters.currency || report.currency || 'USD');
+  const [currency, setCurrency] = useState(filters.currency || report.currency || currencies[0]?.code || '');
 
-  const t = dict.taxes?.vatGlReconciliation || {};
-  const tw = dict.taxes?.warnings || {};
+  const t = dict.app.taxes.vatGlReconciliation;
+  const tw = dict.app.taxes.warnings;
+  const accDict = dict.app.accounting;
+  const formatVatMoney = (amountMinor: number) => (report.currency ? formatMoney(amountMinor, report.currency) : accDict.notAvailable);
 
   const handleFilter = () => {
     router.get('/reports/vat-gl-reconciliation', {
@@ -59,7 +61,7 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
 
   const resolveWarningText = (key: string, code: string) => {
     const keyPath = key.replace('taxes.warnings.', '');
-    return tw[keyPath] || code;
+    return tw[keyPath as keyof typeof tw] || code;
   };
 
   const thRightClass = "px-4 py-3 text-right font-medium text-xs text-[var(--text-secondary)] uppercase border-b border-[var(--border-color)]";
@@ -67,14 +69,14 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
 
   return (
     <AppLayout active="reports.vat-gl-reconciliation">
-      <Head title={`${t.title || 'VAT to GL Reconciliation'} - Mini ERP`} />
+      <Head title={`${t.title} - Mini ERP`} />
 
       <PageHeader
-        title={t.title || 'VAT to GL Reconciliation'}
-        description={t.subtitle || 'Compares posted tax register totals against GL ledger movement for Output and Input VAT accounts.'}
+        title={t.title}
+        description={t.subtitle}
         actions={
           <Button variant="secondary" onClick={handleExport}>
-            {t.exportCsv || 'Export CSV'}
+            {t.exportCsv}
           </Button>
         }
       />
@@ -84,29 +86,29 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.fromDate || 'From Date'}
+                {t.fromDate}
               </label>
               <DatePicker value={fromDate} onChange={(val) => setFromDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.toDate || 'To Date'}
+                {t.toDate}
               </label>
               <DatePicker value={toDate} onChange={(val) => setToDate(val || '')} />
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-                {t.currency || 'Currency'}
+                {t.currency}
               </label>
               <SearchableSelect
                 options={currencies.map((c) => ({ value: c.code, label: c.code }))}
                 value={currency}
-                onChange={(val) => setCurrency(val || 'USD')}
+                onChange={(val) => setCurrency(val || '')}
               />
             </div>
             <div>
               <Button onClick={handleFilter} className="w-full">
-                {t.updateReport || 'Update Report'}
+                {t.updateReport}
               </Button>
             </div>
           </div>
@@ -121,24 +123,24 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.outputAccount || 'Output Tax Account'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.outputAccount}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
-              {report.output_tax_account ? `${report.output_tax_account.code} - ${report.output_tax_account.name}` : (t.notMapped || 'Not Configured')}
+              {report.output_tax_account ? `${report.output_tax_account.code} - ${report.output_tax_account.name}` : t.notMapped}
             </div>
           </div>
 
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.inputAccount || 'Input Tax Account'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.inputAccount}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
-              {report.input_tax_account ? `${report.input_tax_account.code} - ${report.input_tax_account.name}` : (t.notMapped || 'Not Configured')}
+              {report.input_tax_account ? `${report.input_tax_account.code} - ${report.input_tax_account.name}` : t.notMapped}
             </div>
           </div>
 
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.status || 'Reconciliation Status'}</div>
+            <div className="text-xs text-[var(--text-secondary)] mb-1">{t.status}</div>
             <div>
               <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${report.is_reconciled ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-rose-500/20 text-rose-700 dark:text-rose-400'}`}>
-                {report.is_reconciled ? (t.reconciled || 'RECONCILED') : (t.unreconciled || 'UNRECONCILED DIFFERENCE')}
+                {report.is_reconciled ? t.reconciled : t.unreconciled}
               </span>
             </div>
           </div>
@@ -149,55 +151,55 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
             <table className={tableClasses.table}>
               <thead className="bg-[var(--surface-color)]">
                 <tr>
-                  <th className={tableClasses.th}>Tax Category</th>
-                  <th className={thRightClass}>Register Tax Amount</th>
-                  <th className={thRightClass}>GL Ledger Movement</th>
-                  <th className={thRightClass}>Signed Difference</th>
+                  <th className={tableClasses.th}>{t.taxCategory}</th>
+                  <th className={thRightClass}>{t.registerTaxAmount}</th>
+                  <th className={thRightClass}>{t.glLedgerMovement}</th>
+                  <th className={thRightClass}>{t.signedDifference}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-color)]">
                 <tr className="hover:bg-[var(--surface-color)] transition-colors">
                   <td className={tableClasses.td}>
-                    <span className="font-bold text-[var(--text-primary)]">Output VAT</span> (Sales & Revenue)
+                    <span className="font-bold text-[var(--text-primary)]">{t.outputVatCategory}</span> ({t.salesRevenueScope})
                   </td>
                   <td className={`${tdRightClass} font-mono font-semibold`}>
-                    {formatMoney(report.register_output_tax_minor)}
+                    {formatVatMoney(report.register_output_tax_minor)}
                   </td>
                   <td className={`${tdRightClass} font-mono font-semibold`}>
-                    {formatMoney(report.gl_output_tax_minor)}
+                    {formatVatMoney(report.gl_output_tax_minor)}
                   </td>
                   <td className={`${tdRightClass} font-mono font-bold ${report.output_tax_difference_minor !== 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {formatMoney(report.output_tax_difference_minor)}
+                    {formatVatMoney(report.output_tax_difference_minor)}
                   </td>
                 </tr>
 
                 <tr className="hover:bg-[var(--surface-color)] transition-colors">
                   <td className={tableClasses.td}>
-                    <span className="font-bold text-[var(--text-primary)]">Input VAT</span> (Purchases & Expenses)
+                    <span className="font-bold text-[var(--text-primary)]">{t.inputVatCategory}</span> ({t.purchasesExpensesScope})
                   </td>
                   <td className={`${tdRightClass} font-mono font-semibold`}>
-                    {formatMoney(report.register_input_tax_minor)}
+                    {formatVatMoney(report.register_input_tax_minor)}
                   </td>
                   <td className={`${tdRightClass} font-mono font-semibold`}>
-                    {formatMoney(report.gl_input_tax_minor)}
+                    {formatVatMoney(report.gl_input_tax_minor)}
                   </td>
                   <td className={`${tdRightClass} font-mono font-bold ${report.input_tax_difference_minor !== 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {formatMoney(report.input_tax_difference_minor)}
+                    {formatVatMoney(report.input_tax_difference_minor)}
                   </td>
                 </tr>
 
                 <tr className="bg-[var(--surface-color)] font-bold text-sm">
                   <td className={tableClasses.td}>
-                    Net VAT Position (Payable / Claimable)
+                    {t.netVatPosition}
                   </td>
                   <td className={`${tdRightClass} font-mono`}>
-                    {formatMoney(report.register_net_vat_minor)}
+                    {formatVatMoney(report.register_net_vat_minor)}
                   </td>
                   <td className={`${tdRightClass} font-mono`}>
-                    {formatMoney(report.gl_net_vat_minor)}
+                    {formatVatMoney(report.gl_net_vat_minor)}
                   </td>
                   <td className={`${tdRightClass} font-mono font-black ${report.net_vat_difference_minor !== 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {formatMoney(report.net_vat_difference_minor)}
+                    {formatVatMoney(report.net_vat_difference_minor)}
                   </td>
                 </tr>
               </tbody>

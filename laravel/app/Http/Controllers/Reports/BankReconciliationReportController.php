@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Application\Reports\BankReconciliationReportService;
+use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
-use App\Models\BankAccount;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,6 +13,7 @@ class BankReconciliationReportController extends Controller
 {
     public function __construct(
         private readonly BankReconciliationReportService $service,
+        private readonly ReportPageOptions $options,
     ) {}
 
     public function index(Request $request): Response
@@ -24,11 +25,9 @@ class BankReconciliationReportController extends Controller
 
         $report = $this->service->generateIndex($bankAccountId, $status, $dateFrom, $dateTo);
 
-        $bankAccounts = BankAccount::query()->where('is_active', true)->orderBy('code')->get();
-
         return Inertia::render('Reports/BankReconciliation', [
             'report' => $report,
-            'bankAccounts' => $bankAccounts,
+            'bankAccounts' => $this->options->activeBankAccounts(),
             'filters' => [
                 'bank_account_id' => $bankAccountId,
                 'status' => $status,

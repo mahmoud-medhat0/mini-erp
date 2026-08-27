@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Accounting\ReversalService;
+use App\Application\Support\CurrencyInput;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FixedAssetDepreciationRun;
 use App\Models\FixedAssetDepreciationSchedule;
@@ -47,6 +48,7 @@ class FixedAssetDepreciationPostingService
 
                     // Query unposted schedule lines for active assets in period
                     $schedules = FixedAssetDepreciationSchedule::query()
+                        ->with('asset')
                         ->where('financial_period_id', $period->id)
                         ->where('status', 'planned')
                         ->whereHas('asset', function ($q) {
@@ -67,16 +69,17 @@ class FixedAssetDepreciationPostingService
                         }
 
                         throw ValidationException::withMessages([
-                            'financial_period_id' => ['No planned active depreciation schedules found for this period.'],
+                            'financial_period_id' => [__('No planned active depreciation schedules found for this period.')],
                         ]);
                     }
 
                     $totalDepreciationMinor = (int) $schedules->sum('depreciation_minor');
                     if ($totalDepreciationMinor <= 0) {
                         throw ValidationException::withMessages([
-                            'financial_period_id' => ['Total depreciation amount for selected period must be greater than zero.'],
+                            'financial_period_id' => [__('Total depreciation amount for selected period must be greater than zero.')],
                         ]);
                     }
+                    $currency = $this->singleScheduleCurrency($schedules);
 
                     // Resolve GL mapping accounts
                     $expenseAccount = $this->accountMappingService->getAccount('depreciation_expense');
@@ -96,6 +99,8 @@ class FixedAssetDepreciationPostingService
                         'source_type' => 'fixed_asset_depreciation_run',
                         'source_id' => $sourceId,
                         'status' => 'approved',
+                        'currency' => $currency,
+                        'fx_rate_e6' => 1000000,
                         'description' => "fixed_asset.depreciation_run:{$runNumber}",
                         'created_by' => $userId,
                         'updated_by' => $userId,
@@ -110,7 +115,7 @@ class FixedAssetDepreciationPostingService
                         'memo' => "fixed_asset.depreciation_run.expense:{$runNumber}",
                         'debit_minor' => $totalDepreciationMinor,
                         'credit_minor' => 0,
-                        'currency' => 'EGP',
+                        'currency' => $currency,
                         'fx_rate_e6' => 1000000,
                         'debit_txn_minor' => $totalDepreciationMinor,
                         'credit_txn_minor' => 0,
@@ -124,7 +129,7 @@ class FixedAssetDepreciationPostingService
                         'memo' => "fixed_asset.depreciation_run.accumulated:{$runNumber}",
                         'debit_minor' => 0,
                         'credit_minor' => $totalDepreciationMinor,
-                        'currency' => 'EGP',
+                        'currency' => $currency,
                         'fx_rate_e6' => 1000000,
                         'debit_txn_minor' => 0,
                         'credit_txn_minor' => $totalDepreciationMinor,
@@ -220,5 +225,23 @@ class FixedAssetDepreciationPostingService
 
             return $run->fresh();
         });
+    }
+
+    private function singleScheduleCurrency($schedules): string
+    {
+        $currencies = $schedules
+            ->pluck('asset.currency')
+            ->filter(fn ($currency): bool => is_string($currency) && trim($currency) !== '')
+            ->map(fn (string $currency): string => strtoupper(trim($currency)))
+            ->unique()
+            ->values();
+
+        if ($currencies->count() !== 1) {
+            throw ValidationException::withMessages([
+                'currency' => [__('Depreciation runs must be posted one currency at a time.')],
+            ]);
+        }
+
+        return CurrencyInput::related($currencies->first(), 'currency', 'Fixed asset depreciation schedule');
     }
 }

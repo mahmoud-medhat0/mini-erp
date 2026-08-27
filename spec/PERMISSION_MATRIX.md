@@ -1,6 +1,6 @@
 # PERMISSION MATRIX
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Model: **Role → Module → Action** with explicit server-side authorization rules. Actions: `View, Create, Edit, Delete, Submit, Approve, Reject, Post, Cancel, Reverse, Export, Print, Configure`. **Approval actions (Submit/Approve/Reject) are tracked separately from operational actions.** Optional business dimensions such as warehouse, project, cost center, or document type are owner-decision items and must not be treated as tenant/company/branch scope. Enforced server-side; permission-denied is an explicit UI state.

@@ -1,9 +1,387 @@
 # Changelog
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
+
+### Changed - Phase 15 Product Hardening Slices 1-133 (2026-08-26)
+
+- Replaced native rental status/type filter selects with shared `SearchableSelect` controls in Handovers, Returns, and Invoices.
+- Preserved rental query parameters, reset behavior, dictionary labels, permissions, and workflow actions.
+- Verified targeted rental filter-control guard, rental focused suites, Phase15ProductHardeningTest, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-132 (2026-08-26)
+
+- Extended disabled no-op clear-filter protection across remaining inventory, expense, and rental operational pages.
+- Added active-filter counts to Stock Adjustments, Stock Counts, Warehouses, Stock Transfers, Stock Balances, Expenses, Expense Categories, Rental Handovers, Rental Returns, Rentable Items, Rental Contracts, and Rental Invoices.
+- Verified targeted remaining clear-filter guard, focused inventory/expense/rental suites, Phase15ProductHardeningTest, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-131 (2026-08-26)
+
+- Cleaned expense and payroll filter reset flows in Prepaids, Accruals, Payroll Components, Payroll Employees, and Payroll Runs.
+- Replaced inline clear-filter handlers with named reset functions and disabled reset actions when no filters are active.
+- Verified targeted expense/payroll filter reset guard, `Phase12PrepaidAccruedExpenseTest`, `Phase13PayrollFoundationTest`, Phase15ProductHardeningTest, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-130 (2026-08-26)
+
+- Extended shared report filter UX to Delivery Notes, Goods Receipts, and Stock Movements reports.
+- Added searchable operational filters, active-filter counts, reset actions, and visible Stock Movement currency filtering.
+- Verified targeted inventory report UX guard, `Phase4Slice9OperationalReportsTest`, Phase15ProductHardeningTest, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-129 (2026-08-26)
+
+- Added Slice 129 operational report filter UX cleanup with a shared `ReportFilterPanel`.
+- Added visible currency filtering, active-filter counts, and reset actions to Sales Orders, Purchase Orders, Customer Invoices, and Supplier Bills reports.
+- Verified targeted report filter guard, `Phase4Slice9OperationalReportsTest`, Phase15ProductHardeningTest, global controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-128 (2026-08-26)
+
+- Added Slice 128 settings/audit controller query and persistence cleanup with `BranchSettingsService`, `RoleSettingsService`, and `UserRoleAssignmentService`.
+- Extended `BranchApprovalRuleService` and `AuditLogQueryService` so branch approval and audit log controllers delegate page-data composition.
+- Verified targeted settings/audit boundary guard, settings/audit suites, global controller direct-query scan, Phase15ProductHardeningTest, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-127 (2026-08-26)
+
+- Added Slice 127 report controller selector option cleanup with shared `ReportPageOptions`.
+- Refactored report controllers to delegate customer, supplier, product, currency, cash account, bank account, warehouse, and operational branch selector options to an application service.
+- Verified targeted report selector-boundary guard, report suites, Phase15ProductHardeningTest, report-controller scans, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-126 (2026-08-26)
+
+- Added Slice 126 tax controller page-data boundary cleanup with `TaxCodePageData`, `TaxRatePageData`, and `TaxPeriodPageData`.
+- Refactored Tax Code, Tax Rate, and Tax Period controllers to delegate listing/detail page data and base-currency resolution to application services while preserving master-data and filing workflows.
+- Verified targeted tax controller-boundary guard, Phase7 tax suites, Phase15ProductHardeningTest, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-125 (2026-08-26)
+
+- Added Slice 125 landed-cost and treasury-transfer controller page-data boundary cleanup with `LandedCostAllocationPageData` and `TreasuryTransferPageData`.
+- Refactored Landed Cost Allocation and Treasury Transfer controllers to delegate index filters, listings, pagination, selectors, statuses, and allocation methods to application services while preserving posting/lifecycle workflows.
+- Verified targeted landed-cost/treasury controller-boundary guard, landed-cost and treasury-transfer suites, Phase15ProductHardeningTest, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-124 (2026-08-26)
+- Added Slice 124 inventory/warehouse controller page-data boundary cleanup with `WarehousePageData`, `StockBalancePageData`, `StockTransferPageData`, `StockCountPageData`, and `StockAdjustmentPageData`.
+- Refactored Warehouse, Stock Balance, Stock Transfer, Stock Count, and Stock Adjustment controllers to delegate index filters, listings, pagination, selectors, statuses, and warehouse/location options to application services while preserving operational workflows.
+- Verified targeted inventory controller-boundary guard, Phase10 inventory suites, Phase4 inventory costing suite, Phase15ProductHardeningTest, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-123 (2026-08-26)
+- Strengthened the `/reports` route group so report access requires both `reports.view` and `view_financials`.
+- Added controller-level `view_financials` authorization to sales order, purchase order, customer invoice, and supplier bill report controllers.
+- Cleaned hardcoded bilingual visible labels from four report TSX pages and moved them to `en.json` / `ar.json`.
+- Added `CsvReportResponse` and moved duplicated row-based CSV streaming out of touched Fixed Asset and VAT report controllers.
+- Added `SuperAdminProtection` and moved last-active-super-admin weakening checks out of user/role settings controllers.
+- Hardened GL/subledger posting routes so financial posting requires `view_financials` in addition to the module posting permission.
+- Localized backend flash success messages for sales and purchasing operational documents through Laravel translations.
+- Localized all remaining controller success flash messages and added a regression guard preventing raw success flash strings in controllers.
+- Added Arabic translations and regression coverage for backend guard/error messages around account hierarchy safety, protected system deletes, last-super-admin protection, and period close blockers.
+- Localized targeted financial service error messages for period guards, AR/AP posting statuses, opening balances, allocations, settlements, prepaid/accrual schedules, and payroll period resolution.
+- Extracted Trial Balance financial-period selector composition into the shared `FinancialPeriodReportOptions` service.
+- Extracted AR/AP opening-balance index listings and selector option data into focused accounting page-data services.
+- Extracted AR/AP receipt/payment index listings and selector option data into focused accounting page-data services.
+- Extracted Incoming/Outgoing Cheque index listings, filters, and selector option data into focused accounting page-data services.
+- Extracted AR/AP allocation source selection, open target entries, existing allocations, filters, and partner options into focused accounting page-data services.
+- Extracted AR/AP entry-settlement source selection, selected source remaining balances, eligible target entries, existing settlements, filters, and partner options into focused accounting page-data services.
+- Extracted Sales/Purchase Order list filtering, pagination, active partner options, currency options, and eligible product options into focused sales/purchasing page-data services.
+- Extracted Delivery Note/Goods Receipt list filtering, warehouse selectors, confirmed source document options, and fulfillment pagination into focused sales/purchasing page-data services.
+- Extracted Customer Invoice Revision listing, detail loading, relation eager-loading, search filtering, pagination, and snapshot decoding into a focused sales page-data service.
+- Extracted Accounting Account Mapping mapping keys, mapping rows, active account options, and operational branch options into a focused accounting page-data service.
+- Extracted Accounting Overview active fiscal year lookup, recent journals, and posted/draft/account counts into a focused accounting page-data service.
+- Extracted Account Category/Type listing, eager-loading, counts, active category selectors, and ordering into focused accounting page-data services.
+- Extracted Catalog Product Category/Product/Unit of Measure filtering, listings, pagination, and active selector option composition into focused catalog page-data services.
+- Extracted Expense, Expense Category, Prepaid Schedule, and Accrual Schedule filtering, listings, pagination, and active selector option composition into focused expense page-data services.
+- Extracted Fixed Asset location/disposal listing, filtering, detail eager-loading, and edit lookup composition into focused fixed-asset page-data services.
+- Extracted Payroll Employee, Payroll Component, and Payroll Run filtering, listings, pagination, and active selector option composition into focused payroll page-data services.
+- Extracted Rentable Item, Rental Contract, Rental Handover, and Rental Return filtering, listings, pagination, and active selector option composition into focused rental page-data services.
+- Extracted Journal and Opening Balance listing, selectors, detail eager-loading, fiscal-year selection, and existing-balance lookup into focused accounting page-data services.
+- Extracted remaining accounting master-data page data from Currency, FX Rate, Chart of Accounts, and Financial Period controllers into focused application services.
+- Localized tax period, tax return, tax master-data, tax calculation, and filed-period guard validation errors with placeholder-backed Arabic translations.
+- Localized expense document, expense category, prepaid schedule, and accrual schedule validation errors with placeholder-backed Arabic translations.
+- Localized payroll run, employee, payroll component, and employee payroll component validation errors with placeholder-backed Arabic translations.
+- Localized warehouse, stock count, stock transfer, and stock adjustment workflow validation errors with placeholder-backed Arabic translations.
+- Localized MovingWeightedAverageInventoryService validation errors for inventory receipts, issues, returns, scrap, transfers, stock adjustments, landed costs, insufficient-stock checks, original movement lookup, and multi-currency valuation guards.
+- Localized RentableItemService and RentalContractService validation errors for rentable item setup, linked references, branch/warehouse placement, contract lifecycle, line validation, reservation status, dates, and amount overflow guards.
+- Localized RentalFulfillmentService validation errors for rental handover, return, inspection, cancellation, item-status, contract-line, return-line, duplicate-line, condition, outcome, reference, date, and amount guards.
+- Localized RentalInvoiceService validation errors for rental invoice lifecycle, billable-contract checks, line validation, duplicate billing, deposit and damage caps, GL mapping currency, period resolution, dates, identifiers, and amount guards.
+- Localized fixed-asset application service validation errors for category/register/capitalization/depreciation/disposal/location/movement workflows, period availability, currency, dates, duplicate numbers, lifecycle status, and amount guards.
+- Localized customer invoice and supplier bill service validation errors for source-document matching, invoice/bill lifecycle, VAT/GL currency checks, stock-source requirements, over-invoicing/over-billing caps, and exact integer amount guards.
+- Localized sales return, customer credit note, purchase return, and supplier adjustment note service validation errors for lifecycle guards, source-document matching, VAT/GL currency checks, stock-balance limits, return/credit quantity caps, settlement-sensitive flows, and exact integer amount guards.
+- Fixed supplier adjustment tax calculation to use the explicit adjustment date during line calculation.
+- Localized accounting account mapping and financial statement mapping validation errors for missing/inactive mappings, disallowed mapping keys, branch override target validation, mapping type/nature guards, financial-statement line lifecycle checks, account assignment checks, and cash-flow classification safety.
+- Localized bank reconciliation, cash/bank book query, and cheque validation errors for linked-GL checks, cheque status transitions, bank currency/activity checks, owner-decision blockers, mapping guards, reconciliation matching, and finalization safety.
+- Localized landed cost allocation validation errors for lifecycle guards, optimistic locking, receipt currency, posting prerequisites, period/year checks, FX-rate guard, confirmed Goods Receipt rules, GL currency checks, supplier activity, eligible stock lines, manual split validation, allocation weights, and receipt-line cost exactness.
+- Localized AR/AP allocation validation errors for line presence, target-entry references, duplicate targets, posted receipt/payment status, positive integer amounts, unapplied balance caps, missing target entries, customer/supplier mismatch, currency mismatch, positive AR/AP item checks, and remaining allocatable caps.
+- Localized AR/AP entry settlement validation errors for settlement line presence, target references, self-settlement, duplicate targets, source/target existence, source credit/debit eligibility, amount validation, remaining-balance caps, customer/supplier/currency guards, target debit/credit eligibility, and reversal reason validation.
+- Localized AR/AP receipt/payment/opening-balance validation errors for draft-only cancellation, fiscal-year/period mismatch, and closed-period creation guards.
+- Localized customer invoice revision and shared currency-input validation errors for source existence, posted-invoice requirement, missing invoice lines, required currency, ISO currency code validation, and source-document currency validation.
+- Localized report export abort/runtime errors for missing export IDs and CSV output-stream failure.
+- Extracted Cash/Bank Book and Customer/Supplier Statement CSV composition into focused exporters and centralized stream response handling in `CsvReportResponse::stream()`.
+- Extracted AR/AP aging, AR/AP-to-GL reconciliation, and Cheque Register CSV composition into focused exporters.
+- Extracted Balance Sheet, Income Statement, Cash Flow, and Branch Profitability CSV composition into focused exporters.
+- Centralized the remaining VAT and rental report exporter stream lifecycle in `CsvReportResponse::stream()`, leaving direct CSV output-stream handling owned by one shared service.
+- Centralized Income Statement and Cash Flow financial-period selector composition in `FinancialPeriodReportOptions`.
+- Replaced the Bank Reconciliation Detail hardcoded missing journal-reference fallback with EN/AR dictionary-backed copy.
+- Replaced the Dashboard hardcoded missing-user fallback with the shared EN/AR `unknownUser` label.
+- Replaced the AppLayout hardcoded language switcher text with common EN/AR dictionary labels.
+- Replaced the bank reconciliation finalization confirmation generated duplicate key with explicit EN/AR dictionary-backed copy.
+- Removed English parenthetical copy from used Arabic catalog product type/status select labels.
+- Moved catalog category/UOM placeholders into dictionaries and removed English parenthetical copy from ordinary Arabic catalog labels.
+- Extracted dashboard count and recent-notification page-data composition from `DashboardController` into `DashboardPageData`.
+- Extracted customer/supplier index search, filtering, pagination, and currency-option composition into master-data page-data services.
+- Extracted cash/bank account index search, status/branch filtering, pagination, and option-list composition into master-data page-data services.
+- Localized sales order, purchase order, delivery note, and goods receipt service validation errors for lifecycle guards, customer/supplier checks, explicit currency/date validation, product/UOM validation, exact integer line totals, source matching, and delivery/receipt quantity caps.
+- Localized product, product category, unit of measure, customer, and supplier service validation errors for SKU/code uniqueness, product type/status checks, UOM/category activity checks, protected deletes, and customer/supplier status validation.
+- Extracted page-data/query composition from large Sales, Purchasing, Fixed Assets, Rentals, Bank Reconciliation, Financial Statement Mapping, and Settings controllers into focused application services.
+- Extracted Fixed Asset, VAT, and Rental Operations CSV composition into focused exporter services.
+- Moved Company, Numbering, and User settings persistence/listing logic into application services while preserving validation, audit, and last-super-admin protections.
+- Reduced all Laravel controllers under `app/Http/Controllers` to under 150 lines at the time of verification.
+- Extracted General Ledger page-data composition into `GeneralLedgerPageData`, added reset-filter UX, and moved display currency selection to backend data/config.
+- Removed targeted visible fallback labels from General Ledger, VAT Register, and VAT Summary pages and added dictionary-backed accountant empty-state guidance.
+- Added confirmation guards before deleting payroll component assignments and reusable payroll components.
+- Converted manual AR/AP settlement pages to dictionary-backed operational text, including filters, source/target entry labels, validation alerts, settlement buttons, audit table labels, and reversal modal copy.
+- Added dictionary-backed confirmation guards to dense expense, prepaid schedule, accrual schedule, rental contract, rental handover, and rental return state-changing actions.
+- Repaired corrupted Arabic rental-contract dictionary text.
+- Moved user/role permission category labels and permission action labels out of `Settings/Users.tsx` into the EN/AR dictionaries.
+- Removed hardcoded user-management placeholders, revoke-role tooltip text, search-result copy, and delete fallback messages from the user/role administration page.
+- Moved foundation settings page placeholders, branch delete confirmation, numbering reset labels, numbering helper text, and include-year labels into the EN/AR dictionaries.
+- Removed hardcoded page-level Arabic examples, English numbering option labels, and React-side `EGP` base-currency fallback from company/branch/numbering settings pages.
+- Removed silent React-side USD/EGP/PCS/MAIN fallbacks from sales, purchasing, and inventory workflow pages, removed silent React-side `EGP` fallbacks from payroll, expense, rental, and fixed asset pages, removed hardcoded visible fallback labels from Tax Codes/Rates master-data pages, and fixed Tax Period filing pages to use dictionary-backed UI text.
+- Replaced VAT/Tax report money displays that could rely on helper-default currency with backend-provided explicit display currency and canonical unavailable output.
+- Centralized backend report currency fallback behavior in `ReportCurrencyResolver` and removed hidden `EGP`/`USD` defaults from targeted report controllers/services.
+- Added `CurrencyInput` and `BaseCurrencyResolver`, removed hidden operational service currency defaults outside reporting, made FX-rate lookup use the configured base currency instead of hardcoded `EGP`, and made missing foreign exchange rates fail clearly instead of returning `1.000000`.
+- Added `ResolvesStressCurrency`, removed fixed `EGP`/`USD` fixtures from console commands, integrity checks, and seeders, and updated stress tools plus demo/core seeders to use shared configured-currency resolution.
+- Aligned visible financial post actions with backend `view_financials` requirements, corrected return/credit/adjustment workflow pages to route-specific permissions, and moved settlement action labels into EN/AR dictionaries.
+- Formatted inventory stock adjustment value deltas with the adjustment currency and replaced empty stock count/adjustment warehouse cells with canonical unavailable labels.
+- Replaced generic AR/AP receipt, payment, and opening-balance posting confirmations with workflow-specific EN/AR copy that names the ledger impact and post-edit lock.
+- Replaced loose source-document `any` shapes in customer invoice and supplier bill pages with explicit TypeScript source models and typed pagination links.
+- Reused typed pagination links across AR/AP cash/bank pages instead of loose `links: any[]` props.
+- Added route-surface security regression coverage requiring state-changing routes to be auth-gated and explicitly permission-protected unless deliberately allowlisted.
+- Added Tax Codes/Rates dictionary keys for search labels, code placeholders, create-page copy, all-code filters, basis-points labels, and rate helper text.
+- Added Tax Period dictionary keys for period creation, filing status, locking guard, VAT return snapshots, breakdown tables, filing notes, and submit/cancel states.
+- Replaced selected generic master-data delete prompts with entity-specific EN/AR confirmations that include the selected record name/code.
+- Removed remaining visible inline placeholders, button fallbacks, badges, and detail-modal descriptions from accounting account category/type pages and moved them into EN/AR dictionaries.
+- Updated the FX-rate page to receive and display the configured base currency from the Laravel company profile, removed hardcoded EGP/USD display defaults, and added dictionary-backed FX guidance/empty states.
+- Removed remaining direct visible fallback text from the currency master-data page and moved placeholders, ISO badge text, relationship tooltips, delete modal copy, and ledger action titles into EN/AR dictionaries.
+- Removed the Journal Form hidden `EGP` default and page-generated fallback labels; voucher creation now requires explicit registry currency and uses dictionary-backed placeholders, warnings, and control-account badges.
+- Removed legacy `dict.app.pages.accountingOpeningBalances` fallback usage from the Opening Balances page; page title, post action, selector, totals, status badge, empty state, table headers, and save action now use canonical accounting dictionary keys.
+- Aligned Fiscal Periods navigation/action UX with backend permissions, including multi-permission nav support and settings-only fiscal-year creation.
+- Removed hardcoded fallback labels from Accounting and Tax sidebar navigation items and covered them with regression checks.
+- Removed hardcoded visible fallback labels from the Accounting landing page and localized recent journal status badges.
+- Removed Tax/VAT report fallback labels from the Reports Hub and switched those cards to canonical tax dictionary keys.
+- Removed VAT-to-GL Reconciliation visible fallback labels and the hidden React-side `USD` filter fallback.
+- Removed hidden React-side `EGP` currency-selector fallbacks from AR Aging, AP Aging, AR-to-GL Reconciliation, and AP-to-GL Reconciliation.
+- Replaced hidden EGP labels on unfiltered operational report summary totals with localized mixed-currency labels.
+- Removed loose `as any` dictionary access from Tax Periods, VAT Register, and VAT Summary pages.
+- Removed loose tax dictionary access and raw unavailable fallbacks from Tax Codes/Rates pages.
+- Removed loose audit dictionary access and legacy `dict.app.pages.auditLog` fallback chains from the Audit Log page.
+- Added canonical Audit Log dictionary keys for request-id placeholder, actor fallback, unavailable markers, payload modal, and pagination labels.
+- Removed loose accounting/tax dictionary access and visible fallback labels from the central AppLayout navigation/header.
+- Added localized user-menu fallback labels instead of hardcoded `Admin` / `admin@mini-erp.local` fallback text.
+- Replaced the Financial Statement Mapping generic delete confirmation with a statement-line-specific confirmation containing code and localized name.
+- Replaced the Account Mapping branch override generic delete confirmation with a mapping-specific confirmation containing mapping key, branch, and GL account.
+- Removed the hidden Chart of Accounts account-currency `EGP` fallback from React and the Laravel account store action; account creation now requires explicit registry-backed currency selection.
+- Added backend-provided Trial Balance display currency, row currency codes, and removed the React-side `EGP` fallback plus remaining visible Trial Balance fallback labels.
+- Removed General Journal inline EN/AR status labels and visible fallback labels; journal list, modal, status filter, empty-state, and action text now use the accounting dictionary.
+- Removed Journal Detail visible fallback labels and page-specific fallback dictionary usage; voucher title/actions, reverse modal, audit trail, and line-table labels now use the accounting dictionary.
+- Removed loose dictionary access from Currencies, FX Rates, Account Categories, and Account Types.
+- Replaced Account Category/Type select `as any` casts with explicit value parsers.
+- Removed loose dictionary access from Chart of Accounts, Fiscal Periods, Opening Balances, and Trial Balance.
+- Replaced Chart of Accounts account-nature select casting with an explicit value parser.
+- Replaced Fiscal Periods loose dictionary wrappers with typed helpers and canonical fallback keys for dynamic blocker labels.
+- Removed loose dictionary access from General Ledger, General Journal, Journal Form, and Journal Detail.
+- Replaced Journal Form line update `any` handling with a typed draft-line structure.
+- Added accounting `notAvailable` and canonical unknown-status fallbacks for journal/ledger empty fields.
+- Removed loose dictionary access from Fixed Asset register, create, edit, show, category, location, disposal, and depreciation-run pages.
+- Replaced fixed-asset disposal dynamic dictionary indexing with explicit typed disposal-type labels and canonical unavailable labels.
+- Replaced select `as any` casts in Customers, Suppliers, Catalog Products, Customer Receipts, Supplier Payments, and Financial Statement Mapping with explicit value parsers.
+- Removed hidden receipt/payment `EGP` defaults and hardcoded Arabic cash/bank destination labels from receipt/payment tables.
+- Replaced sales/purchasing document line `value: any` update helpers with typed generic update helpers and removed manual-tax note casts.
+- Removed the remaining visible Inertia Page `as any` casts from Landed Costs and Customer Invoices.
+- Replaced silent dash missing-value fallbacks in primary sales, purchasing, and catalog operational pages with canonical accounting unavailable labels.
+- Replaced silent dash missing-value fallbacks in Sales Invoice Revision list/detail pages with canonical accounting unavailable labels.
+- Removed hidden React-side `EGP` defaults and silent missing-value fallbacks from AR/AP cash/bank operational pages, including cheques, opening balances, allocations, and bank reconciliations.
+- Removed the remaining hidden React-side `EGP` default from Treasury Transfers and cleaned missing-label fallbacks in treasury, inventory transfer, and settings pages.
+- Fixed Journal Detail line/footer monetary display to use formatted money with the journal currency instead of raw minor-unit integers, and cleaned fixed-asset disposal journal-preview dash fallbacks.
+- Added dictionary-backed accounting `zeroAmount` and removed remaining hardcoded report-table dash markers from bank/cash books, customer/supplier statements, invoice/bill reports, bank reconciliation detail, and stock movement reports.
+- Added dictionary-backed accounting `restrictedValue` and formatted fixed-asset list/detail/disposal/depreciation monetary values instead of rendering raw minor-unit integers or hardcoded financial masks.
+- Removed hardcoded Payroll Components `currency="EGP"` display and added broad visible-pages regression coverage for hardcoded `EGP`/`USD` currency literals.
+- Added registry-backed currency selection to stock count and stock adjustment forms.
+- Added `Phase15ProductHardeningTest` covering sensitive report authorization, dictionary key coverage, no hardcoded Arabic UI text in the cleaned report pages, shared CSV response behavior, centralized super-admin protection, posting-route financial visibility middleware, controller/service boundary regression checks, and targeted accountant UX text guards.
+- Created `PHASE_15_PRODUCT_HARDENING_REPORT.md`.
+
+### Added - Phase 14 Rentals Close-Out (2026-08-25)
+- Added `RentalOperationsReportService`, `RentalOperationsReportController`, `/reports/rentals`, `/reports/rentals/export`, and `Reports/RentalOperationsReport.tsx`.
+- Added accountant-focused rental readiness reporting for overdue contracts, unbilled rental lines, open invoices, pending damage charges, posted revenue, refundable deposits, VAT, AR, and GL links.
+- Added Reports Hub and sidebar navigation entries for rental operations.
+- Added `Phase14RentalReportsCloseOutTest` and created `PHASE_14_FINAL_VERIFICATION_REPORT.md`.
+- Verified Phase 14 with 27 passing feature tests / 256 assertions and the full Laravel suite with 654 tests, 651 passed, 3 skipped, and 5,632 assertions.
+
+### Added - Phase 14 Rental Billing (2026-08-25)
+- Added `rental_invoice` and `rental_invoice_line` tables for rental rent, deposit, damage, late-fee, and other-charge billing.
+- Added `RentalInvoiceService`, `RentalInvoiceController`, `/rentals/invoices` routes, and `Rentals/Invoices.tsx`.
+- Added `RINV-YYYY-XXXXX` numbering, duplicate rent-period prevention, deposit overbilling prevention, and completed-return damage charge limits.
+- Added rental GL mappings/accounts for rental revenue, damage revenue, late-fee revenue, other rental revenue, and rental deposit liability.
+- Posted rental invoices now create balanced PostingEngine journals, AR `receivable_entry` rows, output VAT rows, and period-close blockers until posted.
+- Registered rental invoice attachments, navigation, EN/AR dictionary text, VAT register integration, and feature tests.
+- Preserved no-multi-tenant guardrails; `rental_invoice.branch_id` is operational/reporting only.
+- Created `PHASE_14_RENTAL_BILLING_REPORT.md`.
+
+### Added - Phase 14 Rental Fulfillment (2026-08-25)
+- Added `rental_handover`, `rental_handover_line`, `rental_return`, and `rental_return_line` tables.
+- Added rental handover and return models, `RentalFulfillmentService`, controllers, routes, and Inertia pages.
+- Implemented rental handover confirmation with `RH-YYYY-XXXXX` numbering and item `rented` transitions.
+- Implemented rental return submission/completion with `RR-YYYY-XXXXX` numbering, return-pending state, inspection outcomes, and contract completion when all items are closed.
+- Added rental handover/return attachment registry entries, navigation, EN/AR dictionary text, feature tests, and integrity allowlist classifications.
+- Preserved no-multi-tenant guardrails and no rental GL posting in this slice.
+- Created `PHASE_14_RENTAL_FULFILLMENT_REPORT.md`.
+
+### Added - Phase 14 Rental Contracts (2026-08-25)
+- Added `rental_contract`, `rental_contract_line`, and `rental_contract_status_event` tables for rental contract lifecycle management.
+- Added `RentalContract` models, `RentalContractService`, `RentalContractController`, and `/rentals/contracts` routes.
+- Added draft, submit, approve, activate, and cancel lifecycle actions with item reservation/allocation/rented status transitions.
+- Added `Rentals/Contracts.tsx` with permission-aware actions and EN/AR dictionary-backed visible text.
+- Registered `rental_contract` attachments and classified `rental_contract.branch_id` as an optional operational/reporting reference only.
+- Preserved no-multi-tenant guardrails and no rental GL posting in this slice.
+- Created `PHASE_14_RENTAL_CONTRACTS_REPORT.md`.
+
+### Added - Phase 14 Rentals Foundation (2026-08-25)
+- Added `rentable_item` and `rentable_item_status_event` tables for the rental item register.
+- Added `RentableItem` and `RentableItemStatusEvent` models plus product, fixed asset, branch, and warehouse relationships.
+- Added `RentableItemService` with source consistency rules, operational branch/warehouse validation, status history, optimistic locking, protected deletion, and Spatie Activitylog audit.
+- Added `/rentals/items` CRUD routes, `RentableItemController`, Rentals navigation, and `Rentals/RentableItems.tsx`.
+- Added EN/AR dictionary-backed visible text for the Rentals register.
+- Extended Rentals RBAC actions and attachment registry support for `rentable_item`.
+- Preserved no-multi-tenant guardrails: no company/tenant scope and no current branch/company context.
+- Created `PHASE_14_RENTALS_FOUNDATION_REPORT.md`.
+
+### Added - Phase 14 Rentals Policy Decision Pack (2026-08-25)
+- Created `PHASE_14_RENTALS.md` as the rentals master planning contract.
+- Created `PHASE_14_SLICE_1_GEMINI_PROMPT.md` as a docs-only rentals decision-pack execution prompt.
+- Created `PHASE_14_RENTALS_POLICY_DECISION.md` with owner-facing Arabic/English decisions for rentable item source, availability, contract lifecycle, billing, deposits, charges, accounting mappings, returns/inspection, permissions, and reports.
+- Recommended a hybrid standalone rentable item register with optional product/fixed-asset links after owner approval.
+- Preserved no-multi-tenant guardrails and parked deployment work.
+
+### Added - Phase 13 Payroll Foundation (2026-08-25)
+- Added payroll employee master data without Employee-to-User, Company, or Tenant assumptions.
+- Added payroll components and employee recurring component assignments with exact integer amount/rate handling.
+- Added payroll periods and payroll runs with draft, submit, approve, post, and cancel lifecycle.
+- Added PostingEngine-backed payroll posting: Dr payroll expense, Cr payroll payable, and Cr payroll deductions payable.
+- Added payroll GL mapping keys and seeded default payroll accounts/components.
+- Added `/payroll/employees`, `/payroll/components`, and `/payroll/runs` pages with EN/AR dictionary-backed visible text.
+- Added payroll route authorization requiring granular payroll permissions plus sensitive `view_payroll`; payroll posting also requires `view_financials`.
+- Added payroll attachment registry entries, Spatie Activitylog audit calls, and period close blockers for unposted payroll runs.
+- Preserved no-multi-tenant guardrails: no `company_id`, no `tenant_id`, no Spatie Teams, no current-company/current-branch context; optional `branch_id` is an operational payroll/reporting reference only.
+- Created `PHASE_13_PAYROLL_FOUNDATION_REPORT.md` with verification results.
+
+### Added - Phase 12 Prepaid & Accrued Expenses (2026-08-25)
+- Added prepaid schedules and monthly prepaid recognition rows with exact integer allocation and deterministic remainder handling.
+- Added accrual schedules and monthly accrual entry rows with PostingEngine-backed Dr expense / Cr accrued liability posting.
+- Added default GL mapping keys and seeded accounts for prepaid expense assets and accrued expense liabilities.
+- Added `/expenses/prepaids` and `/expenses/accruals` pages with EN/AR dictionary-backed UI text and permission-aware actions.
+- Added period close blockers for pending approved/active prepaid recognitions and accrual entries.
+- Fixed stale currency `is_active` assumptions across affected controllers and services because `currency` is a registry table.
+- Hardened verification by extending the PostgreSQL accounting mapping key constraint, fixing inventory stress mapping setup, and raising PHPUnit test memory for the combined suite.
+- Created `PHASE_12_PREPAID_ACCRUED_EXPENSES_REPORT.md` with verification results.
+
+### Added - Phase 11 Expense Management (2026-08-25)
+- Added expense category management with default expense account, default tax code, attachment requirement, active flag, optimistic locking, in-use delete protection, and Spatie Activitylog audit.
+- Added expense documents with draft, submit, approve, post, and cancel lifecycle.
+- Added payable, cash, and bank settlement methods: payable expenses create AP `payable_entry`; cash and bank expenses post directly against the selected settlement account GL.
+- Added PostingEngine-backed expense posting: Dr expense accounts, Dr Input Tax Receivable when applicable, and Cr AP Control, cash GL, or bank GL.
+- Added required attachment enforcement, filed tax-period blocking, period close readiness blocking, `/expenses` and `/expenses/categories` pages, EN/AR dictionary text, and mixed-currency visible-total protection.
+- Preserved no-multi-tenant guardrails: no company/tenant context; `expense.branch_id` is only an optional owner-approved operational reference for reporting and settlement account branch matching.
+- Created `PHASE_11_EXPENSE_MANAGEMENT_REPORT.md` with verification results.
+
+### Added - Phase 10 Landed Cost / Freight Allocation (2026-08-25)
+- Added landed cost allocation documents for confirmed Goods Receipts with `by_value`, `by_quantity`, and `manual` allocation methods.
+- Added PostingEngine-backed GL posting for landed cost: Dr Inventory Asset for remaining-stock capitalization, Dr COGS for already-issued-stock cost, optional Dr Input Tax Receivable, and Cr AP Control.
+- Added AP payable entry creation for the landed cost supplier and WAVG inventory value adjustment through `stock_movement_ledger` rows with `movement_type = landed_cost`.
+- Added `/purchasing/landed-costs` page, routes, controller, service, models, `purchasing.landed_costs` permission, EN/AR dictionary text, attachment registry support, period close blocker, tests, and report `PHASE_10_LANDED_COST_ALLOCATION_REPORT.md`.
+- Preserved no-multi-tenant guardrails: no company/tenant context and no landed-cost `branch_id`; operational branch context is only inherited from the Goods Receipt warehouse for existing GL branch reporting/mapping fallback.
+
+### Added - Phase 10 Branch-Aware Approval Rules (2026-08-25)
+- Added optional `branch_approval_rule` configuration for stock transfer, stock count, and stock adjustment approval workflows.
+- Added `/settings/branch-approval-rules` CRUD UI with EN/AR dictionary-backed text and permission-aware navigation.
+- Added `approvals.view`, `approvals.configure`, and `approvals.override` permissions while keeping Spatie Teams disabled.
+- Updated inventory approval services to apply matching branch rules as an extra approval permission gate without turning Branch into a tenant, login context, or default security boundary.
+- Updated integrity guards to classify `branch_approval_rule.branch_id` as a bounded owner-approved operational reference.
+- Created `PHASE_10_BRANCH_APPROVAL_RULES_REPORT.md` with verification results and guardrails.
+
+### Added - Phase 10 Branch-Specific GL Mapping Overrides (2026-08-25)
+- Added optional operational `branch_id` overrides to `accounting_account_mapping` with global fallback and partial unique indexes.
+- Updated accounting mapping resolution so branch-specific inventory postings can use branch overrides while preserving global mappings for all other contexts.
+- Added `/accounting/account-mappings` UI, routes, controller, service actions, EN/AR dictionary keys, and `Phase10BranchSpecificGlMappingTest`.
+- Hardened `qa:verify-local` to run spawned test processes under explicit testing environment variables.
+- Created `PHASE_10_BRANCH_GL_MAPPING_REPORT.md` with verification results and guardrails.
+
+### Added - Phase 10 GL Branch Dimension and Branch Profitability (2026-08-25)
+- Added nullable operational `branch_id` references to `journal_entry`, `journal_line`, and immutable `ledger_entry` for branch reporting without tenant/security scope.
+- Updated journal draft creation, posting, reversal, treasury transfers, and inventory-generated journals to preserve approved operational branch context.
+- Added `/reports/branch-profitability`, branch-filtered General Ledger review, Reports Hub/sidebar entries, EN/AR dictionary-backed UI text, and `Phase10GlBranchProfitabilityTest`.
+- Added protected Branch Profitability CSV export plus permission-aware print/export UI actions.
+- Updated Branch Operations report readiness text now that ledger-backed branch profitability is available.
+- Verified Phase 10 gate, security hardening, integrity check, Pint, TypeScript, Vite build, migrate status, and token GC.
+
+### Added - Phase 10 Branch Operational Reports (2026-08-25)
+- Added read-only Branch Operations Snapshot report at `/reports/branch-operations`, protected by `reports.view` and `view_financials`.
+- Added service-layer branch operational aggregation for warehouses, stock balances/movement value, cash/bank GL movement, fixed assets, fixed asset movements, and posted treasury transfers.
+- Added readiness checks for unassigned operational records and mixed-currency branch coverage.
+- Added mixed-currency warning, Reports Hub card, sidebar navigation entry, EN/AR dictionary-backed UI text, and `Phase10BranchOperationalReportsTest`.
+- Updated Phase 3 integrity allowlist to classify `fixed_asset.branch_id` and `fixed_asset_location.branch_id` as owner-approved Phase 10 operational references only.
+- Created `PHASE_10_BRANCH_OPERATIONAL_REPORTS_REPORT.md` with verification results.
+
+### Added - Phase 10 Fixed Asset Location and Movement History (2026-08-25)
+- Added fixed-asset-specific operational locations and current fixed asset branch/location references without tenant, company, or branch security scope.
+- Added append-only fixed asset movement history with `FAM-YYYY-XXXXX` numbering, from/to branch and location snapshots, reason/notes, actor tracking, and Spatie Activitylog audit.
+- Added `fixedAssets.transfer` permission, movement route authorization, Fixed Asset Locations management page, branch/location filters on the asset register, movement modal, and movement history display on asset details.
+- Updated older Phase 6 fixed asset tests and documentation to classify fixed asset branch/location as an owner-approved Phase 10 operational reference, while keeping company/tenant/custodian ownership assumptions prohibited.
+- Created `PHASE_10_FIXED_ASSET_MOVEMENT_REPORT.md` with verification results.
+
+### Added - Phase 10 Treasury Transfer and Branch Cash/Bank Extension (2026-08-25)
+- Added optional operational `branch_id` references to cash accounts and bank accounts, scoped only for branch-capable operations and reporting, not tenancy or security ownership.
+- Implemented internal treasury transfers between cash and bank accounts (`Cash -> Cash`, `Cash -> Bank`, `Bank -> Cash`, `Bank -> Bank`) with draft/update/cancel/post lifecycle.
+- Treasury transfer posting creates a balanced journal through `PostingEngine`: Dr destination linked GL account and Cr source linked GL account, with no AR/AP, VAT, revenue, expense, or tenant/company scope.
+- Added branch-aware cash/bank filters, selectors, UI columns, EN/AR dictionary keys, navigation entry, routes, controller, service, model, migration, tests, and report `PHASE_10_TREASURY_TRANSFER_REPORT.md`.
+- Updated Phase 3 integrity guards to classify `cash_account.branch_id` and `bank_account.branch_id` as bounded owner-approved operational references alongside `warehouse.branch_id`.
+
+### Added - Stabilization, QA Gate, and UX Cleanup (2026-08-25)
+- Added `php artisan qa:verify-local` to run local verification suites and feature files with visible progress and a summary table.
+- Hardened Phase 10 PostgreSQL feature tests by using UUID source identifiers for `stock_movement_ledger.source_id/source_line_id`.
+- Extracted repeated inventory page option queries into `App\Application\Inventory\InventoryPageOptions` and updated Phase 10 inventory controllers to use it.
+- Removed mixed hardcoded EN/AR visible text from Delivery Notes and Goods Receipts report pages, replacing it with dictionary-backed labels, placeholders, titles, empty states, and localized status labels.
+- Verified route authorization coverage for inventory and operational report routes through `SecurityHardeningTest` and targeted route inspection.
+- Created `STABILIZATION_HARDENING_REPORT.md` with verification results and remaining product work.
+
+### Added - Phase 10 Stock Count, Adjustment, and Warehouse Document Selectors (2026-08-24)
+- Implemented stock count and stock adjustment workflows with draft, submit, approve, post, and cancel lifecycle actions.
+- Added stock count variance posting through generated stock adjustments and PostingEngine-balanced inventory adjustment gain/loss journals.
+- Added operational warehouse selection to Delivery Notes, Goods Receipts, Sales Returns, and Purchase Returns, with warehouse propagation from source fulfillment documents into returns.
+- Added warehouse filters to Delivery Note and Goods Receipt reports.
+- Added Inertia pages for stock counts and stock adjustments with dictionary-backed EN/AR UI text and Inventory navigation entries.
+- Added explicit tests for selected-warehouse customer returns and supplier returns.
+- Created `PHASE_10_OPERATIONAL_COMPLETION_REPORT.md` with verification results and no-multi-tenant scope classification.
+
+### Added - Security Hardening Pass (2026-08-24)
+- Added baseline web security headers, configurable CSP support, active-user request recheck, `permission.any` and `permission.all` middleware aliases, and explicit route-level authorization for protected application routes.
+- Registered `taxes.file` as a sensitive capability so tax filing is not granted by broad accountant tax-module access.
+- Disabled framework direct serving of the private local filesystem by default through `FILESYSTEM_LOCAL_SERVE=false`; attachments remain delivered through authenticated entity authorization.
+- Added `SecurityHardeningTest` and updated legacy route/page/report tests to reflect least-privilege authorization.
+- Created `SECURITY_HARDENING_REPORT.md` and refreshed security, go-live, runtime, environment, handoff, and status documentation.
+
+### Added - Phase 10 Branch, Warehouse, and Stock Transfer Foundation (2026-08-24)
+- Implemented warehouse master data with optional operational branch reference, stock locations, default `MAIN` warehouse seeding, warehouse-aware stock balances, and warehouse-aware immutable stock movement ledger entries.
+- Implemented stock transfer lifecycle with draft, submit, approve, issue, partial receipt, full receipt, and cancellation behavior.
+- Preserved internal-transfer accounting rules: no revenue, no VAT, no AR/AP, and no GL journals for warehouse-to-warehouse transfers in this foundation pass.
+- Added Inertia pages for warehouses and stock transfers, plus warehouse filters on stock balances and stock movement reports.
+- Added inventory transfer/receive RBAC actions, attachment registry support for warehouses and stock transfers, and PostgreSQL stress command `accounting:stock-transfer-stress --workers=50`.
+- Updated Phase 3 integrity guard and legacy tests so `warehouse.branch_id` is allowed only as an owner-approved operational reference, while company/tenant scope remains prohibited.
+- Created `PHASE_10_FINAL_REPORT.md` with verification results and remaining Phase 10 extension list.
+
+### Added - Product Extensibility Roadmap and Phase 10 Planning (2026-08-24)
+- Recorded owner direction that the product must support multiple operational branches, branch transfers, and branch-aware sales, purchasing, inventory, returns, cash/bank, fixed asset, reporting, and approval scenarios.
+- Created `PRODUCT_EXTENSIBILITY_ROADMAP.md` clarifying branch as an operational dimension, not a tenant, Company child, login context, or default security boundary.
+- Created `PHASE_10_BRANCH_WAREHOUSE_OPERATIONS.md` as the Phase 10 master contract for branch, warehouse, stock transfer, stock count, and operational dimension readiness.
+- Created `PHASE_10_SLICE_1_GEMINI_PROMPT.md` as a docs-first decision pack prompt. It must not add schema or Laravel implementation before owner decisions are recorded.
+- Updated `NO_MULTI_TENANT_POLICY.md`, `README.md`, `NEXT_TASKS.md`, `IMPLEMENTATION_STATUS.md`, `CONTINUE_HERE.md`, and `spec/GO_LIVE_ACCEPTANCE.md` to reconcile future branch capability with the no-multi-tenant rule.
 
 ### Added - Phase 9 Final Cutover Close-Out (2026-08-24)
 - Created `PHASE_9_FINAL_CUTOVER_REPORT.md` documenting all completed Phase 9 slices, files created/updated, owner/operator decisions still pending, runbook status, verification command results, source-scan classifications, and no-new-business-module confirmation.
@@ -720,7 +1098,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ### Added — Phase 1 integration layer
 - **DB:** Prisma client singleton + repositories (user, audit append-only, numbering with atomic `INSERT … ON CONFLICT DO UPDATE RETURNING`). Repositories are the only DB-touching layer.
-- **Auth.js:** NextAuth v5 credentials config wired to the tested auth service + Argon2 + Prisma user repo; JWT session carries server-derived companyId + RBAC grants; login screen (EN/AR, tokens, light/dark); `requireAuth` route guard.
+- **Auth.js:** NextAuth v5 credentials config wired to the tested auth service + Argon2 + Prisma user repo; JWT session carries server-derived companyId + RBAC grants; login screen (EN/AR, tokens, light/dark); `requiredAuth` route guard.
 - **CI:** now provisions a Postgres service, runs `prisma db push`, and executes the DB-gated numbering-concurrency integration test alongside the blocking invariant suite. Working directory set to `app/`; triggers on main + develop.
 
 ### Added / Fixed — toolchain hardening (verified via real install)
@@ -736,7 +1114,7 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ### Added — reusable UI + app shell (locally typechecked + linted)
 - UI primitives: **Button** (primary/secondary/ghost/danger + loading/disabled), **Input** (label/error/hint), **StatusBadge** (colour + dot + label, never colour-alone), **Card / PageHeader / EmptyState / PermissionDenied**. Token-styled, RTL-safe via logical CSS properties, light/dark via variables.
-- **AppShell** (sidebar + topbar, localized nav, active state) and a **protected route group** (`(app)/layout` enforces `requireAuth`) with a **dashboard shell** that shows an EmptyState — no mock KPIs.
+- **AppShell** (sidebar + topbar, localized nav, active state) and a **protected route group** (`(app)/layout` enforces `requiredAuth`) with a **dashboard shell** that shows an EmptyState — no mock KPIs.
 - Verified: `eslint --max-warnings=0` clean; `vitest` 57 passed; `tsc` adds zero new errors.
 
 ### Added — auth route + Settings (locally verified)
@@ -769,3 +1147,4 @@ All notable changes. Format: Keep a Changelog; SemVer per phase.
 
 ### Tests
 - 66 Vitest tests pass with PostgreSQL. 5 Playwright smoke tests pass with PostgreSQL-backed auth/RBAC. Invariant suite remains blocking.
+

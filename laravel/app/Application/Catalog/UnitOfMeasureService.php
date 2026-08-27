@@ -20,13 +20,13 @@ class UnitOfMeasureService
 
         if ($code === '') {
             throw ValidationException::withMessages([
-                'code' => ['Unit of measure code is required.'],
+                'code' => [__('Unit of measure code is required.')],
             ]);
         }
 
         if (UnitOfMeasure::query()->where('code', $code)->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Unit of measure code [{$code}] already exists."],
+                'code' => [__('Unit of measure code [:code] already exists.', ['code' => $code])],
             ]);
         }
 
@@ -66,7 +66,7 @@ class UnitOfMeasureService
             $code = strtoupper(trim((string) $data['code']));
             if ($code !== $uom->code && UnitOfMeasure::query()->where('code', $code)->where('id', '!=', $id)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Unit of measure code [{$code}] already exists."],
+                    'code' => [__('Unit of measure code [:code] already exists.', ['code' => $code])],
                 ]);
             }
             $uom->code = $code;
@@ -107,7 +107,7 @@ class UnitOfMeasureService
 
         if ($uom->products()->exists()) {
             throw ValidationException::withMessages([
-                'id' => ["Cannot delete Unit of Measure [{$uom->code}] because it is referenced by existing products."],
+                'id' => [__('Cannot delete Unit of Measure [:code] because it is referenced by existing products.', ['code' => $uom->code])],
             ]);
         }
 

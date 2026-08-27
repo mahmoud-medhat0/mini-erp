@@ -19,6 +19,8 @@ type CustomerRow = {
   created_at: string;
 };
 
+type CustomerStatus = CustomerRow['status'];
+
 type CustomersProps = SharedPageProps & {
   customers: {
     data: CustomerRow[];
@@ -30,8 +32,13 @@ type CustomersProps = SharedPageProps & {
   };
 };
 
+function toCustomerStatus(value: string): CustomerStatus {
+  return value === 'inactive' ? 'inactive' : 'active';
+}
+
 export default function CustomersIndex({ locale, customers, filters }: CustomersProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -149,9 +156,9 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
                 <tr key={customer.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{customer.code}</td>
                   <td className={`${tableClasses.td} font-semibold`}>{customer.name}</td>
-                  <td className={tableClasses.td}>{customer.phone || '—'}</td>
-                  <td className={tableClasses.td}>{customer.email || '—'}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{customer.tax_number || '—'}</td>
+                  <td className={tableClasses.td}>{customer.phone || accDict.notAvailable}</td>
+                  <td className={tableClasses.td}>{customer.email || accDict.notAvailable}</td>
+                  <td className={`${tableClasses.td} font-mono text-xs`}>{customer.tax_number || accDict.notAvailable}</td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={customer.status === 'active' ? 'ok' : 'muted'}>
                       {customer.status === 'active' ? dict.app.pages.customers.active_2 : dict.app.pages.customers.inactive_2}
@@ -204,7 +211,7 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
                   </label>
                   <select
                     value={data.status}
-                    onChange={(e) => setData('status', e.target.value as any)}
+                    onChange={(e) => setData('status', toCustomerStatus(e.target.value))}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
                   >
                     <option value="active">{dict.app.pages.customers.active}</option>

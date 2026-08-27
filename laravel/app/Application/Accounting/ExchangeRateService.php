@@ -2,6 +2,8 @@
 
 namespace App\Application\Accounting;
 
+use App\Application\Support\BaseCurrencyResolver;
+use App\Application\Support\CurrencyInput;
 use App\Domain\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -11,12 +13,13 @@ class ExchangeRateService
 {
     public function __construct(
         private readonly AuditLogger $auditLogger,
+        private readonly BaseCurrencyResolver $baseCurrencyResolver,
     ) {}
 
     public function setRate(string $currency, string $date, int|string $rate, int $userId): void
     {
         $rateE6 = self::parseRateToE6($rate);
-        $currUpper = strtoupper($currency);
+        $currUpper = CurrencyInput::required($currency);
 
         $existing = DB::table('exchange_rate')
             ->where('currency', $currUpper)
@@ -77,16 +80,22 @@ class ExchangeRateService
 
     public function getRateE6(string $currency, string $date): int
     {
-        if (strtoupper($currency) === 'EGP') {
+        $currencyCode = CurrencyInput::required($currency);
+
+        if ($currencyCode === $this->baseCurrencyResolver->resolve()) {
             return 1000000;
         }
 
         $row = DB::table('exchange_rate')
-            ->where('currency', strtoupper($currency))
+            ->where('currency', $currencyCode)
             ->where('date', '<=', $date)
             ->orderBy('date', 'desc')
             ->first();
 
-        return $row ? (int) $row->rate_e6 : 1000000;
+        if (! $row) {
+            throw new InvalidArgumentException(__('Exchange rate is required for the selected currency and date.'));
+        }
+
+        return (int) $row->rate_e6;
     }
 }

@@ -41,6 +41,11 @@ class SalesReturn extends Model
         return $this->belongsTo(DeliveryNote::class, 'delivery_note_id');
     }
 
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
     public function customerInvoice(): BelongsTo
     {
         return $this->belongsTo(CustomerInvoice::class, 'customer_invoice_id');

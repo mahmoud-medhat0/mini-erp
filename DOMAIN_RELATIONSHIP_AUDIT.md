@@ -1,9 +1,11 @@
 # Domain Relationship Audit
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Date: 2026-08-21
+
+> **Historical Baseline Notice:** This relationship audit captured the Laravel state after M10 only. Its no-multi-tenant classifications remain binding, but later owner-approved operational references exist after Phase 10 and Phase 13. For current implementation completeness, use `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, `CONTINUE_HERE.md`, `PRODUCT_EXTENSIBILITY_ROADMAP.md`, and `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`.
 
 Evidence rule: if a relationship is not explicitly supported by original owner requirements or latest owner correction, classify it as `UNDEFINED - DO NOT ASSUME`. Do not infer ownership from ERP convention, generated docs, Prisma schema, Laravel migrations, or tests.
 
@@ -32,7 +34,7 @@ Post-audit correction note: the misleading global role template `COMPANY_ADMIN` 
 | User -> Permission | CONFIRMED | Spatie `model_has_permissions`. | Keep. |
 | Role -> Permission | CONFIRMED | Spatie `role_has_permissions`. | Keep. |
 | User -> Branch | UNDEFINED - DO NOT ASSUME | No schema/model relationship. | Do not add. |
-| User = Employee | UNDEFINED - DO NOT ASSUME | No employee table/relationship in Laravel. | Do not infer. |
+| User = Employee | UNDEFINED - DO NOT ASSUME | Phase 13 adds `employee` as standalone payroll master data; no `employee.user_id` and no User-to-Employee relation. | Do not infer. |
 | User -> Notification | CONFIRMED | `notification.user_id` FK cascade delete. | Keep as target-user relationship. |
 | User -> ActivityLog as causer | CONFIRMED | Spatie `activity_log.causer_type/causer_id` plus `AuditLogger` properties. | Keep through `AuditLogger`; consider actor snapshots/soft deletes later if required. |
 | User -> Attachment uploaded_by | DERIVED | `attachment.uploaded_by` FK set null on delete. | Keep for provenance; not authorization. |

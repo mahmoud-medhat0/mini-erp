@@ -39,6 +39,7 @@ type InvoiceRevisionsProps = SharedPageProps & {
 
 export default function InvoiceRevisionsIndex({ locale, customerInvoiceRevisions, filters }: InvoiceRevisionsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   
   return (
     <AppLayout active="invoice-revisions.index">
@@ -97,8 +98,8 @@ export default function InvoiceRevisionsIndex({ locale, customerInvoiceRevisions
                       {rev.display_string}
                       <span className="ms-1 text-[10px] font-semibold text-[var(--text-muted)]">#{rev.revision_no}</span>
                     </td>
-                    <td className={`${tableClasses.td} font-mono`}>{rev.customerInvoice?.number || '-'}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{rev.customerInvoice?.customer?.name || '-'}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{rev.customerInvoice?.number || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{rev.customerInvoice?.customer?.name || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{rev.revision_date}</td>
                     <td className={`${tableClasses.td} text-end font-mono font-semibold`}>
                       {formatMoney(rev.original_total_minor, rev.currency)}

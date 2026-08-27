@@ -1,6 +1,6 @@
 # PHASE 2 - ACCOUNTING CORE IMPLEMENTATION CONTRACT
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 > Current status update, 2026-08-21: Phase 2 Accounting Core has been implemented and locally verified in the Laravel target. Treat this file as the historical implementation contract and regression checklist, not as an instruction to rebuild Phase 2 from scratch. Current status lives in `IMPLEMENTATION_STATUS.md`; next tasks live in `NEXT_TASKS.md`.

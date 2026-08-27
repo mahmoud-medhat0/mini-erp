@@ -119,6 +119,7 @@ class PostingEngine
                             'journal_line_id' => $line->id,
                             'account_id' => $line->account_id,
                             'financial_period_id' => $period->id,
+                            'branch_id' => $line->branch_id ?? $lockedEntry->branch_id,
                             'entry_date' => $lockedEntry->entry_date,
                             'debit_minor' => $line->debit_minor,
                             'credit_minor' => $line->credit_minor,
@@ -142,10 +143,11 @@ class PostingEngine
                     $this->auditLogger->record($userId, 'accounting.journal.posted', 'journal_entry', (string) $lockedEntry->id, after: [
                         'number' => $allocatedNumber,
                         'period_id' => $period->id,
+                        'branch_id' => $lockedEntry->branch_id,
                         'entry_date' => $lockedEntry->entry_date,
                     ]);
 
-                    return $lockedEntry->fresh(['lines.account']);
+                    return $lockedEntry->fresh(['branch', 'lines.account', 'lines.branch']);
                 });
 
                 return $postedEntry;

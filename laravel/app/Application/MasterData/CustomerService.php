@@ -23,7 +23,7 @@ class CustomerService
 
         if (Customer::query()->where('code', $data['code'])->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Customer code [{$data['code']}] already exists."],
+                'code' => [__('Customer code [:code] already exists.', ['code' => $data['code']])],
             ]);
         }
 
@@ -68,7 +68,7 @@ class CustomerService
         if (isset($data['code']) && $data['code'] !== $customer->code) {
             if (Customer::query()->where('code', $data['code'])->where('id', '!=', $id)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Customer code [{$data['code']}] already exists."],
+                    'code' => [__('Customer code [:code] already exists.', ['code' => $data['code']])],
                 ]);
             }
         }
@@ -111,7 +111,7 @@ class CustomerService
     {
         if (! is_string($status) || ! in_array($status, ['active', 'inactive'], true)) {
             throw ValidationException::withMessages([
-                'status' => ['Customer status must be active or inactive.'],
+                'status' => [__('Customer status must be active or inactive.')],
             ]);
         }
     }

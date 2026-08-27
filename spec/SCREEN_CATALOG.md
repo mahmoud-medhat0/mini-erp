@@ -1,6 +1,6 @@
 # SCREEN CATALOG
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Every screen adheres to the **Universal UI Contract (MASTER_ERP_SPEC A2)**: all states (default/hover/focus/active/disabled/loading/empty/error/success/read-only/permission-denied/no-results), AR/EN, RTL/LTR, light/dark/system, responsive (desktop/tablet/mobile), drill-down, export/print where relevant. Below: route · type · primary user · required permission. Types: L=List, D=Detail, C=Create, E=Edit, W=Wizard, R=Report, Cfg=Config, Dash=Dashboard, Rec=Reconciliation, M=Modal/Drawer.

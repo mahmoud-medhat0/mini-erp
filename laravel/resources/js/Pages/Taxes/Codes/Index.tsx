@@ -31,14 +31,14 @@ type IndexProps = SharedPageProps & {
 
 export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps) {
   const dict = getDictionary(locale);
-  const taxDict = (dict.app as any).taxes || {};
+  const taxDict = dict.app.taxes;
 
   const [search, setSearch] = useState(filters.search || '');
 
   function getTransName(nameObj?: Record<string, string> | string | null): string {
-    if (!nameObj) return '-';
+    if (!nameObj) return taxDict.notAvailable;
     if (typeof nameObj === 'string') return nameObj;
-    return nameObj[locale] || nameObj.en || '-';
+    return nameObj[locale] || nameObj.en || taxDict.notAvailable;
   }
 
   function handleFilter() {
@@ -46,26 +46,26 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
   }
 
   function handleDelete(id: string) {
-    if (confirm(taxDict.confirmDeleteCode || 'Are you sure you want to delete this tax code?')) {
+    if (confirm(taxDict.confirmDeleteCode)) {
       router.delete(`/taxes/codes/${id}`);
     }
   }
 
   return (
     <AppLayout active="taxes.codes.index">
-      <Head title={taxDict.title || 'Tax Codes & Rates'} />
+      <Head title={taxDict.title} />
 
       <div className="space-y-6">
         <PageHeader
-          title={taxDict.title || 'Tax Codes & Rates'}
-          description={taxDict.subtitle || 'Manage master-data tax codes, rates, effective date ranges, and modes.'}
+          title={taxDict.title}
+          description={taxDict.subtitle}
           actions={
             <div className="flex items-center gap-3">
               <Link
                 href="/taxes/rates"
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
               >
-                {taxDict.taxRates || 'Tax Rates'}
+                {taxDict.taxRates}
               </Link>
               <Link
                 href="/taxes/codes/create"
@@ -74,7 +74,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>{taxDict.newTaxCode || 'New Tax Code'}</span>
+                <span>{taxDict.newTaxCode}</span>
               </Link>
             </div>
           }
@@ -89,7 +89,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                placeholder={taxDict.code || 'Search tax code or name...'}
+                placeholder={taxDict.searchTaxCode}
                 className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
               />
             </div>
@@ -97,7 +97,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
               onClick={handleFilter}
               className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-md font-medium text-sm hover:bg-slate-200 transition"
             >
-              {locale === 'ar' ? 'بحث' : 'Search'}
+              {taxDict.search}
             </button>
           </div>
         </Card>
@@ -108,20 +108,20 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
             <table className="w-full text-sm text-left rtl:text-right">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 uppercase text-xs">
                 <tr>
-                  <th className="px-4 py-3">{taxDict.code || 'Code'}</th>
-                  <th className="px-4 py-3">{taxDict.nameEn || 'Name'}</th>
-                  <th className="px-4 py-3">{taxDict.calculationMode || 'Mode'}</th>
-                  <th className="px-4 py-3">{taxDict.recoverabilityMode || 'Recoverability'}</th>
-                  <th className="px-4 py-3 text-center">{taxDict.ratesCount || 'Rates'}</th>
-                  <th className="px-4 py-3">{taxDict.status || 'Status'}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left">{taxDict.actions || 'Actions'}</th>
+                  <th className="px-4 py-3">{taxDict.code}</th>
+                  <th className="px-4 py-3">{taxDict.name}</th>
+                  <th className="px-4 py-3">{taxDict.calculationMode}</th>
+                  <th className="px-4 py-3">{taxDict.recoverabilityMode}</th>
+                  <th className="px-4 py-3 text-center">{taxDict.ratesCount}</th>
+                  <th className="px-4 py-3">{taxDict.status}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left">{taxDict.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {taxCodes.data.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                      {taxDict.emptyCodes || 'No tax codes configured.'}
+                      {taxDict.emptyCodes}
                     </td>
                   </tr>
                 ) : (
@@ -148,7 +148,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                             : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
                         }`}>
-                          {item.is_active ? (taxDict.active || 'Active') : (taxDict.inactive || 'Inactive')}
+                          {item.is_active ? taxDict.active : taxDict.inactive}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right rtl:text-left space-x-2 rtl:space-x-reverse">
@@ -156,14 +156,14 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                           href={`/taxes/codes/${item.id}/edit`}
                           className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
                         >
-                          {taxDict.editTaxCode || 'Edit'}
+                          {taxDict.editTaxCode}
                         </Link>
                         {!item.is_system && (
                           <button
                             onClick={() => handleDelete(item.id)}
                             className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline"
                           >
-                            {taxDict.delete || 'Delete'}
+                            {taxDict.delete}
                           </button>
                         )}
                       </td>

@@ -6,6 +6,8 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodService;
 use App\Application\FixedAssets\FixedAssetCapitalizationService;
 use App\Application\FixedAssets\FixedAssetDisposalPostingService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\AccountGroup;
 use App\Models\FinancialPeriod;
@@ -23,18 +25,25 @@ use Throwable;
 
 class FixedAssetDisposalStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:fixed-asset-disposal-stress {--workers=50 : Number of concurrent workers}';
 
     protected $description = 'Stress test fixed asset disposal posting under high concurrency';
 
-    public function handle(FixedAssetDisposalPostingService $disposalService, PeriodService $periodService, FixedAssetCapitalizationService $capService): int
-    {
+    public function handle(
+        FixedAssetDisposalPostingService $disposalService,
+        PeriodService $periodService,
+        FixedAssetCapitalizationService $capService,
+        BaseCurrencyResolver $baseCurrencyResolver,
+    ): int {
         $workersCount = (int) $this->option('workers');
         $dbDriver = DB::getDriverName();
 
         $this->info("Running Fixed Asset Disposal Concurrency Stress Test on DB driver: [{$dbDriver}] with [{$workersCount}] workers..");
 
         $user = User::query()->first() ?? User::factory()->create();
+        $currency = $this->resolveStressCurrency($baseCurrencyResolver);
 
         // Setup test data in clean state
         $year = random_int(3000, 8999);
@@ -65,6 +74,7 @@ class FixedAssetDisposalStressCommand extends Command
             'type' => 'asset',
             'nature' => 'debit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -76,6 +86,7 @@ class FixedAssetDisposalStressCommand extends Command
             'type' => 'asset',
             'nature' => 'credit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -87,6 +98,7 @@ class FixedAssetDisposalStressCommand extends Command
             'type' => 'expense',
             'nature' => 'debit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -98,6 +110,7 @@ class FixedAssetDisposalStressCommand extends Command
             'type' => 'revenue',
             'nature' => 'credit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -109,6 +122,7 @@ class FixedAssetDisposalStressCommand extends Command
             'type' => 'asset',
             'nature' => 'debit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -133,7 +147,7 @@ class FixedAssetDisposalStressCommand extends Command
             'asset_number' => "FA-STRESS-DISP-{$year}",
             'name' => ['en' => 'Stress Asset', 'ar' => 'أصل ضغط'],
             'fixed_asset_category_id' => $category->id,
-            'currency' => 'EGP',
+            'currency' => $currency,
             'acquisition_date' => $period->start_date,
             'in_service_date' => $period->start_date,
             'cost_minor' => 1000000,

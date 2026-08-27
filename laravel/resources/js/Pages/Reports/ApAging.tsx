@@ -112,7 +112,7 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
               <SearchableSelect
                 options={currencies.map((c) => ({ value: c.code, label: c.code }))}
                 value={currency}
-                onChange={(val) => setCurrency(val || 'EGP')}
+                onChange={(val) => setCurrency(val || '')}
               />
             </div>
             <div>

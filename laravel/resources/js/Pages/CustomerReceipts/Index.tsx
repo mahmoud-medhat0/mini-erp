@@ -6,7 +6,7 @@ import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClass
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
 type CustomerReceiptRow = {
   id: string;
@@ -28,10 +28,12 @@ type CustomerReceiptRow = {
   created_at: string;
 };
 
+type CashBankDestinationType = 'cash' | 'bank';
+
 type CustomerReceiptProps = SharedPageProps & {
   receipts: {
     data: CustomerReceiptRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   customers: Array<{ id: string; code: string; name: string }>;
   cashAccounts: Array<{ id: string; code: string; name: string }>;
@@ -40,6 +42,10 @@ type CustomerReceiptProps = SharedPageProps & {
   periods: Array<{ id: string; name: string; period_number: number }>;
   currencies: CurrencyOption[];
 };
+
+function toCashBankDestinationType(value: string): CashBankDestinationType {
+  return value === 'bank' ? 'bank' : 'cash';
+}
 
 export default function CustomerReceiptsIndex({
   locale,
@@ -52,10 +58,11 @@ export default function CustomerReceiptsIndex({
   currencies = [],
 }: CustomerReceiptProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
-  const [destinationType, setDestinationType] = useState<'cash' | 'bank'>('cash');
+  const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     customer_id: '',
@@ -66,7 +73,7 @@ export default function CustomerReceiptsIndex({
     description: 'Customer Receipt',
     cash_account_id: '',
     bank_account_id: '',
-    currency: 'EGP',
+    currency: currencies[0]?.code || '',
     amount: '',
     amount_minor: 0,
     fx_rate_e6: 1000000,
@@ -93,7 +100,7 @@ export default function CustomerReceiptsIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(dict.app.pages.customerReceipts.areYouSureYouWantTo)) {
+    if (confirm(dict.app.pages.customerReceipts.confirmPostReceipt)) {
       post(`/customer-receipts/${id}/post`);
     }
   };
@@ -152,11 +159,15 @@ export default function CustomerReceiptsIndex({
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.number}</td>
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.customer ? `${row.customer.code} - ${row.customer.name}` : '—'}
+                    {row.customer ? `${row.customer.code} - ${row.customer.name}` : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.receipt_date}</td>
                   <td className={tableClasses.td}>
-                    {row.cash_account ? `خزينة: ${row.cash_account.name}` : row.bank_account ? `بنك: ${row.bank_account.name}` : '—'}
+                    {row.cash_account
+                      ? `${dict.app.pages.customerReceipts.cashAccount}: ${row.cash_account.name}`
+                      : row.bank_account
+                      ? `${dict.app.pages.customerReceipts.bankAccount}: ${row.bank_account.name}`
+                      : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
                     {formatMoney(row.amount_minor, row.currency)}
@@ -171,7 +182,7 @@ export default function CustomerReceiptsIndex({
                   </td>
                   <td className={tableClasses.td}>
                     {row.status === 'draft' ? (
-                      can('customers.receipts') ? (
+                      can('customers.receipts') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handlePost(row.id)}
@@ -225,7 +236,7 @@ export default function CustomerReceiptsIndex({
                   </label>
                   <select
                     value={destinationType}
-                    onChange={(e) => setDestinationType(e.target.value as any)}
+                    onChange={(e) => setDestinationType(toCashBankDestinationType(e.target.value))}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
                   >
                     <option value="cash">{dict.app.pages.customerReceipts.cashAccount}</option>
@@ -291,7 +302,7 @@ export default function CustomerReceiptsIndex({
                   <SearchableSelect
                     options={currencyOptions}
                     value={data.currency}
-                    onChange={(val) => setData('currency', val || 'EGP')}
+                    onChange={(val) => setData('currency', val || '')}
                     isClearable={false}
                   />
                 </div>

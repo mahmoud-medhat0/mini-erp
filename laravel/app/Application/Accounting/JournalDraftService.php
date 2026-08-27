@@ -2,6 +2,7 @@
 
 namespace App\Application\Accounting;
 
+use App\Application\Support\CurrencyInput;
 use App\Domain\Accounting\AccountingKernel;
 use App\Domain\Accounting\DraftEntry;
 use App\Domain\Accounting\DraftLine;
@@ -34,7 +35,7 @@ class JournalDraftService
      * Create a new draft journal entry with lines.
      *
      * @param  array<string, mixed>  $data
-     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null}>  $linesData
+     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null, branch_id?: string|null}>  $linesData
      */
     public function createDraft(array $data, array $linesData, int $userId): JournalEntry
     {
@@ -50,11 +51,12 @@ class JournalDraftService
                 'id' => (string) Str::uuid(),
                 'entry_date' => $data['entry_date'],
                 'financial_period_id' => $period->id,
+                'branch_id' => $data['branch_id'] ?? null,
                 'source_type' => $data['source_type'] ?? 'manual_journal',
                 'source_id' => $data['source_id'] ?? null,
                 'description' => $data['description'] ?? null,
                 'reference' => $data['reference'] ?? null,
-                'currency' => $data['currency'] ?? 'EGP',
+                'currency' => CurrencyInput::required($data['currency'] ?? null),
                 'fx_rate_e6' => $data['fx_rate_e6'] ?? 1000000,
                 'status' => 'draft',
                 'created_by' => $userId,
@@ -73,6 +75,7 @@ class JournalDraftService
                     'journal_entry_id' => $entry->id,
                     'line_no' => $index + 1,
                     'account_id' => $account->id,
+                    'branch_id' => $lineData['branch_id'] ?? $entry->branch_id,
                     'memo' => $lineData['memo'] ?? null,
                     'debit_minor' => $lineData['debit_minor'],
                     'credit_minor' => $lineData['credit_minor'],
@@ -102,7 +105,7 @@ class JournalDraftService
 
             AccountingKernel::assertBalanced($kernelEntry);
 
-            return $entry->fresh(['lines.account']);
+            return $entry->fresh(['branch', 'lines.account', 'lines.branch']);
         });
     }
 
@@ -110,7 +113,7 @@ class JournalDraftService
      * Update an existing draft journal entry.
      *
      * @param  array<string, mixed>  $data
-     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null}>  $linesData
+     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null, branch_id?: string|null}>  $linesData
      */
     public function updateDraft(JournalEntry $entry, array $data, array $linesData, int $userId): JournalEntry
     {
@@ -134,6 +137,7 @@ class JournalDraftService
             $entry->update([
                 'entry_date' => $entryDate,
                 'financial_period_id' => $period->id,
+                'branch_id' => array_key_exists('branch_id', $data) ? $data['branch_id'] : $entry->branch_id,
                 'description' => $data['description'] ?? $entry->description,
                 'reference' => $data['reference'] ?? $entry->reference,
                 'currency' => $data['currency'] ?? $entry->currency,
@@ -156,6 +160,7 @@ class JournalDraftService
                     'journal_entry_id' => $entry->id,
                     'line_no' => $index + 1,
                     'account_id' => $account->id,
+                    'branch_id' => $lineData['branch_id'] ?? $entry->branch_id,
                     'memo' => $lineData['memo'] ?? null,
                     'debit_minor' => $lineData['debit_minor'],
                     'credit_minor' => $lineData['credit_minor'],
@@ -185,7 +190,7 @@ class JournalDraftService
 
             AccountingKernel::assertBalanced($kernelEntry);
 
-            return $entry->fresh(['lines.account']);
+            return $entry->fresh(['branch', 'lines.account', 'lines.branch']);
         });
     }
 

@@ -78,11 +78,11 @@ class PurchaseOrderService
         $purchaseOrder = PurchaseOrder::query()->with(['lines'])->findOrFail($id);
 
         if ($purchaseOrder->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => ['Only draft purchase orders can be updated.']]);
+            throw ValidationException::withMessages(['status' => [__('Only draft purchase orders can be updated.')]]);
         }
 
         if (isset($data['lock_version']) && (int) $data['lock_version'] !== $purchaseOrder->lock_version) {
-            throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+            throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
         }
 
         $headerData = $this->validateHeader($data, $purchaseOrder);
@@ -140,11 +140,11 @@ class PurchaseOrderService
         $purchaseOrder = PurchaseOrder::query()->with(['lines'])->findOrFail($id);
 
         if ($purchaseOrder->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => ['Only draft purchase orders can be submitted.']]);
+            throw ValidationException::withMessages(['status' => [__('Only draft purchase orders can be submitted.')]]);
         }
 
         if ($purchaseOrder->lines->isEmpty()) {
-            throw ValidationException::withMessages(['lines' => ['Cannot submit a purchase order without line items.']]);
+            throw ValidationException::withMessages(['lines' => [__('Cannot submit a purchase order without line items.')]]);
         }
 
         return DB::transaction(function () use ($purchaseOrder, $actorId): PurchaseOrder {
@@ -182,11 +182,11 @@ class PurchaseOrderService
         }
 
         if (! in_array($purchaseOrder->status, ['draft', 'submitted'], true)) {
-            throw ValidationException::withMessages(['status' => ['Only draft or submitted purchase orders can be confirmed.']]);
+            throw ValidationException::withMessages(['status' => [__('Only draft or submitted purchase orders can be confirmed.')]]);
         }
 
         if ($purchaseOrder->lines->isEmpty()) {
-            throw ValidationException::withMessages(['lines' => ['Cannot confirm a purchase order without line items.']]);
+            throw ValidationException::withMessages(['lines' => [__('Cannot confirm a purchase order without line items.')]]);
         }
 
         return DB::transaction(function () use ($purchaseOrder, $actorId): PurchaseOrder {
@@ -227,7 +227,7 @@ class PurchaseOrderService
         $purchaseOrder = PurchaseOrder::query()->findOrFail($id);
 
         if ($purchaseOrder->status === 'confirmed') {
-            throw ValidationException::withMessages(['status' => ['Confirmed purchase orders cannot be cancelled in this slice.']]);
+            throw ValidationException::withMessages(['status' => [__('Confirmed purchase orders cannot be cancelled in this slice.')]]);
         }
 
         if ($purchaseOrder->status === 'cancelled') {
@@ -262,39 +262,39 @@ class PurchaseOrderService
     {
         $supplierId = $data['supplier_id'] ?? $existingOrder?->supplier_id;
         if (! $supplierId) {
-            throw ValidationException::withMessages(['supplier_id' => ['Supplier is required.']]);
+            throw ValidationException::withMessages(['supplier_id' => [__('Supplier is required.')]]);
         }
 
         /** @var Supplier|null $supplier */
         $supplier = Supplier::query()->find($supplierId);
         if (! $supplier || $supplier->status !== 'active') {
-            throw ValidationException::withMessages(['supplier_id' => ['Selected Supplier is invalid or inactive.']]);
+            throw ValidationException::withMessages(['supplier_id' => [__('Selected Supplier is invalid or inactive.')]]);
         }
 
         $currency = $data['currency'] ?? $existingOrder?->currency;
         if (! $currency) {
-            throw ValidationException::withMessages(['currency' => ['Currency is required.']]);
+            throw ValidationException::withMessages(['currency' => [__('Currency is required.')]]);
         }
 
         /** @var Currency|null $currencyModel */
         $currencyModel = Currency::query()->where('code', $currency)->first();
         if (! $currencyModel) {
-            throw ValidationException::withMessages(['currency' => ['Selected Currency is invalid.']]);
+            throw ValidationException::withMessages(['currency' => [__('Selected Currency is invalid.')]]);
         }
 
         $orderDate = $data['order_date'] ?? $existingOrder?->order_date;
         if (! $orderDate) {
-            throw ValidationException::withMessages(['order_date' => ['Order date is required.']]);
+            throw ValidationException::withMessages(['order_date' => [__('Order date is required.')]]);
         }
 
         $expectedReceiptDate = $data['expected_receipt_date'] ?? $existingOrder?->expected_receipt_date;
         if ($expectedReceiptDate && Carbon::parse($expectedReceiptDate)->lt(Carbon::parse($orderDate))) {
-            throw ValidationException::withMessages(['expected_receipt_date' => ['Expected receipt date must be on or after order date.']]);
+            throw ValidationException::withMessages(['expected_receipt_date' => [__('Expected receipt date must be on or after order date.')]]);
         }
 
         $fxRateE6 = (int) ($data['fx_rate_e6'] ?? $existingOrder?->fx_rate_e6 ?? 1000000);
         if ($fxRateE6 <= 0) {
-            throw ValidationException::withMessages(['fx_rate_e6' => ['FX rate must be a positive integer.']]);
+            throw ValidationException::withMessages(['fx_rate_e6' => [__('FX rate must be a positive integer.')]]);
         }
 
         return [
@@ -311,7 +311,7 @@ class PurchaseOrderService
     private function validateLines(array $lines): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one order line is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one order line is required.')]]);
         }
 
         $validatedLines = [];
@@ -320,24 +320,24 @@ class PurchaseOrderService
             $lineIndex = $index + 1;
             $productId = $line['product_id'] ?? null;
             if (! $productId) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product is required on line {$lineIndex}."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product is required on line :line.', ['line' => $lineIndex])]]);
             }
 
             /** @var Product|null $product */
             $product = Product::query()->find($productId);
             if (! $product || $product->status !== 'active' || ! $product->is_purchase_enabled) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Selected Product on line {$lineIndex} is invalid, inactive, or not purchase-enabled."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Selected Product on line :line is invalid, inactive, or not purchase-enabled.', ['line' => $lineIndex])]]);
             }
 
             $uomId = $line['unit_of_measure_id'] ?? $product->unit_of_measure_id;
             /** @var UnitOfMeasure|null $uom */
             $uom = UnitOfMeasure::query()->find($uomId);
             if (! $uom || ! $uom->is_active) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => ["Unit of Measure on line {$lineIndex} is invalid or inactive."]]);
+                throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => [__('Unit of Measure on line :line is invalid or inactive.', ['line' => $lineIndex])]]);
             }
 
             if ($uomId !== $product->unit_of_measure_id) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => ["Unit of Measure on line {$lineIndex} must match product default UOM."]]);
+                throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => [__('Unit of Measure on line :line must match product default UOM.', ['line' => $lineIndex])]]);
             }
 
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
@@ -361,21 +361,21 @@ class PurchaseOrderService
     private function calculateLineTotalMinor(int $quantityE6, int $unitPriceMinor, int $lineIndex): int
     {
         if ($quantityE6 <= 0) {
-            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => ['Quantity on line '.($lineIndex + 1).' must be greater than zero.']]);
+            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex + 1])]]);
         }
 
         if ($unitPriceMinor <= 0) {
-            throw ValidationException::withMessages(["lines.{$lineIndex}.unit_price_minor" => ['Unit price on line '.($lineIndex + 1).' must be greater than zero.']]);
+            throw ValidationException::withMessages(["lines.{$lineIndex}.unit_price_minor" => [__('Unit price on line :line must be greater than zero.', ['line' => $lineIndex + 1])]]);
         }
 
         if ($quantityE6 > intdiv(PHP_INT_MAX, $unitPriceMinor)) {
-            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => ['Quantity and unit price product exceeds maximum integer capacity on line '.($lineIndex + 1).'.']]);
+            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => [__('Quantity and unit price product exceeds maximum integer capacity on line :line.', ['line' => $lineIndex + 1])]]);
         }
 
         $product = $quantityE6 * $unitPriceMinor;
 
         if ($product % 1000000 !== 0) {
-            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => ['Line total produces a fractional minor unit and must be an exact integer minor amount.']]);
+            throw ValidationException::withMessages(["lines.{$lineIndex}.quantity_e6" => [__('Line total produces a fractional minor unit and must be an exact integer minor amount.')]]);
         }
 
         return intdiv($product, 1000000);

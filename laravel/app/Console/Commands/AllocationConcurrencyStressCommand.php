@@ -10,6 +10,8 @@ use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\ReceivableAllocationService;
 use App\Application\Accounting\SupplierOpeningBalanceService;
 use App\Application\Accounting\SupplierPaymentService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\CashAccount;
 use App\Models\Customer;
@@ -28,6 +30,8 @@ use Throwable;
 
 class AllocationConcurrencyStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:allocation-concurrency-stress {--workers=50}';
 
     protected $description = 'Run PostgreSQL concurrent allocation and over-allocation stress checks.';
@@ -39,6 +43,7 @@ class AllocationConcurrencyStressCommand extends Command
         SupplierOpeningBalanceService $sobService,
         CustomerReceiptService $receiptService,
         SupplierPaymentService $paymentService,
+        BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
         $driver = DB::connection()->getDriverName();
         $workers = max(2, min((int) $this->option('workers'), 250));
@@ -55,6 +60,7 @@ class AllocationConcurrencyStressCommand extends Command
 
         try {
             $user = User::query()->first() ?? User::factory()->create();
+            $currency = $this->resolveStressCurrency($baseCurrencyResolver);
             $suffix = Str::upper(Str::random(8));
             $yearNum = random_int(2300, 8999);
 
@@ -70,7 +76,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'name' => ['en' => 'AR Allocation Stress Control'],
                 'type' => 'asset',
                 'nature' => 'debit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => true,
                 'allow_manual_posting' => false,
                 'is_active' => true,
@@ -81,7 +87,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'name' => ['en' => 'AP Allocation Stress Control'],
                 'type' => 'liability',
                 'nature' => 'credit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => true,
                 'allow_manual_posting' => false,
                 'is_active' => true,
@@ -92,7 +98,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'name' => ['en' => 'Allocation Stress Offset'],
                 'type' => 'equity',
                 'nature' => 'credit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => false,
                 'allow_manual_posting' => true,
                 'is_active' => true,
@@ -103,7 +109,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'name' => ['en' => 'Allocation Stress Cash'],
                 'type' => 'asset',
                 'nature' => 'debit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => false,
                 'allow_manual_posting' => true,
                 'is_active' => true,
@@ -117,7 +123,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'code' => "CASH-ALLOC-{$suffix}",
                 'name' => ['en' => 'Allocation Stress Cash Account'],
                 'gl_account_id' => $cashGl->id,
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_active' => true,
             ]);
 
@@ -136,7 +142,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'fiscal_year_id' => $fiscalYear->id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$yearNum}-01-01",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'amount_minor' => 300000,
             ], $user->id);
             $postedCustomerOpeningBalance = $cobService->post($customerOpeningBalance->id, $user->id);
@@ -147,7 +153,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'financial_period_id' => $period->id,
                 'receipt_date' => "{$yearNum}-01-01",
                 'cash_account_id' => $cashAccount->id,
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'amount_minor' => 300000,
             ], $user->id);
             $postedReceipt = $receiptService->post($receipt->id, $user->id);
@@ -157,7 +163,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'fiscal_year_id' => $fiscalYear->id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$yearNum}-01-01",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'amount_minor' => 300000,
             ], $user->id);
             $postedSupplierOpeningBalance = $sobService->post($supplierOpeningBalance->id, $user->id);
@@ -168,7 +174,7 @@ class AllocationConcurrencyStressCommand extends Command
                 'financial_period_id' => $period->id,
                 'payment_date' => "{$yearNum}-01-01",
                 'cash_account_id' => $cashAccount->id,
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'amount_minor' => 300000,
             ], $user->id);
             $postedPayment = $paymentService->post($payment->id, $user->id);
@@ -179,6 +185,7 @@ class AllocationConcurrencyStressCommand extends Command
                 $postedCustomerOpeningBalance->receivable_entry_id,
                 $user->id,
                 $suffix,
+                $currency,
             );
 
             $payableResults = $this->runPayableWorkers(
@@ -228,6 +235,7 @@ class AllocationConcurrencyStressCommand extends Command
                 $cashAccount->id,
                 $user->id,
                 $suffix,
+                $currency,
             );
 
             if (! $idempotencyResult) {
@@ -323,6 +331,7 @@ class AllocationConcurrencyStressCommand extends Command
         string $cashAccountId,
         int $actorId,
         string $suffix,
+        string $currency,
     ): bool {
         $customer = Customer::query()->create([
             'code' => "CUST-ALLOC-IDEM-{$suffix}",
@@ -334,7 +343,7 @@ class AllocationConcurrencyStressCommand extends Command
             'fiscal_year_id' => $fiscalYearId,
             'financial_period_id' => $periodId,
             'entry_date' => $date,
-            'currency' => 'EGP',
+            'currency' => $currency,
             'amount_minor' => 100000,
         ], $actorId);
         $postedCustomerOpeningBalance = $cobService->post($customerOpeningBalance->id, $actorId);
@@ -345,7 +354,7 @@ class AllocationConcurrencyStressCommand extends Command
             'financial_period_id' => $periodId,
             'receipt_date' => $date,
             'cash_account_id' => $cashAccountId,
-            'currency' => 'EGP',
+            'currency' => $currency,
             'amount_minor' => 100000,
         ], $actorId);
         $postedReceipt = $receiptService->post($receipt->id, $actorId);

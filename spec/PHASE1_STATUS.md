@@ -1,6 +1,6 @@
 # IMPLEMENTATION READINESS & PHASE 1 STATUS
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 > Legacy Next.js Phase-1 snapshot. Current Laravel status lives in `../IMPLEMENTATION_STATUS.md` and `../CONTINUE_HERE.md`. Any tenant-isolation wording below is historical only and is superseded by `NO_MULTI_TENANT_POLICY.md`.

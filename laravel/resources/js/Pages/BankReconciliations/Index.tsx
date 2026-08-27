@@ -6,7 +6,7 @@ import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClass
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
 type BankReconciliationRow = {
   id: string;
@@ -26,7 +26,7 @@ type BankReconciliationRow = {
 type BankReconciliationsProps = SharedPageProps & {
   reconciliations: {
     data: BankReconciliationRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   bankAccounts: Array<{ id: string; code: string; name: string; currency: string }>;
   periods: Array<{ id: string; name: string; period_number: number }>;
@@ -46,6 +46,7 @@ export default function BankReconciliationsIndex({
   filters,
 }: BankReconciliationsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -83,6 +84,7 @@ export default function BankReconciliationsIndex({
 
   const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name} (${b.currency})` }));
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
+  const formatBankAmount = (amountMinor: number, currency?: string | null): string => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
 
   return (
     <AppLayout active="bank-reconciliations.index">
@@ -146,17 +148,17 @@ export default function BankReconciliationsIndex({
               {reconciliations.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.bank_account ? `${row.bank_account.code} - ${row.bank_account.name}` : '—'}
+                    {row.bank_account ? `${row.bank_account.code} - ${row.bank_account.name}` : accDict.notAvailable}
                   </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.statement_reference || '—'}</td>
+                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.statement_reference || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>
                     {row.date_from} → {row.date_to}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>
-                    {formatMoney(row.statement_opening_balance_minor, row.bank_account?.currency || 'EGP')}
+                    {formatBankAmount(row.statement_opening_balance_minor, row.bank_account?.currency)}
                   </td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatMoney(row.statement_closing_balance_minor, row.bank_account?.currency || 'EGP')}
+                    {formatBankAmount(row.statement_closing_balance_minor, row.bank_account?.currency)}
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={row.status === 'finalized' ? 'ok' : 'warning'}>

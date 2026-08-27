@@ -16,7 +16,7 @@ class Phase8Slice4RouteSmokeTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['reports.view', 'view_financials', 'taxes.view'] as $permission) {
+        foreach (['dashboard.view', 'reports.view', 'view_financials', 'taxes.view'] as $permission) {
             Permission::findOrCreate($permission, 'web');
         }
     }
@@ -35,7 +35,7 @@ class Phase8Slice4RouteSmokeTest extends TestCase
         $this->withoutVite();
 
         $user = User::factory()->create();
-        $user->givePermissionTo(['reports.view', 'view_financials', 'taxes.view']);
+        $user->givePermissionTo(['dashboard.view', 'reports.view', 'view_financials', 'taxes.view']);
 
         $this->actingAs($user);
 

@@ -2,6 +2,7 @@
 
 namespace App\Application\Accounting;
 
+use App\Application\Support\CurrencyInput;
 use App\Domain\Accounting\AccountingKernel;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Account;
@@ -45,7 +46,7 @@ class OpeningBalanceService
                     [
                         'debit_minor' => $data['debit_minor'],
                         'credit_minor' => $data['credit_minor'],
-                        'currency' => $account->currency ?? 'EGP',
+                        'currency' => CurrencyInput::related($account->currency, 'currency', 'Opening balance account'),
                         'fx_rate_e6' => 1000000,
                         'status' => 'draft',
                         'created_by' => $userId,
@@ -84,6 +85,8 @@ class OpeningBalanceService
                         throw new InvalidArgumentException(__('No draft opening balances found for this fiscal year.'));
                     }
 
+                    $openingCurrency = $this->singleOpeningCurrency($openingRows);
+
                     // 1. Create opening JournalEntry
                     $journal = JournalEntry::create([
                         'id' => (string) Str::uuid(),
@@ -93,7 +96,7 @@ class OpeningBalanceService
                         'source_id' => $fiscalYear->id,
                         'description' => __('Opening Balances for Fiscal Year :year', ['year' => $fiscalYear->year]),
                         'reference' => "OB-{$fiscalYear->year}",
-                        'currency' => 'EGP',
+                        'currency' => $openingCurrency,
                         'fx_rate_e6' => 1000000,
                         'status' => 'approved',
                         'created_by' => $userId,
@@ -151,5 +154,21 @@ class OpeningBalanceService
         );
 
         return $result->value instanceof JournalEntry ? $result->value : JournalEntry::query()->where('source_type', 'opening_balance')->where('source_id', $fiscalYearId)->firstOrFail();
+    }
+
+    private function singleOpeningCurrency($openingRows): string
+    {
+        $currencies = $openingRows
+            ->pluck('currency')
+            ->filter(fn ($currency): bool => is_string($currency) && trim($currency) !== '')
+            ->map(fn (string $currency): string => strtoupper(trim($currency)))
+            ->unique()
+            ->values();
+
+        if ($currencies->count() !== 1) {
+            throw new InvalidArgumentException(__('Opening balances must be posted one currency at a time.'));
+        }
+
+        return CurrencyInput::related($currencies->first(), 'currency', 'Opening balance');
     }
 }

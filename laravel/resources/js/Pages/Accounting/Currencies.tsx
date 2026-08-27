@@ -12,8 +12,8 @@ type CurrenciesProps = SharedPageProps & {
 
 export default function Currencies({ locale, currencies = [] }: CurrenciesProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
-  const actionsDict = dict.app.actions || {};
+  const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
 
   const [search, setSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -100,11 +100,11 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
   return (
     <AppLayout active="accounting.currencies">
-      <Head title={accDict.currencies || 'Currencies'} />
+      <Head title={accDict.currencies} />
 
       <PageHeader
-        title={accDict.currencies || 'Currencies'}
-        description={accDict.currenciesDesc || 'Configure system ISO currency codes, symbols, decimal precision, and entity associations.'}
+        title={accDict.currencies}
+        description={accDict.currenciesDesc}
         actions={
           <button
             type="button"
@@ -114,7 +114,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>{accDict.addCurrency || 'Add Currency'}</span>
+            <span>{accDict.addCurrency}</span>
           </button>
         }
       />
@@ -125,7 +125,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {accDict.totalCurrencies || 'Total Currencies'}
+                {accDict.totalCurrencies}
               </span>
               <p className="mt-1 text-3xl font-black font-mono text-[var(--text-primary)]">{currencies.length}</p>
             </div>
@@ -141,7 +141,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {accDict.linkedAccounts || 'Linked Accounts'}
+                {accDict.linkedAccounts}
               </span>
               <p className="mt-1 text-3xl font-black font-mono text-[var(--primary)]">
                 {currencies.reduce((sum, c) => sum + (c.accounts_count || 0), 0)}
@@ -159,7 +159,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                {accDict.fxRatesConfigured || 'FX Rates Configured'}
+                {accDict.fxRatesConfigured}
               </span>
               <p className="mt-1 text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                 {currencies.reduce((sum, c) => sum + (c.exchange_rates_count || 0), 0)}
@@ -180,7 +180,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-5">
             <div className="flex items-center gap-2">
               <div className="size-2 rounded-full bg-[var(--primary)] animate-pulse" />
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addCurrency || 'Add Currency'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addCurrency}</h3>
             </div>
             <button
               type="button"
@@ -190,19 +190,19 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span>{actionsDict.cancel || 'Cancel'}</span>
+              <span>{actionsDict.cancel}</span>
             </button>
           </div>
 
           <form onSubmit={handleCreateSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.isoCode || 'ISO Code'}
+                {accDict.isoCode}
               </label>
               <input
                 type="text"
                 maxLength={3}
-                placeholder="USD"
+                placeholder={accDict.currencyCodePlaceholder}
                 value={createForm.data.code}
                 onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs font-mono uppercase focus:ring-2 focus:ring-blue-500/20"
@@ -213,11 +213,11 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.nameEn || 'English Name'}
+                {accDict.nameEn}
               </label>
               <input
                 type="text"
-                placeholder="US Dollar"
+                placeholder={accDict.currencyNameEnPlaceholder}
                 value={createForm.data.name_en}
                 onChange={(e) => createForm.setData('name_en', e.target.value)}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
@@ -228,11 +228,11 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.nameAr || 'Arabic Name'}
+                {accDict.nameAr}
               </label>
               <input
                 type="text"
-                placeholder="الدولار الأمريكي"
+                placeholder={accDict.currencyNameArPlaceholder}
                 value={createForm.data.name_ar}
                 onChange={(e) => createForm.setData('name_ar', e.target.value)}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
@@ -243,11 +243,11 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.symbol || 'Symbol'}
+                {accDict.symbol}
               </label>
               <input
                 type="text"
-                placeholder="$"
+                placeholder={accDict.currencySymbolPlaceholder}
                 value={createForm.data.symbol}
                 onChange={(e) => createForm.setData('symbol', e.target.value)}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs font-mono"
@@ -258,7 +258,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.minorExponent || 'Minor Exponent'}
+                {accDict.minorExponent}
               </label>
               <input
                 type="number"
@@ -278,14 +278,14 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 onClick={() => setShowCreateModal(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="submit"
                 disabled={createForm.processing}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
-                {actionsDict.save || 'Save'}
+                {actionsDict.save}
               </button>
             </div>
           </form>
@@ -297,7 +297,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
         <Card className="p-6 mb-6 border-2 border-indigo-500/40 shadow-2xl bg-[var(--surface)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-5">
             <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-              {accDict.editCurrency || 'Edit Currency'}: <span className="font-mono px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">{editingCurrency.code}</span>
+              {accDict.editCurrency}: <span className="font-mono px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">{editingCurrency.code}</span>
             </h3>
             <button
               type="button"
@@ -307,14 +307,14 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span>{actionsDict.cancel || 'Cancel'}</span>
+              <span>{actionsDict.cancel}</span>
             </button>
           </div>
 
           <form onSubmit={handleEditSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.nameEn || 'English Name'}
+                {accDict.nameEn}
               </label>
               <input
                 type="text"
@@ -328,7 +328,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.nameAr || 'Arabic Name'}
+                {accDict.nameAr}
               </label>
               <input
                 type="text"
@@ -342,7 +342,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.symbol || 'Symbol'}
+                {accDict.symbol}
               </label>
               <input
                 type="text"
@@ -356,7 +356,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
 
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.minorExponent || 'Minor Exponent'}
+                {accDict.minorExponent}
               </label>
               <input
                 type="number"
@@ -376,21 +376,21 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 onClick={() => setEditingCurrency(null)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="submit"
                 disabled={editForm.processing}
                 className="rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
-                {actionsDict.save || 'Save'}
+                {actionsDict.save}
               </button>
             </div>
           </form>
         </Card>
       ) : null}
 
-      {/* Delete Currency Confirmation Modal */}
+      {/* Delete confirmation modal */}
       {deletingCurrency ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <Card className="max-w-md w-full p-6 border-2 border-red-500/40 shadow-2xl">
@@ -400,10 +400,12 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">Delete Currency</h3>
+              <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">{accDict.deleteCurrencyTitle}</h3>
             </div>
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-              Are you sure you want to delete currency <span className="font-mono font-bold text-red-500">{deletingCurrency.code}</span> ({getName(deletingCurrency.name)})?
+              {accDict.confirmDeleteCurrencyNamed
+                .replace('{code}', deletingCurrency.code)
+                .replace('{name}', getName(deletingCurrency.name))}
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -411,14 +413,14 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 onClick={() => setDeletingCurrency(null)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="button"
                 onClick={handleDeleteConfirm}
                 className="rounded-xl bg-red-600 px-4.5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-md shadow-red-500/20 transition-all cursor-pointer"
               >
-                {actionsDict.delete || 'Delete'}
+                {actionsDict.delete}
               </button>
             </div>
           </Card>
@@ -437,7 +439,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                   </svg>
                 </div>
                 <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {accDict.linkedAccountsFor || 'Linked Accounts for'}{' '}
+                  {accDict.linkedAccountsFor}{' '}
                   <span className="font-mono text-[var(--primary)]">{selectedAccountsCurrency.code}</span> ({getName(selectedAccountsCurrency.name)})
                 </h3>
               </div>
@@ -449,7 +451,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                <span>{actionsDict.cancel || 'Close'}</span>
+                <span>{actionsDict.close}</span>
               </button>
             </div>
 
@@ -458,10 +460,10 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 <table className={tableClasses.table}>
                   <thead>
                     <tr>
-                      <th className={tableClasses.th}>{accDict.accountCode || 'Account Code'}</th>
-                      <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
-                      <th className={tableClasses.th}>{accDict.accountType || 'Type'}</th>
-                      <th className={tableClasses.th}>{accDict.accountNature || 'Nature'}</th>
+                      <th className={tableClasses.th}>{accDict.accountCode}</th>
+                      <th className={tableClasses.th}>{accDict.accountName}</th>
+                      <th className={tableClasses.th}>{accDict.accountType}</th>
+                      <th className={tableClasses.th}>{accDict.accountNature}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
@@ -471,7 +473,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                           <Link
                             href={`/accounting/ledger?account_id=${acc.id}`}
                             className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 dark:hover:text-blue-300 transition-colors inline-flex items-center gap-1 group"
-                            title={accDict.viewLedgerTitle || 'View General Ledger for this account'}
+                            title={accDict.viewLedgerTitle}
                           >
                             <span>{acc.code}</span>
                             <svg className="size-3 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -483,7 +485,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                           <Link
                             href={`/accounting/ledger?account_id=${acc.id}`}
                             className="text-xs font-medium text-[var(--text-primary)] hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors"
-                            title={accDict.viewLedgerTitle || 'View General Ledger for this account'}
+                            title={accDict.viewLedgerTitle}
                           >
                             {getName(acc.name)}
                           </Link>
@@ -500,7 +502,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                             </span>
                           ) : (
                             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
-                              {getAccountNatureLabel(acc.nature)}
+                              {getAccountNatureLabel(acc.nature, locale)}
                             </span>
                           )}
                         </td>
@@ -511,7 +513,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </div>
             ) : (
               <p className="text-xs text-[var(--text-muted)] py-4 text-center">
-                {accDict.noAccountsLinked || 'No accounts linked to this currency.'}
+                {accDict.noAccountsLinked}
               </p>
             )}
           </Card>
@@ -530,7 +532,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                   </svg>
                 </div>
                 <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {accDict.recordedFxRatesFor || 'Recorded FX Rates for'}{' '}
+                  {accDict.recordedFxRatesFor}{' '}
                   <span className="font-mono text-[var(--primary)]">{selectedFxRatesCurrency.code}</span> ({getName(selectedFxRatesCurrency.name)})
                 </h3>
               </div>
@@ -542,7 +544,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                <span>{actionsDict.cancel || 'Close'}</span>
+                <span>{actionsDict.close}</span>
               </button>
             </div>
 
@@ -551,9 +553,9 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 <table className={tableClasses.table}>
                   <thead>
                     <tr>
-                      <th className={tableClasses.th}>{accDict.effectiveDate || 'Effective Date'}</th>
-                      <th className={tableClasses.th}>{accDict.rateDecimal || 'Rate (Decimal)'}</th>
-                      <th className={tableClasses.th}>{accDict.rateE6 || 'Rate E6 (Scaled Integer)'}</th>
+                      <th className={tableClasses.th}>{accDict.effectiveDate}</th>
+                      <th className={tableClasses.th}>{accDict.rateDecimal}</th>
+                      <th className={tableClasses.th}>{accDict.rateE6}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
@@ -577,7 +579,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </div>
             ) : (
               <p className="text-xs text-[var(--text-muted)] py-4 text-center">
-                {accDict.noRatesRecorded || 'No exchange rates recorded for this currency.'}
+                {accDict.noRatesRecorded}
               </p>
             )}
           </Card>
@@ -595,7 +597,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             </div>
             <input
               type="text"
-              placeholder={accDict.searchCurrencyPlaceholder || 'Search currency by code, name, or symbol...'}
+              placeholder={accDict.searchCurrencyPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] ps-10 pe-3.5 py-2.5 text-xs text-[var(--text-primary)] focus:ring-2 focus:ring-blue-500/20"
@@ -609,12 +611,12 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{accDict.isoCode || 'Code'}</th>
-              <th className={tableClasses.th}>{accDict.name || 'Name'}</th>
-              <th className={tableClasses.th}>{accDict.symbol || 'Symbol'}</th>
-              <th className={tableClasses.th}>{accDict.minorExponent || 'Minor Exponent'}</th>
-              <th className={tableClasses.th}>{accDict.accounts || 'Accounts'}</th>
-              <th className={tableClasses.th}>{accDict.fxRates || 'FX Rates'}</th>
+              <th className={tableClasses.th}>{accDict.isoCode}</th>
+              <th className={tableClasses.th}>{accDict.name}</th>
+              <th className={tableClasses.th}>{accDict.symbol}</th>
+              <th className={tableClasses.th}>{accDict.minorExponent}</th>
+              <th className={tableClasses.th}>{accDict.accounts}</th>
+              <th className={tableClasses.th}>{accDict.fxRates}</th>
               <th className={tableClasses.th} />
             </tr>
           </thead>
@@ -627,7 +629,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{c.code}</span>
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
-                        ISO 4217
+                        {accDict.iso4217Badge}
                       </span>
                     </div>
                   </td>
@@ -647,7 +649,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                       type="button"
                       onClick={() => (c.accounts_count || 0) > 0 && setSelectedAccountsCurrency(c)}
                       disabled={(c.accounts_count || 0) === 0}
-                      title={(c.accounts_count || 0) > 0 ? "Click to view linked accounts" : "No accounts linked"}
+                      title={(c.accounts_count || 0) > 0 ? accDict.viewLinkedAccountsTitle : accDict.noLinkedAccountsTitle}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 font-mono disabled:opacity-40 transition-all cursor-pointer disabled:cursor-default"
                     >
                       <span>{c.accounts_count || 0}</span>
@@ -662,7 +664,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                       type="button"
                       onClick={() => (c.exchange_rates_count || 0) > 0 && setSelectedFxRatesCurrency(c)}
                       disabled={(c.exchange_rates_count || 0) === 0}
-                      title={(c.exchange_rates_count || 0) > 0 ? "Click to view recorded FX rates" : "No rates recorded"}
+                      title={(c.exchange_rates_count || 0) > 0 ? accDict.viewRecordedFxRatesTitle : accDict.noRatesRecordedTitle}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono disabled:opacity-40 transition-all cursor-pointer disabled:cursor-default"
                     >
                       <span>{c.exchange_rates_count || 0}</span>
@@ -679,17 +681,17 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                         onClick={() => startEdit(c)}
                         className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
                       >
-                        {actionsDict.edit || 'Edit'}
+                        {actionsDict.edit}
                       </button>
 
                       <button
                         type="button"
                         onClick={() => !hasLinkedRecords && setDeletingCurrency(c)}
                         disabled={hasLinkedRecords}
-                        title={hasLinkedRecords ? "Cannot delete currency with linked accounts or FX rates" : "Delete currency"}
+                        title={hasLinkedRecords ? accDict.cannotDeleteCurrencyInUseTitle : accDict.deleteCurrencyTitle}
                         className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1 text-[11px] font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
-                        {actionsDict.delete || 'Delete'}
+                        {actionsDict.delete}
                       </button>
                     </div>
                   </td>

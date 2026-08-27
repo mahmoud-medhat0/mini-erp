@@ -288,9 +288,11 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     public function test_schema_has_no_prohibited_columns(): void
     {
+        $this->assertTrue(Schema::hasColumn('fixed_asset', 'branch_id'), 'fixed_asset must contain Phase 10 approved optional operational branch reference.');
+        $this->assertTrue(Schema::hasColumn('fixed_asset', 'fixed_asset_location_id'), 'fixed_asset must contain Phase 10 approved optional operational fixed asset location reference.');
+
         $prohibited = [
             'company_id',
-            'branch_id',
             'tenant_id',
             'custodian_id',
             'employee_id',

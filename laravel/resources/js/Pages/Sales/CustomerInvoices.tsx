@@ -5,7 +5,7 @@ import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../C
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -82,15 +82,42 @@ type CustomerInvoiceRow = {
   }>;
 };
 
+type CustomerInvoiceSourceLine = {
+  id: string;
+  product_id: string;
+  unit_of_measure_id: string;
+  description?: string | null;
+  quantity_e6: number;
+  unit_price_minor?: number;
+  product?: ProductOption | null;
+};
+
+type ConfirmedSalesOrder = {
+  id: string;
+  number?: string | null;
+  customer_id?: string | null;
+  currency?: string | null;
+  customer?: { id?: string; name?: string | null } | null;
+  lines?: CustomerInvoiceSourceLine[];
+};
+
+type ConfirmedDeliveryNote = {
+  id: string;
+  number?: string | null;
+  salesOrder?: ConfirmedSalesOrder | null;
+  sales_order?: ConfirmedSalesOrder | null;
+  lines?: CustomerInvoiceSourceLine[];
+};
+
 type CustomerInvoicesProps = SharedPageProps & {
   customerInvoices: {
     data: CustomerInvoiceRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   activeCustomers: CustomerOption[];
   eligibleProducts: ProductOption[];
-  confirmedSalesOrders: any[];
-  confirmedDeliveryNotes: any[];
+  confirmedSalesOrders: ConfirmedSalesOrder[];
+  confirmedDeliveryNotes: ConfirmedDeliveryNote[];
   taxCodes?: TaxCodeOption[];
   filters: {
     search?: string;
@@ -109,6 +136,7 @@ export default function CustomerInvoicesIndex({
 }: CustomerInvoicesProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -125,17 +153,21 @@ export default function CustomerInvoicesIndex({
     delivery_note_id: '',
     invoice_date: todayStr,
     due_date: todayStr,
-    currency: 'USD',
+    currency: '',
     fx_rate_e6: 1000000,
     reference: '',
     description: '',
     lock_version: 1,
   });
 
-  const getProductName = (prod: any) => {
+  const getProductName = (prod?: ProductOption | null): string => {
     if (!prod) return '';
     if (typeof prod.name === 'string') return prod.name;
-    return isAr ? prod.name?.ar || prod.name?.en : prod.name?.en || prod.name?.ar;
+    return isAr ? prod.name.ar || prod.name.en || '' : prod.name.en || prod.name.ar || '';
+  };
+
+  const getDeliveryNoteSalesOrder = (deliveryNote: ConfirmedDeliveryNote): ConfirmedSalesOrder | null => {
+    return deliveryNote.salesOrder ?? deliveryNote.sales_order ?? null;
   };
 
   const handleSourceModeChange = (mode: 'manual' | 'sales_order' | 'delivery_note') => {
@@ -152,15 +184,15 @@ export default function CustomerInvoicesIndex({
       if (selectedSo.customer_id) setData('customer_id', selectedSo.customer_id);
       if (selectedSo.currency) setData('currency', selectedSo.currency);
 
-      const nonStockLines = (selectedSo.lines || []).filter((l: any) => l.product?.type !== 'stock');
+      const nonStockLines = (selectedSo.lines || []).filter((line) => line.product?.type !== 'stock');
       setLineItems(
-        nonStockLines.map((l: any) => ({
-          sales_order_line_id: l.id,
-          product_id: l.product_id,
-          unit_of_measure_id: l.unit_of_measure_id,
-          description: l.description || getProductName(l.product),
-          quantity: l.quantity_e6 / 1000000,
-          unit_price: l.unit_price_minor / 100,
+        nonStockLines.map((line) => ({
+          sales_order_line_id: line.id,
+          product_id: line.product_id,
+          unit_of_measure_id: line.unit_of_measure_id,
+          description: line.description || getProductName(line.product),
+          quantity: line.quantity_e6 / 1000000,
+          unit_price: (line.unit_price_minor ?? 0) / 100,
         }))
       );
     }
@@ -169,18 +201,20 @@ export default function CustomerInvoicesIndex({
   const handleDeliveryNoteSelect = (dnId: string) => {
     setData('delivery_note_id', dnId);
     const selectedDn = confirmedDeliveryNotes.find((dn) => dn.id === dnId);
-    if (selectedDn && selectedDn.salesOrder) {
-      if (selectedDn.salesOrder.customer_id) setData('customer_id', selectedDn.salesOrder.customer_id);
-      if (selectedDn.salesOrder.currency) setData('currency', selectedDn.salesOrder.currency);
+    if (selectedDn) {
+      const sourceSalesOrder = getDeliveryNoteSalesOrder(selectedDn);
+      if (!sourceSalesOrder) return;
+      if (sourceSalesOrder.customer_id) setData('customer_id', sourceSalesOrder.customer_id);
+      if (sourceSalesOrder.currency) setData('currency', sourceSalesOrder.currency);
 
-      const nonStockLines = (selectedDn.lines || []).filter((l: any) => l.product?.type !== 'stock');
+      const nonStockLines = (selectedDn.lines || []).filter((line) => line.product?.type !== 'stock');
       setLineItems(
-        nonStockLines.map((l: any) => ({
-          delivery_note_line_id: l.id,
-          product_id: l.product_id,
-          unit_of_measure_id: l.unit_of_measure_id,
-          description: l.description || getProductName(l.product),
-          quantity: l.quantity_e6 / 1000000,
+        nonStockLines.map((line) => ({
+          delivery_note_line_id: line.id,
+          product_id: line.product_id,
+          unit_of_measure_id: line.unit_of_measure_id,
+          description: line.description || getProductName(line.product),
+          quantity: line.quantity_e6 / 1000000,
           unit_price: 0,
         }))
       );
@@ -247,8 +281,8 @@ export default function CustomerInvoicesIndex({
         inv.lines.map((l) => ({
           product_id: l.product_id,
           unit_of_measure_id: l.unitOfMeasure?.id || '',
-          sales_order_line_id: (l as any).sales_order_line_id,
-          delivery_note_line_id: (l as any).delivery_note_line_id,
+          sales_order_line_id: l.sales_order_line_id,
+          delivery_note_line_id: l.delivery_note_line_id,
           description: l.description || getProductName(l.product),
           quantity: l.quantity_e6 / 1000000,
           unit_price: l.unit_price_minor / 100,
@@ -428,7 +462,7 @@ export default function CustomerInvoicesIndex({
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {inv.number || dict.app.pages.salesCustomerInvoices.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-medium`}>{inv.customer?.name || '-'}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{inv.customer?.name || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{inv.invoice_date}</td>
                     <td className={`${tableClasses.td} font-mono font-semibold`}>
                       {formatMoney(inv.total_minor, inv.currency)}
@@ -472,7 +506,7 @@ export default function CustomerInvoicesIndex({
                         </button>
                       ) : null}
 
-                      {inv.status === 'approved' && can('sales.post') ? (
+                      {inv.status === 'approved' && can('sales.post') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(inv.id, 'post')}
@@ -578,7 +612,7 @@ export default function CustomerInvoicesIndex({
                     <option value="">{dict.app.pages.salesCustomerInvoices.selectDeliveryNote}</option>
                     {confirmedDeliveryNotes.map((dn) => (
                       <option key={dn.id} value={dn.id}>
-                        {dn.number} - {dn.salesOrder?.customer?.name}
+                        {dn.number} - {getDeliveryNoteSalesOrder(dn)?.customer?.name}
                       </option>
                     ))}
                   </select>

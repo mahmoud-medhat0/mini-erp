@@ -35,6 +35,8 @@ class FixedAsset extends Model
         'capitalized_at',
         'capitalized_by',
         'serial_number',
+        'branch_id',
+        'fixed_asset_location_id',
         'lock_version',
         'created_by',
         'updated_by',
@@ -54,6 +56,8 @@ class FixedAsset extends Model
             'useful_life_months' => 'integer',
             'opening_accumulated_depreciation_minor' => 'integer',
             'lock_version' => 'integer',
+            'branch_id' => 'string',
+            'fixed_asset_location_id' => 'string',
             'capitalized_by' => 'integer',
             'created_by' => 'integer',
             'updated_by' => 'integer',
@@ -85,6 +89,21 @@ class FixedAsset extends Model
         return $this->hasMany(FixedAssetDisposal::class, 'fixed_asset_id')->latest('created_at');
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(FixedAssetLocation::class, 'fixed_asset_location_id');
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(FixedAssetMovement::class, 'fixed_asset_id')->latest('movement_date')->latest('created_at');
+    }
+
     public function capitalizer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'capitalized_by');
@@ -98,5 +117,10 @@ class FixedAsset extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function rentableItems(): HasMany
+    {
+        return $this->hasMany(RentableItem::class, 'fixed_asset_id');
     }
 }

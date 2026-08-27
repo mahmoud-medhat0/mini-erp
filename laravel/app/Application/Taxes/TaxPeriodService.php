@@ -12,18 +12,18 @@ class TaxPeriodService
     {
         $label = trim($data['period_label'] ?? '');
         if ($label === '') {
-            throw ValidationException::withMessages(['period_label' => ['Tax period label is required.']]);
+            throw ValidationException::withMessages(['period_label' => [__('Tax period label is required.')]]);
         }
 
         $startDate = $data['start_date'] ?? null;
         $endDate = $data['end_date'] ?? null;
 
         if (! $startDate || ! $endDate) {
-            throw ValidationException::withMessages(['start_date' => ['Start date and end date are required.']]);
+            throw ValidationException::withMessages(['start_date' => [__('Start date and end date are required.')]]);
         }
 
         if (Carbon::parse($startDate)->gt(Carbon::parse($endDate))) {
-            throw ValidationException::withMessages(['end_date' => ['End date must be greater than or equal to start date.']]);
+            throw ValidationException::withMessages(['end_date' => [__('End date must be greater than or equal to start date.')]]);
         }
 
         // Non-overlapping check
@@ -33,7 +33,10 @@ class TaxPeriodService
             ->exists();
 
         if ($overlap) {
-            throw ValidationException::withMessages(['start_date' => ["Tax period dates ({$startDate} to {$endDate}) overlap with an existing tax period."]]);
+            throw ValidationException::withMessages(['start_date' => [__('Tax period dates (:start to :end) overlap with an existing tax period.', [
+                'start' => $startDate,
+                'end' => $endDate,
+            ])]]);
         }
 
         return TaxPeriod::query()->create([

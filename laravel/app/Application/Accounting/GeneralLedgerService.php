@@ -3,6 +3,7 @@
 namespace App\Application\Accounting;
 
 use App\Models\Account;
+use App\Models\Company;
 use App\Models\JournalEntry;
 use App\Models\LedgerEntry;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -18,7 +19,7 @@ class GeneralLedgerService
     public function getGeneralJournal(array $filters = [])
     {
         $query = JournalEntry::query()
-            ->with(['lines.account', 'period.fiscalYear', 'currencyRef', 'createdBy', 'postedBy'])
+            ->with(['branch', 'lines.account', 'lines.branch', 'period.fiscalYear', 'currencyRef', 'createdBy', 'postedBy'])
             ->orderBy('entry_date', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -28,6 +29,13 @@ class GeneralLedgerService
 
         if (! empty($filters['period_id'])) {
             $query->where('financial_period_id', $filters['period_id']);
+        }
+
+        if (! empty($filters['branch_id'])) {
+            $query->where(function ($branchQuery) use ($filters): void {
+                $branchQuery->where('branch_id', $filters['branch_id'])
+                    ->orWhereHas('lines', fn ($lineQuery) => $lineQuery->where('branch_id', $filters['branch_id']));
+            });
         }
 
         if (! empty($filters['start_date'])) {
@@ -51,7 +59,7 @@ class GeneralLedgerService
     public function getGeneralLedger(array $filters = []): array
     {
         $query = LedgerEntry::query()
-            ->with(['account', 'journalEntry', 'period.fiscalYear', 'currencyRef'])
+            ->with(['account', 'branch', 'journalEntry', 'period.fiscalYear', 'currencyRef'])
             ->orderBy('entry_date', 'asc')
             ->orderBy('created_at', 'asc');
 
@@ -61,6 +69,10 @@ class GeneralLedgerService
 
         if (! empty($filters['period_id'])) {
             $query->where('financial_period_id', $filters['period_id']);
+        }
+
+        if (! empty($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
         }
 
         if (! empty($filters['start_date'])) {
@@ -89,7 +101,7 @@ class GeneralLedgerService
      * Compute Trial Balance derived STRICTLY from posted ledger entries for a period or date range.
      *
      * @param  array<string, mixed>  $filters
-     * @return array{rows: list<array<string, mixed>>, total_debit: int, total_credit: int, is_balanced: bool}
+     * @return array{rows: list<array<string, mixed>>, total_debit: int, total_credit: int, is_balanced: bool, display_currency: string}
      */
     public function getTrialBalance(array $filters = []): array
     {
@@ -108,6 +120,10 @@ class GeneralLedgerService
 
             if (! empty($filters['period_id'])) {
                 $ledgerQuery->where('financial_period_id', $filters['period_id']);
+            }
+
+            if (! empty($filters['branch_id'])) {
+                $ledgerQuery->where('branch_id', $filters['branch_id']);
             }
 
             if (! empty($filters['start_date'])) {
@@ -139,6 +155,7 @@ class GeneralLedgerService
                 'type' => $account->type,
                 'nature' => $account->nature,
                 'group_name' => $account->group?->name,
+                'currency_code' => $account->currency,
                 'total_debit' => $totalDebit,
                 'total_credit' => $totalCredit,
                 'debit_balance' => $debitBalance,
@@ -151,6 +168,25 @@ class GeneralLedgerService
             'total_debit' => $grandTotalDebit,
             'total_credit' => $grandTotalCredit,
             'is_balanced' => $grandTotalDebit === $grandTotalCredit,
+            'display_currency' => $this->trialBalanceDisplayCurrency($rows),
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function trialBalanceDisplayCurrency(array $rows): string
+    {
+        $firstRowCurrency = $rows[0]['currency_code'] ?? null;
+
+        if ($firstRowCurrency) {
+            return (string) $firstRowCurrency;
+        }
+
+        return (string) (
+            Company::query()->orderBy('created_at')->value('base_currency')
+            ?: Account::query()->whereNotNull('currency')->orderBy('code')->value('currency')
+            ?: config('erp_currencies.default')
+        );
     }
 }

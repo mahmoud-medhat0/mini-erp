@@ -33,9 +33,32 @@ type StatementLineRow = {
   accounts: AccountItem[];
 };
 
+type StatementType = StatementLineRow['statement_type'];
+type NormalBalance = StatementLineRow['normal_balance'];
+
 type OptionItem = {
   value: string;
 };
+
+type StatementLineForm = {
+  code: string;
+  statement_type: StatementType;
+  section_code: string;
+  name_en: string;
+  name_ar: string;
+  normal_balance: NormalBalance;
+  cash_flow_activity: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+function toStatementType(value: string): StatementType {
+  return value === 'income_statement' ? 'income_statement' : 'balance_sheet';
+}
+
+function toNormalBalance(value: string): NormalBalance {
+  return value === 'credit' ? 'credit' : 'debit';
+}
 
 type MappingsProps = SharedPageProps & {
   lines: StatementLineRow[];
@@ -114,7 +137,7 @@ export default function FinancialStatementMappings({
   const [selectedUnmappedAccount, setSelectedUnmappedAccount] = useState<string>('');
   const [targetLineForAccount, setTargetLineForAccount] = useState<string>('');
 
-  const lineForm = useForm({
+  const lineForm = useForm<StatementLineForm>({
     code: '',
     statement_type: 'balance_sheet',
     section_code: 'current_assets',
@@ -179,6 +202,12 @@ export default function FinancialStatementMappings({
     }
   }
 
+  function statementLineDeleteMessage(line: StatementLineRow) {
+    return accDict.confirmDeleteStatementLine
+      .replace('{code}', line.code)
+      .replace('{name}', getLocalizedName(line.name, locale));
+  }
+
   function handleDeleteLine(line: StatementLineRow) {
     if (line.is_system) {
       alert(accDict.cannotDeleteSystemLine);
@@ -188,7 +217,7 @@ export default function FinancialStatementMappings({
       alert(accDict.cannotDeleteInUseLine);
       return;
     }
-    if (!confirm(actionsDict.confirmDelete)) {
+    if (!confirm(statementLineDeleteMessage(line))) {
       return;
     }
     router.delete(`/accounting/statement-mappings/lines/${line.id}`, {
@@ -554,7 +583,7 @@ export default function FinancialStatementMappings({
                     <select
                       disabled={editingLine?.is_system}
                       value={lineForm.data.statement_type}
-                      onChange={(e) => lineForm.setData('statement_type', e.target.value as any)}
+                      onChange={(e) => lineForm.setData('statement_type', toStatementType(e.target.value))}
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] disabled:opacity-50"
                     >
                       {statementTypes.map((opt) => (
@@ -590,7 +619,7 @@ export default function FinancialStatementMappings({
                     </label>
                     <select
                       value={lineForm.data.normal_balance}
-                      onChange={(e) => lineForm.setData('normal_balance', e.target.value as any)}
+                      onChange={(e) => lineForm.setData('normal_balance', toNormalBalance(e.target.value))}
                       className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
                     >
                       {normalBalances.map((opt) => (

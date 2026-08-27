@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Application\Audit\AuditLogQueryService;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,17 +31,6 @@ class AuditLogController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $logs = $queryService->paginate($validated, (int) ($validated['per_page'] ?? 25));
-        $actions = $queryService->getAvailableActions();
-        $entityTypes = $queryService->getAvailableEntityTypes();
-        $usersList = User::query()->select(['id', 'name', 'email'])->orderBy('name')->get();
-
-        return Inertia::render('AuditLog/Index', [
-            'logs' => $logs,
-            'filters' => $validated,
-            'actions' => $actions,
-            'entityTypes' => $entityTypes,
-            'usersList' => $usersList,
-        ]);
+        return Inertia::render('AuditLog/Index', $queryService->pageData($validated));
     }
 }

@@ -58,20 +58,24 @@ type TaxPeriodShowProps = SharedPageProps & {
   };
   latestReturn: TaxReturnItem | null;
   filedReturn: TaxReturnItem | null;
+  currency?: string | null;
 };
 
-export default function TaxPeriodShow({ locale, period, latestReturn, filedReturn }: TaxPeriodShowProps) {
-  const dict = getDictionary(locale) as any;
+export default function TaxPeriodShow({ locale, period, latestReturn, filedReturn, currency }: TaxPeriodShowProps) {
+  const dict = getDictionary(locale);
   const can = useCan();
   const canEdit = can('taxes.edit');
   const canFile = can('taxes.file');
 
   const [fileModalOpen, setFileModalOpen] = useState(false);
 
-  const t = dict.taxes?.periods || {};
+  const t = dict.app.taxes.periods;
+  const appName = dict.app.accounting.appName;
+  const accDict = dict.app.accounting;
 
   const activeReturn = filedReturn || latestReturn;
   const isFiled = period.status === 'filed';
+  const formatTaxMoney = (amountMinor: number) => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
 
   const { data, setData, post, processing } = useForm({
     notes: period.notes || '',
@@ -96,22 +100,22 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
 
   return (
     <AppLayout active="taxes.periods.show">
-      <Head title={`${period.period_label} - ${t.title || 'Tax Period'} - Mini ERP`} />
+      <Head title={`${period.period_label} - ${t.title} - ${appName}`} />
 
       <PageHeader
-        title={`Tax Period ${period.period_label}`}
-        description={`${period.start_date} to ${period.end_date}`}
+        title={`${t.taxPeriod} ${period.period_label}`}
+        description={`${period.start_date} ${t.dateRangeSeparator} ${period.end_date}`}
         actions={
           <div className="flex gap-2">
             {!isFiled && canEdit ? (
               <Button variant="secondary" onClick={handleGenerateDraft}>
-                {latestReturn ? (t.reGenerateDraft || 'Re-generate Draft Return') : (t.generateDraft || 'Generate Draft Return')}
+                {latestReturn ? t.reGenerateDraft : t.generateDraft}
               </Button>
             ) : null}
 
             {!isFiled && activeReturn && canFile ? (
               <Button onClick={() => setFileModalOpen(true)}>
-                {t.fileReturn || 'File Return & Lock Period'}
+                {t.fileReturn}
               </Button>
             ) : null}
           </div>
@@ -123,30 +127,30 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
         <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
             <div>
-              <span className="text-xs text-[var(--text-secondary)] block">Period Status</span>
+              <span className="text-xs text-[var(--text-secondary)] block">{t.periodStatus}</span>
               <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-bold ${isFiled ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : period.status === 'draft_return' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-sky-500/20 text-sky-700 dark:text-sky-400'}`}>
-                {isFiled ? (t.filed || 'FILED') : period.status === 'draft_return' ? (t.draftReturn || 'DRAFT RETURN') : (t.open || 'OPEN')}
+                {isFiled ? t.filed : period.status === 'draft_return' ? t.draftReturn : t.open}
               </span>
             </div>
 
             <div>
-              <span className="text-xs text-[var(--text-secondary)] block">Filing Reference</span>
+              <span className="text-xs text-[var(--text-secondary)] block">{t.fileReference}</span>
               <span className="text-sm font-bold font-mono text-[var(--text-primary)] mt-1 block">
-                {period.file_reference || activeReturn?.number || '—'}
+                {period.file_reference || activeReturn?.number || t.notAvailable}
               </span>
             </div>
 
             <div>
-              <span className="text-xs text-[var(--text-secondary)] block">Filed Date</span>
+              <span className="text-xs text-[var(--text-secondary)] block">{t.filedDate}</span>
               <span className="text-sm font-semibold text-[var(--text-primary)] mt-1 block">
-                {period.filed_at ? new Date(period.filed_at).toLocaleDateString() : 'Not filed'}
+                {period.filed_at ? new Date(period.filed_at).toLocaleDateString() : t.notFiled}
               </span>
             </div>
 
             <div>
-              <span className="text-xs text-[var(--text-secondary)] block">Locking Guard</span>
+              <span className="text-xs text-[var(--text-secondary)] block">{t.lockingGuard}</span>
               <span className={`text-xs font-bold mt-1 block ${isFiled ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'}`}>
-                {isFiled ? 'LOCKED (Postings Blocked)' : 'OPEN FOR POSTINGS'}
+                {isFiled ? t.lockedGuard : t.openPostingGuard}
               </span>
             </div>
           </div>
@@ -156,8 +160,8 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
         {!activeReturn ? (
           <Card>
             <EmptyState
-              title="No draft return generated yet"
-              description="Click 'Generate Draft Return' above to calculate VAT totals from posted documents."
+              title={t.emptyDraftTitle}
+              description={t.emptyDraftDescription}
             />
           </Card>
         ) : (
@@ -165,23 +169,23 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
             {/* Totals Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{t.outputTax || 'Output VAT'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{t.outputTax}</div>
                 <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {formatMoney(activeReturn.output_tax_minor)}
+                  {formatTaxMoney(activeReturn.output_tax_minor)}
                 </div>
               </div>
 
               <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{t.inputTax || 'Input VAT'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{t.inputTax}</div>
                 <div className="text-xl font-bold text-sky-600 dark:text-sky-400">
-                  {formatMoney(activeReturn.input_tax_minor)}
+                  {formatTaxMoney(activeReturn.input_tax_minor)}
                 </div>
               </div>
 
               <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
-                <div className="text-xs text-[var(--text-secondary)] mb-1">{t.netPayable || 'Net VAT Payable'}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">{t.netPayable}</div>
                 <div className={`text-xl font-bold ${activeReturn.net_payable_minor >= 0 ? 'text-[var(--text-primary)]' : 'text-amber-600'}`}>
-                  {formatMoney(activeReturn.net_payable_minor)}
+                  {formatTaxMoney(activeReturn.net_payable_minor)}
                 </div>
               </div>
             </div>
@@ -191,7 +195,7 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
               <Card className="p-0 overflow-hidden">
                 <div className="p-4 border-b border-[var(--border-color)] bg-[var(--surface-color)] flex justify-between items-center">
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                    {t.snapshotHeading || 'Immutable Return Snapshot'} ({activeReturn.number})
+                    {t.snapshotHeading} ({activeReturn.number})
                   </h3>
                   <span className="text-xs font-mono px-2 py-0.5 rounded bg-[var(--card)] border border-[var(--border-color)]">
                     {activeReturn.status.toUpperCase()}
@@ -199,20 +203,19 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
                 </div>
 
                 <div className="p-4 space-y-6">
-                  {/* Output VAT Breakdown */}
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
-                      Output VAT Breakdown
+                      {t.outputBreakdown}
                     </h4>
                     <div className="overflow-x-auto">
                       <table className={tableClasses.table}>
                         <thead className="bg-[var(--surface-color)]">
                           <tr>
-                            <th className={tableClasses.th}>Tax Code</th>
-                            <th className={tableClasses.th}>Rate</th>
-                            <th className={thRightClass}>Taxable Subtotal</th>
-                            <th className={thRightClass}>Tax Amount</th>
-                            <th className={thRightClass}>Gross Total</th>
+                            <th className={tableClasses.th}>{t.taxCode}</th>
+                            <th className={tableClasses.th}>{t.rate}</th>
+                            <th className={thRightClass}>{t.taxableSubtotal}</th>
+                            <th className={thRightClass}>{t.taxAmount}</th>
+                            <th className={thRightClass}>{t.grossTotal}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]">
@@ -220,9 +223,9 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
                             <tr key={row.tax_code_id} className="hover:bg-[var(--surface-color)] transition-colors">
                               <td className={`${tableClasses.td} font-bold`}>{row.code}</td>
                               <td className={tableClasses.td}>{row.rate_bps / 100}%</td>
-                              <td className={`${tdRightClass} font-mono`}>{formatMoney(row.subtotal_minor)}</td>
-                              <td className={`${tdRightClass} font-mono font-bold text-emerald-600`}>{formatMoney(row.tax_amount_minor)}</td>
-                              <td className={`${tdRightClass} font-mono`}>{formatMoney(row.gross_amount_minor)}</td>
+                              <td className={`${tdRightClass} font-mono`}>{formatTaxMoney(row.subtotal_minor)}</td>
+                              <td className={`${tdRightClass} font-mono font-bold text-emerald-600`}>{formatTaxMoney(row.tax_amount_minor)}</td>
+                              <td className={`${tdRightClass} font-mono`}>{formatTaxMoney(row.gross_amount_minor)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -230,20 +233,19 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
                     </div>
                   </div>
 
-                  {/* Input VAT Breakdown */}
                   <div>
                     <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-2">
-                      Input VAT Breakdown
+                      {t.inputBreakdown}
                     </h4>
                     <div className="overflow-x-auto">
                       <table className={tableClasses.table}>
                         <thead className="bg-[var(--surface-color)]">
                           <tr>
-                            <th className={tableClasses.th}>Tax Code</th>
-                            <th className={tableClasses.th}>Rate</th>
-                            <th className={thRightClass}>Taxable Subtotal</th>
-                            <th className={thRightClass}>Tax Amount</th>
-                            <th className={thRightClass}>Gross Total</th>
+                            <th className={tableClasses.th}>{t.taxCode}</th>
+                            <th className={tableClasses.th}>{t.rate}</th>
+                            <th className={thRightClass}>{t.taxableSubtotal}</th>
+                            <th className={thRightClass}>{t.taxAmount}</th>
+                            <th className={thRightClass}>{t.grossTotal}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--border-color)]">
@@ -251,9 +253,9 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
                             <tr key={row.tax_code_id} className="hover:bg-[var(--surface-color)] transition-colors">
                               <td className={`${tableClasses.td} font-bold`}>{row.code}</td>
                               <td className={tableClasses.td}>{row.rate_bps / 100}%</td>
-                              <td className={`${tdRightClass} font-mono`}>{formatMoney(row.subtotal_minor)}</td>
-                              <td className={`${tdRightClass} font-mono font-bold text-sky-600`}>{formatMoney(row.tax_amount_minor)}</td>
-                              <td className={`${tdRightClass} font-mono`}>{formatMoney(row.gross_amount_minor)}</td>
+                              <td className={`${tdRightClass} font-mono`}>{formatTaxMoney(row.subtotal_minor)}</td>
+                              <td className={`${tdRightClass} font-mono font-bold text-sky-600`}>{formatTaxMoney(row.tax_amount_minor)}</td>
+                              <td className={`${tdRightClass} font-mono`}>{formatTaxMoney(row.gross_amount_minor)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -271,37 +273,37 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
       <Modal
         isOpen={fileModalOpen}
         onClose={() => setFileModalOpen(false)}
-        title={t.fileConfirmationTitle || 'Confirm Official Return Filing'}
+        title={t.fileConfirmationTitle}
       >
         <form onSubmit={handleFileReturn} className="space-y-4">
           <p className="text-xs text-[var(--text-secondary)]">
-            {t.fileConfirmationDesc || 'Filing is permanent and immutable. Once filed, no new tax-affecting documents can be posted with a document date in this period range.'}
+            {t.fileConfirmationDesc}
           </p>
 
           {activeReturn && (
             <div className="p-3 rounded-xl bg-[var(--surface-color)] border border-[var(--border-color)] space-y-1 text-xs">
               <div className="flex justify-between">
-                <span>Return Number:</span>
+                <span>{t.returnNumber}:</span>
                 <span className="font-bold font-mono">{activeReturn.number}</span>
               </div>
               <div className="flex justify-between">
-                <span>Output VAT:</span>
-                <span className="font-bold text-emerald-600">{formatMoney(activeReturn.output_tax_minor)}</span>
+                <span>{t.outputTax}:</span>
+                <span className="font-bold text-emerald-600">{formatTaxMoney(activeReturn.output_tax_minor)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Input VAT:</span>
-                <span className="font-bold text-sky-600">{formatMoney(activeReturn.input_tax_minor)}</span>
+                <span>{t.inputTax}:</span>
+                <span className="font-bold text-sky-600">{formatTaxMoney(activeReturn.input_tax_minor)}</span>
               </div>
               <div className="flex justify-between border-t border-[var(--border-color)] pt-1 font-bold">
-                <span>Net VAT Payable:</span>
-                <span>{formatMoney(activeReturn.net_payable_minor)}</span>
+                <span>{t.netPayable}:</span>
+                <span>{formatTaxMoney(activeReturn.net_payable_minor)}</span>
               </div>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
-              Filing Notes (optional)
+              {t.filingNotes}
             </label>
             <textarea
               className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--border-color)] bg-[var(--card)] text-[var(--text-primary)]"
@@ -313,10 +315,10 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={() => setFileModalOpen(false)}>
-              Cancel
+              {t.cancel}
             </Button>
             <Button type="submit" disabled={processing}>
-              {processing ? 'Filing...' : 'Confirm & Lock Tax Period'}
+              {processing ? t.filing : t.confirmAndLockTaxPeriod}
             </Button>
           </div>
         </form>

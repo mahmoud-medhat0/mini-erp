@@ -6,7 +6,7 @@ import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClass
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierOBRow = {
   id: string;
@@ -26,7 +26,7 @@ type SupplierOBRow = {
 type SupplierOBProps = SharedPageProps & {
   balances: {
     data: SupplierOBRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   suppliers: Array<{ id: string; code: string; name: string }>;
   fiscalYears: Array<{ id: string; year: number; name: string }>;
@@ -43,6 +43,7 @@ export default function SupplierOpeningBalancesIndex({
   currencies = [],
 }: SupplierOBProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -55,7 +56,7 @@ export default function SupplierOpeningBalancesIndex({
     due_date: '',
     reference: '',
     description: 'Supplier Opening Balance',
-    currency: 'EGP',
+    currency: '',
     amount: '',
     amount_minor: 0,
     fx_rate_e6: 1000000,
@@ -80,7 +81,7 @@ export default function SupplierOpeningBalancesIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(dict.app.pages.supplierOpeningBalances.areYouSureYouWantTo)) {
+    if (confirm(dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance)) {
       post(`/supplier-opening-balances/${id}/post`);
     }
   };
@@ -146,10 +147,10 @@ export default function SupplierOpeningBalancesIndex({
               {balances.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : '—'}
+                    {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.entry_date}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.reference || '—'}</td>
+                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.reference || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{row.currency}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
                     {formatMoney(row.amount_minor, row.currency)}
@@ -161,7 +162,7 @@ export default function SupplierOpeningBalancesIndex({
                   </td>
                   <td className={tableClasses.td}>
                     {row.status === 'draft' ? (
-                      can('suppliers.opening_balances') ? (
+                      can('suppliers.opening_balances') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handlePost(row.id)}
@@ -233,7 +234,7 @@ export default function SupplierOpeningBalancesIndex({
                   <SearchableSelect
                     options={currencyOptions}
                     value={data.currency}
-                    onChange={(val) => setData('currency', val || 'EGP')}
+                    onChange={(val) => setData('currency', val || '')}
                     isClearable={false}
                   />
                 </div>

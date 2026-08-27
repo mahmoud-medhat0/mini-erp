@@ -2,6 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import { formatAccountingAmount } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -27,7 +28,8 @@ type CategoriesProps = SharedPageProps & {
 
 export default function FixedAssetCategories({ locale, categories, can }: CategoriesProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
+  const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
 
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
@@ -148,7 +150,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                       <td className={tableClasses.td}>{formatName(cat.name)}</td>
                       <td className={tableClasses.td}>{cat.useful_life_months}</td>
                       <td className={tableClasses.td}>
-                        {can.view_financials ? cat.salvage_value_minor : '***'}
+                        {can.view_financials ? formatAmount(cat.salvage_value_minor) : appDict.restrictedValue}
                       </td>
                       <td className={tableClasses.td}>
                         <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${cat.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>

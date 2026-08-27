@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Taxes;
 
+use App\Application\Taxes\TaxPeriodPageData;
 use App\Application\Taxes\TaxPeriodService;
 use App\Application\Taxes\TaxReturnService;
 use App\Http\Controllers\Controller;
@@ -16,17 +17,14 @@ class TaxPeriodController extends Controller
     public function __construct(
         private readonly TaxPeriodService $periodService,
         private readonly TaxReturnService $returnService,
+        private readonly TaxPeriodPageData $pageData,
     ) {}
 
     public function index(): Response
     {
         Gate::authorize('taxes.view');
 
-        $periods = $this->periodService->listPeriods();
-
-        return Inertia::render('Taxes/Periods/Index', [
-            'periods' => $periods,
-        ]);
+        return Inertia::render('Taxes/Periods/Index', $this->pageData->indexData());
     }
 
     public function store(Request $request): RedirectResponse
@@ -43,20 +41,14 @@ class TaxPeriodController extends Controller
         $period = $this->periodService->createPeriod($validated);
 
         return redirect()->route('taxes.periods.show', $period->id)
-            ->with('success', 'Tax period created successfully.');
+            ->with('success', __('Tax period created successfully.'));
     }
 
     public function show(string $id): Response
     {
         Gate::authorize('taxes.view');
 
-        $period = $this->periodService->getPeriod($id);
-
-        return Inertia::render('Taxes/Periods/Show', [
-            'period' => $period,
-            'latestReturn' => $period->latestReturn,
-            'filedReturn' => $period->filedReturn,
-        ]);
+        return Inertia::render('Taxes/Periods/Show', $this->pageData->showData($id));
     }
 
     public function generateDraft(string $id, Request $request): RedirectResponse
@@ -67,7 +59,7 @@ class TaxPeriodController extends Controller
         $taxReturn = $this->returnService->generateDraftReturn($id, $user?->id);
 
         return redirect()->route('taxes.periods.show', $id)
-            ->with('success', "Draft tax return {$taxReturn->number} generated successfully.");
+            ->with('success', __('Draft tax return :number generated successfully.', ['number' => $taxReturn->number]));
     }
 
     public function fileReturn(string $returnId, Request $request): RedirectResponse
@@ -82,6 +74,6 @@ class TaxPeriodController extends Controller
         $filedReturn = $this->returnService->fileReturn($returnId, $user?->id, $validated['notes'] ?? null);
 
         return redirect()->route('taxes.periods.show', $filedReturn->tax_period_id)
-            ->with('success', "Tax return {$filedReturn->number} filed successfully and period locked.");
+            ->with('success', __('Tax return :number filed successfully and period locked.', ['number' => $filedReturn->number]));
     }
 }

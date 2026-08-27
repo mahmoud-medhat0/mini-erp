@@ -2,6 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -26,11 +27,19 @@ type DeliveryNoteLineOption = {
 type DeliveryNoteOption = {
   id: string;
   number?: string | null;
+  warehouse_id?: string | null;
   salesOrder?: {
     customer_id: string;
     customer?: { id: string; name: string } | null;
   } | null;
   lines: DeliveryNoteLineOption[];
+};
+
+type WarehouseOption = {
+  id: string;
+  code: string;
+  name: { en?: string; ar?: string } | string;
+  is_default?: boolean;
 };
 
 type PostedInvoiceOption = {
@@ -76,9 +85,11 @@ type SalesReturnRow = {
   number?: string | null;
   customer_id: string;
   delivery_note_id?: string | null;
+  warehouse_id: string;
   customer_invoice_id?: string | null;
   customer?: { id: string; name: string } | null;
   deliveryNote?: { id: string; number?: string | null } | null;
+  warehouse?: WarehouseOption | null;
   customerInvoice?: { id: string; number?: string | null } | null;
   return_date: string;
   status: 'draft' | 'submitted' | 'approved' | 'posted' | 'cancelled';
@@ -108,15 +119,25 @@ type SalesReturnsProps = SharedPageProps & {
   activeCustomers: CustomerOption[];
   confirmedDeliveryNotes: DeliveryNoteOption[];
   postedCustomerInvoices: PostedInvoiceOption[];
+  warehouses: WarehouseOption[];
   taxCodes?: any[];
   filters: {
     search?: string;
     status?: string;
     customer_id?: string;
+    warehouse_id?: string;
   };
 };
 
 const formatQuantity = (qtyE6: number) => String(parseFloat(((qtyE6 || 0) / 1000000).toFixed(6)));
+
+function toDisposition(value: string): Disposition {
+  if (value === 'restock_manual_value' || value === 'scrap_no_restock') {
+    return value;
+  }
+
+  return 'restock_original_cost';
+}
 
 export default function SalesReturnsIndex({
   locale,
@@ -124,9 +145,11 @@ export default function SalesReturnsIndex({
   activeCustomers,
   confirmedDeliveryNotes,
   postedCustomerInvoices,
+  warehouses,
   filters,
 }: SalesReturnsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -140,6 +163,7 @@ export default function SalesReturnsIndex({
   const { data, setData, post, put, processing, errors, reset } = useForm({
     customer_id: '',
     delivery_note_id: '',
+    warehouse_id: warehouses[0]?.id || '',
     customer_invoice_id: '',
     return_date: todayStr,
     reason: '',
@@ -183,13 +207,14 @@ export default function SalesReturnsIndex({
       return;
     }
     const dn = confirmedDeliveryNotes.find((n) => n.id === dnId);
+    setData('warehouse_id', dn?.warehouse_id || warehouses[0]?.id || '');
     if (dn && sourceMode === 'delivery_note') {
       setLineItems(
         dn.lines.map((l) => ({
           delivery_note_line_id: l.id,
           product_id: l.product_id,
           description: l.description || getProductName(l.product),
-          uom_name: l.unitOfMeasure?.name || '-',
+          uom_name: l.unitOfMeasure?.name || accDict.notAvailable,
           max_quantity: l.quantity_e6 / 1000000,
           quantity: l.quantity_e6 / 1000000,
           disposition: 'restock_original_cost' as Disposition,
@@ -214,7 +239,7 @@ export default function SalesReturnsIndex({
           customer_invoice_line_id: l.id,
           product_id: '',
           description: l.description || '',
-          uom_name: '-',
+          uom_name: accDict.notAvailable,
           max_quantity: l.max_returnable_quantity_e6 / 1000000,
           quantity: 0,
           disposition: 'restock_original_cost' as Disposition,
@@ -228,12 +253,12 @@ export default function SalesReturnsIndex({
     }
   };
 
-  const updateLineItem = (index: number, field: keyof ReturnLineForm, value: any) => {
+  const updateLineItem = <K extends keyof ReturnLineForm>(index: number, field: K, value: ReturnLineForm[K]) => {
     setLineItems((prev) => {
       const next = [...prev];
       const item = { ...next[index], [field]: value };
       if (field === 'delivery_note_line_id' && selectedDn) {
-        const dnLine = selectedDn.lines.find((l) => l.id === value);
+        const dnLine = selectedDn.lines.find((l) => l.id === String(value ?? ''));
         if (dnLine) item.product_id = dnLine.product_id;
       }
       next[index] = item;
@@ -255,6 +280,7 @@ export default function SalesReturnsIndex({
     setData({
       customer_id: ret.customer_id,
       delivery_note_id: ret.delivery_note_id || '',
+      warehouse_id: ret.warehouse_id || warehouses[0]?.id || '',
       customer_invoice_id: ret.customer_invoice_id || '',
       return_date: ret.return_date,
       reason: ret.reason || '',
@@ -267,7 +293,7 @@ export default function SalesReturnsIndex({
         customer_invoice_line_id: l.customer_invoice_line_id || null,
         product_id: l.product_id,
         description: l.description || getProductName(l.product),
-        uom_name: l.unitOfMeasure?.name || '-',
+        uom_name: l.unitOfMeasure?.name || accDict.notAvailable,
         max_quantity: l.quantity_e6 / 1000000,
         quantity: l.quantity_e6 / 1000000,
         disposition: l.disposition,
@@ -422,6 +448,19 @@ export default function SalesReturnsIndex({
 
           <div className="flex flex-wrap items-center gap-3">
             <select
+              value={filters.warehouse_id || ''}
+              onChange={(e) => router.get('/sales/returns', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
+              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">{dict.app.pages.salesSalesReturns.allWarehouses}</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={filters.status || ''}
               onChange={(e) => router.get('/sales/returns', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
@@ -450,6 +489,7 @@ export default function SalesReturnsIndex({
                   <th className={tableClasses.th}>{dict.app.pages.salesSalesReturns.customer}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesSalesReturns.deliveryNote}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesSalesReturns.invoice}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesSalesReturns.warehouse}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesSalesReturns.returnDate}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesSalesReturns.status}</th>
                   <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesSalesReturns.actions}</th>
@@ -461,9 +501,10 @@ export default function SalesReturnsIndex({
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {ret.number || dict.app.pages.salesSalesReturns.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-medium`}>{ret.customer?.name || '-'}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{ret.deliveryNote?.number || '-'}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{ret.customerInvoice?.number || '-'}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{ret.customer?.name || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{ret.deliveryNote?.number || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{ret.customerInvoice?.number || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{ret.return_date}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={getStatusTone(ret.status)}>
@@ -471,7 +512,7 @@ export default function SalesReturnsIndex({
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {ret.status === 'draft' && can('sales.edit') ? (
+                      {ret.status === 'draft' && can('sales.returns') ? (
                         <button
                           type="button"
                           onClick={() => openEditModal(ret)}
@@ -481,7 +522,7 @@ export default function SalesReturnsIndex({
                         </button>
                       ) : null}
 
-                      {ret.status === 'draft' && can('sales.submit') ? (
+                      {ret.status === 'draft' && can('sales.returns') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'submit')}
@@ -491,7 +532,7 @@ export default function SalesReturnsIndex({
                         </button>
                       ) : null}
 
-                      {['draft', 'submitted'].includes(ret.status) && can('sales.approve') ? (
+                      {['draft', 'submitted'].includes(ret.status) && can('sales.returns') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'approve')}
@@ -501,7 +542,7 @@ export default function SalesReturnsIndex({
                         </button>
                       ) : null}
 
-                      {ret.status === 'approved' && can('sales.post') ? (
+                      {ret.status === 'approved' && can('sales.returns') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'post')}
@@ -511,7 +552,7 @@ export default function SalesReturnsIndex({
                         </button>
                       ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(ret.status) && can('sales.cancel') ? (
+                      {['draft', 'submitted', 'approved'].includes(ret.status) && can('sales.returns') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'cancel')}
@@ -560,7 +601,7 @@ export default function SalesReturnsIndex({
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.customer_2} *</label>
                   <select
@@ -578,6 +619,25 @@ export default function SalesReturnsIndex({
                     ))}
                   </select>
                   {errors.customer_id ? <p className="mt-1 text-[10px] text-red-500">{errors.customer_id}</p> : null}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.warehouse} *</label>
+                  <select
+                    value={data.warehouse_id}
+                    onChange={(e) => setData('warehouse_id', e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">{dict.app.pages.salesSalesReturns.selectWarehouse}</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                        {warehouse.is_default ? ` (${dict.app.pages.salesSalesReturns.defaultWarehouse})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
                 </div>
 
                 <div>
@@ -667,7 +727,7 @@ export default function SalesReturnsIndex({
                             <input
                               type="text"
                               disabled
-                              value={item.description || '-'}
+                              value={item.description}
                               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--text-primary)] font-medium"
                             />
                           </div>
@@ -711,7 +771,7 @@ export default function SalesReturnsIndex({
                             <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">{dict.app.pages.salesSalesReturns.disposition}</label>
                             <select
                               value={item.disposition}
-                              onChange={(e) => updateLineItem(idx, 'disposition', e.target.value)}
+                              onChange={(e) => updateLineItem(idx, 'disposition', toDisposition(e.target.value))}
                               className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
                             >
                               <option value="restock_original_cost">{getDispositionLabel('restock_original_cost')}</option>

@@ -1,18 +1,22 @@
 # IMPLEMENTATION STATUS
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
+
+> **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
+
+- **Latest product-hardening update:** Phase 15 Slices 1-133 are COMPLETE. Slice 133 replaced native rental filter selects with shared `SearchableSelect` controls in Handovers, Returns, and Invoices. `Phase15ProductHardeningTest` passed with 138 tests / 20734 assertions; rental focused suites, Pint, TypeScript typecheck, Vite build, and the global controller direct-query scan passed.
 
 
-- **Current phase:** Phase 9 (Staging / Production Cutover Pack) - COMPLETE & VERIFIED.
-- **Latest verified:** 2026-08-24, Phase 9 final cutover close-out (`PHASE_9_FINAL_CUTOVER_REPORT.md`).
-- **Tests passing:** Full suite 554 tests, 551 passed / 3 skipped / 4,068 assertions. Phase 8 suite 6 tests, 6 passed / 49 assertions.
-- **Stress passing:** `concurrency:stress --workers=10`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, `accounting:phase3-integrity-check`, `accounting:phase3-stress --workers=50`, `accounting:sales-tax-stress --workers=50`, `accounting:purchasing-tax-stress --workers=50`, `accounting:tax-filing-stress --workers=50`.
-- **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed (Vite bundle clean).
+- **Current phase:** Phase 15 Product Hardening - IN PROGRESS. Slices 1-133 are COMPLETE. Current focus is accountant-facing product polish, validation localization, permission regression coverage, dense workflow scanning, and preserving existing PostingEngine/RBAC/audit invariants without adding tenant/company scope.
+- **Latest verified:** 2026-08-26, Phase 15 Slice 133 rental filter-control cleanup. Targeted rental filter-control guard, rental focused suites, Phase15ProductHardeningTest, Pint, TypeScript typecheck, and Vite build passed.
+- **Tests passing:** Last full Laravel suite pass remains Slice 57: 720 tests, 717 passed, 3 skipped, 17923 assertions. Phase 15 product hardening test passed after Slice 133: 138 tests, 20734 assertions. Operational report filter UX guard passed with 1 test / 68 assertions. Inventory report filter UX guard passed with 1 test / 121 assertions. Expense/payroll filter reset guard passed with 1 test / 35 assertions. Remaining operational clear-filter guard passed with 1 test / 59 assertions. Rental filter-control guard passed with 1 test / 11 assertions. Focused inventory, expense, payroll, and rental suites passed after Slices 131-133. Pint, TypeScript typecheck, and Vite build passed after Slice 133. Monolithic full Laravel suite was attempted after Slice 58 but exceeded the local timeout budget during the broader run; treat that as QA-runtime tuning, not as a product-hardening assertion failure.
+- **Stress passing:** `concurrency:stress --workers=100`, `accounting:concurrency-stress --workers=50`, `accounting:allocation-concurrency-stress --workers=50`, `accounting:settlement-concurrency-stress --workers=50`, `accounting:cheque-concurrency-stress --workers=50`, `accounting:bank-reconciliation-concurrency-stress --workers=50`, `accounting:stock-transfer-stress --workers=50`, `accounting:inventory-concurrency-stress --workers=50`, `accounting:fixed-asset-depreciation-stress --workers=50`, `accounting:fixed-asset-disposal-stress --workers=50`, `accounting:phase3-stress --workers=20`, `accounting:phase3-integrity-check`, and `tokens:gc --batch=100`.
+- **Frontend verification:** `npm run typecheck` passed (0 errors), `npm run build` passed with the existing Vite chunk-size warning only.
 - **Remote/CI:** No GitHub Actions pipeline is connected for the Laravel migration track.
-- **Latest verified code commit:** local verification clean on Phase 9 final cutover close-out.
+- **Latest verified code commit:** local verification clean on Phase 15 Slices 1-133 product hardening. Deployment process remains parked until owner/operator cutover decisions are needed.
 - **Handoff:** start with `CONTINUE_HERE.md`, then `NEXT_TASKS.md`.
 - **Phase 7 prompts:** `PHASE_7_TAX_VAT.md`, Slices 1-7 COMPLETE. All 7 slices implemented and verified.
-- **Next prepared track:** Owner/operator deployment decisions, or select the next ERP business module after cutover planning.
+- **Next prepared track:** continue Phase 15 Product Hardening Slice 134 with remaining accountant-facing UI flow simplification and clean-code scans. Deployment process remains parked until owner/operator cutover decisions are needed.
 
 ## Legend
 
@@ -76,6 +80,30 @@
 | Phase 9 Slice 6 Go-Live Smoke, Security Checklist & Acceptance Gate | COMPLETE | Created `spec/GO_LIVE_ACCEPTANCE.md` covering pre-go-live approvals, non-secret environment sanity checks, login/dashboard/report/tax smoke, attachment/notification checks, permission/security checks, scheduler/queue readiness, backup/restore evidence, and formal go/no-go sign-off. |
 | Phase 9 Slice 7 Final Cutover Close-Out | COMPLETE | Created `PHASE_9_FINAL_CUTOVER_REPORT.md`, updated handoff docs, ran the required Laravel verification suite, and classified source-scan matches. |
 | Phase 9 Staging / Production Cutover Pack | COMPLETE | Slices 1-7 are complete and verified. Covers cutover decision pack, environment/secrets checklist, deployment and rollback runbooks, backup/restore drill pack, runtime processes, go-live smoke/security acceptance, and final close-out. |
+| Product Extensibility Roadmap | COMPLETE | Owner direction recorded for multi-branch operations, branch transfers, warehouse/location readiness, branch-aware sales/purchasing/cash/fixed-asset/reporting workflows, and no multi-tenant semantics. Warehouse/location foundation is implemented. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`. |
+| Phase 10 Branch, Warehouse, and Stock Transfer Foundation | COMPLETE | Implemented warehouses, stock locations, warehouse-aware stock balances/movements, stock transfer lifecycle, warehouse UI/report filters, RBAC updates, attachment registry support, PostgreSQL stock transfer stress command, and verification report `PHASE_10_FINAL_REPORT.md`. |
+| Phase 10 Stock Count, Adjustment, and Warehouse Document Selectors | COMPLETE | Implemented `stock_count`, `stock_count_line`, `stock_adjustment`, `stock_adjustment_line`, stock count variance posting through generated stock adjustments, inventory adjustment gain/loss mappings, Inertia pages for counts/adjustments, warehouse selectors on Delivery Notes, Goods Receipts, Sales Returns, and Purchase Returns, warehouse filters on Delivery/Goods reports, and verification report `PHASE_10_OPERATIONAL_COMPLETION_REPORT.md`. |
+| Security Hardening Pass | COMPLETE | Added baseline security headers, active-user request recheck, route-level authorization coverage, sensitive `taxes.file` capability, private local storage direct-serve lock (`FILESYSTEM_LOCAL_SERVE=false`), and regression test report `SECURITY_HARDENING_REPORT.md`. |
+| Stabilization / QA Gate | COMPLETE | Added `qa:verify-local`, corrected Phase 10 PostgreSQL UUID test fixtures, extracted repeated inventory page option queries, removed hardcoded Delivery/Goods report UI text into dictionaries, and created `STABILIZATION_HARDENING_REPORT.md`. |
+| Phase 10 Treasury Transfer and Branch Cash/Bank Extension | COMPLETE | Added optional operational `branch_id` references to `cash_account` and `bank_account`, branch-aware cash/bank UI filters/selectors, `treasury_transfer` table/model/service/controller/routes/page, PostingEngine-backed internal transfer posting (Dr destination cash/bank linked GL, Cr source linked GL), and verification report `PHASE_10_TREASURY_TRANSFER_REPORT.md`. |
+| Phase 10 Fixed Asset Location and Movement History | COMPLETE | Added `fixed_asset_location`, current `fixed_asset.branch_id` and `fixed_asset.fixed_asset_location_id`, append-only `fixed_asset_movement`, `fixedAssets.transfer` permission, location CRUD page, branch/location filters and movement modal/history on fixed assets, and verification report `PHASE_10_FIXED_ASSET_MOVEMENT_REPORT.md`. |
+| Phase 10 Branch Operational Reports | COMPLETE | Added `/reports/branch-operations`, `BranchOperationalReportService`, read-only branch coverage dashboard for warehouses, stock, cash/bank, fixed assets, asset movements, and posted treasury transfers, readiness checks for unassigned operational records, mixed-currency warning, and verification report `PHASE_10_BRANCH_OPERATIONAL_REPORTS_REPORT.md`. |
+| Phase 10 GL Branch Dimension and Branch Profitability | COMPLETE | Added optional operational `branch_id` to `journal_entry`, `journal_line`, and immutable `ledger_entry`; updated journal draft/posting/reversal, treasury transfer posting, and inventory-generated journals to preserve branch context; added branch-filtered General Ledger, `/reports/branch-profitability`, protected CSV export, and permission-aware print/export actions; verified via `PHASE_10_GL_BRANCH_PROFITABILITY_REPORT.md`. |
+| Phase 10 Branch-Specific GL Mapping Overrides | COMPLETE | Added optional operational `branch_id` to `accounting_account_mapping`, partial unique indexes for global vs branch override rows, branch-first/global-fallback mapping resolution, `/accounting/account-mappings` UI/actions, inventory MWA branch mapping integration, QA gate hardening, and verification report `PHASE_10_BRANCH_GL_MAPPING_REPORT.md`. |
+| Phase 10 Branch-Aware Approval Rules | COMPLETE | Added optional `branch_approval_rule` configuration, `approvals.*` RBAC permissions, `/settings/branch-approval-rules` CRUD UI/actions, and extra permission gates for stock transfer, stock count, and stock adjustment approvals without tenant/security scope; verified via `PHASE_10_BRANCH_APPROVAL_RULES_REPORT.md`. |
+| Phase 10 Landed Cost / Freight Allocation | COMPLETE | Added `landed_cost_allocation` and lines, lifecycle service/controller/routes/page, `purchasing.landed_costs` permission, attachment registry support, period close blocker, WAVG zero-quantity value stock movements, AP payable creation, balanced GL posting, and verification report `PHASE_10_LANDED_COST_ALLOCATION_REPORT.md`. |
+| Phase 11 Expense Management | COMPLETE | Added `expense_category`, `expense`, and `expense_line`, category CRUD, expense lifecycle (`draft` -> `submitted` -> `approved` -> `posted` / `cancelled`), payable/cash/bank settlement, PostingEngine journals, input VAT support, required attachment gate, tax-period and period-close blockers, `/expenses` and `/expenses/categories` pages, mixed-currency visible-total protection, and verification report `PHASE_11_EXPENSE_MANAGEMENT_REPORT.md`. |
+| Phase 12 Prepaid & Accrued Expenses | COMPLETE | Added `prepaid_schedule`, `prepaid_recognition`, `accrual_schedule`, and `accrual_entry`, schedule lifecycle, exact monthly amount allocation, PostingEngine journals for prepaid recognition and accrual entries, default GL mappings/accounts, period close blockers, `/expenses/prepaids` and `/expenses/accruals`, currency-registry consistency fix, PHPUnit memory-limit test runner hardening, and verification report `PHASE_12_PREPAID_ACCRUED_EXPENSES_REPORT.md`. |
+| Phase 13 Payroll Foundation | COMPLETE | Added standalone payroll employees, payroll components, employee recurring component assignments, payroll periods, payroll runs, payroll run lines, PostingEngine-backed payroll journals, default payroll GL mappings/accounts, period close blockers, payroll attachment authorization, `/payroll/employees`, `/payroll/components`, `/payroll/runs`, sensitive `view_payroll` permission enforcement, optional operational payroll branch references, and verification report `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`. |
+| Phase 14 Rentals Policy Decision Pack | COMPLETE | Created `PHASE_14_RENTALS.md`, `PHASE_14_SLICE_1_GEMINI_PROMPT.md`, and `PHASE_14_RENTALS_POLICY_DECISION.md`. Owner direction in chat approved continuing with the recommended hybrid standalone register path. |
+| Phase 14 Rentals Foundation | COMPLETE | Added `rentable_item` and `rentable_item_status_event`, rentable item service/controller/routes/page, source consistency rules, operational branch/warehouse placement, attachment registry, RBAC action expansion, EN/AR dictionary text, and `PHASE_14_RENTALS_FOUNDATION_REPORT.md`. |
+| Phase 14 Rental Contracts | COMPLETE | Added `rental_contract`, `rental_contract_line`, and `rental_contract_status_event`, rental contract service/controller/routes/page, customer linkage, optional operational branch reference, contract lifecycle, item reservation/allocation/rented transitions, attachment registry, EN/AR dictionary text, and `PHASE_14_RENTAL_CONTRACTS_REPORT.md`. No rental GL posting was introduced. |
+| Phase 14 Rental Fulfillment | COMPLETE | Added `rental_handover`, `rental_handover_line`, `rental_return`, and `rental_return_line`, `RentalFulfillmentService`, handover/return controllers/routes/pages, handover confirmation, return submission, inspection completion, item outcome transitions, contract completion logic, attachment registry, EN/AR dictionary text, and `PHASE_14_RENTAL_FULFILLMENT_REPORT.md`. No rental GL posting was introduced. |
+| Phase 14 Rental Billing | COMPLETE | Added `rental_invoice` and `rental_invoice_line`, `RentalInvoiceService`, `/rentals/invoices`, rent/deposit/damage/late/other charge billing, `RINV-YYYY-XXXXX` numbering, output VAT, AR `receivable_entry`, PostingEngine GL posting, rental accounting mappings, attachment registry, VAT register integration, period close blocker, EN/AR dictionary UI text, and `PHASE_14_RENTAL_BILLING_REPORT.md`. |
+| Phase 14 Rental Reports & Close-Out | COMPLETE | Added `RentalOperationsReportService`, `RentalOperationsReportController`, `/reports/rentals`, CSV export, `Reports/RentalOperationsReport.tsx`, Reports Hub/sidebar links, readiness checks for overdue contracts, unbilled lines, open invoices, pending damage, mixed currency, and `PHASE_14_FINAL_VERIFICATION_REPORT.md`. |
+| Phase 14 Rentals | COMPLETE FOUNDATION | Phase 14 Slices 1-6 are complete and locally verified: policy, rentable items, contracts, fulfillment, billing/accounting integration, rental operations report, export/print UX, source scans, and final verification. |
+| Phase 15 Product Hardening Slices 1-133 | COMPLETE | Slice 133 replaced native rental filter selects with shared `SearchableSelect` controls; `Phase15ProductHardeningTest` passed with 138 tests / 20734 assertions, rental focused suites passed, controller direct-query scan passed, and Pint/typecheck/build passed. |
+| Phase 15 Product Hardening Slices 1-69 | COMPLETE | Strengthened `/reports` to require `reports.view` + `view_financials`, added controller-level financial visibility checks to selected financial/operational report controllers, moved report/VAT/General Ledger/General Journal/Journal Detail/Journal Form/Opening Balances/Fiscal Periods/Accounting Navigation/AppLayout/Financial Statement Mapping/Account Mapping/Accounting Landing/Reports Hub/VAT-to-GL/AR/AP Aging/AR/AP GL Reconciliation/Audit Log/operational summaries/settlement/settings pages to dictionary-backed visible text or explicit currency behavior, extracted shared row-based CSV streaming to `CsvReportResponse`, centralized backend report currency fallback behavior in `ReportCurrencyResolver`, centralized operational currency input in `CurrencyInput`, added shared `BaseCurrencyResolver`, removed hidden FX-rate base/default currency assumptions, centralized last-active-super-admin checks in `SuperAdminProtection`, hardened GL/subledger posting routes to require `view_financials`, extracted page-data/report CSV/settings persistence from the largest controllers into focused services/exporters, moved General Ledger page data into `GeneralLedgerPageData`, added payroll delete confirmation guards, added dense expense/rental operational confirmation guards, repaired Arabic rental localization, cleaned user/role permission administration dictionary labels, cleaned company/branch/numbering settings UX labels and confirmations, removed silent sales/purchasing/inventory USD/EGP/PCS/MAIN fallbacks, removed silent payroll/expense/rental/fixed-asset `EGP` fallbacks, cleaned Tax Codes/Rates and Tax Period visible fallback text/loose typing, switched VAT Register/Summary to typed canonical dictionary paths and explicit display currency, replaced tax master-data raw unavailable fallbacks and select `as any` casts, replaced selected generic master-data delete prompts with entity-specific confirmations, cleaned accounting account category/type form/detail visible fallback text, cleaned currency master-data visible fallback text, removed hidden Chart of Accounts account-currency `EGP` fallback, removed Trial Balance React-side `EGP` fallback, cleaned General Journal list/modal/status labels, cleaned Journal Detail workflow labels, removed Journal Form hidden `EGP` default, removed Opening Balances legacy page fallback usage, aligned Fiscal Periods nav/action permissions, removed hardcoded Accounting/Tax navigation fallback labels, hardened Financial Statement Mapping and Account Mapping delete confirmations, removed hidden EGP defaults from AR/AP Aging and AR/AP GL Reconciliation pages, replaced unfiltered operational report summary amount fallbacks with localized mixed-currency labels, removed Audit Log, AppLayout, accounting master-data, accounting dense-page, and journal/ledger dense-page legacy fallback chains and loose dictionary access, replaced sales/purchasing/catalog, sales invoice revision, AR/AP cash/bank, and treasury/inventory/settings silent dash missing-value fallbacks with canonical unavailable labels and explicit currency selection, localized controller success flash messages and backend guard/error messages, removed fixed `EGP`/`USD` console command/seeder fixtures, reduced all controllers under 150 lines, added `Phase15ProductHardeningTest`, and updated `PHASE_15_PRODUCT_HARDENING_REPORT.md`. |
 | Removed relationship assumptions | COMPLETE | `company_user`, `branch.company_id`, Company/Branch Eloquent links, `fiscal_year.company_id`, `number_sequence.company_id`, `number_sequence.include_branch`, and unsupported audit/attachment/notification `company_id` removed or absent. |
 | Removed tenant assumptions | COMPLETE | Tenant context/middleware/onboarding, currentCompany/currentBranch, and Spatie `company_id` teams are removed/disabled. |
 | Concurrency hardening | COMPLETE | Idempotency keys, optimistic locks, PostgreSQL number allocation, bounded token GC, notification dedupe, attachment compensation, ledger/audit immutability, and stress/test coverage. |
@@ -91,6 +119,96 @@
 | DB immutability | COMPLETE | PostgreSQL and SQLite triggers block UPDATE/DELETE on `activity_log` and legacy `audit_log`. |
 
 ## Verification Snapshot
+
+Latest Phase 14 Rentals final verification:
+
+```powershell
+php artisan migrate --force
+php artisan migrate:status
+node -e "JSON.parse(...en.json); JSON.parse(...ar.json)"
+vendor/bin/pint --test
+php artisan test --filter=Phase14 --stop-on-failure
+php artisan test --filter=Phase14RentalsFoundationTest --stop-on-failure
+php artisan test --filter=Phase14RentalBillingTest --stop-on-failure
+php artisan test --filter=Phase14RentalReportsCloseOutTest --stop-on-failure
+php artisan test --filter=Phase3Slice9StressIntegrityTest --stop-on-failure
+php artisan route:list --path=rentals
+php artisan route:list --path=reports/rentals
+php artisan accounting:phase3-integrity-check
+php artisan test --testsuite=Concurrency --stop-on-failure
+php artisan test --stop-on-failure
+php artisan concurrency:stress --workers=100
+php artisan accounting:concurrency-stress --workers=50
+php artisan accounting:allocation-concurrency-stress --workers=50
+php artisan accounting:cheque-concurrency-stress --workers=50
+php artisan accounting:bank-reconciliation-concurrency-stress --workers=50
+php artisan accounting:stock-transfer-stress --workers=50
+php artisan accounting:inventory-concurrency-stress --workers=50
+php artisan tokens:gc --batch=100
+npm run typecheck
+npm run build
+```
+
+Result summary:
+
+- `migrate --force`: Nothing to migrate.
+- `migrate:status`: 82 migrations Ran, including all Phase 14 rental item, contract, handover/return, and invoice migrations.
+- Locale JSON parse passed for `en.json` and `ar.json`.
+- Pint passed.
+- `php artisan test --filter=Phase14`: 27 tests / 256 assertions passed.
+- `Phase14RentalsFoundationTest`: 16 tests / 159 assertions passed.
+- `Phase14RentalBillingTest`: 8 tests / 56 assertions passed.
+- `Phase14RentalReportsCloseOutTest`: 3 tests / 41 assertions passed.
+- `Phase3Slice9StressIntegrityTest`: 6 tests / 652 assertions passed.
+- `route:list --path=rentals`: rental item, contract, invoice, handover, and return routes registered.
+- `route:list --path=reports/rentals`: 2 report routes registered.
+- Full Laravel suite: 654 tests, 651 passed, 3 skipped / 5,632 assertions passed.
+- Concurrency suite: 7 tests / 16 assertions passed.
+- `concurrency:stress --workers=100`: passed; sequence values unique and contiguous; idempotency callback executed exactly once.
+- `accounting:concurrency-stress --workers=50`: passed.
+- `accounting:allocation-concurrency-stress --workers=50`: passed.
+- `accounting:cheque-concurrency-stress --workers=50`: passed.
+- `accounting:bank-reconciliation-concurrency-stress --workers=50`: passed.
+- `accounting:stock-transfer-stress --workers=50`: passed.
+- `accounting:inventory-concurrency-stress --workers=50`: passed.
+- `accounting:phase3-integrity-check`: passed.
+- `tokens:gc --batch=100`: passed.
+- TypeScript typecheck passed.
+- Vite build passed with the existing chunk-size warning only.
+
+Latest Phase 10 operational inventory completion verification:
+
+```powershell
+php artisan migrate:status
+vendor/bin/pint --test
+php artisan test --testsuite=Unit
+php artisan test --testsuite=Integration
+php artisan test --testsuite=Invariants
+php artisan test --filter=Phase10StockCountAdjustmentTest
+php artisan test --filter=Phase10BranchWarehouseOperationsTest
+php artisan test --filter=Phase4Slice4FulfillmentTest
+php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest
+php artisan test --filter=Phase4Slice9OperationalReportsTest
+php artisan test --filter=SecurityHardeningTest
+php artisan test --filter=Phase8Slice4RouteSmokeTest
+php artisan test --testsuite=Concurrency
+php artisan concurrency:stress --workers=100
+php artisan accounting:inventory-concurrency-stress --workers=50
+php artisan accounting:stock-transfer-stress --workers=50
+php artisan accounting:phase3-integrity-check
+php artisan tokens:gc --batch=100
+npm run typecheck
+npm run build
+```
+
+Result summary:
+
+- all migrations in that earlier snapshot Ran through `2026_08_25_020000_create_phase10_fixed_asset_location_movement_tables`.
+- Pint passed.
+- Laravel suites passed: Unit, Integration, Invariants, Phase 10 stock count/adjustment, Phase 10 warehouse/transfer, Phase 10 treasury transfer, Phase 10 fixed asset movement, Phase 4 fulfillment, Phase 4 returns, Phase 4 operational reports, Security hardening, Phase 8 route smoke, and Concurrency.
+- stock/inventory stress commands passed with 50 workers/iterations; generic concurrency stress passed with 100 workers.
+- TypeScript typecheck and Vite build passed; Vite emitted the existing chunk-size warning only.
+- one monolithic `php artisan test` run was started and stopped after several silent minutes in the local runner; use the targeted results above plus previous file-by-file verification unless a long unattended full-suite run is specifically needed.
 
 Latest Phase 9 final cutover local verification:
 
@@ -313,10 +431,12 @@ Result summary:
 | Audit | COMPLETE FOUNDATION | Spatie Activitylog active with read-only viewer and append-only enforcement. |
 | Sales | COMPLETE | Bounded scope closed: Sales Orders, Delivery Notes, Customer Invoice posting, stock-product invoice reporting, COGS/inventory posting through Delivery Notes, physical Sales Returns, Customer Credit Notes with manual/open settlement, and immutable Customer Invoice Revisions are complete for their bounded scopes. Full VAT/tax filing remains out of scope. |
 | Purchasing | COMPLETE | Bounded scope closed: Purchase Orders, Goods Receipts, Supplier Bill AP/GL posting, stock-product bill reporting, GRNI clearing, inventory valuation through Goods Receipts, physical Purchase Returns, and normalized Supplier Adjustment Notes are complete for their bounded scopes. |
-| Inventory | PARTIAL | Moving Weighted Average stock balance and immutable stock movement ledger are implemented; sales/purchase returns are supported through reversal stock movements (`recordReturn`/`recordScrap`), with scrap disposition not increasing saleable stock. Warehouse/location, stock counts, and generic stock adjustments are not implemented. |
+| Inventory | COMPLETE FOUNDATION | Moving Weighted Average stock balance, immutable stock movement ledger, warehouse/location operations, stock transfers, stock counts, stock adjustments, warehouse-aware documents, and landed-cost value adjustments are implemented for the current bounded scope. |
 | AR/AP + Cash/Bank/Cheques | COMPLETE | Phase 3 Slices 1-10 are complete; Phase 3 AR/AP + Cash/Bank/Cheques track is fully closed out for agreed scope. |
 | Fixed Assets | COMPLETE | Phase 6 master contract and Slices 1-7 are complete: policy decision pack, register, capitalization, depreciation schedule, depreciation run posting, disposal, reports/export/print/close-out, and final verification report. |
-| Payroll, Rentals, Projects, Budgeting | SCAFFOLD ONLY | Not started. |
+| Payroll | COMPLETE FOUNDATION | Phase 13 payroll employees, components, recurring assignments, payroll runs, PostingEngine posting, period close blockers, attachments, permissions, and UI pages are complete. Future payslips, salary payment execution, loans/advances, attendance inputs, and statutory payroll rules require bounded slices. |
+| Rentals | COMPLETE FOUNDATION | Phase 14 decision pack, rentable item register, rental contract lifecycle, rental handover/return/inspection workflow, billing, deposits, charge posting, revenue/VAT/AR integration, rental operations report, export/print UX, and final verification are complete. Future rental quotations, extensions, deposit refunds, automated recurring billing, and item profitability require bounded slices. |
+| Projects, Budgeting | SCAFFOLD ONLY | Not started. |
 | Taxes / VAT | COMPLETE | Phase 7 Slices 1-7 master contract and implementation complete: policy decision pack, tax master data foundation, sales tax posting, purchasing tax posting, VAT register/reports/GL reconciliation, tax period filing controls & locks, final verification report. |
 | Full financial statements | COMPLETE | Mapping, Balance Sheet, Income Statement, Cash Flow, Period Close controls, Year-End Close decision pack, and print/export UX close-out are complete. Physical retained-earnings closing entries are not approved or implemented. |
 
@@ -324,18 +444,21 @@ Result summary:
 
 - No GitHub Actions workflow is connected for the Laravel migration track; verification is currently local.
 - Browser E2E coverage for the Laravel UI is not yet equivalent to the old Next.js Playwright smoke suite.
-- Branch exact business semantics remain undefined; do not add ownership, uniqueness, or authorization scope without owner decision.
+- Branch operational capability is approved. Warehouse/stock-transfer foundation, operational warehouse document selectors, branch cash/bank transfer, fixed asset location movement, branch reporting, branch profitability, branch-specific GL mapping overrides, branch-aware approval rules, and landed cost/freight allocation are implemented. Do not add branch tenancy, ownership, document-numbering scope, or authorization scope by assumption.
 - Production scheduler execution still needs deployment wiring, e.g. external cron calling Laravel `schedule:run`.
 - Legacy specs and old `app/` docs can mention tenant/company scope; treat them as historical unless they match current owner corrections.
 
 ## Next Milestone
 
-Phases 1-7 of the Laravel migration track are 100% complete and verified: Foundation, Accounting Core, AR/AP/Cash/Bank/Cheques, Sales & Purchasing Operations, Financial Statements & Period Close, Fixed Assets, and Tax/VAT.
+Phases 1-9 of the Laravel migration track are 100% complete and verified: Foundation, Accounting Core, AR/AP/Cash/Bank/Cheques, Sales & Purchasing Operations, Financial Statements & Period Close, Fixed Assets, Tax/VAT, Operational Readiness, and Staging/Production Cutover Pack. Phase 10 branch-capable operations and landed cost/freight allocation are complete and verified. Phase 11 Expense Management, Phase 12 Prepaid & Accrued Expenses, Phase 13 Payroll Foundation, and Phase 14 Rentals are complete and verified. Phase 15 Product Hardening has started with Slices 1-133 complete.
 
-All 253 feature tests and 13 concurrency stress test commands pass cleanly with 100% data integrity.
+Latest Phase 14 final verification snapshot: Phase 14 feature tests passed 27/27 with 256 assertions, full Laravel suite passed 654 tests / 5,632 assertions with 3 skipped, `php artisan migrate:status` shows 82 migrations Ran, Concurrency suite passed, Phase 3 integrity check passed, stress commands passed sequentially, Pint passed, TypeScript typecheck passed, and Vite build passed with the existing chunk-size warning only.
+
+Latest Phase 15 verification snapshot: `Phase15ProductHardeningTest` passed 124/124 with 19283 assertions. Targeted catalog controller-boundary guard passed with 1 test / 31 assertions; `Phase4Slice1CatalogTest` passed 12/12 with 66 assertions. Locale JSON, UI fallback, explicit currency, authorization, controller-boundary, report CSV delegation, and page-data boundary scans passed. Pint, TypeScript typecheck, and Vite build passed. Last broad full Laravel suite pass remains Slice 57 because later broad runs exceeded local timeout budgets, while focused suites continue passing.
 
 Next prepared track:
 
-- Phase 8 Operational Readiness & E2E Smoke.
-- Execute `PHASE_8_SLICE_1_GEMINI_PROMPT.md` first.
-- Phase 8 must stay operational only: no new ERP business module, no provider account setup, no private environment values, and no tenant/company/branch assumptions.
+- Continue Phase 15 with accountant-focused UX consistency and regression hardening. Deployment remains parked until owner/operator cutover decisions are needed.
+- All future work must preserve the no-multi-tenant rule, exact permissions, clean controllers, and dictionary-backed visible UI text.
+
+

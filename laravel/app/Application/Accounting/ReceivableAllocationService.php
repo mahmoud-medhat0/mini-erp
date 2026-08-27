@@ -27,14 +27,14 @@ class ReceivableAllocationService
     {
         if (empty($lines)) {
             throw ValidationException::withMessages([
-                'lines' => ['Allocation lines cannot be empty.'],
+                'lines' => [__('Allocation lines cannot be empty.')],
             ]);
         }
 
         foreach ($lines as $line) {
             if (! isset($line['receivable_entry_id']) || ! is_string($line['receivable_entry_id']) || $line['receivable_entry_id'] === '') {
                 throw ValidationException::withMessages([
-                    'receivable_entry_id' => ['Every allocation line must reference a receivable entry.'],
+                    'receivable_entry_id' => [__('Every allocation line must reference a receivable entry.')],
                 ]);
             }
         }
@@ -42,7 +42,7 @@ class ReceivableAllocationService
         $targetIds = array_column($lines, 'receivable_entry_id');
         if (count($targetIds) !== count(array_unique($targetIds))) {
             throw ValidationException::withMessages([
-                'lines' => ['Duplicate target receivable entry IDs in single allocation command.'],
+                'lines' => [__('Duplicate target receivable entry IDs in single allocation command.')],
             ]);
         }
 
@@ -62,7 +62,9 @@ class ReceivableAllocationService
 
                     if ($receipt->status !== 'posted') {
                         throw ValidationException::withMessages([
-                            'status' => ["Only posted receipts can be allocated. Current status: [{$receipt->status}]."],
+                            'status' => [__('Only posted receipts can be allocated. Current status: [:status].', [
+                                'status' => $receipt->status,
+                            ])],
                         ]);
                     }
 
@@ -72,7 +74,7 @@ class ReceivableAllocationService
                         $amount = $line['amount_minor'] ?? 0;
                         if (! is_int($amount) || $amount <= 0) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ['Allocation amount must be a positive integer.'],
+                                'amount_minor' => [__('Allocation amount must be a positive integer.')],
                             ]);
                         }
                         $totalRequested += $amount;
@@ -80,7 +82,10 @@ class ReceivableAllocationService
 
                     if ($totalRequested > $receipt->unapplied_minor) {
                         throw ValidationException::withMessages([
-                            'amount_minor' => ["Allocation total [{$totalRequested}] exceeds receipt unapplied amount [{$receipt->unapplied_minor}]."],
+                            'amount_minor' => [__('Allocation total [:total] exceeds receipt unapplied amount [:unapplied].', [
+                                'total' => $totalRequested,
+                                'unapplied' => $receipt->unapplied_minor,
+                            ])],
                         ]);
                     }
 
@@ -97,7 +102,7 @@ class ReceivableAllocationService
 
                     if ($targetEntries->count() !== count($targetIds)) {
                         throw ValidationException::withMessages([
-                            'receivable_entry_id' => ['One or more target receivable entries do not exist.'],
+                            'receivable_entry_id' => [__('One or more target receivable entries do not exist.')],
                         ]);
                     }
 
@@ -111,26 +116,36 @@ class ReceivableAllocationService
 
                         if (! $target) {
                             throw ValidationException::withMessages([
-                                'receivable_entry_id' => ["Target receivable entry [{$targetId}] does not exist."],
+                                'receivable_entry_id' => [__('Target receivable entry [:entry] does not exist.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ((string) $target->customer_id !== (string) $receipt->customer_id) {
                             throw ValidationException::withMessages([
-                                'customer_id' => ["Target entry [{$targetId}] customer does not match receipt customer."],
+                                'customer_id' => [__('Target entry [:entry] customer does not match receipt customer.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ($target->currency !== $receipt->currency) {
                             throw ValidationException::withMessages([
-                                'currency' => ["Target entry [{$targetId}] currency [{$target->currency}] does not match receipt currency [{$receipt->currency}]."],
+                                'currency' => [__('Target entry [:entry] currency [:entry_currency] does not match receipt currency [:receipt_currency].', [
+                                    'entry' => $targetId,
+                                    'entry_currency' => $target->currency,
+                                    'receipt_currency' => $receipt->currency,
+                                ])],
                             ]);
                         }
 
                         $allocatableAmount = $target->debit_minor - $target->credit_minor;
                         if ($allocatableAmount <= 0) {
                             throw ValidationException::withMessages([
-                                'receivable_entry_id' => ["Target entry [{$targetId}] is not a positive AR item."],
+                                'receivable_entry_id' => [__('Target entry [:entry] is not a positive AR item.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
@@ -147,7 +162,10 @@ class ReceivableAllocationService
 
                         if ($lineAmount > $remainingAllocatable) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ["Allocation amount [{$lineAmount}] exceeds target remaining allocatable amount [{$remainingAllocatable}]."],
+                                'amount_minor' => [__('Allocation amount [:amount] exceeds target remaining allocatable amount [:remaining].', [
+                                    'amount' => $lineAmount,
+                                    'remaining' => $remainingAllocatable,
+                                ])],
                             ]);
                         }
 
@@ -222,12 +240,15 @@ class ReceivableAllocationService
 
                     if ($allocation->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Allocation [{$allocationId}] is already reversed."],
+                            'status' => [__('Allocation :id is already reversed.', ['id' => $allocationId])],
                         ]);
                     }
 
                     if ($allocation->status !== 'active') {
-                        throw new InvalidArgumentException("Allocation [{$allocationId}] cannot be reversed from status [{$allocation->status}].");
+                        throw new InvalidArgumentException(__('Allocation :id cannot be reversed from status :status.', [
+                            'id' => $allocationId,
+                            'status' => $allocation->status,
+                        ]));
                     }
 
                     // 1. Lock Parent Receipt Row
@@ -251,12 +272,15 @@ class ReceivableAllocationService
 
                     if ($allocation->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Allocation [{$allocationId}] is already reversed."],
+                            'status' => [__('Allocation :id is already reversed.', ['id' => $allocationId])],
                         ]);
                     }
 
                     if ($allocation->status !== 'active') {
-                        throw new InvalidArgumentException("Allocation [{$allocationId}] cannot be reversed from status [{$allocation->status}].");
+                        throw new InvalidArgumentException(__('Allocation :id cannot be reversed from status :status.', [
+                            'id' => $allocationId,
+                            'status' => $allocation->status,
+                        ]));
                     }
 
                     // 4. Update Allocation Status

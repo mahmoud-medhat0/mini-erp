@@ -4,6 +4,7 @@ namespace App\Application\Purchasing;
 
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Inventory\WarehouseResolver;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\GoodsReceipt;
@@ -22,6 +23,7 @@ class GoodsReceiptService
     public function __construct(
         private readonly NumberSequenceAllocator $numberAllocator,
         private readonly MovingWeightedAverageInventoryService $inventoryService,
+        private readonly WarehouseResolver $warehouseResolver,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
     ) {}
@@ -31,25 +33,27 @@ class GoodsReceiptService
         return DB::transaction(function () use ($data, $actorId): GoodsReceipt {
             $purchaseOrderId = $data['purchase_order_id'] ?? null;
             if (! $purchaseOrderId) {
-                throw ValidationException::withMessages(['purchase_order_id' => ['Purchase Order is required.']]);
+                throw ValidationException::withMessages(['purchase_order_id' => [__('Purchase Order is required.')]]);
             }
 
             /** @var PurchaseOrder|null $purchaseOrder */
             $purchaseOrder = PurchaseOrder::query()->where('id', $purchaseOrderId)->lockForUpdate()->first();
             if (! $purchaseOrder || $purchaseOrder->status !== 'confirmed') {
-                throw ValidationException::withMessages(['purchase_order_id' => ['Goods Receipts can only be created for confirmed Purchase Orders.']]);
+                throw ValidationException::withMessages(['purchase_order_id' => [__('Goods Receipts can only be created for confirmed Purchase Orders.')]]);
             }
 
             $receiptDate = $data['receipt_date'] ?? null;
             if (! $receiptDate) {
-                throw ValidationException::withMessages(['receipt_date' => ['Receipt date is required.']]);
+                throw ValidationException::withMessages(['receipt_date' => [__('Receipt date is required.')]]);
             }
 
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? null);
             $validatedLines = $this->validateAndLockFulfillmentLines($purchaseOrder, $data['lines'] ?? []);
 
             /** @var GoodsReceipt $goodsReceipt */
             $goodsReceipt = GoodsReceipt::query()->create([
                 'purchase_order_id' => $purchaseOrder->id,
+                'warehouse_id' => $warehouse->id,
                 'receipt_date' => $receiptDate,
                 'status' => 'draft',
                 'reference' => $data['reference'] ?? null,
@@ -70,7 +74,7 @@ class GoodsReceiptService
                 ]);
             }
 
-            $goodsReceipt->load(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
+            $goodsReceipt->load(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -92,22 +96,24 @@ class GoodsReceiptService
             $goodsReceipt = GoodsReceipt::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($goodsReceipt->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft goods receipts can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft goods receipts can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $goodsReceipt->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             /** @var PurchaseOrder $purchaseOrder */
             $purchaseOrder = PurchaseOrder::query()->where('id', $goodsReceipt->purchase_order_id)->lockForUpdate()->firstOrFail();
 
             $receiptDate = $data['receipt_date'] ?? $goodsReceipt->receipt_date;
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? $goodsReceipt->warehouse_id);
             $validatedLines = $this->validateAndLockFulfillmentLines($purchaseOrder, $data['lines'] ?? [], $goodsReceipt->id);
 
             $before = $goodsReceipt->toArray();
 
             $goodsReceipt->update([
+                'warehouse_id' => $warehouse->id,
                 'receipt_date' => $receiptDate,
                 'reference' => $data['reference'] ?? $goodsReceipt->reference,
                 'notes' => $data['notes'] ?? $goodsReceipt->notes,
@@ -128,7 +134,7 @@ class GoodsReceiptService
                 ]);
             }
 
-            $goodsReceipt->load(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
+            $goodsReceipt->load(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -150,15 +156,15 @@ class GoodsReceiptService
             $goodsReceipt = GoodsReceipt::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($goodsReceipt->status === 'confirmed') {
-                return $goodsReceipt->load(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
+                return $goodsReceipt->load(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             if ($goodsReceipt->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft goods receipts can be confirmed.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft goods receipts can be confirmed.')]]);
             }
 
             if ($goodsReceipt->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Cannot confirm a goods receipt without line items.']]);
+                throw ValidationException::withMessages(['lines' => [__('Cannot confirm a goods receipt without line items.')]]);
             }
 
             /** @var PurchaseOrder $purchaseOrder */
@@ -197,6 +203,7 @@ class GoodsReceiptService
                             fiscalYearId: $period->fiscal_year_id,
                             financialPeriodId: $period->id,
                             actorId: $actorId,
+                            warehouseId: (string) $goodsReceipt->warehouse_id,
                         );
                     }
                 }
@@ -226,10 +233,10 @@ class GoodsReceiptService
                 entityType: 'goods_receipt',
                 entityId: $goodsReceipt->id,
                 before: $before,
-                after: $goodsReceipt->fresh(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $goodsReceipt->fresh(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $goodsReceipt->fresh(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
+            return $goodsReceipt->fresh(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -245,11 +252,11 @@ class GoodsReceiptService
             $goodsReceipt = GoodsReceipt::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($goodsReceipt->status === 'confirmed') {
-                throw ValidationException::withMessages(['status' => ['Confirmed goods receipts cannot be cancelled in this slice.']]);
+                throw ValidationException::withMessages(['status' => [__('Confirmed goods receipts cannot be cancelled in this slice.')]]);
             }
 
             if ($goodsReceipt->status === 'cancelled') {
-                return $goodsReceipt->load(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
+                return $goodsReceipt->load(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             $before = $goodsReceipt->toArray();
@@ -268,17 +275,17 @@ class GoodsReceiptService
                 entityType: 'goods_receipt',
                 entityId: $goodsReceipt->id,
                 before: $before,
-                after: $goodsReceipt->fresh(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $goodsReceipt->fresh(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $goodsReceipt->fresh(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
+            return $goodsReceipt->fresh(['purchaseOrder.supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
     private function validateAndLockFulfillmentLines(PurchaseOrder $purchaseOrder, array $lines, ?string $currentReceiptId = null): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         // Lock PurchaseOrderLines in deterministic order
@@ -295,7 +302,7 @@ class GoodsReceiptService
             $lineIndex = $index + 1;
             $polId = $line['purchase_order_line_id'] ?? null;
             if (! $polId || ! isset($orderLines[$polId])) {
-                throw ValidationException::withMessages(["lines.{$index}.purchase_order_line_id" => ["Line {$lineIndex} does not belong to the selected Purchase Order."]]);
+                throw ValidationException::withMessages(["lines.{$index}.purchase_order_line_id" => [__('Line :line does not belong to the selected Purchase Order.', ['line' => $lineIndex])]]);
             }
 
             /** @var PurchaseOrderLine $poLine */
@@ -303,7 +310,7 @@ class GoodsReceiptService
 
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
             if ($quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
+                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex])]]);
             }
 
             // Calculate cumulative received quantity from active (non-cancelled) GoodsReceipts
@@ -325,7 +332,7 @@ class GoodsReceiptService
                 $fraction = str_pad((string) intdiv($maxAllowedE6 % 1000000, 10000), 2, '0', STR_PAD_LEFT);
                 $maxAllowedDecimal = "{$whole}.{$fraction}";
                 throw ValidationException::withMessages([
-                    "lines.{$index}.quantity_e6" => ["Received quantity on line {$lineIndex} exceeds remaining Purchase Order quantity. Maximum remaining allowed is {$maxAllowedDecimal}."],
+                    "lines.{$index}.quantity_e6" => [__('Received quantity on line :line exceeds remaining Purchase Order quantity. Maximum remaining allowed is :maximum.', ['line' => $lineIndex, 'maximum' => $maxAllowedDecimal])],
                 ]);
             }
 

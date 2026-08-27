@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Taxes;
 
+use App\Application\Taxes\TaxCodePageData;
 use App\Application\Taxes\TaxMasterDataService;
 use App\Http\Controllers\Controller;
-use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,28 +14,14 @@ class TaxCodeController extends Controller
 {
     public function __construct(
         private readonly TaxMasterDataService $service,
+        private readonly TaxCodePageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'taxes.view');
 
-        $query = TaxCode::query()->withCount('rates');
-
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
-            });
-        }
-
-        $taxCodes = $query->orderBy('code')->paginate(20)->withQueryString();
-
-        return Inertia::render('Taxes/Codes/Index', [
-            'taxCodes' => $taxCodes,
-            'filters' => $request->only(['search']),
-        ]);
+        return Inertia::render('Taxes/Codes/Index', $this->pageData->indexData($request->only(['search'])));
     }
 
     public function create(Request $request): Response
@@ -63,19 +49,14 @@ class TaxCodeController extends Controller
         $this->service->createTaxCode($validated, $request->user()?->id);
 
         return redirect()->route('taxes.codes.index')
-            ->with('success', 'Tax code created successfully.');
+            ->with('success', __('Tax code created successfully.'));
     }
 
     public function edit(Request $request, string $id): Response
     {
         $this->authorizePermission($request, 'taxes.edit');
 
-        /** @var TaxCode $taxCode */
-        $taxCode = TaxCode::query()->with('rates')->findOrFail($id);
-
-        return Inertia::render('Taxes/Codes/Edit', [
-            'taxCode' => $taxCode,
-        ]);
+        return Inertia::render('Taxes/Codes/Edit', $this->pageData->editData($id));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -95,7 +76,7 @@ class TaxCodeController extends Controller
         $this->service->updateTaxCode($id, $validated, $request->user()?->id);
 
         return redirect()->route('taxes.codes.index')
-            ->with('success', 'Tax code updated successfully.');
+            ->with('success', __('Tax code updated successfully.'));
     }
 
     public function destroy(Request $request, string $id): RedirectResponse
@@ -105,7 +86,7 @@ class TaxCodeController extends Controller
         $this->service->deleteTaxCode($id, $request->user()?->id);
 
         return redirect()->route('taxes.codes.index')
-            ->with('success', 'Tax code deleted successfully.');
+            ->with('success', __('Tax code deleted successfully.'));
     }
 
     private function authorizePermission(Request $request, string $permission): void

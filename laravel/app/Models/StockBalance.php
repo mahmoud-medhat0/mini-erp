@@ -13,6 +13,7 @@ class StockBalance extends Model
     protected $table = 'stock_balance';
 
     protected $fillable = [
+        'warehouse_id',
         'product_id',
         'unit_of_measure_id',
         'currency',
@@ -35,6 +36,11 @@ class StockBalance extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
     }
 
     public function unitOfMeasure(): BelongsTo

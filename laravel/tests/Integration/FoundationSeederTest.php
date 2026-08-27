@@ -16,8 +16,12 @@ class FoundationSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $expectedPermissionCount = collect(config('erp_rbac.modules'))
-            ->sum(fn (array $actions): int => count($actions)) + count(config('erp_rbac.sensitive_capabilities'));
+        $modulePermissions = collect(config('erp_rbac.modules'))
+            ->flatMap(fn (array $actions, string $module) => collect($actions)->map(fn (string $action): string => "{$module}.{$action}"));
+        $expectedPermissionCount = $modulePermissions
+            ->merge(config('erp_rbac.sensitive_capabilities'))
+            ->unique()
+            ->count();
 
         $this->assertSame(6, DB::table('currency')->count());
         $this->assertDatabaseHas('currency', [

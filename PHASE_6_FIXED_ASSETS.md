@@ -1,6 +1,8 @@
 # PHASE 6 - FIXED ASSETS
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
+
+> **Phase 10 update 2026-08-25:** The owner later approved fixed asset branch/location movement as a bounded operational capability. This supersedes the earlier Phase 6 prohibition only for `fixed_asset.branch_id`, `fixed_asset.fixed_asset_location_id`, `fixed_asset_location`, and `fixed_asset_movement`. These are operational tracking references only, not tenant, Company ownership, branch security, User ownership, or currentBranch context.
 
 
 Status: PLANNED
@@ -37,7 +39,7 @@ Do not treat old Next.js docs, generated specs, or historical prompts as proof o
 Do not introduce:
 
 - tenant context or tenant middleware
-- `company_id`, `branch_id`, or `tenant_id`
+- `company_id`, `tenant_id`, or blanket branch scope
 - `company_user`
 - `users.company_id`
 - `branch.company_id`
@@ -46,7 +48,7 @@ Do not introduce:
 - Spatie Teams
 - company/branch dimensions in number sequences
 - company/branch reporting scope
-- warehouse/location semantics
+- warehouse semantics or unapproved location semantics
 - employee/custodian ownership semantics
 - asset-to-user ownership semantics
 - payroll, rentals, full tax/VAT filing, projects, budgeting, or landed-cost modules
@@ -140,14 +142,14 @@ Do not implement these until explicitly approved:
 
 - depreciation methods other than the selected Phase 6 policy
 - asset custodian/employee ownership
-- branch/location/warehouse fixed asset scope
+- unapproved warehouse fixed asset scope
 - barcode/QR/serial scanning workflow beyond simple serial-number storage
 - maintenance scheduling
 - insurance, warranty, or lease accounting
 - impairment testing
 - revaluation model
 - component depreciation
-- asset transfer workflow
+- asset transfer workflow outside the owner-approved Phase 10 fixed asset movement history
 - full tax depreciation books
 - IFRS/GAAP jurisdiction-specific compliance automation
 - payroll integration

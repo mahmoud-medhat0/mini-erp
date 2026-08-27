@@ -22,6 +22,12 @@ export type NotificationRow = {
   at: string;
 };
 
+export type PaginationLink = {
+  url: string | null;
+  label: string;
+  active: boolean;
+};
+
 // --- User & Role Management Types ---
 export type UserRow = {
   id: number | string;
@@ -396,10 +402,12 @@ export type JournalLineRow = {
   id?: string;
   line_no?: number;
   account_id?: string;
+  branch_id?: string | null;
   account_code?: string;
   account_name_en?: string;
   account_name_ar?: string;
   account?: any;
+  branch?: BranchRow | null;
   currency_code?: string;
   debit?: number;
   credit?: number;
@@ -431,6 +439,7 @@ export type JournalRow = {
 export type LedgerRow = {
   id: string;
   journal_id?: string;
+  branch_id?: string | null;
   entry_number?: string;
   entry_date: string;
   account_id?: string;
@@ -448,6 +457,7 @@ export type LedgerRow = {
   credit_base?: number;
   memo?: string | null;
   account?: any;
+  branch?: BranchRow | null;
   journalEntry?: any;
 };
 

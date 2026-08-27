@@ -27,7 +27,7 @@ class PayableEntrySettlementService
     {
         if (empty($lines)) {
             throw ValidationException::withMessages([
-                'lines' => ['Settlement lines cannot be empty.'],
+                'lines' => [__('Settlement lines cannot be empty.')],
             ]);
         }
 
@@ -36,12 +36,12 @@ class PayableEntrySettlementService
             $targetId = $line['target_payable_entry_id'] ?? $line['payable_entry_id'] ?? null;
             if (! is_string($targetId) || $targetId === '') {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.target_payable_entry_id" => ['Every settlement line must reference a target payable entry.'],
+                    "lines.{$index}.target_payable_entry_id" => [__('Every settlement line must reference a target payable entry.')],
                 ]);
             }
             if ($targetId === $sourceDebitEntryId) {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.target_payable_entry_id" => ['Cannot settle a payable entry against itself.'],
+                    "lines.{$index}.target_payable_entry_id" => [__('Cannot settle a payable entry against itself.')],
                 ]);
             }
             $targetIds[] = $targetId;
@@ -49,7 +49,7 @@ class PayableEntrySettlementService
 
         if (count($targetIds) !== count(array_unique($targetIds))) {
             throw ValidationException::withMessages([
-                'lines' => ['Duplicate target payable entry IDs in single settlement command.'],
+                'lines' => [__('Duplicate target payable entry IDs in single settlement command.')],
             ]);
         }
 
@@ -77,14 +77,18 @@ class PayableEntrySettlementService
 
                     if (! $sourceEntry) {
                         throw ValidationException::withMessages([
-                            'source_payable_entry_id' => ["Source payable entry [{$sourceDebitEntryId}] does not exist."],
+                            'source_payable_entry_id' => [__('Source payable entry [:entry] does not exist.', [
+                                'entry' => $sourceDebitEntryId,
+                            ])],
                         ]);
                     }
 
                     $sourceDebitCapacity = (int) $sourceEntry->debit_minor - (int) $sourceEntry->credit_minor;
                     if ($sourceDebitCapacity <= 0) {
                         throw ValidationException::withMessages([
-                            'source_payable_entry_id' => ["Source entry [{$sourceDebitEntryId}] is not an open debit AP item."],
+                            'source_payable_entry_id' => [__('Source entry [:entry] is not an open debit AP item.', [
+                                'entry' => $sourceDebitEntryId,
+                            ])],
                         ]);
                     }
 
@@ -104,7 +108,7 @@ class PayableEntrySettlementService
                         $amount = $line['amount_minor'] ?? 0;
                         if (! is_int($amount) || $amount <= 0) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ['Settlement amount must be a positive integer.'],
+                                'amount_minor' => [__('Settlement amount must be a positive integer.')],
                             ]);
                         }
                         $totalRequested += $amount;
@@ -112,7 +116,10 @@ class PayableEntrySettlementService
 
                     if ($totalRequested > $remainingSourceDebit) {
                         throw ValidationException::withMessages([
-                            'amount_minor' => ["Total settlement amount [{$totalRequested}] exceeds source entry remaining debit [{$remainingSourceDebit}]."],
+                            'amount_minor' => [__('Total settlement amount [:total] exceeds source entry remaining debit [:remaining].', [
+                                'total' => $totalRequested,
+                                'remaining' => $remainingSourceDebit,
+                            ])],
                         ]);
                     }
 
@@ -126,26 +133,36 @@ class PayableEntrySettlementService
 
                         if (! $target) {
                             throw ValidationException::withMessages([
-                                'target_payable_entry_id' => ["Target payable entry [{$targetId}] does not exist."],
+                                'target_payable_entry_id' => [__('Target payable entry [:entry] does not exist.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ((string) $target->supplier_id !== (string) $sourceEntry->supplier_id) {
                             throw ValidationException::withMessages([
-                                'supplier_id' => ["Target entry [{$targetId}] supplier does not match source entry supplier."],
+                                'supplier_id' => [__('Target entry [:entry] supplier does not match source entry supplier.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ($target->currency !== $sourceEntry->currency) {
                             throw ValidationException::withMessages([
-                                'currency' => ["Target entry [{$targetId}] currency [{$target->currency}] does not match source entry currency [{$sourceEntry->currency}]."],
+                                'currency' => [__('Target entry [:entry] currency [:entry_currency] does not match source entry currency [:source_currency].', [
+                                    'entry' => $targetId,
+                                    'entry_currency' => $target->currency,
+                                    'source_currency' => $sourceEntry->currency,
+                                ])],
                             ]);
                         }
 
                         $targetCreditCapacity = (int) $target->credit_minor - (int) $target->debit_minor;
                         if ($targetCreditCapacity <= 0) {
                             throw ValidationException::withMessages([
-                                'target_payable_entry_id' => ["Target entry [{$targetId}] is not a positive credit AP item."],
+                                'target_payable_entry_id' => [__('Target entry [:entry] is not a positive credit AP item.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
@@ -169,7 +186,10 @@ class PayableEntrySettlementService
 
                         if ($lineAmount > $remainingTargetCredit) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ["Settlement amount [{$lineAmount}] exceeds target entry remaining credit [{$remainingTargetCredit}]."],
+                                'amount_minor' => [__('Settlement amount [:amount] exceeds target entry remaining credit [:remaining].', [
+                                    'amount' => $lineAmount,
+                                    'remaining' => $remainingTargetCredit,
+                                ])],
                             ]);
                         }
 
@@ -215,7 +235,7 @@ class PayableEntrySettlementService
     {
         if (trim($reason) === '') {
             throw ValidationException::withMessages([
-                'reason' => ['Reversal reason is required.'],
+                'reason' => [__('Reversal reason is required.')],
             ]);
         }
 
@@ -233,12 +253,15 @@ class PayableEntrySettlementService
 
                     if ($settlement->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Settlement [{$settlementId}] is already reversed."],
+                            'status' => [__('Settlement :id is already reversed.', ['id' => $settlementId])],
                         ]);
                     }
 
                     if ($settlement->status !== 'active') {
-                        throw new InvalidArgumentException("Settlement [{$settlementId}] cannot be reversed from status [{$settlement->status}].");
+                        throw new InvalidArgumentException(__('Settlement :id cannot be reversed from status :status.', [
+                            'id' => $settlementId,
+                            'status' => $settlement->status,
+                        ]));
                     }
 
                     // Lock involved entries and settlement in deterministic ascending order
@@ -258,7 +281,7 @@ class PayableEntrySettlementService
 
                     if ($settlement->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Settlement [{$settlementId}] is already reversed."],
+                            'status' => [__('Settlement :id is already reversed.', ['id' => $settlementId])],
                         ]);
                     }
 

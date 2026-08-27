@@ -16,6 +16,7 @@ class DeliveryNote extends Model
     protected $fillable = [
         'number',
         'sales_order_id',
+        'warehouse_id',
         'delivery_date',
         'status',
         'reference',
@@ -42,6 +43,11 @@ class DeliveryNote extends Model
     public function salesOrder(): BelongsTo
     {
         return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
     }
 
     public function lines(): HasMany

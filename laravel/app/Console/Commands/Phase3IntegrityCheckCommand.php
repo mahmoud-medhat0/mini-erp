@@ -9,14 +9,19 @@ use App\Application\Reports\ArToGlReconciliationReportService;
 use App\Application\Reports\BankReconciliationReportService;
 use App\Application\Reports\ChequeRegisterReportService;
 use App\Application\Reports\CustomerStatementReportService;
+use App\Application\Reports\ReportCurrencyResolver;
 use App\Application\Reports\SupplierStatementReportService;
 use App\Models\AccountingAccountMapping;
+use App\Models\AccrualEntry;
 use App\Models\BankReconciliationLine;
 use App\Models\CustomerReceipt;
+use App\Models\Expense;
 use App\Models\IncomingCheque;
 use App\Models\JournalEntry;
+use App\Models\LandedCostAllocation;
 use App\Models\OutgoingCheque;
 use App\Models\PayableEntry;
+use App\Models\PrepaidRecognition;
 use App\Models\ReceivableEntry;
 use App\Models\SupplierPayment;
 use Illuminate\Console\Command;
@@ -37,9 +42,11 @@ class Phase3IntegrityCheckCommand extends Command
         ChequeRegisterReportService $chequeRegisterService,
         BankReconciliationReportService $bankReconciliationService,
         ArToGlReconciliationReportService $arGlService,
-        ApToGlReconciliationReportService $apGlService
+        ApToGlReconciliationReportService $apGlService,
+        ReportCurrencyResolver $reportCurrencyResolver,
     ): int {
         $this->info('Starting Phase 3 Financial Data & Report Integrity Audit...');
+        $reportCurrency = $reportCurrencyResolver->resolve();
         $failures = [];
 
         // Check 1: Customer Receipt Math (allocated_minor + unapplied_minor = amount_minor)
@@ -140,6 +147,55 @@ class Phase3IntegrityCheckCommand extends Command
             $failures[] = "Found {$clearedOutgoingOrphans} cleared OutgoingCheques without clear_journal_entry_id.";
         }
 
+        $postedLandedCostOrphans = Schema::hasTable('landed_cost_allocation')
+            ? LandedCostAllocation::query()
+                ->where('status', 'posted')
+                ->where(function ($query): void {
+                    $query->whereNull('journal_entry_id')
+                        ->orWhereNull('payable_entry_id');
+                })
+                ->count()
+            : 0;
+        if ($postedLandedCostOrphans > 0) {
+            $failures[] = "Found {$postedLandedCostOrphans} posted Landed Cost Allocations without journal_entry_id or payable_entry_id.";
+        }
+
+        $postedExpenseOrphans = Schema::hasTable('expense')
+            ? Expense::query()
+                ->where('status', 'posted')
+                ->where(function ($query): void {
+                    $query->whereNull('journal_entry_id')
+                        ->orWhere(function ($inner): void {
+                            $inner->where('settlement_method', 'payable')
+                                ->whereNull('payable_entry_id');
+                        });
+                })
+                ->count()
+            : 0;
+        if ($postedExpenseOrphans > 0) {
+            $failures[] = "Found {$postedExpenseOrphans} posted Expenses without journal_entry_id or required payable_entry_id.";
+        }
+
+        $postedPrepaidRecognitionOrphans = Schema::hasTable('prepaid_recognition')
+            ? PrepaidRecognition::query()
+                ->where('status', 'posted')
+                ->whereNull('journal_entry_id')
+                ->count()
+            : 0;
+        if ($postedPrepaidRecognitionOrphans > 0) {
+            $failures[] = "Found {$postedPrepaidRecognitionOrphans} posted PrepaidRecognition rows without journal_entry_id.";
+        }
+
+        $postedAccrualEntryOrphans = Schema::hasTable('accrual_entry')
+            ? AccrualEntry::query()
+                ->where('status', 'posted')
+                ->whereNull('journal_entry_id')
+                ->count()
+            : 0;
+        if ($postedAccrualEntryOrphans > 0) {
+            $failures[] = "Found {$postedAccrualEntryOrphans} posted AccrualEntry rows without journal_entry_id.";
+        }
+
         // Check 8: Bank Reconciliation Match Integrity
         $duplicateMatchedLedgerLines = BankReconciliationLine::query()
             ->whereNotNull('matched_ledger_entry_id')
@@ -155,7 +211,7 @@ class Phase3IntegrityCheckCommand extends Command
         $arMappingExists = AccountingAccountMapping::where('key', 'ar_control')->exists();
         if ($arMappingExists) {
             $today = date('Y-m-d');
-            $arRecon = $arGlService->generate($today, 'EGP');
+            $arRecon = $arGlService->generate($today, $reportCurrency);
             if ($arRecon['mapping_configured'] && $arRecon['difference_minor'] !== 0) {
                 $failures[] = "AR to GL control account reconciliation shows a non-zero difference: {$arRecon['difference_minor']} minor units.";
             }
@@ -164,7 +220,7 @@ class Phase3IntegrityCheckCommand extends Command
         $apMappingExists = AccountingAccountMapping::where('key', 'ap_control')->exists();
         if ($apMappingExists) {
             $today = date('Y-m-d');
-            $apRecon = $apGlService->generate($today, 'EGP');
+            $apRecon = $apGlService->generate($today, $reportCurrency);
             if ($apRecon['mapping_configured'] && $apRecon['difference_minor'] !== 0) {
                 $failures[] = "AP to GL control account reconciliation shows a non-zero difference: {$apRecon['difference_minor']} minor units.";
             }
@@ -179,10 +235,27 @@ class Phase3IntegrityCheckCommand extends Command
             'journal_entry' => DB::table('journal_entry')->count(),
             'ledger_entry' => DB::table('ledger_entry')->count(),
         ];
+        if (Schema::hasTable('expense')) {
+            $tableCountsBefore['expense'] = DB::table('expense')->count();
+        }
+        if (Schema::hasTable('prepaid_schedule')) {
+            $tableCountsBefore['prepaid_schedule'] = DB::table('prepaid_schedule')->count();
+            $tableCountsBefore['prepaid_recognition'] = DB::table('prepaid_recognition')->count();
+        }
+        if (Schema::hasTable('accrual_schedule')) {
+            $tableCountsBefore['accrual_schedule'] = DB::table('accrual_schedule')->count();
+            $tableCountsBefore['accrual_entry'] = DB::table('accrual_entry')->count();
+        }
+        if (Schema::hasTable('payroll_run')) {
+            $tableCountsBefore['employee'] = DB::table('employee')->count();
+            $tableCountsBefore['payroll_component'] = DB::table('payroll_component')->count();
+            $tableCountsBefore['payroll_run'] = DB::table('payroll_run')->count();
+            $tableCountsBefore['payroll_run_line'] = DB::table('payroll_run_line')->count();
+        }
 
         // Execute report services
-        $arAgingService->generate(date('Y-m-d'), null, 'EGP');
-        $apAgingService->generate(date('Y-m-d'), null, 'EGP');
+        $arAgingService->generate(date('Y-m-d'), null, $reportCurrency);
+        $apAgingService->generate(date('Y-m-d'), null, $reportCurrency);
         $chequeRegisterService->generate('all');
         $bankReconciliationService->generateIndex(null, null);
 
@@ -194,20 +267,69 @@ class Phase3IntegrityCheckCommand extends Command
             'journal_entry' => DB::table('journal_entry')->count(),
             'ledger_entry' => DB::table('ledger_entry')->count(),
         ];
+        if (Schema::hasTable('expense')) {
+            $tableCountsAfter['expense'] = DB::table('expense')->count();
+        }
+        if (Schema::hasTable('prepaid_schedule')) {
+            $tableCountsAfter['prepaid_schedule'] = DB::table('prepaid_schedule')->count();
+            $tableCountsAfter['prepaid_recognition'] = DB::table('prepaid_recognition')->count();
+        }
+        if (Schema::hasTable('accrual_schedule')) {
+            $tableCountsAfter['accrual_schedule'] = DB::table('accrual_schedule')->count();
+            $tableCountsAfter['accrual_entry'] = DB::table('accrual_entry')->count();
+        }
+        if (Schema::hasTable('payroll_run')) {
+            $tableCountsAfter['employee'] = DB::table('employee')->count();
+            $tableCountsAfter['payroll_component'] = DB::table('payroll_component')->count();
+            $tableCountsAfter['payroll_run'] = DB::table('payroll_run')->count();
+            $tableCountsAfter['payroll_run_line'] = DB::table('payroll_run_line')->count();
+        }
 
         if ($tableCountsBefore !== $tableCountsAfter) {
             $failures[] = 'Report service execution mutated database table counts! Report services must remain strictly read-only.';
         }
 
         // Check 11: Multi-tenant / Company scope violation audit
-        $prohibitedColumns = ['company_id', 'branch_id', 'tenant_id'];
+        $prohibitedColumns = ['company_id', 'tenant_id'];
+        $branchOperationalReferenceTables = [
+            'warehouse',
+            'cash_account',
+            'bank_account',
+            'fixed_asset',
+            'fixed_asset_location',
+            'journal_entry',
+            'journal_line',
+            'ledger_entry',
+            'accounting_account_mapping',
+            'branch_approval_rule',
+            'expense',
+            'prepaid_schedule',
+            'accrual_schedule',
+            'employee',
+            'payroll_run',
+            'payroll_run_line',
+            'rentable_item',
+            'rental_contract',
+            'rental_invoice',
+            'rental_handover',
+            'rental_return',
+        ];
         $tables = DB::connection()->getSchemaBuilder()->getTableListing();
 
         foreach ($tables as $table) {
+            $tableName = str_contains($table, '.') ? substr(strrchr($table, '.'), 1) : $table;
+
             foreach ($prohibitedColumns as $col) {
                 if (Schema::hasColumn($table, $col)) {
                     $failures[] = "Prohibited tenancy column [{$col}] found in table [{$table}]. Owner decision rules forbid company/tenant scoping.";
                 }
+            }
+
+            if (
+                Schema::hasColumn($table, 'branch_id')
+                && ! in_array($tableName, $branchOperationalReferenceTables, true)
+            ) {
+                $failures[] = "Unsupported branch scope column [branch_id] found in table [{$table}]. Branch is allowed only as an owner-approved operational reference, not tenancy/security scope.";
             }
         }
 

@@ -2,9 +2,10 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
+import type { AccountOption, CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
 type BankAccountRow = {
   id: string;
@@ -12,12 +13,13 @@ type BankAccountRow = {
   name: string;
   account_number: string;
   bank_name: string;
+  branch_id?: string | null;
+  branch?: { id: string; code: string; name: Record<string, string> | string } | null;
   currency: string;
   gl_account_id: string;
   gl_account?: { id: string; code: string; name: string };
   iban?: string | null;
-  swift_code?: string | null;
-  branch_name?: string | null;
+  swift?: string | null;
   is_active: boolean;
   lock_version: number;
 };
@@ -25,19 +27,23 @@ type BankAccountRow = {
 type BankAccountsProps = SharedPageProps & {
   bankAccounts: {
     data: BankAccountRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   glAccounts: AccountOption[];
   currencies: CurrencyOption[];
+  branches: Array<{ id: string; code: string; name: Record<string, string> | string }>;
   filters: {
     search?: string;
     status?: string;
+    branch_id?: string;
   };
 };
 
-export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [], currencies = [], filters }: BankAccountsProps) {
+export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [], currencies = [], branches = [], filters }: BankAccountsProps) {
   const dict = getDictionary(locale);
   const can = useCan();
+  const pageDict = dict.app.pages.bankAccounts;
+  const accDict = dict.app.accounting;
 
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccountRow | null>(null);
@@ -47,11 +53,11 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
     name: '',
     account_number: '',
     bank_name: '',
-    currency: 'EGP',
+    branch_id: '',
+    currency: '',
     gl_account_id: '',
     iban: '',
-    swift_code: '',
-    branch_name: '',
+    swift: '',
     is_active: true,
     lock_version: 0,
   });
@@ -69,11 +75,11 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
       name: acc.name,
       account_number: acc.account_number,
       bank_name: acc.bank_name,
+      branch_id: acc.branch_id || '',
       currency: acc.currency,
       gl_account_id: acc.gl_account_id,
       iban: acc.iban || '',
-      swift_code: acc.swift_code || '',
-      branch_name: acc.branch_name || '',
+      swift: acc.swift || '',
       is_active: acc.is_active,
       lock_version: acc.lock_version,
     });
@@ -108,6 +114,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
     value: c.code,
     label: `${c.code} (${c.name})`,
   }));
+  const branchOptions = branches.map((b) => ({
+    value: b.id,
+    label: `${b.code} - ${getLocalizedName(b.name, locale)}`,
+  }));
+
+  const applyFilters = (next: Record<string, string>) => {
+    const params = new URLSearchParams();
+    const search = next.search ?? filters.search ?? '';
+    const branchId = next.branch_id ?? filters.branch_id ?? '';
+
+    if (search) params.set('search', search);
+    if (branchId) params.set('branch_id', branchId);
+
+    window.location.href = `/bank-accounts${params.toString() ? `?${params.toString()}` : ''}`;
+  };
 
   return (
     <AppLayout active="bank-accounts.index">
@@ -138,11 +159,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 const target = e.target as HTMLInputElement;
-                window.location.href = `/bank-accounts?search=${encodeURIComponent(target.value)}`;
+                applyFilters({ search: target.value });
               }
             }}
             className="w-72 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
           />
+          <select
+            value={filters.branch_id || ''}
+            onChange={(e) => applyFilters({ branch_id: e.target.value })}
+            className="w-56 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
+          >
+            <option value="">{pageDict.allBranches}</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>{branch.code} - {getLocalizedName(branch.name, locale)}</option>
+            ))}
+          </select>
         </div>
       </Card>
 
@@ -159,6 +190,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                 <th className={tableClasses.th}>{dict.app.pages.bankAccounts.code}</th>
                 <th className={tableClasses.th}>{dict.app.pages.bankAccounts.bankName}</th>
                 <th className={tableClasses.th}>{dict.app.pages.bankAccounts.accountNumber}</th>
+                <th className={tableClasses.th}>{pageDict.branch}</th>
                 <th className={tableClasses.th}>{dict.app.pages.bankAccounts.currency}</th>
                 <th className={tableClasses.th}>{dict.app.pages.bankAccounts.linkedGlAccount}</th>
                 <th className={tableClasses.th}>{dict.app.pages.bankAccounts.status}</th>
@@ -171,9 +203,12 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{acc.code}</td>
                   <td className={`${tableClasses.td} font-semibold`}>{acc.bank_name} - {acc.name}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{acc.account_number}</td>
+                  <td className={tableClasses.td}>
+                    {acc.branch ? `${acc.branch.code} - ${getLocalizedName(acc.branch.name, locale)}` : pageDict.noBranch}
+                  </td>
                   <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{acc.currency}</td>
                   <td className={tableClasses.td}>
-                    {acc.gl_account ? `${acc.gl_account.code} - ${acc.gl_account.name}` : '—'}
+                    {acc.gl_account ? `${acc.gl_account.code} - ${acc.gl_account.name}` : accDict.notAvailable}
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={acc.is_active ? 'ok' : 'muted'}>
@@ -228,10 +263,23 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                   <SearchableSelect
                     options={currencyOptions}
                     value={data.currency}
-                    onChange={(val) => setData('currency', val || 'EGP')}
+                    onChange={(val) => setData('currency', val || '')}
                     isClearable={false}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                  {pageDict.branch}
+                </label>
+                <SearchableSelect
+                  options={branchOptions}
+                  value={data.branch_id}
+                  onChange={(val) => setData('branch_id', val || '')}
+                  placeholder={pageDict.noBranch}
+                />
+                {errors.branch_id && <p className="text-xs text-red-500 mt-1">{errors.branch_id}</p>}
               </div>
 
               <div>
@@ -291,7 +339,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    IBAN
+                    {pageDict.iban}
                   </label>
                   <input
                     type="text"
@@ -302,12 +350,12 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                    SWIFT Code
+                    {pageDict.swift}
                   </label>
                   <input
                     type="text"
-                    value={data.swift_code}
-                    onChange={(e) => setData('swift_code', e.target.value)}
+                    value={data.swift}
+                    onChange={(e) => setData('swift', e.target.value)}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono text-[var(--text-primary)]"
                   />
                 </div>

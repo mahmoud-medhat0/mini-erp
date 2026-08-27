@@ -1,9 +1,11 @@
 # Domain Model Review - Laravel Relationship Correction
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Date: 2026-08-21
+
+> **Historical Baseline Notice:** This review records the binding Company/Branch/User relationship correction. Later owner-approved operational branch references exist after Phase 10 and Phase 13, but Branch remains non-tenant and non-security-scope. For current implementation completeness, use `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, `CONTINUE_HERE.md`, `PRODUCT_EXTENSIBILITY_ROADMAP.md`, and `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`.
 
 ## Purpose
 

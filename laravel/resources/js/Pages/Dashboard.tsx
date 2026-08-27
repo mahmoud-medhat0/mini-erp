@@ -68,7 +68,7 @@ const metricConfig = [
 export default function Dashboard({ counts, recentNotifications = [], auth, locale }: DashboardProps) {
   const dict = getDictionary(locale);
   const canAny = useCanAny();
-  const userName = auth?.user?.name || 'User';
+  const userName = auth?.user?.name || dict.app.header.unknownUser;
   const accountingShortcuts = [
     {
       href: '/accounting/journal/create',

@@ -5,6 +5,7 @@ namespace App\Application\Purchasing;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Support\CurrencyInput;
 use App\Application\Taxes\TaxCalculationService;
 use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
@@ -43,24 +44,24 @@ class SupplierBillService
         return DB::transaction(function () use ($data, $actorId): SupplierBill {
             $supplierId = $data['supplier_id'] ?? null;
             if (! $supplierId) {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier is required.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier is required.')]]);
             }
 
             /** @var Supplier|null $supplier */
             $supplier = Supplier::query()->where('id', $supplierId)->first();
             if (! $supplier || $supplier->status !== 'active') {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier must be active.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier must be active.')]]);
             }
 
-            $currency = $data['currency'] ?? 'USD';
+            $currency = CurrencyInput::required($data['currency'] ?? null);
             $fxRateE6 = (int) ($data['fx_rate_e6'] ?? 1000000);
             if ($fxRateE6 !== 1000000) {
-                throw ValidationException::withMessages(['fx_rate_e6' => ['FX rate must be 1.000000 (1000000) in this slice.']]);
+                throw ValidationException::withMessages(['fx_rate_e6' => [__('FX rate must be 1.000000 (1000000) in this slice.')]]);
             }
 
             $billDate = $data['bill_date'] ?? null;
             if (! $billDate) {
-                throw ValidationException::withMessages(['bill_date' => ['Bill date is required.']]);
+                throw ValidationException::withMessages(['bill_date' => [__('Bill date is required.')]]);
             }
 
             $dueDate = $data['due_date'] ?? null;
@@ -70,7 +71,7 @@ class SupplierBillService
 
             if (! empty($data['purchase_order_id']) && ! empty($data['goods_receipt_id'])) {
                 throw ValidationException::withMessages([
-                    'source' => ['Supplier bill can reference either a Purchase Order or a Goods Receipt, not both.'],
+                    'source' => [__('Supplier bill can reference either a Purchase Order or a Goods Receipt, not both.')],
                 ]);
             }
 
@@ -80,13 +81,13 @@ class SupplierBillService
                 /** @var PurchaseOrder|null $purchaseOrder */
                 $purchaseOrder = PurchaseOrder::query()->where('id', $data['purchase_order_id'])->lockForUpdate()->first();
                 if (! $purchaseOrder || $purchaseOrder->status !== 'confirmed') {
-                    throw ValidationException::withMessages(['purchase_order_id' => ['Supplier bills can only reference confirmed Purchase Orders.']]);
+                    throw ValidationException::withMessages(['purchase_order_id' => [__('Supplier bills can only reference confirmed Purchase Orders.')]]);
                 }
                 if ($purchaseOrder->supplier_id !== $supplier->id) {
-                    throw ValidationException::withMessages(['supplier_id' => ['Supplier must match the Purchase Order supplier.']]);
+                    throw ValidationException::withMessages(['supplier_id' => [__('Supplier must match the Purchase Order supplier.')]]);
                 }
                 if ($purchaseOrder->currency !== $currency) {
-                    throw ValidationException::withMessages(['currency' => ['Currency must match the Purchase Order currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Currency must match the Purchase Order currency.')]]);
                 }
             }
 
@@ -95,15 +96,15 @@ class SupplierBillService
                 /** @var GoodsReceipt|null $goodsReceipt */
                 $goodsReceipt = GoodsReceipt::query()->with('purchaseOrder')->where('id', $data['goods_receipt_id'])->lockForUpdate()->first();
                 if (! $goodsReceipt || $goodsReceipt->status !== 'confirmed') {
-                    throw ValidationException::withMessages(['goods_receipt_id' => ['Supplier bills can only reference confirmed Goods Receipts.']]);
+                    throw ValidationException::withMessages(['goods_receipt_id' => [__('Supplier bills can only reference confirmed Goods Receipts.')]]);
                 }
                 $grSupplierId = $goodsReceipt->purchaseOrder?->supplier_id;
                 if ($grSupplierId && $grSupplierId !== $supplier->id) {
-                    throw ValidationException::withMessages(['supplier_id' => ['Supplier must match the Goods Receipt supplier.']]);
+                    throw ValidationException::withMessages(['supplier_id' => [__('Supplier must match the Goods Receipt supplier.')]]);
                 }
-                $grCurrency = $goodsReceipt->purchaseOrder?->currency ?? 'USD';
+                $grCurrency = CurrencyInput::related($goodsReceipt->purchaseOrder?->currency, 'currency', 'Goods Receipt');
                 if ($grCurrency !== $currency) {
-                    throw ValidationException::withMessages(['currency' => ['Currency must match the Goods Receipt currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Currency must match the Goods Receipt currency.')]]);
                 }
             }
 
@@ -176,11 +177,11 @@ class SupplierBillService
             $bill = SupplierBill::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($bill->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft supplier bills can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft supplier bills can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $bill->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             $billDate = $data['bill_date'] ?? $bill->bill_date;
@@ -254,7 +255,7 @@ class SupplierBillService
             $bill = SupplierBill::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($bill->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft supplier bills can be submitted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft supplier bills can be submitted.')]]);
             }
 
             $before = $bill->toArray();
@@ -287,7 +288,7 @@ class SupplierBillService
             $bill = SupplierBill::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($bill->status !== 'submitted') {
-                throw ValidationException::withMessages(['status' => ['Only submitted supplier bills can be approved.']]);
+                throw ValidationException::withMessages(['status' => [__('Only submitted supplier bills can be approved.')]]);
             }
 
             $before = $bill->toArray();
@@ -324,18 +325,18 @@ class SupplierBillService
             }
 
             if ($bill->status !== 'approved') {
-                throw ValidationException::withMessages(['status' => ['Only approved supplier bills can be posted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only approved supplier bills can be posted.')]]);
             }
 
             if ($bill->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Cannot post supplier bill without line items.']]);
+                throw ValidationException::withMessages(['lines' => [__('Cannot post supplier bill without line items.')]]);
             }
 
             // Verify stock product source rules on post
             foreach ($bill->lines as $line) {
                 if ($line->product && $line->product->type === 'stock') {
                     if (! $line->goods_receipt_line_id) {
-                        throw ValidationException::withMessages(['lines' => ['Stock product lines on supplier bills must be sourced from a Goods Receipt.']]);
+                        throw ValidationException::withMessages(['lines' => [__('Stock product lines on supplier bills must be sourced from a Goods Receipt.')]]);
                     }
                 }
             }
@@ -343,14 +344,14 @@ class SupplierBillService
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $bill->financial_period_id, (string) $bill->bill_date);
             $this->taxPeriodGuard->ensureDateNotFiled((string) $bill->bill_date);
             if ($period->fiscal_year_id !== $bill->fiscal_year_id) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the bill fiscal year.']]);
+                throw ValidationException::withMessages(['financial_period_id' => [__('Financial period does not belong to the bill fiscal year.')]]);
             }
             if ($bill->bill_date < $period->start_date || $bill->bill_date > $period->end_date) {
-                throw ValidationException::withMessages(['bill_date' => ['Bill date must fall within the financial period.']]);
+                throw ValidationException::withMessages(['bill_date' => [__('Bill date must fall within the financial period.')]]);
             }
 
             if ($bill->fx_rate_e6 !== 1000000) {
-                throw ValidationException::withMessages(['fx_rate_e6' => ['FX rate must be 1.000000 (1000000) in this slice.']]);
+                throw ValidationException::withMessages(['fx_rate_e6' => [__('FX rate must be 1.000000 (1000000) in this slice.')]]);
             }
 
             // Fetch GL Accounts
@@ -372,19 +373,19 @@ class SupplierBillService
             if ($expenseTotalMinor > 0) {
                 $expenseAccount = $this->mappingService->getAccount('purchase_expense');
                 if ($expenseAccount->currency !== $bill->currency) {
-                    throw ValidationException::withMessages(['currency' => ['Mapped Purchase Expense account currency must match bill currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Mapped Purchase Expense account currency must match bill currency.')]]);
                 }
             }
 
             if ($stockTotalMinor > 0) {
                 $grniAccount = $this->mappingService->getAccount('grni_clearing');
                 if ($grniAccount->currency !== $bill->currency) {
-                    throw ValidationException::withMessages(['currency' => ['Mapped GRNI Clearing account currency must match bill currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Mapped GRNI Clearing account currency must match bill currency.')]]);
                 }
             }
 
             if ($apAccount->currency !== $bill->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped AP Control account currency must match bill currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Mapped AP Control account currency must match bill currency.')]]);
             }
 
             // Allocate bill number sequence if missing
@@ -402,7 +403,7 @@ class SupplierBillService
             $inputTaxAccount = $taxAmountMinor > 0 ? $this->mappingService->getAccount('input_tax_receivable') : null;
 
             if ($inputTaxAccount && $inputTaxAccount->currency !== $bill->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped Input Tax Receivable account currency must match bill currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Mapped Input Tax Receivable account currency must match bill currency.')]]);
             }
 
             $before = $bill->toArray();
@@ -536,7 +537,7 @@ class SupplierBillService
             $bill = SupplierBill::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($bill->status === 'posted') {
-                throw ValidationException::withMessages(['status' => ['Posted supplier bills cannot be cancelled in this slice.']]);
+                throw ValidationException::withMessages(['status' => [__('Posted supplier bills cannot be cancelled in this slice.')]]);
             }
 
             if ($bill->status === 'cancelled') {
@@ -576,7 +577,7 @@ class SupplierBillService
             ->first();
 
         if (! $period) {
-            throw ValidationException::withMessages(['bill_date' => ["No open financial period covers date {$date}."]]);
+            throw ValidationException::withMessages(['bill_date' => [__('No open financial period covers date :date.', ['date' => $date])]]);
         }
 
         return $period;
@@ -585,12 +586,12 @@ class SupplierBillService
     private function validateAndCalculateLines(array $lines, ?PurchaseOrder $purchaseOrder, ?GoodsReceipt $goodsReceipt, ?string $currentBillId = null, string $billDate = ''): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         if ($purchaseOrder && $goodsReceipt) {
             throw ValidationException::withMessages([
-                'source' => ['Supplier bill can reference either a Purchase Order or a Goods Receipt, not both.'],
+                'source' => [__('Supplier bill can reference either a Purchase Order or a Goods Receipt, not both.')],
             ]);
         }
 
@@ -604,19 +605,19 @@ class SupplierBillService
 
             if ($polId && $grlId) {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.source" => ["Line {$lineIndex} cannot reference both a Purchase Order line and a Goods Receipt line."],
+                    "lines.{$index}.source" => [__('Line :line cannot reference both a Purchase Order line and a Goods Receipt line.', ['line' => $lineIndex])],
                 ]);
             }
 
             if ($purchaseOrder) {
                 if (! $polId) {
                     throw ValidationException::withMessages([
-                        "lines.{$index}.purchase_order_line_id" => ["Line {$lineIndex} must reference a Purchase Order line for this Purchase Order bill."],
+                        "lines.{$index}.purchase_order_line_id" => [__('Line :line must reference a Purchase Order line for this Purchase Order bill.', ['line' => $lineIndex])],
                     ]);
                 }
                 if ($grlId) {
                     throw ValidationException::withMessages([
-                        "lines.{$index}.goods_receipt_line_id" => ["Line {$lineIndex} cannot reference a Goods Receipt line for a Purchase Order bill."],
+                        "lines.{$index}.goods_receipt_line_id" => [__('Line :line cannot reference a Goods Receipt line for a Purchase Order bill.', ['line' => $lineIndex])],
                     ]);
                 }
             }
@@ -624,12 +625,12 @@ class SupplierBillService
             if ($goodsReceipt) {
                 if (! $grlId) {
                     throw ValidationException::withMessages([
-                        "lines.{$index}.goods_receipt_line_id" => ["Line {$lineIndex} must reference a Goods Receipt line for this Goods Receipt bill."],
+                        "lines.{$index}.goods_receipt_line_id" => [__('Line :line must reference a Goods Receipt line for this Goods Receipt bill.', ['line' => $lineIndex])],
                     ]);
                 }
                 if ($polId) {
                     throw ValidationException::withMessages([
-                        "lines.{$index}.purchase_order_line_id" => ["Line {$lineIndex} cannot reference a Purchase Order line for a Goods Receipt bill."],
+                        "lines.{$index}.purchase_order_line_id" => [__('Line :line cannot reference a Purchase Order line for a Goods Receipt bill.', ['line' => $lineIndex])],
                     ]);
                 }
             }
@@ -637,7 +638,7 @@ class SupplierBillService
             if (! $purchaseOrder && ! $goodsReceipt) {
                 if ($polId || $grlId) {
                     throw ValidationException::withMessages([
-                        "lines.{$index}.source" => ["Line {$lineIndex} cannot reference a source line without a matching bill source header."],
+                        "lines.{$index}.source" => [__('Line :line cannot reference a source line without a matching bill source header.', ['line' => $lineIndex])],
                     ]);
                 }
             }
@@ -680,32 +681,32 @@ class SupplierBillService
             $lineIndex = $index + 1;
             $productId = $line['product_id'] ?? null;
             if (! $productId) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} product is required."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Line :line product is required.', ['line' => $lineIndex])]]);
             }
 
             /** @var Product|null $product */
             $product = Product::query()->where('id', $productId)->first();
             if (! $product || $product->status !== 'active' || ! $product->is_purchase_enabled) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} product must be active and purchase-enabled."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Line :line product must be active and purchase-enabled.', ['line' => $lineIndex])]]);
             }
 
             // STOCK PRODUCT BOUNDARY CHECK
             if ($product->type === 'stock') {
                 $grlIdCheck = $line['goods_receipt_line_id'] ?? null;
                 if (! $grlIdCheck || ! $goodsReceipt) {
-                    throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} stock product must be sourced from a Goods Receipt."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Line :line stock product must be sourced from a Goods Receipt.', ['line' => $lineIndex])]]);
                 }
             }
 
             $uomId = $line['unit_of_measure_id'] ?? $product->unit_of_measure_id;
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
             if ($quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity" => ["Line {$lineIndex} quantity must be greater than zero."]]);
+                throw ValidationException::withMessages(["lines.{$index}.quantity" => [__('Line :line quantity must be greater than zero.', ['line' => $lineIndex])]]);
             }
 
             $unitCostMinor = (int) ($line['unit_cost_minor'] ?? 0);
             if ($unitCostMinor < 0) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_cost" => ["Line {$lineIndex} unit cost cannot be negative."]]);
+                throw ValidationException::withMessages(["lines.{$index}.unit_cost" => [__('Line :line unit cost cannot be negative.', ['line' => $lineIndex])]]);
             }
 
             $polId = $line['purchase_order_line_id'] ?? null;
@@ -713,19 +714,19 @@ class SupplierBillService
                 /** @var PurchaseOrderLine|null $poLine */
                 $poLine = $poLines->get($polId);
                 if (! $poLine) {
-                    throw ValidationException::withMessages(["lines.{$index}.purchase_order_line_id" => ["Line {$lineIndex} does not belong to the selected Purchase Order."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.purchase_order_line_id" => [__('Line :line does not belong to the selected Purchase Order.', ['line' => $lineIndex])]]);
                 }
 
                 if ($poLine->product_id !== $product->id) {
-                    throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} product does not match Purchase Order line product."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Line :line product does not match Purchase Order line product.', ['line' => $lineIndex])]]);
                 }
 
                 if ($poLine->unit_of_measure_id !== $uomId) {
-                    throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => ["Line {$lineIndex} UOM does not match Purchase Order line UOM."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => [__('Line :line UOM does not match Purchase Order line UOM.', ['line' => $lineIndex])]]);
                 }
 
                 if ((int) $poLine->unit_price_minor !== $unitCostMinor) {
-                    throw ValidationException::withMessages(["lines.{$index}.unit_cost_minor" => ["Line {$lineIndex} unit cost must match the selected Purchase Order line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.unit_cost_minor" => [__('Line :line unit cost must match the selected Purchase Order line.', ['line' => $lineIndex])]]);
                 }
 
                 // Cumulative over-billing check for Purchase Order line
@@ -744,7 +745,10 @@ class SupplierBillService
                     $whole = intdiv($maxAllowedE6, 1000000);
                     $frac = sprintf('%06d', abs($maxAllowedE6 % 1000000));
                     throw ValidationException::withMessages([
-                        "lines.{$index}.quantity" => ["Line {$lineIndex} quantity exceeds remaining unbilled Purchase Order line quantity ({$whole}.{$frac})."],
+                        "lines.{$index}.quantity" => [__('Line :line quantity exceeds remaining unbilled Purchase Order line quantity (:maximum).', [
+                            'line' => $lineIndex,
+                            'maximum' => "{$whole}.{$frac}",
+                        ])],
                     ]);
                 }
 
@@ -756,23 +760,23 @@ class SupplierBillService
                 /** @var GoodsReceiptLine|null $grLine */
                 $grLine = $grLines->get($grlId);
                 if (! $grLine) {
-                    throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => ["Line {$lineIndex} does not belong to the selected Goods Receipt."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => [__('Line :line does not belong to the selected Goods Receipt.', ['line' => $lineIndex])]]);
                 }
 
                 if ($grLine->product_id !== $product->id) {
-                    throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} product does not match Goods Receipt line product."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Line :line product does not match Goods Receipt line product.', ['line' => $lineIndex])]]);
                 }
 
                 if ($grLine->unit_of_measure_id !== $uomId) {
-                    throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => ["Line {$lineIndex} UOM does not match Goods Receipt line UOM."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => [__('Line :line UOM does not match Goods Receipt line UOM.', ['line' => $lineIndex])]]);
                 }
 
                 if (! $grLine->purchaseOrderLine) {
-                    throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => ["Goods Receipt line {$lineIndex} is not linked to a Purchase Order line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => [__('Goods Receipt line :line is not linked to a Purchase Order line.', ['line' => $lineIndex])]]);
                 }
 
                 if ((int) $grLine->purchaseOrderLine->unit_price_minor !== $unitCostMinor) {
-                    throw ValidationException::withMessages(["lines.{$index}.unit_cost_minor" => ["Line {$lineIndex} unit cost must match the Goods Receipt source Purchase Order line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.unit_cost_minor" => [__('Line :line unit cost must match the Goods Receipt source Purchase Order line.', ['line' => $lineIndex])]]);
                 }
 
                 // Cumulative over-billing check for Goods Receipt line
@@ -791,7 +795,10 @@ class SupplierBillService
                     $whole = intdiv($maxAllowedE6, 1000000);
                     $frac = sprintf('%06d', abs($maxAllowedE6 % 1000000));
                     throw ValidationException::withMessages([
-                        "lines.{$index}.quantity" => ["Line {$lineIndex} quantity exceeds remaining unbilled Goods Receipt line quantity ({$whole}.{$frac})."],
+                        "lines.{$index}.quantity" => [__('Line :line quantity exceeds remaining unbilled Goods Receipt line quantity (:maximum).', [
+                            'line' => $lineIndex,
+                            'maximum' => "{$whole}.{$frac}",
+                        ])],
                     ]);
                 }
 
@@ -799,7 +806,7 @@ class SupplierBillService
                 if ($grLine->purchaseOrderLine) {
                     $sourceUnitCost = $grLine->purchaseOrderLine->unit_price_minor;
                     if ($product->type === 'stock' && $unitCostMinor !== $sourceUnitCost) {
-                        throw ValidationException::withMessages(["lines.{$index}.unit_cost" => ["Line {$lineIndex} stock product bill unit cost must match Goods Receipt source unit cost."]]);
+                        throw ValidationException::withMessages(["lines.{$index}.unit_cost" => [__('Line :line stock product bill unit cost must match Goods Receipt source unit cost.', ['line' => $lineIndex])]]);
                     }
                     $unitCostMinor = $sourceUnitCost;
                 }
@@ -843,14 +850,14 @@ class SupplierBillService
     {
         if ($unitCostMinor > 0 && $quantityE6 > intdiv(PHP_INT_MAX, $unitCostMinor)) {
             throw ValidationException::withMessages([
-                "lines.{$lineIndex}.line_total" => ["Line {$lineIndex} amount exceeds maximum allowable integer limit."],
+                "lines.{$lineIndex}.line_total" => [__('Line :line amount exceeds maximum allowable integer limit.', ['line' => $lineIndex])],
             ]);
         }
 
         $product = $quantityE6 * $unitCostMinor;
         if ($product % 1000000 !== 0) {
             throw ValidationException::withMessages([
-                "lines.{$lineIndex}.quantity" => ["Line {$lineIndex} quantity and unit cost result in fractional minor units."],
+                "lines.{$lineIndex}.quantity" => [__('Line :line quantity and unit cost result in fractional minor units.', ['line' => $lineIndex])],
             ]);
         }
 

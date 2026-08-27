@@ -8,6 +8,10 @@ use Illuminate\Support\Collection;
 
 class ChequeRegisterReportService
 {
+    public function __construct(
+        private readonly ReportCurrencyResolver $currencyResolver,
+    ) {}
+
     public function generate(
         string $direction = 'all',
         ?string $status = null,
@@ -18,7 +22,7 @@ class ChequeRegisterReportService
         ?string $dateTo = null,
         ?string $currency = null
     ): array {
-        $targetCurrency = $currency ?? 'EGP';
+        $targetCurrency = $this->currencyResolver->resolve($currency);
         $items = new Collection;
 
         // Fetch Incoming Cheques if direction is 'all' or 'incoming'

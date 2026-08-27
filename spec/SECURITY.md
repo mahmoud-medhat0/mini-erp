@@ -1,9 +1,9 @@
 # SECURITY
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
-Current status: Laravel migration security baseline. Older Next.js/Auth.js and tenant-scoping notes are historical only.
+Current status: Laravel migration security baseline plus 2026-08-24 hardening pass. Older Next.js/Auth.js and tenant-scoping notes are historical only.
 
 ## Non-Negotiable Domain Rule
 
@@ -28,6 +28,7 @@ If a relationship is not explicitly established by owner requirements or later o
 - Session regeneration after login.
 - Session invalidation after logout.
 - Active-account check on login.
+- Active authenticated users are rechecked on protected web requests; inactive accounts are logged out before protected page access.
 
 ## Authorization
 
@@ -35,6 +36,13 @@ If a relationship is not explicitly established by owner requirements or later o
 - Frontend hiding is cosmetic only.
 - Use Spatie Permission plus Laravel Policies/Gates/domain authorization rules where appropriate.
 - Missing permissions default to deny.
+- Protected application routes must have explicit route-level authorization middleware (`can`, `permission.any`, or `permission.all`) unless the route is deliberately user/entity scoped in a service-level authorizer.
+- Dashboard access requires `dashboard.view`.
+- Foundation diagnostics require `settings.configure` or `audit.view`.
+- Report exports require export permissions; financial exports also require `view_financials` where applicable.
+- Tax return filing requires the sensitive `taxes.file` capability and is not granted through the general accountant tax module grant.
+- Payroll access requires the sensitive `view_payroll` capability alongside module-specific payroll permissions; payroll posting also requires `view_financials`.
+- Fixed-asset financial operations require both the fixed-asset action and `view_financials`.
 - Empty RBAC assignments do not grant management access.
 - Settings and user-management mutations require explicit permissions such as `settings.configure` or `users.configure`.
 - Attachment access must be authorized through an explicit allowlisted entity registry and the referenced entity's server-side authorization rule.
@@ -53,6 +61,13 @@ If a relationship is not explicitly established by owner requirements or later o
 - Upload and download must authorize against the stored/referenced entity.
 - Unknown entity types and missing entities are rejected.
 - Authentication alone is not authorization.
+- The local private disk must not be directly served by framework `/storage/*` routes by default. Keep `FILESYSTEM_LOCAL_SERVE=false`; attachment delivery must go through authenticated application routes.
+
+## HTTP Security Headers
+
+- Baseline web security headers are applied by `AddSecurityHeaders`.
+- CSP support exists in `config/security.php` but remains disabled by default until the final production asset policy is approved.
+- Production operators may enable CSP through environment configuration after browser smoke testing.
 
 ## Data And Integrity
 
@@ -65,8 +80,7 @@ If a relationship is not explicitly established by owner requirements or later o
 
 ## Current Gaps
 
-- Full financial statements and later operational modules are not implemented yet.
-- AR/AP, Cash, Bank, Cheques, Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, Projects, and Budgeting need module-specific policies when implemented.
-- Branch exact semantics remain owner-decision-required.
+- Branch is an approved operational/reporting dimension for bounded workflows only; it is still not a tenant, Company child, login context, blanket authorization scope, or document-numbering scope.
 - Production admin/bootstrap process needs an explicit controlled mechanism; no implicit "first user" or "empty RBAC" privilege escalation is allowed.
 - Production scheduler execution still needs deployment wiring outside the codebase.
+- CSP is configurable but not enabled by default pending production browser smoke and asset policy approval.

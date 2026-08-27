@@ -81,7 +81,7 @@ class CustomerReceiptService
 
         if ($receipt->status !== 'draft') {
             throw ValidationException::withMessages([
-                'status' => ['Only draft receipts can be cancelled.'],
+                'status' => [__('Only draft receipts can be cancelled.')],
             ]);
         }
 
@@ -124,7 +124,10 @@ class CustomerReceiptService
                     }
 
                     if ($receipt->status !== 'draft') {
-                        throw new InvalidArgumentException("Customer receipt [{$id}] cannot be posted from status [{$receipt->status}].");
+                        throw new InvalidArgumentException(__('Customer receipt :id cannot be posted from status :status.', [
+                            'id' => $id,
+                            'status' => $receipt->status,
+                        ]));
                     }
 
                     // 2. Lock & Guard Financial Period Row
@@ -142,7 +145,10 @@ class CustomerReceiptService
 
                     if ($arControl->currency !== $receipt->currency) {
                         throw ValidationException::withMessages([
-                            'currency' => ["Mapped AR Control account currency [{$arControl->currency}] must match receipt currency [{$receipt->currency}]."],
+                            'currency' => [__('Mapped AR Control account currency :accountCurrency must match receipt currency :currency.', [
+                                'accountCurrency' => $arControl->currency,
+                                'currency' => $receipt->currency,
+                            ])],
                         ]);
                     }
 
@@ -266,13 +272,16 @@ class CustomerReceiptService
 
             if (! $cashAccount || ! $cashAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'cash_account_id' => ['Selected Cash Account is missing or inactive.'],
+                    'cash_account_id' => [__('Selected Cash Account is missing or inactive.')],
                 ]);
             }
 
             if ($cashAccount->currency !== $receipt->currency) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Cash account currency [{$cashAccount->currency}] must match receipt currency [{$receipt->currency}]."],
+                    'currency' => [__('Cash account currency :accountCurrency must match receipt currency :currency.', [
+                        'accountCurrency' => $cashAccount->currency,
+                        'currency' => $receipt->currency,
+                    ])],
                 ]);
             }
 
@@ -280,13 +289,16 @@ class CustomerReceiptService
             $glAccount = Account::query()->where('id', $cashAccount->gl_account_id)->lockForUpdate()->first();
             if (! $glAccount || ! $glAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'cash_account_id' => ['Linked GL Account for Cash Account is missing or inactive.'],
+                    'cash_account_id' => [__('Linked GL Account for Cash Account is missing or inactive.')],
                 ]);
             }
 
             if ($glAccount->currency !== $receipt->currency) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Linked GL Account currency [{$glAccount->currency}] must match receipt currency [{$receipt->currency}]."],
+                    'currency' => [__('Linked GL Account currency :accountCurrency must match receipt currency :currency.', [
+                        'accountCurrency' => $glAccount->currency,
+                        'currency' => $receipt->currency,
+                    ])],
                 ]);
             }
 
@@ -302,13 +314,16 @@ class CustomerReceiptService
 
             if (! $bankAccount || ! $bankAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'bank_account_id' => ['Selected Bank Account is missing or inactive.'],
+                    'bank_account_id' => [__('Selected Bank Account is missing or inactive.')],
                 ]);
             }
 
             if ($bankAccount->currency !== $receipt->currency) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Bank account currency [{$bankAccount->currency}] must match receipt currency [{$receipt->currency}]."],
+                    'currency' => [__('Bank account currency :accountCurrency must match receipt currency :currency.', [
+                        'accountCurrency' => $bankAccount->currency,
+                        'currency' => $receipt->currency,
+                    ])],
                 ]);
             }
 
@@ -316,13 +331,16 @@ class CustomerReceiptService
             $glAccount = Account::query()->where('id', $bankAccount->gl_account_id)->lockForUpdate()->first();
             if (! $glAccount || ! $glAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'bank_account_id' => ['Linked GL Account for Bank Account is missing or inactive.'],
+                    'bank_account_id' => [__('Linked GL Account for Bank Account is missing or inactive.')],
                 ]);
             }
 
             if ($glAccount->currency !== $receipt->currency) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Linked GL Account currency [{$glAccount->currency}] must match receipt currency [{$receipt->currency}]."],
+                    'currency' => [__('Linked GL Account currency :accountCurrency must match receipt currency :currency.', [
+                        'accountCurrency' => $glAccount->currency,
+                        'currency' => $receipt->currency,
+                    ])],
                 ]);
             }
 
@@ -330,7 +348,7 @@ class CustomerReceiptService
         }
 
         throw ValidationException::withMessages([
-            'cash_account_id' => ['Receipt requires exactly one of Cash Account or Bank Account.'],
+            'cash_account_id' => [__('Receipt requires exactly one of Cash Account or Bank Account.')],
         ]);
     }
 
@@ -351,19 +369,19 @@ class CustomerReceiptService
 
         if (($hasCash && $hasBank) || (! $hasCash && ! $hasBank)) {
             throw ValidationException::withMessages([
-                'cash_account_id' => ['Receipt requires exactly one of cash_account_id or bank_account_id.'],
+                'cash_account_id' => [__('Receipt requires exactly one of cash_account_id or bank_account_id.')],
             ]);
         }
 
         if (! Customer::query()->where('id', $data['customer_id'])->exists()) {
             throw ValidationException::withMessages([
-                'customer_id' => ["Customer [{$data['customer_id']}] does not exist."],
+                'customer_id' => [__('Customer :customer does not exist.', ['customer' => $data['customer_id']])],
             ]);
         }
 
         if (! FiscalYear::query()->where('id', $data['fiscal_year_id'])->exists()) {
             throw ValidationException::withMessages([
-                'fiscal_year_id' => ["Fiscal year [{$data['fiscal_year_id']}] does not exist."],
+                'fiscal_year_id' => [__('Fiscal year :year does not exist.', ['year' => $data['fiscal_year_id']])],
             ]);
         }
 
@@ -371,19 +389,19 @@ class CustomerReceiptService
         $period = FinancialPeriod::query()->find($data['financial_period_id']);
         if (! $period) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ["Financial period [{$data['financial_period_id']}] does not exist."],
+                'financial_period_id' => [__('Financial period :period does not exist.', ['period' => $data['financial_period_id']])],
             ]);
         }
 
         if ((string) $period->fiscal_year_id !== (string) $data['fiscal_year_id']) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ['Financial period must belong to the selected fiscal year.'],
+                'financial_period_id' => [__('Financial period must belong to the selected fiscal year.')],
             ]);
         }
 
         if (! $period->isOpen()) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ['Financial period is closed.'],
+                'financial_period_id' => [__('Financial period is closed.')],
             ]);
         }
 
@@ -391,7 +409,7 @@ class CustomerReceiptService
 
         if (! Currency::query()->where('code', $data['currency'])->exists()) {
             throw ValidationException::withMessages([
-                'currency' => ["Currency [{$data['currency']}] does not exist."],
+                'currency' => [__('Currency :currency does not exist.', ['currency' => $data['currency']])],
             ]);
         }
 
@@ -400,12 +418,15 @@ class CustomerReceiptService
             $cashAccount = CashAccount::query()->find($data['cash_account_id']);
             if (! $cashAccount || ! $cashAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'cash_account_id' => ['Selected Cash Account does not exist or is inactive.'],
+                    'cash_account_id' => [__('Selected Cash Account does not exist or is inactive.')],
                 ]);
             }
             if ($cashAccount->currency !== $data['currency']) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Cash account currency [{$cashAccount->currency}] must match receipt currency [{$data['currency']}]."],
+                    'currency' => [__('Cash account currency :accountCurrency must match receipt currency :currency.', [
+                        'accountCurrency' => $cashAccount->currency,
+                        'currency' => $data['currency'],
+                    ])],
                 ]);
             }
         }
@@ -415,12 +436,15 @@ class CustomerReceiptService
             $bankAccount = BankAccount::query()->find($data['bank_account_id']);
             if (! $bankAccount || ! $bankAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'bank_account_id' => ['Selected Bank Account does not exist or is inactive.'],
+                    'bank_account_id' => [__('Selected Bank Account does not exist or is inactive.')],
                 ]);
             }
             if ($bankAccount->currency !== $data['currency']) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Bank account currency [{$bankAccount->currency}] must match receipt currency [{$data['currency']}]."],
+                    'currency' => [__('Bank account currency :accountCurrency must match receipt currency :currency.', [
+                        'accountCurrency' => $bankAccount->currency,
+                        'currency' => $data['currency'],
+                    ])],
                 ]);
             }
         }
@@ -435,7 +459,7 @@ class CustomerReceiptService
         foreach ($fields as $field) {
             if (! array_key_exists($field, $data) || $data[$field] === null || $data[$field] === '') {
                 throw ValidationException::withMessages([
-                    $field => ["Field [{$field}] is required."],
+                    $field => [__('Field :field is required.', ['field' => $field])],
                 ]);
             }
         }
@@ -449,7 +473,7 @@ class CustomerReceiptService
 
         if (! is_int($value) || $value <= 0) {
             throw ValidationException::withMessages([
-                $field => ["Field [{$field}] must be a positive integer."],
+                $field => [__('Field :field must be a positive integer.', ['field' => $field])],
             ]);
         }
 
@@ -460,13 +484,13 @@ class CustomerReceiptService
     {
         if ($amountMinor <= 0) {
             throw ValidationException::withMessages([
-                'amount_minor' => ['Amount must be a positive minor integer.'],
+                'amount_minor' => [__('Amount must be a positive minor integer.')],
             ]);
         }
 
         if ($fxRateE6 !== 1000000) {
             throw ValidationException::withMessages([
-                'fx_rate_e6' => ['Slice 3 receipts currently require 1:1 FX rate until exact integer FX posting is implemented.'],
+                'fx_rate_e6' => [__('Receipts currently require 1:1 FX rate until exact integer FX posting is implemented.')],
             ]);
         }
     }

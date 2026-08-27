@@ -36,6 +36,9 @@ type ProductRow = {
   category?: ProductCategoryOption | null;
 };
 
+type ProductType = ProductRow['type'];
+type ProductStatus = ProductRow['status'];
+
 type ProductsProps = SharedPageProps & {
   products: {
     data: ProductRow[];
@@ -51,8 +54,21 @@ type ProductsProps = SharedPageProps & {
   };
 };
 
+function toProductType(value: string): ProductType {
+  if (value === 'service' || value === 'non_stock') {
+    return value;
+  }
+
+  return 'stock';
+}
+
+function toProductStatus(value: string): ProductStatus {
+  return value === 'inactive' ? 'inactive' : 'active';
+}
+
 export default function ProductsIndex({ locale, products, uoms, categories, filters }: ProductsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -126,7 +142,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
   };
 
   const handleDelete = (product: ProductRow) => {
-    if (confirm(dict.app.pages.catalogProducts.areYouSureYouWantTo)) {
+    if (confirm(dict.app.pages.catalogProducts.confirmDeleteProduct.replace('{name}', product.name || product.code))) {
       destroy(`/catalog/products/${product.id}`);
     }
   };
@@ -253,8 +269,8 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                         {getTypeLabel(prod.type)}
                       </span>
                     </td>
-                    <td className={tableClasses.td}>{prod.unit_of_measure?.name || '-'}</td>
-                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{prod.category?.name || '-'}</td>
+                    <td className={tableClasses.td}>{prod.unit_of_measure?.name || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{prod.category?.name || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={prod.status === 'active' ? 'ok' : 'muted'}>
                         {prod.status === 'active' ? dict.app.pages.catalogProducts.active_3 : dict.app.pages.catalogProducts.inactive_3}
@@ -321,7 +337,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                   </label>
                   <select
                     value={data.type}
-                    onChange={(e) => setData('type', e.target.value as any)}
+                    onChange={(e) => setData('type', toProductType(e.target.value))}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   >
                     <option value="stock">{dict.app.pages.catalogProducts.stock_2}</option>
@@ -431,7 +447,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                 </label>
                 <select
                   value={data.status}
-                  onChange={(e) => setData('status', e.target.value as any)}
+                  onChange={(e) => setData('status', toProductStatus(e.target.value))}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                 >
                   <option value="active">{dict.app.pages.catalogProducts.active_2}</option>

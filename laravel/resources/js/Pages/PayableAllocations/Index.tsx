@@ -5,7 +5,7 @@ import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '..
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierPaymentRow = {
   id: string;
@@ -33,6 +33,7 @@ type AllocationRow = {
   supplierPayment?: { id: string; number: string };
   payableEntry?: { id: string; entry_date: string };
   supplier?: { id: string; code: string; name: string };
+  currency: string;
   amount_minor: number;
   created_at: string;
 };
@@ -43,7 +44,7 @@ type PayableAllocationsProps = SharedPageProps & {
   openPayables: PayableEntryRow[];
   existingAllocations: {
     data: AllocationRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   suppliers: Array<{ id: string; code: string; name: string }>;
   filters: {
@@ -62,6 +63,7 @@ export default function PayableAllocationsIndex({
   filters,
 }: PayableAllocationsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
@@ -122,7 +124,7 @@ export default function PayableAllocationsIndex({
 
   const paymentSelectOptions = payments.map((p) => ({
     value: p.id,
-    label: `${p.number} - ${p.supplier?.name || ''} (${formatMoney(p.unapplied_minor, p.currency)} متبقي)`,
+    label: `${p.number} - ${p.supplier?.name || accDict.notAvailable} (${dict.app.pages.payableAllocations.unappliedAmount} ${formatMoney(p.unapplied_minor, p.currency)})`,
   }));
 
   return (
@@ -207,7 +209,7 @@ export default function PayableAllocationsIndex({
                     {openPayables.map((pay) => (
                       <tr key={pay.id} className="hover:bg-[var(--background)]/50">
                         <td className={`${tableClasses.td} font-mono text-xs`}>{pay.entry_date}</td>
-                        <td className={`${tableClasses.td} font-mono text-xs`}>{pay.due_date || '—'}</td>
+                        <td className={`${tableClasses.td} font-mono text-xs`}>{pay.due_date || accDict.notAvailable}</td>
                         <td className={`${tableClasses.td} font-mono text-xs`}>{formatMoney(pay.original_amount_minor, pay.currency)}</td>
                         <td className={`${tableClasses.td} font-mono font-bold text-xs text-amber-600`}>{formatMoney(pay.unapplied_minor, pay.currency)}</td>
                         <td className={tableClasses.td}>
@@ -268,10 +270,10 @@ export default function PayableAllocationsIndex({
             <tbody>
               {existingAllocations.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.supplierPayment?.number || '—'}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{row.supplier?.name || '—'}</td>
+                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.supplierPayment?.number || accDict.notAvailable}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{row.supplier?.name || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs text-emerald-600`}>
-                    {formatMoney(row.amount_minor, 'EGP')}
+                    {formatMoney(row.amount_minor, row.currency)}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{new Date(row.created_at).toLocaleString()}</td>
                   <td className={tableClasses.td}>

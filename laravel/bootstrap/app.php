@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EnsureAllPermissions;
+use App\Http\Middleware\EnsureAnyPermission;
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
 use App\Support\Concurrency\ConcurrencyConflictException;
@@ -18,8 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            AddSecurityHeaders::class,
             SetLocale::class,
+            EnsureUserIsActive::class,
             HandleInertiaRequests::class,
+        ]);
+
+        $middleware->alias([
+            'permission.any' => EnsureAnyPermission::class,
+            'permission.all' => EnsureAllPermissions::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -1,212 +1,330 @@
-import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
+
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import ReportFilterPanel from '../../Components/ReportFilterPanel';
+import { Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
+import { getDictionary } from '../../lib/i18n';
+import type { SharedPageProps } from '../../Types';
 
-interface StockMovementReportRow {
-    id: string;
-    movement_date: string;
-    movement_type: 'receipt' | 'issue' | 'reversal';
-    source_type: string;
-    source_id: string;
-    source_line_id: string | null;
+type TranslatedName = Record<string, string> | string | null;
+
+type Branch = {
+  id: string;
+  code: string;
+  name: TranslatedName;
+};
+
+type Warehouse = {
+  id: string;
+  code: string;
+  name: TranslatedName;
+  branch?: Branch | null;
+};
+
+type StockMovementReportRow = {
+  id: string;
+  movement_date: string;
+  movement_type: string;
+  warehouse_id?: string | null;
+  warehouse_code?: string | null;
+  warehouse_name?: TranslatedName;
+  branch_id?: string | null;
+  branch_code?: string | null;
+  branch_name?: TranslatedName;
+  source_type: string;
+  source_id: string;
+  source_line_id: string | null;
+  product_id: string;
+  product_name: TranslatedName;
+  product_code: string;
+  uom_code: string;
+  currency: string;
+  quantity_delta_e6: number;
+  value_delta_minor: number;
+  unit_cost_e6: number;
+  balance_quantity_e6: number;
+  balance_valuation_amount_minor: number;
+  journal_entry_id: string | null;
+  journal_entry_number: string | null;
+};
+
+type StockMovementsReportProps = SharedPageProps & {
+  reportData: {
+    rows: StockMovementReportRow[];
+    summary: {
+      total_movements_count: number;
+      total_quantity_delta_e6: number;
+      total_value_delta_minor: number;
+    };
+  };
+  filters: {
+    date_from: string;
+    date_to: string;
+    movement_type: string;
     product_id: string;
-    product_name: string;
-    product_code: string;
-    uom_code: string;
+    warehouse_id: string;
     currency: string;
-    quantity_delta_e6: number;
-    value_delta_minor: number;
-    unit_cost_e6: number;
-    balance_quantity_e6: number;
-    balance_valuation_amount_minor: number;
-    journal_entry_id: string | null;
-    journal_entry_number: string | null;
+    search: string;
+  };
+  products: Array<{ id: string; code: string; name: TranslatedName }>;
+  warehouses: Warehouse[];
+  currencies: Array<{ code: string }>;
+};
+
+function formatQuantityE6(quantityE6: number): string {
+  const sign = quantityE6 < 0 ? '-' : '';
+  const absolute = Math.abs(Math.trunc(quantityE6));
+  const whole = Math.floor(absolute / 1000000).toLocaleString();
+  const fraction = String(absolute % 1000000).padStart(6, '0').replace(/0+$/, '');
+
+  return `${sign}${whole}${fraction ? `.${fraction}` : ''}`;
 }
 
-interface StockMovementsReportProps {
-    reportData: {
-        rows: StockMovementReportRow[];
-        summary: {
-            total_movements_count: number;
-            total_quantity_delta_e6: number;
-            total_value_delta_minor: number;
-        };
+export default function StockMovementsReport({ locale, reportData, filters, products, warehouses, currencies }: StockMovementsReportProps) {
+  const dict = getDictionary(locale);
+  const pageDict = dict.app.pages.stockMovementReport;
+  const accDict = dict.app.accounting;
+
+  const [dateFrom, setDateFrom] = useState(filters.date_from || '');
+  const [dateTo, setDateTo] = useState(filters.date_to || '');
+  const [movementType, setMovementType] = useState(filters.movement_type || '');
+  const [productId, setProductId] = useState(filters.product_id || '');
+  const [warehouseId, setWarehouseId] = useState(filters.warehouse_id || '');
+  const [currency, setCurrency] = useState(filters.currency || '');
+  const [search, setSearch] = useState(filters.search || '');
+  const activeFilterCount = [dateFrom, dateTo, movementType, productId, warehouseId, currency, search].filter(Boolean).length;
+
+  const movementOptions = [
+    { value: 'receipt', label: pageDict.receipt },
+    { value: 'issue', label: pageDict.issue },
+    { value: 'reversal', label: pageDict.reversal },
+    { value: 'scrap', label: pageDict.scrap },
+    { value: 'transfer_out', label: pageDict.transferOut },
+    { value: 'transfer_in', label: pageDict.transferIn },
+    { value: 'adjustment', label: pageDict.adjustment },
+  ];
+
+  const productOptions = useMemo(
+    () => products.map((product) => ({
+      value: product.id,
+      label: `${product.code} - ${getLocalizedName(product.name, locale)}`,
+    })),
+    [products, locale],
+  );
+
+  const warehouseOptions = useMemo(
+    () => warehouses.map((warehouse) => ({
+      value: warehouse.id,
+      label: `${warehouse.code} - ${getLocalizedName(warehouse.name, locale)}`,
+      sublabel: warehouse.branch
+        ? `${warehouse.branch.code} - ${getLocalizedName(warehouse.branch.name, locale)}`
+        : pageDict.notAssigned,
+    })),
+    [warehouses, locale, pageDict.notAssigned],
+  );
+
+  const currencyOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allCurrencies },
+      ...currencies.map((item) => ({ value: item.code, label: item.code })),
+    ],
+    [currencies, pageDict.allCurrencies],
+  );
+
+  function handleFilter(event: React.FormEvent) {
+    event.preventDefault();
+    router.get('/reports/stock-movements', {
+      date_from: dateFrom,
+      date_to: dateTo,
+      movement_type: movementType,
+      product_id: productId,
+      warehouse_id: warehouseId,
+      currency,
+      search,
+    }, { preserveState: true, preserveScroll: true });
+  }
+
+  function handleReset() {
+    setDateFrom('');
+    setDateTo('');
+    setMovementType('');
+    setProductId('');
+    setWarehouseId('');
+    setCurrency('');
+    setSearch('');
+    router.get('/reports/stock-movements', {}, { preserveState: true, preserveScroll: true });
+  }
+
+  function movementTone(movement: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' {
+    if (movement === 'receipt' || movement === 'transfer_in') return 'ok';
+    if (movement === 'issue' || movement === 'transfer_out' || movement === 'scrap') return 'warning';
+    if (movement === 'adjustment') return 'info';
+
+    return 'muted';
+  }
+
+  function movementLabel(movement: string): string {
+    const labels: Record<string, string> = {
+      receipt: pageDict.receipt,
+      issue: pageDict.issue,
+      reversal: pageDict.reversal,
+      scrap: pageDict.scrap,
+      transfer_out: pageDict.transferOut,
+      transfer_in: pageDict.transferIn,
+      adjustment: pageDict.adjustment,
     };
-    filters: {
-        date_from: string;
-        date_to: string;
-        movement_type: string;
-        product_id: string;
-        currency: string;
-        search: string;
-    };
-    products: Array<{ id: string; code: string; name: string }>;
-}
 
-export default function StockMovementsReport({ reportData, filters, products }: StockMovementsReportProps) {
-    const [dateFrom, setDateFrom] = useState(filters.date_from || '');
-    const [dateTo, setDateTo] = useState(filters.date_to || '');
-    const [movementType, setMovementType] = useState(filters.movement_type || '');
-    const [productId, setProductId] = useState(filters.product_id || '');
-    const [currency, setCurrency] = useState(filters.currency || '');
-    const [search, setSearch] = useState(filters.search || '');
+    return labels[movement] || movement;
+  }
 
-    const handleFilter = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get('/reports/stock-movements', {
-            date_from: dateFrom,
-            date_to: dateTo,
-            movement_type: movementType,
-            product_id: productId,
-            currency,
-            search,
-        }, { preserveState: true });
-    };
+  return (
+    <AppLayout active="reports.stock-movements">
+      <Head title={pageDict.headTitle} />
 
-    const getMovementTone = (mt: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' => {
-        if (mt === 'receipt') return 'ok';
-        if (mt === 'issue') return 'warning';
-        return 'muted';
-    };
+      <PageHeader title={pageDict.title} description={pageDict.description} />
 
-    const formatQty = (e6: number) => (e6 / 1000000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-
-    return (
-        <AppLayout active="reports.stock-movements">
-            <Head title="Stock Movements Report / تقرير حركة المخزون" />
-
-            <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-                <PageHeader
-                    title="Stock Movement Ledger / سجل حركات المخزون"
-                    description="Immutable read-only audit register of all stock receipts and issues"
-                />
-
-                <Card>
-                    <form onSubmit={handleFilter} className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Date From / من تاريخ</label>
-                            <DatePicker value={dateFrom} onChange={(v) => setDateFrom(v || '')} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Date To / إلى تاريخ</label>
-                            <DatePicker value={dateTo} onChange={(v) => setDateTo(v || '')} />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Movement Type / نوع الحركة</label>
-                            <select
-                                value={movementType}
-                                onChange={(e) => setMovementType(e.target.value)}
-                                className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                            >
-                                <option value="">All Types</option>
-                                <option value="receipt">Receipt / إستلام</option>
-                                <option value="issue">Issue / صرف</option>
-                                <option value="reversal">Reversal / إسترجاع</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Product / المنتج</label>
-                            <select
-                                value={productId}
-                                onChange={(e) => setProductId(e.target.value)}
-                                className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                            >
-                                <option value="">All Products</option>
-                                {products.map((p) => (
-                                    <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Search / بحث</label>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Source, Product..."
-                                className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                            />
-                        </div>
-                        <div className="md:col-span-3 flex justify-end gap-2">
-                            <Button type="submit" variant="primary">Filter / تصفية</Button>
-                        </div>
-                    </form>
-                </Card>
-
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div className="text-xs font-medium text-slate-500">Total Movement Records / إجمالي الحركات</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{reportData.summary.total_movements_count}</div>
-                    </Card>
-                    <Card className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div className="text-xs font-medium text-slate-500">Net Quantity Delta / صافي حركة الكمية</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{formatQty(reportData.summary.total_quantity_delta_e6)}</div>
-                    </Card>
-                    <Card className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div className="text-xs font-medium text-slate-500">Net Value Delta / صافي حركة التقييم</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{formatMoney(reportData.summary.total_value_delta_minor, filters.currency || 'EGP')}</div>
-                    </Card>
-                </div>
-
-                <Card>
-                    <div className="overflow-x-auto">
-                        <table className={tableClasses.table}>
-                            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                                <tr>
-                                    <th className={tableClasses.th}>Date / التاريخ</th>
-                                    <th className={tableClasses.th}>Type / النوع</th>
-                                    <th className={tableClasses.th}>Source / المصدر</th>
-                                    <th className={tableClasses.th}>Product / المنتج</th>
-                                    <th className={tableClasses.th}>Qty Delta / تغير الكمية</th>
-                                    <th className={tableClasses.th}>Value Delta / تغير القيمة</th>
-                                    <th className={tableClasses.th}>Post Balance / الرصيد بعد الحركة</th>
-                                    <th className={tableClasses.th}>Journal / القيد</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                {reportData.rows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={8} className="p-4 text-center">
-                                            <EmptyState title="No stock movement records found / لا توجد حركات مخزون" />
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    reportData.rows.map((row) => (
-                                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                                            <td className={tableClasses.td}>{row.movement_date}</td>
-                                            <td className={tableClasses.td}><StatusBadge tone={getMovementTone(row.movement_type)}>{row.movement_type}</StatusBadge></td>
-                                            <td className={tableClasses.td}>
-                                                <span className="font-mono text-xs text-slate-700 dark:text-slate-300">{row.source_type}</span>
-                                            </td>
-                                            <td className={tableClasses.td}>{row.product_code} - {row.product_name}</td>
-                                            <td className={`${tableClasses.td} font-medium ${row.quantity_delta_e6 >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                                {row.quantity_delta_e6 >= 0 ? '+' : ''}{formatQty(row.quantity_delta_e6)} {row.uom_code}
-                                            </td>
-                                            <td className={`${tableClasses.td} font-medium ${row.value_delta_minor >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                                {row.value_delta_minor >= 0 ? '+' : ''}{formatMoney(row.value_delta_minor, row.currency)}
-                                            </td>
-                                            <td className={tableClasses.td}>
-                                                {formatQty(row.balance_quantity_e6)} {row.uom_code} ({formatMoney(row.balance_valuation_amount_minor, row.currency)})
-                                            </td>
-                                            <td className={tableClasses.td}>
-                                                {row.journal_entry_number ? (
-                                                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{row.journal_entry_number}</span>
-                                                ) : (
-                                                    <span className="text-xs text-slate-400">—</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </Card>
+      <div className="space-y-6">
+        <form onSubmit={handleFilter}>
+          <ReportFilterPanel
+            activeFilterCount={activeFilterCount}
+            activeFilterLabel={pageDict.activeFilters}
+            actions={(
+              <>
+                <Button type="button" variant="secondary" onClick={handleReset} disabled={activeFilterCount === 0}>{pageDict.clearFilters}</Button>
+                <Button type="submit">
+                  <svg className="me-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M6 10h12M10 16h4" />
+                  </svg>
+                  {pageDict.filter}
+                </Button>
+              </>
+            )}
+          >
+            <DatePicker label={pageDict.dateFrom} value={dateFrom} onChange={(value) => setDateFrom(value || '')} />
+            <DatePicker label={pageDict.dateTo} value={dateTo} onChange={(value) => setDateTo(value || '')} />
+            <SearchableSelect
+              label={pageDict.movementType}
+              options={movementOptions}
+              value={movementType}
+              onChange={(value) => setMovementType(value || '')}
+              placeholder={pageDict.allTypes}
+            />
+            <SearchableSelect
+              label={pageDict.product}
+              options={productOptions}
+              value={productId}
+              onChange={(value) => setProductId(value || '')}
+              placeholder={pageDict.allProducts}
+            />
+            <SearchableSelect
+              label={pageDict.warehouse}
+              options={warehouseOptions}
+              value={warehouseId}
+              onChange={(value) => setWarehouseId(value || '')}
+              placeholder={pageDict.allWarehouses}
+            />
+            <SearchableSelect
+              label={pageDict.currency}
+              options={currencyOptions}
+              value={currency}
+              onChange={(value) => setCurrency(value || '')}
+              placeholder={pageDict.allCurrencies}
+            />
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.search}</label>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={pageDict.searchPlaceholder}
+                className="h-[42px] w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
+              />
             </div>
-        </AppLayout>
-    );
+          </ReportFilterPanel>
+        </form>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <MetricCard label={pageDict.totalMovementRecords} value={reportData.summary.total_movements_count.toLocaleString()} tone="blue" />
+          <MetricCard label={pageDict.netQuantityDelta} value={formatQuantityE6(reportData.summary.total_quantity_delta_e6)} tone="emerald" />
+          <MetricCard
+            label={pageDict.netValueDelta}
+            value={filters.currency ? formatMoney(reportData.summary.total_value_delta_minor, filters.currency) : pageDict.mixedCurrencyAmount}
+            tone="purple"
+          />
+        </div>
+
+        {reportData.rows.length === 0 ? (
+          <EmptyState title={pageDict.emptyTitle} />
+        ) : (
+          <div className={tableClasses.wrap}>
+            <table className={tableClasses.table}>
+              <thead>
+                <tr>
+                  <th className={tableClasses.th}>{pageDict.date}</th>
+                  <th className={tableClasses.th}>{pageDict.type}</th>
+                  <th className={tableClasses.th}>{pageDict.warehouse}</th>
+                  <th className={tableClasses.th}>{pageDict.source}</th>
+                  <th className={tableClasses.th}>{pageDict.product}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.qtyDelta}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.valueDelta}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.postBalance}</th>
+                  <th className={tableClasses.th}>{pageDict.journal}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.rows.map((row) => (
+                  <tr key={row.id} className="hover:bg-[var(--background)]">
+                    <td className={tableClasses.td}>{row.movement_date}</td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={movementTone(row.movement_type)}>{movementLabel(row.movement_type)}</StatusBadge>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="flex min-w-48 flex-col gap-1">
+                        <span className="font-mono text-xs font-bold">{row.warehouse_code || pageDict.notAssigned}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          {getLocalizedName(row.warehouse_name, locale) || pageDict.notAssigned}
+                        </span>
+                        <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+                          {row.branch_code ? `${pageDict.branch}: ${row.branch_code} - ${getLocalizedName(row.branch_name, locale)}` : pageDict.notAssigned}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="font-mono text-xs text-[var(--text-secondary)]">{row.source_type}</span>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="font-semibold">{row.product_code}</span>
+                      <span className="ms-2 text-xs text-[var(--text-secondary)]">{getLocalizedName(row.product_name, locale)}</span>
+                    </td>
+                    <td className={`${tableClasses.td} text-end font-mono font-bold ${row.quantity_delta_e6 >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {row.quantity_delta_e6 >= 0 ? '+' : ''}{formatQuantityE6(row.quantity_delta_e6)} {row.uom_code}
+                    </td>
+                    <td className={`${tableClasses.td} text-end font-mono font-bold ${row.value_delta_minor >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {row.value_delta_minor >= 0 ? '+' : ''}{formatMoney(row.value_delta_minor, row.currency)}
+                    </td>
+                    <td className={`${tableClasses.td} text-end font-mono`}>
+                      {formatQuantityE6(row.balance_quantity_e6)} {row.uom_code}
+                      <span className="ms-2 text-[var(--text-secondary)]">
+                        {formatMoney(row.balance_valuation_amount_minor, row.currency)}
+                      </span>
+                    </td>
+                    <td className={tableClasses.td}>
+                      {row.journal_entry_number ? (
+                        <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">{row.journal_entry_number}</span>
+                      ) : (
+                        <span className="text-xs text-[var(--text-muted)]">{accDict.notAvailable}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </AppLayout>
+  );
 }

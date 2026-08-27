@@ -146,9 +146,9 @@ class FinancialStatementLineSeeder extends Seeder
         $assignments = [
             'ASSET_CURRENT' => ['1010', '1020', '1100', '1200', '1300'],
             'ASSET_NON_CURRENT' => ['1500', '1590'],
-            'LIABILITY_CURRENT' => ['2100', '2200', '2300'],
+            'LIABILITY_CURRENT' => ['2100', '2200', '2300', '2620'],
             'EQUITY' => ['3000', '3900'],
-            'REVENUE' => ['4100'],
+            'REVENUE' => ['4100', '4300', '4310', '4320', '4330'],
             'CONTRA_REVENUE' => ['4200'],
             'COGS' => ['5000', '5200', '5300', '5400'],
             'EXPENSE_OPERATING' => ['5100'],

@@ -71,12 +71,22 @@ type ShowProps = SharedPageProps & {
 
 export default function DisposalShow({ locale, disposal }: ShowProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).fixedAssetsDisposals;
+  const appDict = dict.app.fixedAssetsDisposals;
 
   function getTransName(nameObj?: Record<string, string> | string | null): string {
-    if (!nameObj) return '-';
+    if (!nameObj) return appDict.notAvailable;
     if (typeof nameObj === 'string') return nameObj;
-    return nameObj[locale] || nameObj.en || '-';
+    return nameObj[locale] || nameObj.en || appDict.notAvailable;
+  }
+
+  function formatDisposalType(type: FixedAssetDisposal['disposal_type']): string {
+    const labels: Record<FixedAssetDisposal['disposal_type'], string> = {
+      sale: appDict.sale,
+      scrap: appDict.scrap,
+      retirement: appDict.retirement,
+    };
+
+    return labels[type];
   }
 
   function formatDisposalStatus(status: FixedAssetDisposal['status']): string {
@@ -89,7 +99,7 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
     }
   }
 
-  const currency = disposal.asset?.currency || 'EGP';
+  const currency = disposal.asset?.currency || appDict.noCurrency;
 
   return (
     <AppLayout active="fixed-assets-disposals.index">
@@ -124,7 +134,7 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
           <Card className="p-4 border-l-4 border-l-indigo-500">
             <div className="text-xs text-slate-500 uppercase font-semibold">{appDict.disposalType}</div>
             <div className="text-xl font-bold text-slate-900 dark:text-slate-100 capitalize mt-1">
-              {appDict[disposal.disposal_type]}
+              {formatDisposalType(disposal.disposal_type)}
             </div>
             <div className="text-xs text-slate-500 mt-1">{disposal.disposal_date}</div>
           </Card>
@@ -159,7 +169,7 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
               ) : disposal.loss_minor > 0 ? (
                 <span className="text-rose-600 dark:text-rose-400">-{formatMoney(disposal.loss_minor, currency)} ({appDict.loss})</span>
               ) : (
-                <span className="text-slate-500">0.00</span>
+                <span className="text-slate-500">{formatMoney(0, currency)}</span>
               )}
             </div>
           </Card>
@@ -197,7 +207,7 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
                   {disposal.journalEntry.number}
                 </Link>
               ) : (
-                <span className="text-slate-400">-</span>
+                <span className="text-slate-400">{appDict.notAvailable}</span>
               )}
             </div>
             {disposal.reversalJournalEntry && (
@@ -254,12 +264,14 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
                         </div>
                         <div className="text-xs font-mono text-slate-500">{line.account?.code}</div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs">{line.memo}</td>
-                      <td className="px-4 py-3 text-right font-mono font-medium">
-                        {line.debit_minor > 0 ? formatMoney(line.debit_minor, currency) : '-'}
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono text-xs">
+                        {line.memo || appDict.notAvailable}
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-medium">
-                        {line.credit_minor > 0 ? formatMoney(line.credit_minor, currency) : '-'}
+                        {line.debit_minor > 0 ? formatMoney(line.debit_minor, currency) : appDict.notAvailable}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-medium">
+                        {line.credit_minor > 0 ? formatMoney(line.credit_minor, currency) : appDict.notAvailable}
                       </td>
                     </tr>
                   ))}

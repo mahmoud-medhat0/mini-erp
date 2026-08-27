@@ -22,13 +22,16 @@ use App\Models\PurchaseOrder;
 use App\Models\ReceivableEntry;
 use App\Models\SalesOrder;
 use App\Models\StockBalance;
+use App\Models\StockMovementLedger;
 use App\Models\Supplier;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
+use App\Models\Warehouse;
 use Database\Seeders\CurrencySeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ProductCategorySeeder;
 use Database\Seeders\UnitOfMeasureSeeder;
+use Database\Seeders\WarehouseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -63,6 +66,7 @@ class Phase4Slice4FulfillmentTest extends TestCase
         $this->seed(PermissionSeeder::class);
         $this->seed(UnitOfMeasureSeeder::class);
         $this->seed(ProductCategorySeeder::class);
+        $this->seed(WarehouseSeeder::class);
 
         $this->adminUser = User::factory()->create();
         $this->adminUser->givePermissionTo([
@@ -130,7 +134,10 @@ class Phase4Slice4FulfillmentTest extends TestCase
             'lock_version' => 1,
         ]);
 
+        $defaultWarehouse = Warehouse::query()->where('code', 'MAIN')->firstOrFail();
+
         StockBalance::query()->create([
+            'warehouse_id' => $defaultWarehouse->id,
             'product_id' => $this->salesProduct->id,
             'unit_of_measure_id' => $this->uom->id,
             'currency' => 'USD',
@@ -199,12 +206,12 @@ class Phase4Slice4FulfillmentTest extends TestCase
         $this->assertTrue(Schema::hasTable('goods_receipt_line'));
 
         $this->assertTrue(Schema::hasColumns('delivery_note', [
-            'id', 'number', 'sales_order_id', 'delivery_date', 'status', 'reference', 'notes',
+            'id', 'number', 'sales_order_id', 'warehouse_id', 'delivery_date', 'status', 'reference', 'notes',
             'confirmed_by', 'confirmed_at', 'cancelled_by', 'cancelled_at', 'lock_version',
         ]));
 
         $this->assertTrue(Schema::hasColumns('goods_receipt', [
-            'id', 'number', 'purchase_order_id', 'receipt_date', 'status', 'reference', 'notes',
+            'id', 'number', 'purchase_order_id', 'warehouse_id', 'receipt_date', 'status', 'reference', 'notes',
             'confirmed_by', 'confirmed_at', 'cancelled_by', 'cancelled_at', 'lock_version',
         ]));
     }
@@ -214,7 +221,7 @@ class Phase4Slice4FulfillmentTest extends TestCase
         $prohibitedColumns = [
             'company_id', 'branch_id', 'tenant_id', 'current_company', 'current_branch',
             'fiscal_year_id', 'financial_period_id', 'journal_entry_id', 'receivable_entry_id',
-            'payable_entry_id', 'customer_invoice_id', 'supplier_bill_id', 'warehouse_id',
+            'payable_entry_id', 'customer_invoice_id', 'supplier_bill_id',
             'inventory_entry_id', 'stock_movement_id', 'cogs',
         ];
         $fulfillmentTables = ['delivery_note', 'delivery_note_line', 'goods_receipt', 'goods_receipt_line'];
@@ -275,6 +282,91 @@ class Phase4Slice4FulfillmentTest extends TestCase
         $this->assertEquals($this->confirmedPurchaseOrder->id, $gr->purchase_order_id);
         $this->assertCount(1, $gr->lines);
         $this->assertEquals(8000000, $gr->lines->first()->quantity_e6);
+    }
+
+    public function test_confirmed_delivery_note_issues_stock_from_selected_operational_warehouse(): void
+    {
+        $warehouse = Warehouse::query()->create([
+            'code' => 'FULFILL-SALES',
+            'name' => ['en' => 'Fulfillment Sales Warehouse'],
+            'warehouse_type' => 'standard',
+            'is_active' => true,
+            'created_by' => $this->adminUser->id,
+            'updated_by' => $this->adminUser->id,
+            'lock_version' => 1,
+        ]);
+
+        StockBalance::query()->create([
+            'warehouse_id' => $warehouse->id,
+            'product_id' => $this->salesProduct->id,
+            'unit_of_measure_id' => $this->uom->id,
+            'currency' => 'USD',
+            'quantity_e6' => 5000000,
+            'valuation_amount_minor' => 50000,
+            'avg_unit_cost_e6' => 10000,
+            'lock_version' => 1,
+        ]);
+
+        /** @var DeliveryNoteService $service */
+        $service = app(DeliveryNoteService::class);
+        $soLine = $this->confirmedSalesOrder->lines->first();
+
+        $deliveryNote = $service->create([
+            'sales_order_id' => $this->confirmedSalesOrder->id,
+            'warehouse_id' => $warehouse->id,
+            'delivery_date' => '2026-08-22',
+            'lines' => [['sales_order_line_id' => $soLine->id, 'quantity_e6' => 2000000]],
+        ], $this->adminUser->id);
+
+        $confirmed = $service->confirm($deliveryNote->id, $this->adminUser->id);
+        $line = $confirmed->lines->first();
+
+        $movement = StockMovementLedger::query()
+            ->where('source_type', 'delivery_note')
+            ->where('source_line_id', $line->id)
+            ->where('movement_type', 'issue')
+            ->firstOrFail();
+
+        $this->assertSame($warehouse->id, $confirmed->warehouse_id);
+        $this->assertSame($warehouse->id, $movement->warehouse_id);
+        $this->assertSame(3000000, StockBalance::query()->where('warehouse_id', $warehouse->id)->where('product_id', $this->salesProduct->id)->firstOrFail()->quantity_e6);
+    }
+
+    public function test_confirmed_goods_receipt_receives_stock_into_selected_operational_warehouse(): void
+    {
+        $warehouse = Warehouse::query()->create([
+            'code' => 'FULFILL-PURCH',
+            'name' => ['en' => 'Fulfillment Purchasing Warehouse'],
+            'warehouse_type' => 'standard',
+            'is_active' => true,
+            'created_by' => $this->adminUser->id,
+            'updated_by' => $this->adminUser->id,
+            'lock_version' => 1,
+        ]);
+
+        /** @var GoodsReceiptService $service */
+        $service = app(GoodsReceiptService::class);
+        $poLine = $this->confirmedPurchaseOrder->lines->first();
+
+        $goodsReceipt = $service->create([
+            'purchase_order_id' => $this->confirmedPurchaseOrder->id,
+            'warehouse_id' => $warehouse->id,
+            'receipt_date' => '2026-08-22',
+            'lines' => [['purchase_order_line_id' => $poLine->id, 'quantity_e6' => 3000000]],
+        ], $this->adminUser->id);
+
+        $confirmed = $service->confirm($goodsReceipt->id, $this->adminUser->id);
+        $line = $confirmed->lines->first();
+
+        $movement = StockMovementLedger::query()
+            ->where('source_type', 'goods_receipt')
+            ->where('source_line_id', $line->id)
+            ->where('movement_type', 'receipt')
+            ->firstOrFail();
+
+        $this->assertSame($warehouse->id, $confirmed->warehouse_id);
+        $this->assertSame($warehouse->id, $movement->warehouse_id);
+        $this->assertSame(3000000, StockBalance::query()->where('warehouse_id', $warehouse->id)->where('product_id', $this->purchaseProduct->id)->firstOrFail()->quantity_e6);
     }
 
     public function test_unconfirmed_sales_orders_cannot_be_delivered(): void

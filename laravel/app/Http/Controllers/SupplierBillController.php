@@ -2,13 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Purchasing\SupplierBillPageData;
 use App\Application\Purchasing\SupplierBillService;
-use App\Models\GoodsReceipt;
-use App\Models\Product;
-use App\Models\PurchaseOrder;
-use App\Models\Supplier;
-use App\Models\SupplierBill;
-use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,79 +13,15 @@ class SupplierBillController extends Controller
 {
     public function __construct(
         private readonly SupplierBillService $supplierBillService,
+        private readonly SupplierBillPageData $supplierBillPageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-
-        $query = SupplierBill::query()->with([
-            'supplier',
-            'purchaseOrder',
-            'goodsReceipt',
-            'lines.product',
-            'lines.unitOfMeasure',
-            'journalEntry',
-            'payableEntry',
-        ]);
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhere('supplier_reference', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('supplier', function ($sq) use ($search): void {
-                        $sq->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($status && in_array($status, SupplierBillService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
-        }
-
-        $supplierBills = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $activeSuppliers = Supplier::query()->where('status', 'active')->orderBy('name', 'asc')->get();
-
-        // Non-stock and service products ONLY for Slice 6
-        $eligibleProducts = Product::query()
-            ->with('unitOfMeasure')
-            ->where('status', 'active')
-            ->where('is_purchase_enabled', true)
-            ->whereIn('type', ['service', 'non_stock'])
-            ->orderBy('code', 'asc')
-            ->get();
-
-        $confirmedPurchaseOrders = PurchaseOrder::query()
-            ->with(['supplier', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'confirmed')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        $confirmedGoodsReceipts = GoodsReceipt::query()
-            ->with(['supplier', 'purchaseOrder', 'lines.product', 'lines.unitOfMeasure', 'lines.purchaseOrderLine'])
-            ->where('status', 'confirmed')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        $taxCodes = TaxCode::query()->where('is_active', true)->orderBy('code', 'asc')->get();
-
-        return Inertia::render('Purchasing/SupplierBills', [
-            'supplierBills' => $supplierBills,
-            'activeSuppliers' => $activeSuppliers,
-            'eligibleProducts' => $eligibleProducts,
-            'confirmedPurchaseOrders' => $confirmedPurchaseOrders,
-            'confirmedGoodsReceipts' => $confirmedGoodsReceipts,
-            'taxCodes' => $taxCodes,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
-        ]);
+        return Inertia::render('Purchasing/SupplierBills', $this->supplierBillPageData->indexData([
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+        ]));
     }
 
     public function store(Request $request): RedirectResponse
@@ -101,7 +32,7 @@ class SupplierBillController extends Controller
             'goods_receipt_id' => ['nullable', 'uuid'],
             'bill_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'fx_rate_e6' => ['nullable', 'integer'],
             'supplier_reference' => ['nullable', 'string', 'max:255'],
             'reference' => ['nullable', 'string', 'max:255'],
@@ -119,7 +50,7 @@ class SupplierBillController extends Controller
 
         $this->supplierBillService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Supplier Bill created successfully.');
+        return redirect()->back()->with('success', __('Supplier Bill created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -144,34 +75,34 @@ class SupplierBillController extends Controller
 
         $this->supplierBillService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Supplier Bill updated successfully.');
+        return redirect()->back()->with('success', __('Supplier Bill updated successfully.'));
     }
 
     public function submit(Request $request, string $id): RedirectResponse
     {
         $this->supplierBillService->submit($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Supplier Bill submitted successfully.');
+        return redirect()->back()->with('success', __('Supplier Bill submitted successfully.'));
     }
 
     public function approve(Request $request, string $id): RedirectResponse
     {
         $this->supplierBillService->approve($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Supplier Bill approved successfully.');
+        return redirect()->back()->with('success', __('Supplier Bill approved successfully.'));
     }
 
     public function post(Request $request, string $id): RedirectResponse
     {
         $this->supplierBillService->post($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Supplier Bill posted successfully to AP/GL.');
+        return redirect()->back()->with('success', __('Supplier Bill posted successfully to AP/GL.'));
     }
 
     public function cancel(Request $request, string $id): RedirectResponse
     {
         $this->supplierBillService->cancel($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Supplier Bill cancelled successfully.');
+        return redirect()->back()->with('success', __('Supplier Bill cancelled successfully.'));
     }
 }

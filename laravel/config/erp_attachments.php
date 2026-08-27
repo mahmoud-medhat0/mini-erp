@@ -170,6 +170,42 @@ return [
                 'delete' => ['products.delete', 'products.edit'],
             ],
         ],
+        'warehouse' => [
+            'table' => 'warehouse',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['inventory.view'],
+                'attach' => ['inventory.edit', 'inventory.create'],
+                'delete' => ['inventory.delete', 'inventory.edit'],
+            ],
+        ],
+        'stock_transfer' => [
+            'table' => 'stock_transfer',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['inventory.view'],
+                'attach' => ['inventory.transfer', 'inventory.edit'],
+                'delete' => ['inventory.delete', 'inventory.edit'],
+            ],
+        ],
+        'stock_count' => [
+            'table' => 'stock_count',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['inventory.view'],
+                'attach' => ['inventory.count', 'inventory.edit'],
+                'delete' => ['inventory.delete', 'inventory.edit'],
+            ],
+        ],
+        'stock_adjustment' => [
+            'table' => 'stock_adjustment',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['inventory.view'],
+                'attach' => ['inventory.adjust', 'inventory.edit'],
+                'delete' => ['inventory.delete', 'inventory.edit'],
+            ],
+        ],
         'sales_order' => [
             'table' => 'sales_order',
             'key' => 'id',
@@ -224,6 +260,24 @@ return [
                 'delete' => ['purchasing.delete', 'purchasing.edit'],
             ],
         ],
+        'landed_cost_allocation' => [
+            'table' => 'landed_cost_allocation',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['purchasing.landed_costs'],
+                'attach' => ['purchasing.landed_costs'],
+                'delete' => ['purchasing.landed_costs'],
+            ],
+        ],
+        'expense' => [
+            'table' => 'expense',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['expenses.view'],
+                'attach' => ['expenses.create', 'expenses.edit'],
+                'delete' => ['expenses.delete', 'expenses.edit'],
+            ],
+        ],
         'sales_return' => [
             'table' => 'sales_return',
             'key' => 'id',
@@ -267,6 +321,69 @@ return [
                 'view' => ['purchasing.view'],
                 'attach' => ['purchasing.adjustment_notes'],
                 'delete' => ['purchasing.adjustment_notes'],
+            ],
+        ],
+        'employee' => [
+            'table' => 'employee',
+            'key' => 'id',
+            'permissions' => [
+                'view' => [['payroll.view', 'view_payroll']],
+                'attach' => [['payroll.edit', 'view_payroll'], ['payroll.create', 'view_payroll']],
+                'delete' => [['payroll.delete', 'view_payroll'], ['payroll.edit', 'view_payroll']],
+            ],
+        ],
+        'payroll_run' => [
+            'table' => 'payroll_run',
+            'key' => 'id',
+            'permissions' => [
+                'view' => [['payroll.view', 'view_payroll']],
+                'attach' => [['payroll.edit', 'view_payroll'], ['payroll.create', 'view_payroll']],
+                'delete' => [['payroll.delete', 'view_payroll'], ['payroll.edit', 'view_payroll']],
+            ],
+        ],
+        'rentable_item' => [
+            'table' => 'rentable_item',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['rentals.view'],
+                'attach' => ['rentals.edit', 'rentals.create'],
+                'delete' => ['rentals.delete', 'rentals.edit'],
+            ],
+        ],
+        'rental_contract' => [
+            'table' => 'rental_contract',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['rentals.view'],
+                'attach' => ['rentals.edit', 'rentals.create'],
+                'delete' => ['rentals.delete', 'rentals.edit'],
+            ],
+        ],
+        'rental_invoice' => [
+            'table' => 'rental_invoice',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['rentals.view'],
+                'attach' => ['rentals.invoice'],
+                'delete' => ['rentals.invoice', 'rentals.delete'],
+            ],
+        ],
+        'rental_handover' => [
+            'table' => 'rental_handover',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['rentals.view'],
+                'attach' => ['rentals.deliver'],
+                'delete' => ['rentals.deliver', 'rentals.delete'],
+            ],
+        ],
+        'rental_return' => [
+            'table' => 'rental_return',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['rentals.view'],
+                'attach' => ['rentals.return', 'rentals.inspect'],
+                'delete' => ['rentals.return', 'rentals.inspect', 'rentals.delete'],
             ],
         ],
         'fixed_asset' => [

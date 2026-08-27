@@ -1,6 +1,6 @@
 # MINI ERP - PHASE 9 STAGING / PRODUCTION CUTOVER PACK
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Phase 9 starts after Phase 8 Operational Readiness & E2E Smoke is complete.
@@ -38,7 +38,7 @@ Do not:
 - assume a hosting provider
 - run commands against production
 - run destructive commands
-- add tenant/company/branch ownership assumptions
+- add tenant/company ownership assumptions or branch tenancy/security ownership assumptions
 - add new ERP business domains
 - add visible hardcoded UI text
 

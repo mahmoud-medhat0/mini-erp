@@ -29,15 +29,28 @@ type AccountingIndexProps = SharedPageProps & {
 
 export default function AccountingIndex({ locale, activeFiscalYear, recentJournals = [], counts }: AccountingIndexProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
+  const accDict = dict.app.accounting;
+  const stateDict = dict.app.state;
+
+  const statusLabels: Record<string, string> = {
+    draft: accDict.statusDraft,
+    submitted: accDict.statusSubmitted,
+    approved: accDict.statusApproved,
+    posted: accDict.statusPosted,
+    reversed: accDict.statusReversed,
+  };
+
+  function getStatusLabel(status: string) {
+    return statusLabels[status.toLowerCase()] ?? status;
+  }
 
   return (
     <AppLayout active="accounting.index">
-      <Head title={accDict.title || 'Accounting Core'} />
+      <Head title={accDict.title} />
 
       <PageHeader
-        title={accDict.title || 'Accounting Core'}
-        description={accDict.subtitle || 'General Ledger spine, Journal Vouchers, Chart of Accounts, Period Close and Trial Balance.'}
+        title={accDict.title}
+        description={accDict.subtitle}
         actions={
           <div className="flex items-center gap-3">
             <Link
@@ -47,7 +60,7 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span>{accDict.createVoucher || 'Create Journal Voucher'}</span>
+              <span>{accDict.createVoucher}</span>
             </Link>
           </div>
         }
@@ -58,7 +71,7 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
         <Card className="p-5 flex items-center justify-between border-l-4 border-l-blue-500">
           <div>
             <span className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {accDict.activeAccounts || 'Active Accounts'}
+              {accDict.activeAccounts}
             </span>
             <span className="text-2xl font-extrabold text-[var(--text-primary)] font-mono">
               {counts?.accounts ?? 0}
@@ -74,7 +87,7 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
         <Card className="p-5 flex items-center justify-between border-l-4 border-l-emerald-500">
           <div>
             <span className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {accDict.postedJournals || 'Posted Journals'}
+              {accDict.postedJournals}
             </span>
             <span className="text-2xl font-extrabold text-[var(--text-primary)] font-mono">
               {counts?.postedJournals ?? 0}
@@ -90,7 +103,7 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
         <Card className="p-5 flex items-center justify-between border-l-4 border-l-amber-500">
           <div>
             <span className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {accDict.draftVouchers || 'Draft Vouchers'}
+              {accDict.draftVouchers}
             </span>
             <span className="text-2xl font-extrabold text-[var(--text-primary)] font-mono">
               {counts?.draftJournals ?? 0}
@@ -106,10 +119,10 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
         <Card className="p-5 flex items-center justify-between border-l-4 border-l-purple-500">
           <div>
             <span className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {accDict.activeFiscalYear || 'Active Fiscal Year'}
+              {accDict.activeFiscalYear}
             </span>
             <span className="text-2xl font-extrabold text-[var(--text-primary)] font-mono">
-              {activeFiscalYear?.year ?? 'None'}
+              {activeFiscalYear?.year ?? stateDict.none}
             </span>
           </div>
           <div className="flex size-11 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500">
@@ -130,9 +143,9 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
               </div>
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.coa || 'Chart of Accounts'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.coa}</h3>
             </div>
-            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.coaDesc || 'Manage hierarchical account groups and active GL accounts.'}</p>
+            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.coaDesc}</p>
           </Card>
         </Link>
 
@@ -144,9 +157,9 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.journal || 'General Journal'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.journal}</h3>
             </div>
-            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.journalDesc || 'View and edit manual journal vouchers across approval lifecycle.'}</p>
+            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.journalDesc}</p>
           </Card>
         </Link>
 
@@ -158,9 +171,9 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.ledger || 'General Ledger'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.ledger}</h3>
             </div>
-            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.ledgerDesc || 'Immutable posted transactions stream by account and period.'}</p>
+            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.ledgerDesc}</p>
           </Card>
         </Link>
 
@@ -172,9 +185,9 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-4 9 4v14l-9 4-9-4V6z" />
                 </svg>
               </div>
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.trialBalance || 'Trial Balance'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.trialBalance}</h3>
             </div>
-            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.trialBalanceDesc || 'Derived account balances verification and debit/credit total match.'}</p>
+            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.trialBalanceDesc}</p>
           </Card>
         </Link>
 
@@ -186,9 +199,9 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.periods || 'Fiscal Periods'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.periods}</h3>
             </div>
-            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.periodsDesc || 'Manage fiscal calendar years and close/reopen financial periods.'}</p>
+            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.periodsDesc}</p>
           </Card>
         </Link>
 
@@ -200,40 +213,40 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.openingBalances || 'Opening Balances'}</h3>
+              <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.openingBalances}</h3>
             </div>
-            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.openingBalancesDesc || 'Set account-level initial balances for new fiscal years.'}</p>
+            <p className="m-0 text-xs text-[var(--text-muted)]">{accDict.openingBalancesDesc}</p>
           </Card>
         </Link>
       </div>
 
       {/* Recent Journal Activity Table */}
       <Card className="p-6">
-        <h3 className="m-0 text-sm font-bold text-[var(--text-primary)] mb-4">{accDict.recentJournals || 'Recent Journal Vouchers'}</h3>
+        <h3 className="m-0 text-sm font-bold text-[var(--text-primary)] mb-4">{accDict.recentJournals}</h3>
         {recentJournals.length === 0 ? (
-          <p className="text-xs text-[var(--text-muted)] italic">No journal vouchers created yet.</p>
+          <p className="text-xs text-[var(--text-muted)] italic">{accDict.noJournalsDesc}</p>
         ) : (
           <div className="divide-y divide-[var(--border)]">
             {recentJournals.map((j) => (
               <div key={j.id} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 font-mono text-xs font-bold">
-                    {j.number ? j.number : 'DRAFT'}
+                    {j.number ? j.number : accDict.draftBadge}
                   </div>
                   <div>
-                    <span className="font-bold text-xs text-[var(--text-primary)] block">{j.description || 'Manual Journal'}</span>
+                    <span className="font-bold text-xs text-[var(--text-primary)] block">{j.description || accDict.manualJournal}</span>
                     <span className="text-[11px] text-[var(--text-muted)] font-mono">{j.entry_date}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
-                    {j.status}
+                    {getStatusLabel(j.status)}
                   </StatusBadge>
                   <Link
                     href={`/accounting/journal/${j.id}`}
                     className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                   >
-                    View
+                    {accDict.viewDetail}
                   </Link>
                 </div>
               </div>

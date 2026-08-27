@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Application\Accounting\ExchangeRatePageData;
 use App\Application\Accounting\ExchangeRateService;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
-use App\Models\Currency;
-use App\Models\ExchangeRate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,16 +15,16 @@ class ExchangeRateController extends Controller
 {
     use AuthorizesAccountingRequests;
 
-    public function __construct(private readonly ExchangeRateService $exchangeRateService) {}
+    public function __construct(
+        private readonly ExchangeRateService $exchangeRateService,
+        private readonly ExchangeRatePageData $pageData,
+    ) {}
 
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        return Inertia::render('Accounting/ExchangeRates', [
-            'rates' => ExchangeRate::query()->with('currencyRef')->orderBy('date', 'desc')->paginate(30),
-            'currencies' => Currency::query()->orderBy('code')->get(),
-        ]);
+        return Inertia::render('Accounting/ExchangeRates', $this->pageData->indexData());
     }
 
     public function store(Request $request): RedirectResponse

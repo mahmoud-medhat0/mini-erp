@@ -1,9 +1,11 @@
 # Schema Assumption Audit
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Date: 2026-08-21
+
+> **Historical Baseline Notice:** This schema audit captured the Laravel state after M10 only. It is retained for relationship-assumption evidence and no-multi-tenant corrections, not for current implementation completeness. For current schema/module status after Phase 13, use `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, `CONTINUE_HERE.md`, and `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`.
 
 Scope: current Laravel schema after M10. Focus: unsupported Company/Branch/User scoping, accounting Phase 2 tables, audit/activity logging, attachments, notifications, numbering, RBAC, and concurrency.
 

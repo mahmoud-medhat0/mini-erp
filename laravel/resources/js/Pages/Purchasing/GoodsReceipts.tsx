@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -36,6 +37,13 @@ type PurchaseOrderOption = {
   }>;
 };
 
+type WarehouseOption = {
+  id: string;
+  code: string;
+  name: { en?: string; ar?: string } | string;
+  is_default?: boolean;
+};
+
 type GoodsReceiptLineItem = {
   id?: string;
   purchase_order_line_id: string;
@@ -49,6 +57,7 @@ type GoodsReceiptRow = {
   id: string;
   number?: string | null;
   purchase_order_id: string;
+  warehouse_id: string;
   receipt_date: string;
   status: 'draft' | 'confirmed' | 'cancelled';
   reference?: string | null;
@@ -60,6 +69,7 @@ type GoodsReceiptRow = {
     number?: string | null;
     supplier?: SupplierOption | null;
   } | null;
+  warehouse?: WarehouseOption | null;
   lines: Array<{
     id: string;
     line_no: number;
@@ -85,14 +95,17 @@ type GoodsReceiptsProps = SharedPageProps & {
     links: any[];
   };
   confirmedPurchaseOrders: PurchaseOrderOption[];
+  warehouses: WarehouseOption[];
   filters: {
     search?: string;
     status?: string;
+    warehouse_id?: string;
   };
 };
 
-export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPurchaseOrders, filters }: GoodsReceiptsProps) {
+export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPurchaseOrders, warehouses, filters }: GoodsReceiptsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -104,6 +117,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
 
   const { data, setData, post, put, processing, errors, reset } = useForm({
     purchase_order_id: confirmedPurchaseOrders[0]?.id || '',
+    warehouse_id: warehouses[0]?.id || '',
     receipt_date: todayStr,
     reference: '',
     notes: '',
@@ -118,7 +132,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
         selectedPo.lines.map((l) => ({
           purchase_order_line_id: l.id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || 'PCS',
+          uom_name: l.unitOfMeasure?.name || dict.app.pages.purchasingGoodsReceipts.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -144,6 +158,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     setEditingReceipt(receipt);
     setData({
       purchase_order_id: receipt.purchase_order_id,
+      warehouse_id: receipt.warehouse_id || warehouses[0]?.id || '',
       receipt_date: receipt.receipt_date,
       reference: receipt.reference || '',
       notes: receipt.notes || '',
@@ -156,7 +171,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
           id: l.id,
           purchase_order_line_id: l.purchase_order_line_id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || 'PCS',
+          uom_name: l.unitOfMeasure?.name || dict.app.pages.purchasingGoodsReceipts.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -278,6 +293,19 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
 
           <div className="flex flex-wrap items-center gap-3">
             <select
+              value={filters.warehouse_id || ''}
+              onChange={(e) => router.get('/purchasing/goods-receipts', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
+              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">{dict.app.pages.purchasingGoodsReceipts.allWarehouses}</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={filters.status || ''}
               onChange={(e) => router.get('/purchasing/goods-receipts', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
@@ -303,6 +331,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                   <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.goodsReceipt}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.purchaseOrder}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.supplier}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.warehouse}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.receiptDate}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.status}</th>
                   <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingGoodsReceipts.actions}</th>
@@ -314,8 +343,9 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {receipt.number || dict.app.pages.purchasingGoodsReceipts.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-mono`}>{receipt.purchaseOrder?.number || '-'}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{receipt.purchaseOrder?.supplier?.name || '-'}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{receipt.purchaseOrder?.number || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{receipt.purchaseOrder?.supplier?.name || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{receipt.warehouse ? `${receipt.warehouse.code} - ${getLocalizedName(receipt.warehouse.name, locale)}` : accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{receipt.receipt_date}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={getStatusTone(receipt.status)}>
@@ -374,7 +404,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                     {dict.app.pages.purchasingGoodsReceipts.confirmedPurchaseOrder} *
@@ -394,6 +424,27 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                     ))}
                   </select>
                   {errors.purchase_order_id ? <p className="mt-1 text-[10px] text-red-500">{errors.purchase_order_id}</p> : null}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                    {dict.app.pages.purchasingGoodsReceipts.warehouse} *
+                  </label>
+                  <select
+                    value={data.warehouse_id}
+                    onChange={(e) => setData('warehouse_id', e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">{dict.app.pages.purchasingGoodsReceipts.selectWarehouse}</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                        {warehouse.is_default ? ` (${dict.app.pages.purchasingGoodsReceipts.defaultWarehouse})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
                 </div>
 
                 <div>
@@ -419,7 +470,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                   type="text"
                   value={data.reference}
                   onChange={(e) => setData('reference', e.target.value)}
-                  placeholder="e.g. VENDOR-DELIV-99"
+                  placeholder={dict.app.pages.purchasingGoodsReceipts.referencePlaceholder}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                 />
               </div>

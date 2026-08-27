@@ -26,34 +26,40 @@ class ProductService
 
         if ($code === '') {
             throw ValidationException::withMessages([
-                'code' => ['Product code / SKU is required.'],
+                'code' => [__('Product code / SKU is required.')],
             ]);
         }
 
         if (Product::query()->where('code', $code)->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Product code / SKU [{$code}] already exists."],
+                'code' => [__('Product code / SKU [:code] already exists.', ['code' => $code])],
             ]);
         }
 
         $type = $data['type'] ?? 'stock';
         if (! in_array($type, self::ALLOWED_TYPES, true)) {
             throw ValidationException::withMessages([
-                'type' => ["Invalid product type [{$type}]. Allowed types: ".implode(', ', self::ALLOWED_TYPES)],
+                'type' => [__('Invalid product type [:type]. Allowed types: :allowed', [
+                    'type' => $type,
+                    'allowed' => implode(', ', self::ALLOWED_TYPES),
+                ])],
             ]);
         }
 
         $status = $data['status'] ?? 'active';
         if (! in_array($status, self::ALLOWED_STATUSES, true)) {
             throw ValidationException::withMessages([
-                'status' => ["Invalid product status [{$status}]. Allowed statuses: ".implode(', ', self::ALLOWED_STATUSES)],
+                'status' => [__('Invalid product status [:status]. Allowed statuses: :allowed', [
+                    'status' => $status,
+                    'allowed' => implode(', ', self::ALLOWED_STATUSES),
+                ])],
             ]);
         }
 
         $uomId = $data['unit_of_measure_id'] ?? null;
         if (! $uomId) {
             throw ValidationException::withMessages([
-                'unit_of_measure_id' => ['Unit of Measure is required.'],
+                'unit_of_measure_id' => [__('Unit of Measure is required.')],
             ]);
         }
 
@@ -61,7 +67,7 @@ class ProductService
         $uom = UnitOfMeasure::query()->find($uomId);
         if (! $uom || ! $uom->is_active) {
             throw ValidationException::withMessages([
-                'unit_of_measure_id' => ['Selected Unit of Measure is invalid or inactive.'],
+                'unit_of_measure_id' => [__('Selected Unit of Measure is invalid or inactive.')],
             ]);
         }
 
@@ -71,7 +77,7 @@ class ProductService
             $category = ProductCategory::query()->find($categoryId);
             if (! $category || ! $category->is_active) {
                 throw ValidationException::withMessages([
-                    'product_category_id' => ['Selected Product Category is invalid or inactive.'],
+                    'product_category_id' => [__('Selected Product Category is invalid or inactive.')],
                 ]);
             }
         }
@@ -117,7 +123,7 @@ class ProductService
             $code = strtoupper(trim((string) $data['code']));
             if ($code !== $product->code && Product::query()->where('code', $code)->where('id', '!=', $id)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Product code / SKU [{$code}] already exists."],
+                    'code' => [__('Product code / SKU [:code] already exists.', ['code' => $code])],
                 ]);
             }
             $product->code = $code;
@@ -134,7 +140,10 @@ class ProductService
         if (isset($data['type'])) {
             if (! in_array($data['type'], self::ALLOWED_TYPES, true)) {
                 throw ValidationException::withMessages([
-                    'type' => ["Invalid product type [{$data['type']}]. Allowed types: ".implode(', ', self::ALLOWED_TYPES)],
+                    'type' => [__('Invalid product type [:type]. Allowed types: :allowed', [
+                        'type' => $data['type'],
+                        'allowed' => implode(', ', self::ALLOWED_TYPES),
+                    ])],
                 ]);
             }
             $product->type = $data['type'];
@@ -143,7 +152,10 @@ class ProductService
         if (isset($data['status'])) {
             if (! in_array($data['status'], self::ALLOWED_STATUSES, true)) {
                 throw ValidationException::withMessages([
-                    'status' => ["Invalid product status [{$data['status']}]. Allowed statuses: ".implode(', ', self::ALLOWED_STATUSES)],
+                    'status' => [__('Invalid product status [:status]. Allowed statuses: :allowed', [
+                        'status' => $data['status'],
+                        'allowed' => implode(', ', self::ALLOWED_STATUSES),
+                    ])],
                 ]);
             }
             $product->status = $data['status'];
@@ -154,7 +166,7 @@ class ProductService
             $uom = UnitOfMeasure::query()->find($data['unit_of_measure_id']);
             if (! $uom || ! $uom->is_active) {
                 throw ValidationException::withMessages([
-                    'unit_of_measure_id' => ['Selected Unit of Measure is invalid or inactive.'],
+                    'unit_of_measure_id' => [__('Selected Unit of Measure is invalid or inactive.')],
                 ]);
             }
             $product->unit_of_measure_id = $data['unit_of_measure_id'];
@@ -167,7 +179,7 @@ class ProductService
                 $category = ProductCategory::query()->find($categoryId);
                 if (! $category || ! $category->is_active) {
                     throw ValidationException::withMessages([
-                        'product_category_id' => ['Selected Product Category is invalid or inactive.'],
+                        'product_category_id' => [__('Selected Product Category is invalid or inactive.')],
                     ]);
                 }
             }

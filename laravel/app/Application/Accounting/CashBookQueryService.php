@@ -16,7 +16,7 @@ class CashBookQueryService
 
         if (! $cashAccount->glAccount) {
             throw ValidationException::withMessages([
-                'cash_account_id' => ['Cash account does not have a linked GL account.'],
+                'cash_account_id' => [__('Cash account does not have a linked GL account.')],
             ]);
         }
 

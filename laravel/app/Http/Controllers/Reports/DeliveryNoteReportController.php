@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Application\Reports\DeliveryNoteReportService;
+use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
-use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -13,6 +12,8 @@ use Inertia\Response;
 
 class DeliveryNoteReportController extends Controller
 {
+    public function __construct(private readonly ReportPageOptions $options) {}
+
     public function index(Request $request, DeliveryNoteReportService $service): Response
     {
         Gate::authorize('reports.view');
@@ -22,6 +23,7 @@ class DeliveryNoteReportController extends Controller
         $status = $request->query('status');
         $customerId = $request->query('customer_id');
         $productId = $request->query('product_id');
+        $warehouseId = $request->query('warehouse_id');
         $search = $request->query('search');
 
         $data = $service->generate(
@@ -30,11 +32,9 @@ class DeliveryNoteReportController extends Controller
             status: $status ? (string) $status : null,
             customerId: $customerId ? (string) $customerId : null,
             productId: $productId ? (string) $productId : null,
+            warehouseId: $warehouseId ? (string) $warehouseId : null,
             search: $search ? (string) $search : null
         );
-
-        $customers = Customer::query()->where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
-        $products = Product::query()->where('status', 'active')->orderBy('code')->get(['id', 'code', 'name']);
 
         return Inertia::render('Reports/DeliveryNotesReport', [
             'reportData' => $data,
@@ -44,10 +44,15 @@ class DeliveryNoteReportController extends Controller
                 'status' => $status ?? '',
                 'customer_id' => $customerId ?? '',
                 'product_id' => $productId ?? '',
+                'warehouse_id' => $warehouseId ?? '',
                 'search' => $search ?? '',
             ],
-            'customers' => $customers,
-            'products' => $products,
+            'customers' => $this->options->activeCustomers(sortBy: 'name', columns: ['id', 'code', 'name']),
+            'products' => $this->options->activeProducts(columns: ['id', 'code', 'name']),
+            'warehouses' => $this->options->activeWarehouses(
+                columns: ['id', 'code', 'name', 'is_default'],
+                defaultFirst: true,
+            ),
         ]);
     }
 }

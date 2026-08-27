@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Application\Accounting\FinancialPeriodPageData;
 use App\Application\Accounting\PeriodService;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
 use App\Models\FinancialPeriod;
-use App\Models\FiscalYear;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,10 @@ class FinancialPeriodController extends Controller
 {
     use AuthorizesAccountingRequests;
 
-    public function __construct(private readonly PeriodService $periodService) {}
+    public function __construct(
+        private readonly PeriodService $periodService,
+        private readonly FinancialPeriodPageData $pageData,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -25,9 +28,7 @@ class FinancialPeriodController extends Controller
             abort(403);
         }
 
-        return Inertia::render('Accounting/Periods', [
-            'fiscalYears' => FiscalYear::query()->with('periods')->orderBy('year', 'desc')->get(),
-        ]);
+        return Inertia::render('Accounting/Periods', $this->pageData->indexData());
     }
 
     public function closeReadiness(Request $request, FinancialPeriod $period): JsonResponse

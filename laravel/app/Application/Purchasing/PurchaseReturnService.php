@@ -6,6 +6,8 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Inventory\WarehouseResolver;
+use App\Application\Support\CurrencyInput;
 use App\Application\Taxes\TaxCalculationService;
 use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
@@ -35,6 +37,7 @@ class PurchaseReturnService
         private readonly AccountingAccountMappingService $mappingService,
         private readonly PostingEngine $postingEngine,
         private readonly MovingWeightedAverageInventoryService $inventoryService,
+        private readonly WarehouseResolver $warehouseResolver,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
         private readonly TaxCalculationService $taxCalcService,
@@ -46,40 +49,41 @@ class PurchaseReturnService
         return DB::transaction(function () use ($data, $actorId): PurchaseReturn {
             $supplierId = $data['supplier_id'] ?? null;
             if (! $supplierId) {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier is required.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier is required.')]]);
             }
 
             /** @var Supplier|null $supplier */
             $supplier = Supplier::query()->where('id', $supplierId)->first();
             if (! $supplier || $supplier->status !== 'active') {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier must be active.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier must be active.')]]);
             }
 
             $goodsReceiptId = $data['goods_receipt_id'] ?? null;
             if (! $goodsReceiptId) {
-                throw ValidationException::withMessages(['goods_receipt_id' => ['Goods Receipt is required.']]);
+                throw ValidationException::withMessages(['goods_receipt_id' => [__('Goods Receipt is required.')]]);
             }
 
             /** @var GoodsReceipt|null $goodsReceipt */
             $goodsReceipt = GoodsReceipt::query()->with('purchaseOrder')->where('id', $goodsReceiptId)->lockForUpdate()->first();
             if (! $goodsReceipt || $goodsReceipt->status !== 'confirmed') {
-                throw ValidationException::withMessages(['goods_receipt_id' => ['Purchase Returns can only be created for confirmed Goods Receipts.']]);
+                throw ValidationException::withMessages(['goods_receipt_id' => [__('Purchase Returns can only be created for confirmed Goods Receipts.')]]);
             }
 
             $grSupplierId = $goodsReceipt->purchaseOrder?->supplier_id;
             if ($grSupplierId && $grSupplierId !== $supplier->id) {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier must match the Goods Receipt supplier.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier must match the Goods Receipt supplier.')]]);
             }
 
-            $currency = $data['currency'] ?? 'USD';
-            $grCurrency = $goodsReceipt->purchaseOrder?->currency ?? 'USD';
+            $currency = CurrencyInput::required($data['currency'] ?? null);
+            $grCurrency = CurrencyInput::related($goodsReceipt->purchaseOrder?->currency, 'currency', 'Goods Receipt');
             if ($grCurrency !== $currency) {
-                throw ValidationException::withMessages(['currency' => ['Currency must match the Goods Receipt currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Currency must match the Goods Receipt currency.')]]);
             }
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? $goodsReceipt->warehouse_id ?? null);
 
             $returnDate = $data['return_date'] ?? null;
             if (! $returnDate) {
-                throw ValidationException::withMessages(['return_date' => ['Return date is required.']]);
+                throw ValidationException::withMessages(['return_date' => [__('Return date is required.')]]);
             }
 
             $period = $this->resolveFinancialPeriodForDate($returnDate);
@@ -89,17 +93,18 @@ class PurchaseReturnService
                 /** @var SupplierBill|null $supplierBill */
                 $supplierBill = SupplierBill::query()->where('id', $supplierBillId)->first();
                 if (! $supplierBill || $supplierBill->supplier_id !== $supplier->id) {
-                    throw ValidationException::withMessages(['supplier_bill_id' => ['Supplier Bill does not belong to the selected supplier.']]);
+                    throw ValidationException::withMessages(['supplier_bill_id' => [__('Supplier Bill does not belong to the selected supplier.')]]);
                 }
                 if ($supplierBill->currency !== $currency) {
-                    throw ValidationException::withMessages(['currency' => ['Currency must match the Supplier Bill currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Currency must match the Supplier Bill currency.')]]);
                 }
             }
 
             $validatedLines = $this->validateAndCalculateLines(
                 $data['lines'] ?? [],
                 $goodsReceipt,
-                $supplierBillId
+                $supplierBillId,
+                $returnDate
             );
 
             $taxAmountMinor = array_sum(array_column($validatedLines, 'tax_amount_minor'));
@@ -108,6 +113,7 @@ class PurchaseReturnService
             $return = PurchaseReturn::query()->create([
                 'supplier_id' => $supplier->id,
                 'goods_receipt_id' => $goodsReceipt->id,
+                'warehouse_id' => $warehouse->id,
                 'supplier_bill_id' => $supplierBillId,
                 'fiscal_year_id' => $period->fiscal_year_id,
                 'financial_period_id' => $period->id,
@@ -141,7 +147,7 @@ class PurchaseReturnService
                 ]);
             }
 
-            $return->load(['supplier', 'goodsReceipt', 'lines.product', 'lines.unitOfMeasure', 'lines.taxCode']);
+            $return->load(['supplier', 'goodsReceipt', 'warehouse', 'lines.product', 'lines.unitOfMeasure', 'lines.taxCode']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -163,23 +169,25 @@ class PurchaseReturnService
             $return = PurchaseReturn::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($return->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft purchase returns can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft purchase returns can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $return->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             $returnDate = $data['return_date'] ?? $return->return_date;
             $period = $this->resolveFinancialPeriodForDate($returnDate);
 
             $goodsReceipt = GoodsReceipt::query()->where('id', $return->goods_receipt_id)->lockForUpdate()->firstOrFail();
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? $return->warehouse_id ?? $goodsReceipt->warehouse_id ?? null);
             $supplierBillId = $data['supplier_bill_id'] ?? $return->supplier_bill_id;
 
             $validatedLines = $this->validateAndCalculateLines(
                 $data['lines'] ?? [],
                 $goodsReceipt,
                 $supplierBillId,
+                $returnDate,
                 $return->id
             );
 
@@ -190,6 +198,7 @@ class PurchaseReturnService
             $return->update([
                 'fiscal_year_id' => $period->fiscal_year_id,
                 'financial_period_id' => $period->id,
+                'warehouse_id' => $warehouse->id,
                 'return_date' => $returnDate,
                 'supplier_bill_id' => $supplierBillId,
                 'tax_amount_minor' => $taxAmountMinor,
@@ -220,7 +229,7 @@ class PurchaseReturnService
                 ]);
             }
 
-            $return->load(['supplier', 'goodsReceipt', 'lines.product', 'lines.unitOfMeasure']);
+            $return->load(['supplier', 'goodsReceipt', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -242,11 +251,11 @@ class PurchaseReturnService
             $return = PurchaseReturn::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($return->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft purchase returns can be submitted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft purchase returns can be submitted.')]]);
             }
 
             if ($return->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Purchase return must have at least one line item before submitting.']]);
+                throw ValidationException::withMessages(['lines' => [__('Purchase return must have at least one line item before submitting.')]]);
             }
 
             $before = $return->toArray();
@@ -265,10 +274,10 @@ class PurchaseReturnService
                 entityType: 'purchase_return',
                 entityId: $return->id,
                 before: $before,
-                after: $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+            return $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -279,15 +288,15 @@ class PurchaseReturnService
             $return = PurchaseReturn::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($return->status === 'approved') {
-                return $return->load(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+                return $return->load(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             if (! in_array($return->status, ['draft', 'submitted'], true)) {
-                throw ValidationException::withMessages(['status' => ['Only draft or submitted purchase returns can be approved.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft or submitted purchase returns can be approved.')]]);
             }
 
             if ($return->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Purchase return must have at least one line item before approving.']]);
+                throw ValidationException::withMessages(['lines' => [__('Purchase return must have at least one line item before approving.')]]);
             }
 
             $before = $return->toArray();
@@ -306,10 +315,10 @@ class PurchaseReturnService
                 entityType: 'purchase_return',
                 entityId: $return->id,
                 before: $before,
-                after: $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+            return $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -320,11 +329,11 @@ class PurchaseReturnService
             $return = PurchaseReturn::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($return->status === 'posted') {
-                throw ValidationException::withMessages(['status' => ['Posted purchase returns cannot be cancelled in this slice.']]);
+                throw ValidationException::withMessages(['status' => [__('Posted purchase returns cannot be cancelled in this slice.')]]);
             }
 
             if ($return->status === 'cancelled') {
-                return $return->load(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+                return $return->load(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             $before = $return->toArray();
@@ -343,10 +352,10 @@ class PurchaseReturnService
                 entityType: 'purchase_return',
                 entityId: $return->id,
                 before: $before,
-                after: $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+            return $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -357,28 +366,28 @@ class PurchaseReturnService
             $return = PurchaseReturn::query()->with(['lines.product', 'lines.goodsReceiptLine', 'supplier'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($return->status === 'posted') {
-                return $return->load(['supplier', 'lines.product', 'lines.unitOfMeasure', 'journalEntry']);
+                return $return->load(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure', 'journalEntry']);
             }
 
             if ($return->status !== 'approved') {
-                throw ValidationException::withMessages(['status' => ['Only approved purchase returns can be posted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only approved purchase returns can be posted.')]]);
             }
 
             if ($return->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Cannot post purchase return without line items.']]);
+                throw ValidationException::withMessages(['lines' => [__('Cannot post purchase return without line items.')]]);
             }
 
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $return->financial_period_id, (string) $return->return_date);
             $this->taxPeriodGuard->ensureDateNotFiled((string) $return->return_date);
             if ($period->fiscal_year_id !== $return->fiscal_year_id) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the return fiscal year.']]);
+                throw ValidationException::withMessages(['financial_period_id' => [__('Financial period does not belong to the return fiscal year.')]]);
             }
 
             $grniAccount = $this->mappingService->getAccount('grni_clearing');
             $inventoryAccount = $this->mappingService->getAccount('inventory_asset');
 
             if ($grniAccount->currency !== $return->currency || $inventoryAccount->currency !== $return->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped GL account currencies must match return currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Mapped GL account currencies must match return currency.')]]);
             }
 
             $number = $return->number;
@@ -413,6 +422,7 @@ class PurchaseReturnService
 
                 /** @var StockBalance|null $balance */
                 $balance = StockBalance::query()
+                    ->where('warehouse_id', $return->warehouse_id)
                     ->where('product_id', $line->product_id)
                     ->where('currency', $return->currency)
                     ->lockForUpdate()
@@ -423,7 +433,7 @@ class PurchaseReturnService
                     $wholeAvail = intdiv($available, 1000000);
                     $fracAvail = sprintf('%06d', abs($available % 1000000));
                     throw ValidationException::withMessages([
-                        'stock' => ["Insufficient stock balance for product. Available: {$wholeAvail}.{$fracAvail}."],
+                        'stock' => [__('Insufficient stock balance for product. Available: :available.', ['available' => "{$wholeAvail}.{$fracAvail}"])],
                     ]);
                 }
 
@@ -503,6 +513,7 @@ class PurchaseReturnService
             foreach ($movements as $movement) {
                 /** @var StockMovementLedger $ledgerRow */
                 $ledgerRow = StockMovementLedger::query()->create([
+                    'warehouse_id' => $return->warehouse_id,
                     'movement_date' => $return->return_date,
                     'source_type' => 'purchase_return',
                     'source_id' => $return->id,
@@ -547,10 +558,10 @@ class PurchaseReturnService
                 entityType: 'purchase_return',
                 entityId: $return->id,
                 before: $before,
-                after: $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure', 'journalEntry'])->toArray(),
+                after: $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure', 'journalEntry'])->toArray(),
             );
 
-            return $return->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure', 'journalEntry']);
+            return $return->fresh(['supplier', 'warehouse', 'lines.product', 'lines.unitOfMeasure', 'journalEntry']);
         });
     }
 
@@ -564,16 +575,16 @@ class PurchaseReturnService
             ->first();
 
         if (! $period) {
-            throw ValidationException::withMessages(['return_date' => ["No open financial period covers date {$date}."]]);
+            throw ValidationException::withMessages(['return_date' => [__('No open financial period covers date :date.', ['date' => $date])]]);
         }
 
         return $period;
     }
 
-    private function validateAndCalculateLines(array $lines, GoodsReceipt $goodsReceipt, ?string $supplierBillId = null, ?string $currentReturnId = null): array
+    private function validateAndCalculateLines(array $lines, GoodsReceipt $goodsReceipt, ?string $supplierBillId = null, ?string $returnDate = null, ?string $currentReturnId = null): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         $grLineIds = [];
@@ -581,7 +592,7 @@ class PurchaseReturnService
             $lineIndex = $index + 1;
             $grlId = $line['goods_receipt_line_id'] ?? null;
             if (! $grlId) {
-                throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => ["Line {$lineIndex} must reference a Goods Receipt line."]]);
+                throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => [__('Line :line must reference a Goods Receipt line.', ['line' => $lineIndex])]]);
             }
             $grLineIds[] = $grlId;
         }
@@ -603,52 +614,52 @@ class PurchaseReturnService
             /** @var GoodsReceiptLine|null $grLine */
             $grLine = $grLines->get($grlId);
             if (! $grLine || $grLine->goods_receipt_id !== $goodsReceipt->id) {
-                throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => ["Line {$lineIndex} does not belong to the selected Goods Receipt."]]);
+                throw ValidationException::withMessages(["lines.{$index}.goods_receipt_line_id" => [__('Line :line does not belong to the selected Goods Receipt.', ['line' => $lineIndex])]]);
             }
 
             $productId = $line['product_id'] ?? $grLine->product_id;
             if (! $productId) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Line {$lineIndex} product is required."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Line :line product is required.', ['line' => $lineIndex])]]);
             }
 
             /** @var Product|null $product */
             $product = Product::query()->where('id', $productId)->first();
             if (! $product || $product->status !== 'active') {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product on line {$lineIndex} is inactive or does not exist."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product on line :line is inactive or does not exist.', ['line' => $lineIndex])]]);
             }
 
             if ($grLine->product_id !== $product->id) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product on line {$lineIndex} must match the selected Goods Receipt line."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product on line :line must match the selected Goods Receipt line.', ['line' => $lineIndex])]]);
             }
 
             $uomId = $line['unit_of_measure_id'] ?? $grLine->unit_of_measure_id;
             if ($grLine->unit_of_measure_id !== $uomId) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => ["Unit of measure on line {$lineIndex} must match the selected Goods Receipt line."]]);
+                throw ValidationException::withMessages(["lines.{$index}.unit_of_measure_id" => [__('Unit of measure on line :line must match the selected Goods Receipt line.', ['line' => $lineIndex])]]);
             }
 
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
             if ($quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
+                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex])]]);
             }
 
             $supplierBillLineId = $line['supplier_bill_line_id'] ?? null;
             if ($supplierBillLineId) {
                 if (! $supplierBillId) {
-                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Line {$lineIndex} references a Supplier Bill line but no Supplier Bill was selected."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => [__('Line :line references a Supplier Bill line but no Supplier Bill was selected.', ['line' => $lineIndex])]]);
                 }
 
                 /** @var SupplierBillLine|null $supplierBillLine */
                 $supplierBillLine = SupplierBillLine::query()->where('id', $supplierBillLineId)->first();
                 if (! $supplierBillLine || $supplierBillLine->supplier_bill_id !== $supplierBillId) {
-                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Line {$lineIndex} does not belong to the selected Supplier Bill."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => [__('Line :line does not belong to the selected Supplier Bill.', ['line' => $lineIndex])]]);
                 }
 
                 if ($supplierBillLine->product_id !== $product->id) {
-                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Product on line {$lineIndex} must match the selected Supplier Bill line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => [__('Product on line :line must match the selected Supplier Bill line.', ['line' => $lineIndex])]]);
                 }
 
                 if ($supplierBillLine->unit_of_measure_id !== $uomId) {
-                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Unit of measure on line {$lineIndex} must match the selected Supplier Bill line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => [__('Unit of measure on line :line must match the selected Supplier Bill line.', ['line' => $lineIndex])]]);
                 }
             }
 
@@ -691,7 +702,10 @@ class PurchaseReturnService
                 $fraction = str_pad((string) intdiv($maxAllowedE6 % 1000000, 10000), 2, '0', STR_PAD_LEFT);
                 $maxAllowedDecimal = "{$whole}.{$fraction}";
                 throw ValidationException::withMessages([
-                    "lines.{$index}.quantity_e6" => ["Returned quantity on line {$lineIndex} exceeds remaining Goods Receipt line quantity. Maximum remaining allowed is {$maxAllowedDecimal}."],
+                    "lines.{$index}.quantity_e6" => [__('Returned quantity on line :line exceeds remaining Goods Receipt line quantity. Maximum remaining allowed is :maximum.', [
+                        'line' => $lineIndex,
+                        'maximum' => $maxAllowedDecimal,
+                    ])],
                 ]);
             }
 
@@ -702,8 +716,7 @@ class PurchaseReturnService
             if ($supplierBillLineId && isset($supplierBillLine) && $supplierBillLine->tax_code_id) {
                 $taxCodeId = $supplierBillLine->tax_code_id;
                 $taxRateBps = $supplierBillLine->tax_rate_bps;
-                $calcDate = $data['return_date'] ?? now()->format('Y-m-d');
-                $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $originalReceiptCostMinor, $calcDate);
+                $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $originalReceiptCostMinor, $returnDate ?? now()->format('Y-m-d'));
                 $taxAmountMinor = $taxResult['tax_minor'];
             }
 
@@ -741,7 +754,7 @@ class PurchaseReturnService
     private function checkedAdd(int $left, int $right): int
     {
         if ($right > 0 && $left > PHP_INT_MAX - $right) {
-            throw ValidationException::withMessages(['stock' => ['Inventory calculation exceeds supported integer range.']]);
+            throw ValidationException::withMessages(['stock' => [__('Inventory calculation exceeds supported integer range.')]]);
         }
 
         return $left + $right;
@@ -750,7 +763,7 @@ class PurchaseReturnService
     private function assertMultiplyWithinRange(int $left, int $right, string $field): void
     {
         if ($left !== 0 && $right !== 0 && $left > intdiv(PHP_INT_MAX, $right)) {
-            throw ValidationException::withMessages([$field => ['Calculation exceeds supported integer range.']]);
+            throw ValidationException::withMessages([$field => [__('Calculation exceeds supported integer range.')]]);
         }
     }
 }

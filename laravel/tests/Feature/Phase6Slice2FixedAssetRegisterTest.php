@@ -57,11 +57,10 @@ class Phase6Slice2FixedAssetRegisterTest extends TestCase
         ]);
     }
 
-    public function test_schema_has_no_prohibited_tenant_company_custodian_or_location_columns(): void
+    public function test_schema_has_no_prohibited_tenant_company_or_custodian_columns_and_allows_operational_asset_location(): void
     {
         $prohibitedColumns = [
             'company_id',
-            'branch_id',
             'tenant_id',
             'custodian_id',
             'employee_id',
@@ -81,6 +80,9 @@ class Phase6Slice2FixedAssetRegisterTest extends TestCase
                 "fixed_asset must NOT contain column [{$col}]."
             );
         }
+
+        $this->assertTrue(Schema::hasColumn('fixed_asset', 'branch_id'));
+        $this->assertTrue(Schema::hasColumn('fixed_asset', 'fixed_asset_location_id'));
     }
 
     public function test_category_crud_and_delete_protection(): void

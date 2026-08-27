@@ -48,6 +48,7 @@ use App\Models\SupplierAdjustmentNote;
 use App\Models\SupplierBill;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
+use App\Models\Warehouse;
 use Database\Seeders\AccountingCoreSeeder;
 use Database\Seeders\CurrencySeeder;
 use Database\Seeders\PermissionSeeder;
@@ -199,7 +200,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         return $mappingService->getAccount($key);
     }
 
-    private function createConfirmedGoodsReceiptWithLine(Supplier $supplier, Product $product, int $qtyE6, int $unitCostMinor): array
+    private function createConfirmedGoodsReceiptWithLine(Supplier $supplier, Product $product, int $qtyE6, int $unitCostMinor, ?string $warehouseId = null): array
     {
         /** @var PurchaseOrderService $poService */
         $poService = app(PurchaseOrderService::class);
@@ -224,6 +225,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         $gr = $grService->create([
             'supplier_id' => $supplier->id,
             'purchase_order_id' => $confirmedPo->id,
+            'warehouse_id' => $warehouseId,
             'receipt_date' => self::DATE,
             'currency' => self::CURRENCY,
             'lines' => [
@@ -240,7 +242,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         return ['gr' => $confirmedGr, 'line' => $confirmedGr->lines->first()];
     }
 
-    private function createConfirmedDeliveryNoteWithLine(Customer $customer, Product $product, int $qtyE6, int $unitPriceMinor): array
+    private function createConfirmedDeliveryNoteWithLine(Customer $customer, Product $product, int $qtyE6, int $unitPriceMinor, ?string $warehouseId = null): array
     {
         /** @var SalesOrderService $soService */
         $soService = app(SalesOrderService::class);
@@ -264,6 +266,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         $dnService = app(DeliveryNoteService::class);
         $dn = $dnService->create([
             'sales_order_id' => $confirmedSo->id,
+            'warehouse_id' => $warehouseId,
             'delivery_date' => self::DATE,
             'lines' => [
                 [
@@ -363,7 +366,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         return $service->post($bill->id, $this->adminUser->id);
     }
 
-    private function createPostedSalesReturn(DeliveryNote $dn, DeliveryNoteLine $dnLine, Product $product, int $qtyE6, ?CustomerInvoice $invoice = null, string $disposition = 'restock_original_cost', ?int $manualRestockValueMinor = null): SalesReturn
+    private function createPostedSalesReturn(DeliveryNote $dn, DeliveryNoteLine $dnLine, Product $product, int $qtyE6, ?CustomerInvoice $invoice = null, string $disposition = 'restock_original_cost', ?int $manualRestockValueMinor = null, ?string $warehouseId = null): SalesReturn
     {
         /** @var SalesReturnService $service */
         $service = app(SalesReturnService::class);
@@ -386,6 +389,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         $return = $service->create([
             'customer_id' => $dn->salesOrder->customer_id,
             'delivery_note_id' => $dn->id,
+            'warehouse_id' => $warehouseId,
             'customer_invoice_id' => $invoice?->id,
             'return_date' => self::DATE,
             'currency' => self::CURRENCY,
@@ -398,7 +402,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         return $service->post($return->id, $this->adminUser->id);
     }
 
-    private function createPostedPurchaseReturn(GoodsReceipt $gr, GoodsReceiptLine $grLine, Product $product, int $qtyE6): PurchaseReturn
+    private function createPostedPurchaseReturn(GoodsReceipt $gr, GoodsReceiptLine $grLine, Product $product, int $qtyE6, ?string $warehouseId = null): PurchaseReturn
     {
         /** @var PurchaseReturnService $service */
         $service = app(PurchaseReturnService::class);
@@ -406,6 +410,7 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         $return = $service->create([
             'supplier_id' => $gr->purchaseOrder->supplier_id,
             'goods_receipt_id' => $gr->id,
+            'warehouse_id' => $warehouseId,
             'return_date' => self::DATE,
             'currency' => self::CURRENCY,
             'reason' => 'defective items',
@@ -476,10 +481,15 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         return ['dn' => $dn, 'line' => $dnLine, 'invoice' => $invoice];
     }
 
-    private function stockQuantityE6(Product $product): int
+    private function stockQuantityE6(Product $product, ?string $warehouseId = null): int
     {
         /** @var StockBalance|null $balance */
-        $balance = StockBalance::query()->where('product_id', $product->id)->first();
+        $query = StockBalance::query()->where('product_id', $product->id);
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        $balance = $query->first();
 
         return $balance ? (int) $balance->quantity_e6 : 0;
     }
@@ -642,6 +652,35 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
             ->where('source_id', $return->id)
             ->count());
         $this->assertSame(9_000_000, $this->stockQuantityE6($product));
+    }
+
+    public function test_sales_return_restock_uses_selected_operational_warehouse(): void
+    {
+        $warehouse = Warehouse::query()->create([
+            'code' => 'RET-SALES',
+            'name' => ['en' => 'Return Sales Warehouse', 'ar' => 'مخزن مرتجعات البيع'],
+            'warehouse_type' => 'standard',
+            'is_active' => true,
+            'is_default' => false,
+            'lock_version' => 1,
+        ]);
+        $product = $this->makeStockProduct();
+        $this->createConfirmedGoodsReceiptWithLine($this->supplier, $product, 5_000_000, 2000, $warehouse->id);
+        ['dn' => $dn, 'line' => $dnLine] = $this->createConfirmedDeliveryNoteWithLine($this->customer, $product, 4_000_000, 5000, $warehouse->id);
+
+        $this->assertSame(1_000_000, $this->stockQuantityE6($product, $warehouse->id));
+
+        $return = $this->createPostedSalesReturn($dn, $dnLine, $product, 2_000_000, null, 'restock_original_cost', null, $warehouse->id);
+
+        $movement = StockMovementLedger::query()
+            ->where('source_type', 'sales_return')
+            ->where('source_id', $return->id)
+            ->where('movement_type', 'reversal')
+            ->firstOrFail();
+
+        $this->assertSame((string) $warehouse->id, (string) $return->warehouse_id);
+        $this->assertSame((string) $warehouse->id, (string) $movement->warehouse_id);
+        $this->assertSame(3_000_000, $this->stockQuantityE6($product, $warehouse->id));
     }
 
     public function test_sales_return_requires_confirmed_delivery_note(): void
@@ -1114,6 +1153,32 @@ class Phase4Slice10ReturnsCreditNotesTest extends TestCase
         $this->assertSame($movementsBefore, StockMovementLedger::query()->where('source_type', 'purchase_return')->where('source_id', $return->id)->count());
         $this->assertSame($return->number, $replayed->number);
         $this->assertSame(3_000_000, $this->stockQuantityE6($product));
+    }
+
+    public function test_purchase_return_issues_stock_from_selected_operational_warehouse(): void
+    {
+        $warehouse = Warehouse::query()->create([
+            'code' => 'RET-PURCHASE',
+            'name' => ['en' => 'Return Purchase Warehouse', 'ar' => 'مخزن مرتجعات الشراء'],
+            'warehouse_type' => 'standard',
+            'is_active' => true,
+            'is_default' => false,
+            'lock_version' => 1,
+        ]);
+        $product = $this->makeStockProduct();
+        ['gr' => $gr, 'line' => $grLine] = $this->createConfirmedGoodsReceiptWithLine($this->supplier, $product, 5_000_000, 2000, $warehouse->id);
+
+        $return = $this->createPostedPurchaseReturn($gr, $grLine, $product, 2_000_000, $warehouse->id);
+
+        $movement = StockMovementLedger::query()
+            ->where('source_type', 'purchase_return')
+            ->where('source_id', $return->id)
+            ->where('movement_type', 'reversal')
+            ->firstOrFail();
+
+        $this->assertSame((string) $warehouse->id, (string) $return->warehouse_id);
+        $this->assertSame((string) $warehouse->id, (string) $movement->warehouse_id);
+        $this->assertSame(3_000_000, $this->stockQuantityE6($product, $warehouse->id));
     }
 
     public function test_decrease_payable_posts_ap_debit_and_allowance_credit(): void

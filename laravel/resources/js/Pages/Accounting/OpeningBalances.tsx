@@ -21,8 +21,7 @@ export default function OpeningBalances({
   existingBalances = {},
 }: OpeningBalancesProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
-  const fieldsDict = dict.app.fields || {};
+  const accDict = dict.app.accounting;
 
   const activeYearId = selectedYearId ?? fiscalYears[0]?.id ?? '';
 
@@ -88,19 +87,16 @@ export default function OpeningBalances({
 
   const fiscalYearOptions = fiscalYears.map((fy) => ({
     value: fy.id,
-    label: `${accDict.fiscalYear || dict.app.pages.accountingOpeningBalances.fiscalYear} ${fy.year}`,
+    label: `${accDict.fiscalYear} ${fy.year}`,
   }));
 
   return (
     <AppLayout active="accounting.opening_balances">
-      <Head title={accDict.openingBalances || dict.app.pages.accountingOpeningBalances.openingBalances} />
+      <Head title={accDict.openingBalances} />
 
       <PageHeader
-        title={accDict.openingBalances || dict.app.pages.accountingOpeningBalances.openingBalances_2}
-        description={
-          accDict.openingBalancesDesc ||
-          dict.app.pages.accountingOpeningBalances.setAccountLevelInitialBalancesFor
-        }
+        title={accDict.openingBalances}
+        description={accDict.openingBalancesDesc}
         actions={
           <button
             type="button"
@@ -111,9 +107,7 @@ export default function OpeningBalances({
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            <span>
-              {accDict.postOpeningJournal || dict.app.pages.accountingOpeningBalances.postOpeningJournalToLedger}
-            </span>
+            <span>{accDict.postOpeningJournal}</span>
           </button>
         }
       />
@@ -123,9 +117,7 @@ export default function OpeningBalances({
           <svg className="size-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span>
-            {accDict.noFiscalYearsWarning || dict.app.pages.accountingOpeningBalances.noFiscalYearsFoundPleaseCreate}
-          </span>
+          <span>{accDict.noFiscalYearsWarning}</span>
         </div>
       )}
 
@@ -134,9 +126,7 @@ export default function OpeningBalances({
           <svg className="size-5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span>
-            {accDict.balancesAlreadyPosted || dict.app.pages.accountingOpeningBalances.openingBalancesForThisFiscalYear}
-          </span>
+          <span>{accDict.balancesAlreadyPosted}</span>
         </div>
       )}
 
@@ -144,7 +134,7 @@ export default function OpeningBalances({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
-              {accDict.fiscalYear || dict.app.pages.accountingOpeningBalances.fiscalYear_2}
+              {accDict.fiscalYear}
             </span>
             <div className="w-64 sm:w-80">
               <SearchableSelect
@@ -163,14 +153,14 @@ export default function OpeningBalances({
           <div className="flex flex-wrap items-center gap-4 font-mono text-xs font-bold">
             <div>
               <span className="text-[var(--text-muted)] uppercase me-1.5 font-sans">
-                {accDict.totalDebit || dict.app.pages.accountingOpeningBalances.totalDebits}
+                {accDict.totalDebit}
               </span>
               <span className="text-blue-600 dark:text-blue-400 text-sm font-extrabold">{totalDebit.toLocaleString()}</span>
             </div>
             <div className="h-5 w-px bg-[var(--border)]" />
             <div>
               <span className="text-[var(--text-muted)] uppercase me-1.5 font-sans">
-                {accDict.totalCredit || dict.app.pages.accountingOpeningBalances.totalCredits}
+                {accDict.totalCredit}
               </span>
               <span className="text-indigo-600 dark:text-indigo-400 text-sm font-extrabold">{totalCredit.toLocaleString()}</span>
             </div>
@@ -179,14 +169,14 @@ export default function OpeningBalances({
                 <div className="h-5 w-px bg-[var(--border)]" />
                 <div>
                   <span className="text-red-500 uppercase me-1.5 font-sans">
-                    {accDict.difference || dict.app.pages.accountingOpeningBalances.difference}
+                    {accDict.difference}
                   </span>
                   <span className="text-red-500 text-sm font-extrabold">{difference.toLocaleString()}</span>
                 </div>
               </>
             )}
             <StatusBadge tone={isBalanced ? 'ok' : 'danger'}>
-              {isBalanced ? (accDict.balanced || dict.app.pages.accountingOpeningBalances.balanced) : (accDict.unbalanced || dict.app.pages.accountingOpeningBalances.unbalanced)}
+              {isBalanced ? accDict.balanced : accDict.unbalanced}
             </StatusBadge>
           </div>
         </div>
@@ -194,8 +184,8 @@ export default function OpeningBalances({
 
       {accounts.length === 0 ? (
         <EmptyState
-          title={accDict.noOpeningBalancesConfigured || dict.app.pages.accountingOpeningBalances.noOpeningBalancesHaveBeenConfigured}
-          description={accDict.noOpeningBalancesConfiguredDesc || dict.app.pages.accountingOpeningBalances.configureAccountsAndFiscalYearTo}
+          title={accDict.noOpeningBalancesConfigured}
+          description={accDict.noOpeningBalancesConfiguredDesc}
         />
       ) : (
         <form onSubmit={submitDraft}>
@@ -203,14 +193,14 @@ export default function OpeningBalances({
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{accDict.accountCode || dict.app.pages.accountingOpeningBalances.code}</th>
-                  <th className={tableClasses.th}>{accDict.accountName || dict.app.pages.accountingOpeningBalances.accountName}</th>
-                  <th className={tableClasses.th}>{accDict.typeAndNature || dict.app.pages.accountingOpeningBalances.typeNature}</th>
+                  <th className={tableClasses.th}>{accDict.accountCode}</th>
+                  <th className={tableClasses.th}>{accDict.accountName}</th>
+                  <th className={tableClasses.th}>{accDict.typeAndNature}</th>
                   <th className={`${tableClasses.th} text-right`}>
-                    {accDict.openingDebitMinor || dict.app.pages.accountingOpeningBalances.openingDebitMinor}
+                    {accDict.openingDebitMinor}
                   </th>
                   <th className={`${tableClasses.th} text-right`}>
-                    {accDict.openingCreditMinor || dict.app.pages.accountingOpeningBalances.openingCreditMinor}
+                    {accDict.openingCreditMinor}
                   </th>
                 </tr>
               </thead>
@@ -263,7 +253,7 @@ export default function OpeningBalances({
               disabled={saveForm.processing || isAlreadyPosted}
               className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-40 transition-colors cursor-pointer"
             >
-              {accDict.saveDraft || dict.app.pages.accountingOpeningBalances.saveDraftBalances}
+              {accDict.saveDraft}
             </button>
           </div>
         </form>

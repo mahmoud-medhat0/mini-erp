@@ -26,7 +26,8 @@ type CreateProps = SharedPageProps & {
 
 export default function FixedAssetCreate({ locale, categories, currencies }: CreateProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
+  const defaultCurrency = currencies[0]?.code || '';
 
   const { data, setData, post, transform, processing, errors } = useForm({
     asset_number: '',
@@ -34,7 +35,7 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
     name_ar: '',
     description: '',
     fixed_asset_category_id: categories[0]?.id || '',
-    currency: 'EGP',
+    currency: defaultCurrency,
     acquisition_date: new Date().toISOString().split('T')[0],
     in_service_date: new Date().toISOString().split('T')[0],
     cost_minor: 100000,

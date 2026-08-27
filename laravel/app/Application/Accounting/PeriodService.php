@@ -7,6 +7,7 @@ use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -217,7 +218,133 @@ class PeriodService
             ];
         }
 
-        // 10. Delivery Notes
+        // 10. Landed Cost Allocations
+        $landedCosts = DB::table('landed_cost_allocation')
+            ->whereIn('status', ['draft', 'submitted', 'approved'])
+            ->where(function ($q) use ($period, $startDate, $endDate) {
+                $q->where('financial_period_id', $period->id)
+                    ->orWhereBetween('allocation_date', [$startDate, $endDate]);
+            })->get();
+        foreach ($landedCosts as $landedCost) {
+            $blockers[] = [
+                'entity_type' => 'landed_cost_allocation',
+                'id' => (string) $landedCost->id,
+                'number_or_reference' => (string) ($landedCost->number ?? $landedCost->reference ?? $landedCost->id),
+                'status' => (string) $landedCost->status,
+                'date' => (string) $landedCost->allocation_date,
+                'reason_code' => 'unposted_landed_cost_allocation',
+            ];
+        }
+
+        // 11. Expenses
+        if (Schema::hasTable('expense')) {
+            $expenses = DB::table('expense')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhereBetween('expense_date', [$startDate, $endDate]);
+                })->get();
+            foreach ($expenses as $expense) {
+                $blockers[] = [
+                    'entity_type' => 'expense',
+                    'id' => (string) $expense->id,
+                    'number_or_reference' => (string) ($expense->number ?? $expense->reference ?? $expense->id),
+                    'status' => (string) $expense->status,
+                    'date' => (string) $expense->expense_date,
+                    'reason_code' => 'unposted_expense',
+                ];
+            }
+        }
+
+        // 12. Prepaid Recognitions
+        if (Schema::hasTable('prepaid_recognition')) {
+            $prepaidRecognitions = DB::table('prepaid_recognition')
+                ->join('prepaid_schedule', 'prepaid_schedule.id', '=', 'prepaid_recognition.prepaid_schedule_id')
+                ->where('prepaid_recognition.status', 'pending')
+                ->whereIn('prepaid_schedule.status', ['approved', 'active'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('prepaid_recognition.financial_period_id', $period->id)
+                        ->orWhereBetween('prepaid_recognition.recognition_date', [$startDate, $endDate]);
+                })
+                ->select('prepaid_recognition.*', 'prepaid_schedule.number as schedule_number', 'prepaid_schedule.reference as schedule_reference')
+                ->get();
+            foreach ($prepaidRecognitions as $recognition) {
+                $blockers[] = [
+                    'entity_type' => 'prepaid_recognition',
+                    'id' => (string) $recognition->id,
+                    'number_or_reference' => (string) ($recognition->schedule_number ?? $recognition->schedule_reference ?? $recognition->id),
+                    'status' => (string) $recognition->status,
+                    'date' => (string) $recognition->recognition_date,
+                    'reason_code' => 'pending_prepaid_recognition',
+                ];
+            }
+        }
+
+        // 13. Accrual Entries
+        if (Schema::hasTable('accrual_entry')) {
+            $accrualEntries = DB::table('accrual_entry')
+                ->join('accrual_schedule', 'accrual_schedule.id', '=', 'accrual_entry.accrual_schedule_id')
+                ->where('accrual_entry.status', 'pending')
+                ->whereIn('accrual_schedule.status', ['approved', 'active'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('accrual_entry.financial_period_id', $period->id)
+                        ->orWhereBetween('accrual_entry.accrual_date', [$startDate, $endDate]);
+                })
+                ->select('accrual_entry.*', 'accrual_schedule.number as schedule_number', 'accrual_schedule.reference as schedule_reference')
+                ->get();
+            foreach ($accrualEntries as $entry) {
+                $blockers[] = [
+                    'entity_type' => 'accrual_entry',
+                    'id' => (string) $entry->id,
+                    'number_or_reference' => (string) ($entry->schedule_number ?? $entry->schedule_reference ?? $entry->id),
+                    'status' => (string) $entry->status,
+                    'date' => (string) $entry->accrual_date,
+                    'reason_code' => 'pending_accrual_entry',
+                ];
+            }
+        }
+
+        // 14. Payroll Runs
+        if (Schema::hasTable('payroll_run')) {
+            $payrollRuns = DB::table('payroll_run')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhereBetween('payroll_date', [$startDate, $endDate]);
+                })->get();
+            foreach ($payrollRuns as $run) {
+                $blockers[] = [
+                    'entity_type' => 'payroll_run',
+                    'id' => (string) $run->id,
+                    'number_or_reference' => (string) ($run->number ?? $run->reference ?? $run->id),
+                    'status' => (string) $run->status,
+                    'date' => (string) $run->payroll_date,
+                    'reason_code' => 'unposted_payroll_run',
+                ];
+            }
+        }
+
+        // 15. Rental Invoices
+        if (Schema::hasTable('rental_invoice')) {
+            $rentalInvoices = DB::table('rental_invoice')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhereBetween('invoice_date', [$startDate, $endDate]);
+                })->get();
+            foreach ($rentalInvoices as $invoice) {
+                $blockers[] = [
+                    'entity_type' => 'rental_invoice',
+                    'id' => (string) $invoice->id,
+                    'number_or_reference' => (string) ($invoice->number ?? $invoice->reference ?? $invoice->id),
+                    'status' => (string) $invoice->status,
+                    'date' => (string) $invoice->invoice_date,
+                    'reason_code' => 'unposted_rental_invoice',
+                ];
+            }
+        }
+
+        // 16. Delivery Notes
         $dns = DB::table('delivery_note')
             ->where('status', 'draft')
             ->whereBetween('delivery_date', [$startDate, $endDate])->get();
@@ -232,7 +359,7 @@ class PeriodService
             ];
         }
 
-        // 11. Sales Returns
+        // 17. Sales Returns
         $srs = DB::table('sales_return')
             ->whereIn('status', ['draft', 'submitted', 'approved'])
             ->whereBetween('return_date', [$startDate, $endDate])->get();
@@ -247,7 +374,7 @@ class PeriodService
             ];
         }
 
-        // 12. Customer Credit Notes
+        // 18. Customer Credit Notes
         $cns = DB::table('customer_credit_note')
             ->whereIn('status', ['draft', 'submitted', 'approved'])
             ->whereBetween('credit_note_date', [$startDate, $endDate])->get();
@@ -262,7 +389,7 @@ class PeriodService
             ];
         }
 
-        // 13. Purchase Returns
+        // 19. Purchase Returns
         $prs = DB::table('purchase_return')
             ->whereIn('status', ['draft', 'submitted', 'approved'])
             ->whereBetween('return_date', [$startDate, $endDate])->get();
@@ -277,7 +404,7 @@ class PeriodService
             ];
         }
 
-        // 14. Supplier Adjustment Notes
+        // 20. Supplier Adjustment Notes
         $sans = DB::table('supplier_adjustment_note')
             ->whereIn('status', ['draft', 'submitted', 'approved'])
             ->whereBetween('note_date', [$startDate, $endDate])->get();
@@ -292,7 +419,7 @@ class PeriodService
             ];
         }
 
-        // 15. Opening Balances (GL, Customer, Supplier)
+        // 21. Opening Balances (GL, Customer, Supplier)
         $obs = DB::table('opening_balance')
             ->where('status', 'draft')
             ->where(function ($q) use ($period, $startDate, $endDate) {

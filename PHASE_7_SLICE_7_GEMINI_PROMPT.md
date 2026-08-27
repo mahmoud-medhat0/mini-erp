@@ -1,6 +1,6 @@
 # MINI ERP - PHASE 7 SLICE 7 UX, EXPORT/PRINT, E2E SMOKE, SOURCE SCANS, AND CLOSE-OUT
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Execute only Phase 7 Slice 7 after Slices 1-6 are complete or explicitly skipped with reason.

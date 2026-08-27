@@ -26,7 +26,7 @@ function CompanyFormModal({
   const { data, setData, post, patch, processing, errors, reset } = useForm<CompanyFormData>({
     name_en: company?.nameEn ?? '',
     name_ar: company?.nameAr ?? '',
-    base_currency: company?.baseCurrency ?? (currencies[0]?.code ?? 'EGP'),
+    base_currency: company?.baseCurrency ?? (currencies[0]?.code ?? ''),
     lock_version: company?.lockVersion,
   });
 
@@ -68,33 +68,31 @@ function CompanyFormModal({
 
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-3">
-          {/* Name English */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {dict.app.fields.company} (English)
+              {dict.app.fields.nameEn}
             </label>
             <input
               type="text"
               value={data.name_en}
               onChange={(event) => setData('name_en', event.target.value)}
-              placeholder="e.g. Acme Corporation"
+              placeholder={dict.app.fields.companyNameEnPlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
             {errors.name_en ? <p className="m-0 text-xs font-semibold text-[var(--danger)]">{errors.name_en}</p> : null}
           </div>
 
-          {/* Name Arabic */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {dict.app.fields.company} (العربية)
+              {dict.app.fields.nameAr}
             </label>
             <input
               type="text"
               dir="rtl"
               value={data.name_ar}
               onChange={(event) => setData('name_ar', event.target.value)}
-              placeholder="مثال: شركة الرواد"
+              placeholder={dict.app.fields.companyNameArPlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
@@ -110,7 +108,7 @@ function CompanyFormModal({
               badge: c.code,
             }))}
             value={data.base_currency}
-            onChange={(val) => setData('base_currency', val ?? 'EGP')}
+            onChange={(val) => setData('base_currency', val ?? '')}
             isSearchable={true}
             isClearable={false}
           />
@@ -146,6 +144,7 @@ function CompanyFormModal({
 
 export default function CompanySettings({ companies, currencies, locale }: CompanyProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companies[0]?.id ?? '');
@@ -209,9 +208,9 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                         <div className="flex flex-col min-w-44">
                           <span className="font-bold text-[var(--text-primary)] text-sm">{company.name}</span>
                           <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
-                            <span>EN: {company.nameEn}</span>
+                            <span>{dict.app.fields.nameEn}: {company.nameEn}</span>
                             <span>•</span>
-                            <span>AR: {company.nameAr}</span>
+                            <span>{dict.app.fields.nameAr}: {company.nameAr}</span>
                           </div>
                         </div>
                       </td>
@@ -222,7 +221,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                       </td>
                       <td className={tableClasses.td}>
                         <span className="text-xs font-semibold text-[var(--text-secondary)]">
-                          {company.createdAt ? new Date(company.createdAt).toLocaleDateString(locale) : '-'}
+                          {company.createdAt ? new Date(company.createdAt).toLocaleDateString(locale) : accDict.notAvailable}
                         </span>
                       </td>
                       <td className={`${tableClasses.td} text-end`}>

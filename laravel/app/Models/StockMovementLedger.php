@@ -13,6 +13,7 @@ class StockMovementLedger extends Model
     protected $table = 'stock_movement_ledger';
 
     protected $fillable = [
+        'warehouse_id',
         'movement_date',
         'source_type',
         'source_id',
@@ -45,6 +46,11 @@ class StockMovementLedger extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
     }
 
     public function unitOfMeasure(): BelongsTo

@@ -12,11 +12,12 @@ class StockMovementReportService
         ?string $dateTo = null,
         ?string $movementType = null,
         ?string $productId = null,
+        ?string $warehouseId = null,
         ?string $currency = null,
         ?string $search = null
     ): array {
         $query = StockMovementLedger::query()
-            ->with(['product', 'unitOfMeasure', 'journalEntry'])
+            ->with(['warehouse.branch', 'product', 'unitOfMeasure', 'journalEntry'])
             ->orderBy('movement_date', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -31,6 +32,9 @@ class StockMovementReportService
         }
         if ($productId) {
             $query->where('product_id', $productId);
+        }
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
         }
         if ($currency) {
             $query->where('currency', $currency);
@@ -62,6 +66,12 @@ class StockMovementReportService
                 'id' => $m->id,
                 'movement_date' => $m->movement_date,
                 'movement_type' => $m->movement_type,
+                'warehouse_id' => $m->warehouse_id,
+                'warehouse_code' => $m->warehouse?->code ?? null,
+                'warehouse_name' => $m->warehouse?->name ?? null,
+                'branch_id' => $m->warehouse?->branch_id,
+                'branch_code' => $m->warehouse?->branch?->code ?? null,
+                'branch_name' => $m->warehouse?->branch?->name ?? null,
                 'source_type' => $m->source_type,
                 'source_id' => $m->source_id,
                 'source_line_id' => $m->source_line_id,

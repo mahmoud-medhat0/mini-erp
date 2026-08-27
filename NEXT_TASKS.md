@@ -1,9 +1,13 @@
 # NEXT TASKS - Current Laravel Track
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
+
+> **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 9 (Staging / Production Cutover Pack) is COMPLETE & VERIFIED. See `PHASE_9_FINAL_CUTOVER_REPORT.md`.
+Current status: Phase 15 Product Hardening is IN PROGRESS. Slices 1-134 are COMPLETE. Slice 134 replaced native fixed-asset filter selects with shared `SearchableSelect` controls and guarded clear actions in Fixed Asset Register, Locations, and Disposals. Deployment remains parked until owner/operator cutover decisions are needed.
+
+Latest update: Phase 15 Slices 1-134 are COMPLETE. Slice 134 passed the fixed-asset filter-control guard, focused fixed asset suites, `Phase15ProductHardeningTest` with 139 tests / 20794 assertions, Pint, TypeScript typecheck, Vite build, locale JSON validation, and the global controller direct-query scan.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -11,9 +15,992 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 
 - All core migration phases (Phase 1 through Phase 8) are 100% complete and verified.
 - Phase 9 is also complete. It is an operational cutover documentation track, not a new ERP business module.
-- Next decision track:
-  - Owner/operator must select hosting, PostgreSQL/backup model, domain/HTTPS ownership, scheduler trigger, queue worker supervisor, attachment storage, mail delivery, cutover window, and rollback approver.
-  - After those choices, use `spec/DEPLOYMENT_RUNBOOK.md`, `spec/ROLLBACK_RUNBOOK.md`, `spec/BACKUP_RESTORE_DRILL.md`, `spec/RUNTIME_PROCESSES.md`, and `spec/GO_LIVE_ACCEPTANCE.md`.
+- Deployment process is parked until the owner/operator is ready for staging/production decisions.
+- Next product track:
+  - Continue Phase 15 Product Hardening with accountant-focused UX tightening, permission regression coverage, and dictionary-backed UI polish.
+  - Keep all future GL posting inside the existing PostingEngine and existing tax/subledger services.
+  - Use `PRODUCT_EXTENSIBILITY_ROADMAP.md`, `PHASE_14_RENTALS.md`, `PHASE_14_RENTALS_POLICY_DECISION.md`, `PHASE_14_RENTAL_BILLING_REPORT.md`, `PHASE_14_RENTALS_FOUNDATION_REPORT.md`, `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`, `PHASE_12_PREPAID_ACCRUED_EXPENSES_REPORT.md`, `PHASE_11_EXPENSE_MANAGEMENT_REPORT.md`, `PHASE_10_BRANCH_WAREHOUSE_OPERATIONS.md`, and `PHASE_10_FINAL_REPORT.md` as the product capability source of truth.
+
+## Active Phase 15 Product Hardening
+
+- `PHASE_15_PRODUCT_HARDENING_REPORT.md`: Slices 1-134 product hardening report.
+- Completed Slice 1 implementation:
+  - `/reports` requires `reports.view` + `view_financials`.
+  - Sales order, purchase order, customer invoice, and supplier bill report controllers now perform explicit `view_financials` checks.
+  - Four report pages use dictionary-backed visible text and localized status labels.
+  - `Phase15ProductHardeningTest` verifies access control and no hardcoded Arabic text in the cleaned pages.
+- Completed Slice 2 implementation:
+  - Added shared `CsvReportResponse`.
+  - Removed duplicated simple row-based CSV response helpers from touched Fixed Asset and VAT report controllers.
+  - `Phase15ProductHardeningTest` verifies shared CSV streaming behavior and helper removal.
+- Completed Slice 3 implementation:
+  - Added shared `SuperAdminProtection`.
+  - Moved last-active-super-admin weakening checks out of user and role settings controllers.
+  - Verified through `Phase15ProductHardeningTest`, `M8ActionsTest`, and `SettingsActionsTest`.
+- Completed Slice 4 implementation:
+  - Hardened GL/subledger posting routes to require `view_financials` alongside module posting permissions.
+  - `Phase15ProductHardeningTest` verifies all tracked financial posting routes include `view_financials`.
+- Completed Slice 5 implementation:
+  - Extracted read-side/page-data composition from Sales, Purchasing, Fixed Assets, Rentals, Bank Reconciliation, Financial Statement Mapping, and Settings controllers.
+  - Extracted Fixed Asset, VAT, and Rental Operations CSV composition into dedicated exporters.
+  - Extracted Company, Numbering, and User settings persistence/listing into application services.
+  - Reduced all controllers under `app/Http/Controllers` to under 150 lines at the time of verification.
+  - `Phase15ProductHardeningTest` verifies cleaned controllers delegate query/composition work to services.
+- Completed Slice 6 implementation:
+  - Improved General Ledger reset-filter workflow and backend-provided display currency.
+  - Extracted `GeneralLedgerPageData` and removed direct option queries from `GeneralLedgerController`.
+  - Removed targeted visible fallback text from General Ledger, VAT Register, and VAT Summary pages.
+  - Added dictionary-backed empty-state descriptions and accountant labels in EN/AR.
+  - `Phase15ProductHardeningTest` verifies targeted accountant UX pages stay dictionary-backed.
+- Completed Slice 7 implementation:
+  - Added confirmation guards before deleting payroll component assignments and reusable payroll components.
+  - Converted manual AR/AP settlement pages to dictionary-backed operational text.
+  - Added regression coverage for sensitive delete confirmations and settlement-page text guards.
+- Completed Slice 8 implementation:
+  - Added dictionary-backed confirmation guards for expenses, prepaid schedules, accrual schedules, rental contracts, handovers, and returns.
+  - Repaired corrupted Arabic rental-contract dictionary text.
+  - Added regression coverage for dense operational action confirmation.
+- Completed Slice 9 implementation:
+  - Moved user/role permission category labels and permission action labels out of `Settings/Users.tsx` into EN/AR dictionaries.
+  - Removed hardcoded user-management placeholders, revoke-role title, search-results text, and delete fallback messages from the page.
+  - Added regression coverage for dictionary-backed security labels.
+- Completed Slice 10 implementation:
+  - Moved company, branch, and numbering settings placeholders/options/status labels into EN/AR dictionaries.
+  - Replaced the generic branch delete fallback with a named branch confirmation message.
+  - Removed React-side hardcoded company base-currency fallback from `Settings/Company.tsx`.
+  - Added regression coverage for dictionary-backed foundation settings pages.
+- Completed Slice 11 implementation:
+  - Removed silent React-side `USD`, `EGP`, `PCS`, and `MAIN` fallbacks from sales, purchasing, and inventory workflow pages.
+  - Added registry-backed currency options to stock count and stock adjustment forms.
+  - Moved operational reference placeholders and missing UOM/currency labels into EN/AR dictionaries.
+  - Added regression coverage preventing those silent operational fallbacks from returning.
+- Completed Slice 12 implementation:
+  - Removed silent React-side `EGP` fallbacks from payroll, expense, rental, and fixed asset pages.
+  - Replaced missing-currency display fallbacks with neutral EN/AR dictionary labels.
+  - Preserved backend-provided currency options without inventing a default operational currency.
+  - Added regression coverage preventing those silent `EGP` fallbacks from returning.
+- Completed Slice 13 implementation:
+  - Removed visible fallback labels from Tax Codes and Tax Rates master-data pages.
+  - Moved tax search labels, create subtitle, code placeholder, all-tax-code filter label, rate helper label, and basis-points suffix into EN/AR dictionaries.
+  - Added regression coverage preventing hardcoded Tax Codes/Rates fallback text from returning.
+- Completed Slice 14 implementation:
+  - Fixed Tax Period pages to read `dict.app.taxes.periods` instead of surviving on fallback text.
+  - Moved tax-period creation, filing, locking-guard, return snapshot, VAT breakdown, and modal labels into EN/AR dictionaries.
+  - Added regression coverage preventing hardcoded Tax Period fallback text from returning.
+- Completed Slice 15 implementation:
+  - Replaced generic delete confirmations in selected accounting, expense, and catalog master-data pages with entity-specific confirmation messages.
+  - Each targeted delete prompt now includes the selected record name/code and uses EN/AR dictionary keys.
+  - Added regression coverage preventing generic delete prompts from returning to those pages.
+- Completed Slice 16 implementation:
+  - Removed remaining visible inline placeholders, badge labels, button fallbacks, and modal descriptions from accounting account category/type pages.
+  - Moved those labels to EN/AR dictionaries and added regression coverage for dictionary-backed form/detail text.
+- Completed Slice 17 implementation:
+  - Passed configured base currency data to `/accounting/fx-rates` from the Laravel controller.
+  - Removed hardcoded `EGP` display and silent `USD` default from the FX-rate page.
+  - Added dictionary-backed FX-rate guidance, conversion-line, and empty-state text with regression coverage.
+- Completed Slice 18 implementation:
+  - Removed remaining direct visible fallback text from the currency master-data page.
+  - Moved currency placeholders, ISO badge text, linked-account/FX-rate tooltips, delete modal copy, and ledger action title into EN/AR dictionaries.
+  - Added regression coverage preventing currency master-data fallback text from returning.
+- Completed Slice 19 implementation:
+  - Removed hidden Chart of Accounts `EGP` currency fallback from React and the Laravel store action.
+  - Account creation now requires an explicit registry-backed currency selection.
+  - Moved Chart of Accounts placeholders, no-currency guidance, missing-currency display, and select-currency prompt into EN/AR dictionaries.
+  - Added regression coverage for the UI/controller hidden currency fallback and updated affected legacy test fixtures.
+- Completed Slice 20 implementation:
+  - Trial Balance rows now include account currency codes and the page receives backend `displayCurrency`.
+  - Removed the React-side `EGP` fallback and visible fallback labels from `Accounting/TrialBalance.tsx`.
+  - Added regression coverage for backend display currency and Trial Balance text/fallback guards.
+- Completed Slice 21 implementation:
+  - Removed inline EN/AR status labels and visible fallback labels from `Accounting/GeneralJournal.tsx`.
+  - Added dictionary-backed General Journal manual/draft/detail labels in EN/AR.
+  - Added regression coverage preventing General Journal hardcoded Arabic and fallback text from returning.
+- Completed Slice 22 implementation:
+  - Removed visible fallback labels and page-specific fallback dictionary usage from `Accounting/JournalDetail.tsx`.
+  - Added dictionary-backed reverse-entry and system-actor labels in EN/AR.
+  - Added regression coverage preventing Journal Detail hardcoded Arabic and fallback text from returning.
+- Completed Slice 23 implementation:
+  - Removed the hidden React-side `EGP` fallback from `Accounting/JournalForm.tsx`.
+  - Added dictionary-backed no-currency warning and placeholders for journal reference/memos.
+  - Added regression coverage preventing Journal Form hardcoded Arabic, hidden currency fallback, and visible fallback text from returning.
+- Completed Slice 24 implementation:
+  - Removed legacy `dict.app.pages.accountingOpeningBalances` fallback usage from `Accounting/OpeningBalances.tsx`.
+  - Opening-balance page title, description, post action, selector, totals, badge, empty state, table headers, and save action now use canonical accounting dictionary keys.
+  - Added regression coverage preventing Opening Balances hardcoded Arabic, legacy page fallback usage, and visible fallback text from returning.
+- Completed Slice 25 implementation:
+  - Updated AppLayout navigation permission handling so Fiscal Periods appears for `accounting.view`, `accounting.periods`, or `settings.configure` users.
+  - Fiscal Year creation action now appears only for `settings.configure`, matching the backend store route.
+  - Added dictionary-backed no-fiscal-years empty state and regression coverage for permission parity.
+- Completed Slice 26 implementation:
+  - Removed hardcoded fallback labels from Accounting and Tax navigation items in `AppLayout.tsx`.
+  - Sidebar labels now rely on canonical accounting/tax dictionary keys.
+  - Expanded regression coverage preventing those navigation fallbacks from returning.
+- Completed Slice 27 implementation:
+  - Replaced generic Financial Statement Mapping delete confirmation with a statement-line-specific confirmation message.
+  - Confirmation now includes the target statement line code and localized name.
+  - Added regression coverage preventing generic confirmation usage from returning.
+- Completed Slice 28 implementation:
+  - Replaced generic Account Mapping branch override delete confirmation with a mapping-specific confirmation message.
+  - Confirmation now includes the mapping key, operational branch, and target GL account.
+  - Added regression coverage preventing generic account-mapping confirmation usage from returning.
+- Completed Slice 29 implementation:
+  - Removed visible fallback labels from the Accounting landing page.
+  - Recent journal status badges now use canonical accounting status labels.
+  - Added regression coverage preventing hardcoded landing-page labels from returning.
+- Completed Slice 30 implementation:
+  - Removed Tax/VAT report fallback labels from the Reports Hub.
+  - Reports Hub now uses `dict.app.taxes` directly for VAT report group/card copy.
+  - Added regression coverage preventing tax report hub fallbacks from returning.
+- Completed Slice 31 implementation:
+  - Removed visible fallback labels from the VAT-to-GL Reconciliation page.
+  - Removed hidden React-side `USD` currency fallback from VAT-to-GL filters.
+  - Moved VAT-to-GL table labels into EN/AR dictionaries with regression coverage.
+- Completed Slice 32 implementation:
+  - Removed hidden React-side `EGP` currency fallbacks from AR Aging, AP Aging, AR-to-GL Reconciliation, and AP-to-GL Reconciliation selectors.
+  - Clearing report currency now stays explicit instead of silently switching to EGP.
+  - Added regression coverage preventing these hidden report-currency defaults from returning.
+- Completed Slice 33 implementation:
+  - Replaced unfiltered operational report summary totals that displayed with hidden EGP fallbacks.
+  - Sales Orders, Purchase Orders, Customer Invoices, Supplier Bills, and Stock Movements now show a localized mixed-currency label when no currency filter is selected.
+  - Removed the default EGP argument from the fixed-asset report minor formatter and added regression coverage.
+- Completed Slice 34 implementation:
+  - Removed loose `getDictionary(locale) as any` usage from Tax Periods and VAT Register/Summary pages.
+  - Switched VAT Register/Summary to canonical `dict.app.taxes.*` paths.
+  - Replaced raw filing-reference unavailable fallback with localized tax-period dictionary text.
+- Completed Slice 35 implementation:
+  - Removed loose `(dict.app as any).taxes` usage from Tax Codes/Rates pages.
+  - Replaced raw unavailable tax master-data fallbacks with localized `notAvailable` text.
+  - Replaced tax-code form select `as any` casts with explicit union casts.
+- Completed Slice 36 implementation:
+  - Removed loose audit dictionary access and legacy `dict.app.pages.auditLog` fallback chains from the Audit Log page.
+  - Switched Audit Log labels, placeholders, payload modal, pagination, actor fallback, and unavailable markers to canonical dictionary keys.
+  - Added EN/AR audit dictionary keys and regression coverage for the cleaned page.
+- Completed Slice 37 implementation:
+  - Removed loose accounting/tax dictionary access from `AppLayout`.
+  - Replaced central navigation/header visible fallback labels with typed dictionary keys.
+  - Added localized unknown-user/email fallbacks and regression coverage.
+- Completed Slice 38 implementation:
+  - Removed loose dictionary access from Currencies, FX Rates, Account Categories, and Account Types.
+  - Replaced Account Category/Type select `as any` casts with explicit value parsers.
+  - Corrected typed status/action/group/control-account labels exposed by the cleanup.
+- Completed Slice 39 implementation:
+  - Removed loose dictionary access from Chart of Accounts, Fiscal Periods, Opening Balances, and Trial Balance.
+  - Replaced Chart of Accounts account-nature select casting with an explicit value parser.
+  - Replaced Fiscal Periods loose dictionary wrappers with typed dictionary helpers and safe canonical fallback keys.
+- Completed Slice 40 implementation:
+  - Removed loose dictionary access from General Ledger, General Journal, Journal Form, and Journal Detail.
+  - Replaced Journal Form line update `any` handling with a typed `JournalLineDraft` structure.
+  - Added accounting `notAvailable` and canonical status fallback usage for journal/ledger empty fields.
+- Completed Slice 41 implementation:
+  - Removed loose dictionary access from Fixed Asset register, create, edit, show, category, location, disposal, and depreciation-run pages.
+  - Replaced fixed-asset disposal dynamic dictionary indexing with explicit typed disposal-type labels.
+  - Added fixed-asset disposal unavailable labels and regression coverage for the cleaned pages.
+- Completed Slice 42 implementation:
+  - Replaced select `as any` casts in Customers, Suppliers, Catalog Products, Customer Receipts, Supplier Payments, and Financial Statement Mapping with explicit value parsers.
+  - Removed hidden receipt/payment `EGP` defaults and hardcoded Arabic cash/bank destination labels.
+  - Added regression coverage for the select parser and receipt/payment fallback cleanup.
+- Completed Slice 43 implementation:
+  - Replaced sales/purchasing document line `value: any` update helpers with typed generic update helpers.
+  - Added typed sales-return disposition parsing and manual-tax override row fields.
+  - Added regression coverage for credit-note, return, adjustment-note, purchase-return, and supplier-bill line editors.
+- Completed Slice 44 implementation:
+  - Removed remaining visible `as any` casts from Landed Costs form errors and Customer Invoices edit-line source references.
+  - Verified the broad Inertia Pages loose-any scan now returns no matches.
+  - Added regression coverage for the cleaned Landed Costs and Customer Invoices pages.
+- Completed Slice 45 implementation:
+  - Replaced silent dash missing-value fallbacks in primary sales, purchasing, and catalog operational pages with canonical accounting `notAvailable` labels.
+  - Cleaned sales/purchasing return line UOM and editable description fallback leakage.
+  - Added regression coverage for Sales Orders, Delivery Notes, Customer Invoices, Customer Credit Notes, Sales Returns, Purchase Orders, Goods Receipts, Supplier Bills, Supplier Adjustment Notes, Purchase Returns, and Product Categories.
+- Completed Slice 46 implementation:
+  - Replaced silent dash missing-value fallbacks in Sales Invoice Revision list/detail pages with canonical accounting unavailable labels.
+  - Cleaned original invoice, customer, product, description, UOM, related credit-note, and related sales-return display values.
+  - Added regression coverage for Sales Invoice Revision pages.
+- Completed Slice 47 implementation:
+  - Removed hidden React-side `EGP` defaults from Cash Accounts, Bank Accounts, Incoming/Outgoing Cheques, and AR/AP Opening Balances.
+  - Added explicit currency selection to Incoming Cheque creation.
+  - Replaced silent missing-value fallbacks across Customers, Suppliers, Cash/Bank Accounts, Cheques, Opening Balances, Allocations, and Bank Reconciliations.
+  - Added regression coverage for AR/AP cash/bank explicit-currency and unavailable-label behavior.
+- Completed Slice 48 implementation:
+  - Removed the remaining hidden React-side `EGP` default from Treasury Transfers.
+  - Replaced missing-label fallbacks in Treasury Transfers, Stock Transfers, Chart of Accounts, Company Settings, and Numbering detail views.
+  - Added regression coverage for treasury/inventory/settings explicit-currency and unavailable-label behavior.
+- Completed Slice 49 implementation:
+  - Fixed Journal Detail line and footer totals to render formatted money with the journal currency instead of raw minor-unit integers.
+  - Replaced fixed-asset disposal journal-preview dash fallbacks with canonical unavailable labels.
+  - Added regression coverage for formatted journal money display and no silent dash fallbacks in the cleaned detail pages.
+- Completed Slice 50 implementation:
+  - Added dictionary-backed accounting `zeroAmount` for intentional zero-side debit/credit display.
+  - Replaced hardcoded report-table dash markers in bank/cash books, customer/supplier statements, invoice/bill reports, bank reconciliation detail, and stock movement reports.
+  - Added regression coverage for report table zero/unavailable markers.
+- Completed Slice 51 implementation:
+  - Added dictionary-backed accounting `restrictedValue` for permission-restricted financial cells.
+  - Formatted fixed-asset list/detail/disposal/depreciation monetary values instead of rendering raw minor-unit integers.
+  - Added regression coverage preventing raw fixed-asset minor display, hardcoded masks, optional-currency helper defaults, and hardcoded zero gain/loss output.
+- Completed Slice 52 implementation:
+  - Removed the hardcoded Payroll Components `currency="EGP"` display.
+  - Formatted payroll component default amounts without inventing a currency when the row carries no currency field.
+  - Added broad regression coverage scanning all visible Inertia Pages for hardcoded `EGP`/`USD` currency literals.
+- Completed Slice 53 implementation:
+  - Added backend-provided display currency to VAT register, VAT summary, VAT-to-GL reconciliation, and tax period filing page data.
+  - Replaced VAT/Tax money displays that could rely on helper-default currency with explicit-currency helpers and canonical unavailable fallback.
+  - Added regression coverage preventing hidden default-currency formatting from returning to VAT/Tax pages.
+- Completed Slice 54 implementation:
+  - Added shared `ReportCurrencyResolver`.
+  - Replaced hidden backend report currency defaults across AR/AP aging, AR/AP GL reconciliation, cheque register, customer/supplier statements, VAT-to-GL, bank reconciliation, branch operational/profitability, and rental operations report paths.
+  - Updated stale report-test fixtures to include `view_financials` and added regression coverage against hardcoded backend report currency defaults.
+- Completed Slice 55 implementation:
+  - Added shared `CurrencyInput` and `BaseCurrencyResolver`.
+  - Removed hidden operational service `EGP`/`USD` defaults outside reporting and required explicit registry-backed currency for user-entered financial operations.
+  - Updated FX-rate lookup behavior to use configured base currency and fail clearly when a foreign rate is missing.
+  - Updated stale accounting/report/branch fixtures and `accounting:concurrency-stress` to pass/use explicit currency and financial permissions.
+- Completed Slice 56 implementation:
+  - Added shared `ResolvesStressCurrency` for operational stress commands.
+  - Removed fixed `EGP`/`USD` currency fixtures from console commands, integrity checks, and seeders.
+  - Updated allocation, settlement, cheque, bank reconciliation, stock transfer, inventory costing, fixed asset depreciation, and fixed asset disposal stress commands to use configured base currency.
+  - Updated `AccountingCoreSeeder`, `AccountingDemoSeeder`, and `accounting:phase3-integrity-check` to use shared currency resolvers.
+  - Verified full Laravel suite after Slice 56: 719 tests, 716 passed, 3 skipped, 17887 assertions.
+- Completed Slice 57 implementation:
+  - Matched visible financial post actions to backend `view_financials` requirements across AR/AP opening balances, receipts/payments, treasury, inventory counts/adjustments, sales/purchasing posting pages, expenses, prepaid recognitions, and accrual entries.
+  - Corrected return, credit-note, purchase-return, and supplier-adjustment pages to use their exact route permissions instead of stale generic post/submit/approve/cancel permissions.
+  - Replaced hardcoded `Settle` action labels with EN/AR dictionary-backed labels.
+  - Verified full Laravel suite: 720 tests, 717 passed, 3 skipped, 17923 assertions.
+- Completed Slice 58 implementation:
+  - Formatted stock adjustment value deltas with `formatMoney(adjustment.total_value_delta_minor, adjustment.currency)` instead of raw minor-unit integers.
+  - Replaced empty warehouse fallbacks in stock counts and stock adjustments with the canonical accounting unavailable label.
+  - Extended Phase 15 regression coverage for inventory dense-table missing-label and value-formatting behavior.
+  - Verified `Phase15ProductHardeningTest`: 66 tests, 12305 assertions.
+  - Verified Pint, TypeScript typecheck, Vite production build, and static UI permission/missing-label scans.
+  - Monolithic full Laravel suite was attempted after Slice 58 but exceeded the local timeout budget during the broader run; `Phase4Slice10ReturnsCreditNotesTest.php` passed standalone with a larger timeout, and last known full-suite pass remains Slice 57 with 720 tests, 717 passed, 3 skipped, 17923 assertions.
+- Completed Slice 59 implementation:
+  - Added route-surface security regression coverage for every state-changing `POST`, `PUT`, `PATCH`, and `DELETE` route.
+  - Enforced auth gating plus explicit `can:`/`permission.*` middleware unless a route is deliberately allowlisted.
+  - Kept the allowlist narrow: login, locale switch, logout, user-scoped notifications, service-authorized attachments, and the foundation redirect.
+  - Verified the new guard: 1 test, 550 assertions.
+  - Verified `Phase15ProductHardeningTest`: 67 tests, 12855 assertions.
+  - Verified Pint.
+- Completed Slice 60 implementation:
+  - Replaced generic posting confirmations in customer receipts, supplier payments, customer opening balances, and supplier opening balances with workflow-specific messages.
+  - Confirmation copy now names the ledger impact before posting: AR/AP plus cash/bank ledgers or the general ledger.
+  - Added EN/AR dictionary-backed confirmation keys and regression coverage to prevent fallback to generic posting prompts.
+  - Verified targeted Slice 60 guard: 1 test, 80 assertions.
+  - Verified `Phase15ProductHardeningTest`: 68 tests, 12935 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 61 implementation:
+  - Added shared `PaginationLink` typing.
+  - Replaced loose `any` source-document shapes in customer invoice and supplier bill UI flows.
+  - Added source relationship helpers that tolerate Laravel camelCase/snake_case relation payloads without changing backend behavior.
+  - Verified targeted Slice 61 guard: 1 test, 15 assertions.
+  - Verified `Phase15ProductHardeningTest`: 69 tests, 12950 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 62 implementation:
+  - Reused shared `PaginationLink` typing across AR/AP cash/bank operational pages.
+  - Replaced `links: any[]` in opening balances, receipts/payments, cash/bank accounts, cheques, allocations, and bank reconciliations.
+  - Verified targeted Slice 62 guard: 1 test, 26 assertions.
+  - Verified `Phase15ProductHardeningTest`: 70 tests, 12976 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 63 implementation:
+  - Localized sales and purchasing backend flash messages through Laravel translations.
+  - Covered sales orders, purchase orders, delivery notes, goods receipts, customer invoices, supplier bills, sales returns, purchase returns, customer credit notes, and supplier adjustment notes.
+  - Added Arabic translations for create/update/submit/confirm/approve/post/cancel outcomes, including generated invoice revision flash text.
+  - Verified targeted Slice 63 guard: 1 test, 121 assertions.
+  - Verified `Phase15ProductHardeningTest`: 71 tests, 13097 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 64 implementation:
+  - Removed remaining raw backend success flash messages from all Laravel controllers.
+  - Localized cash/bank, AR/AP, catalog, cheque, landed cost, stock, warehouse, treasury, and tax success flash messages through Laravel translations.
+  - Added placeholder-safe Arabic translations for tax return number success messages.
+  - Verified targeted Slice 64 guard: 1 test, 425 assertions.
+  - Verified `Phase15ProductHardeningTest`: 72 tests, 13522 assertions.
+  - Verified raw controller success-flash scan, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 65 implementation:
+  - Added Arabic translations for backend guard/error messages around account hierarchy/type safety, protected system account type/category deletes, last-super-admin role protection, and period close blockers.
+  - Verified targeted Slice 65 guard: 1 test, 17 assertions.
+  - Verified `Phase15ProductHardeningTest`: 73 tests, 13539 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 66 implementation:
+  - Localized targeted financial service error messages for period guards, AR/AP posting statuses, opening balances, allocations, settlements, prepaid/accrual schedules, and payroll period resolution.
+  - Replaced raw interpolated status/date/entity messages with Laravel translation placeholders.
+  - Verified targeted Slice 66 guard: 1 test, 145 assertions.
+  - Verified `Phase15ProductHardeningTest`: 74 tests, 13684 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 67 implementation:
+  - Localized AR/AP cash-bank validation errors for cash/bank selection, linked GL readiness, currency mismatch, duplicate cash/bank codes, optional operational branch references, required fields, positive amounts, and temporary 1:1 FX restrictions.
+  - Preserved receipt/payment/opening-balance posting behavior, validation keys, optimistic locks, and accounting effects.
+  - Verified targeted financial-service guard after expansion: 1 test, 381 assertions.
+  - Verified `Phase15ProductHardeningTest`: 74 tests, 13920 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 68 implementation:
+  - Localized TreasuryTransferService validation errors for draft-only guards, field requirements, amount/FX positivity, fiscal period validation, endpoint account matching, linked GL readiness, different source/destination account enforcement, and transfer currency matching.
+  - Preserved treasury transfer lifecycle, branch-as-operational-reference behavior, PostingEngine posting, optimistic locking, validation keys, and audit logging.
+  - Verified targeted financial-service guard after expansion: 1 test, 433 assertions.
+  - Verified `Phase15ProductHardeningTest`: 74 tests, 13972 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 69 implementation:
+  - Localized BranchApprovalRuleService validation errors for missing override permissions, unsupported document types, unsupported branch match modes, missing branches, missing permissions, and duplicate approval rules.
+  - Preserved operational branch approval controls without tenant/company/current-branch scope.
+  - Verified targeted branch approval localization guard: 1 test, 22 assertions.
+  - Verified `Phase15ProductHardeningTest`: 75 tests, 13994 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 70 implementation:
+  - Localized tax period, tax return, tax master-data, tax calculation, and filed-period guard validation errors.
+  - Replaced dynamic tax code/date/period interpolation with Laravel translation placeholders.
+  - Preserved tax filing locks, VAT calculation rules, period overlap checks, audit logging, validation keys, and basis-point integer tax math.
+  - Verified targeted tax service localization guard: 1 test, 132 assertions.
+  - Verified `Phase15ProductHardeningTest`: 76 tests, 14126 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 71 implementation:
+  - Localized ExpenseService, ExpenseCategoryService, PrepaidScheduleService, and AccrualScheduleService validation errors.
+  - Replaced dynamic expense line, currency, date, status, and account-label interpolation with Laravel translation placeholders.
+  - Preserved settlement method validation, attachment-before-posting requirements, period guards, posting behavior, audit logging, exact integer money math, optimistic locking, and operational branch references.
+  - Verified targeted expense service localization guard: 1 test, 301 assertions.
+  - Verified `Phase15ProductHardeningTest`: 77 tests, 14427 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 72 implementation:
+  - Localized PayrollRunService, PayrollComponentService, EmployeeService, and EmployeePayrollComponentService validation errors.
+  - Replaced dynamic payroll run, employee, deduction, account-label, branch, status, and effective-date interpolation with Laravel translation placeholders.
+  - Preserved payroll lifecycle, period locking, authenticated posting guard, payroll component assignment rules, exact integer payroll math, PostingEngine integration, audit logging, optimistic locking, and operational branch references.
+  - Verified targeted payroll service localization guard: 1 test, 253 assertions.
+  - Verified `Phase13PayrollFoundationTest`: 6 tests, 90 assertions.
+  - Verified `Phase15ProductHardeningTest`: 78 tests, 14680 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 73 implementation:
+  - Localized WarehouseService, WarehouseResolver, StockCountService, StockTransferService, and StockAdjustmentService validation errors.
+  - Replaced dynamic warehouse/location code, stock count/transfer/adjustment status, product, quantity, UOM, date, branch, and valuation-currency interpolation with Laravel translation placeholders.
+  - Preserved warehouse default protection, stock count approval/posting flow, stock transfer issue/receipt flow, stock adjustment posting flow, branch approval rules, period guards, audit logging, optimistic locking, and operational branch references.
+  - Deferred MovingWeightedAverageInventoryService localization to Slice 74 because it is a larger financial-costing engine with separate posting and valuation invariants.
+  - Verified targeted inventory workflow localization guard: 1 test, 297 assertions.
+  - Verified `Phase10BranchWarehouseOperationsTest`: 5 tests, 87 assertions.
+  - Verified `Phase10StockCountAdjustmentTest`: 5 tests, 57 assertions.
+  - Verified `Phase15ProductHardeningTest`: 79 tests, 14977 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 74 implementation:
+  - Localized MovingWeightedAverageInventoryService validation errors.
+  - Replaced receipt, issue, return, scrap, transfer, stock-adjustment, landed-cost, insufficient-stock, original-movement, and multi-currency valuation guard messages with Laravel translation placeholders.
+  - Preserved moving weighted average costing, stock balance locks, stock movement ledger writes, PostingEngine integration, landed-cost capitalization, and operational warehouse/branch references.
+  - Verified targeted inventory costing localization guard: 1 test, 68 assertions.
+  - Verified `Phase4Slice8InventoryCostingTest`: 14 tests, 99 assertions, 1 skipped.
+  - Verified `Phase10LandedCostAllocationTest`: 5 tests, 40 assertions.
+  - Verified `Phase15ProductHardeningTest`: 80 tests, 15045 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 75 implementation:
+  - Localized RentableItemService and RentalContractService validation errors.
+  - Replaced rentable item source/status/condition, code, linked product/fixed-asset, branch/warehouse placement, contract lifecycle, contract line, date, amount, duplicate-item, reservable-status, and total-overflow validation messages with Laravel translation placeholders.
+  - Preserved rental item status transitions, rental contract submit/approve/activate/cancel lifecycle, item reservation/allocation/rented transitions, audit logging, optimistic locking, numbering, exact integer rental amount math, and operational branch/warehouse placement.
+  - Verified targeted rental item/contract localization guard: 1 test, 171 assertions.
+  - Verified `Phase14RentalsFoundationTest`: 16 tests, 159 assertions.
+  - Verified `Phase14RentalBillingTest`: 8 tests, 56 assertions.
+  - Verified `Phase15ProductHardeningTest`: 81 tests, 15216 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 76 implementation:
+  - Localized RentalFulfillmentService validation errors.
+  - Replaced handover, return, inspection, cancellation, item-status, contract-line, return-line, duplicate-line, condition, outcome, reference, date, and amount validation messages with Laravel translation placeholders.
+  - Preserved rental handover confirmation/cancellation, return submission/inspection/cancellation, item status transitions, audit logging, optimistic locking, exact integer amount validation, and operational branch/warehouse semantics.
+  - Verified targeted rental fulfillment localization guard: 1 test, 90 assertions.
+  - Verified `Phase14RentalsFoundationTest`: 16 tests, 159 assertions.
+  - Verified `Phase15ProductHardeningTest`: 82 tests, 15306 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 77 implementation:
+  - Localized RentalInvoiceService validation errors.
+  - Replaced rental invoice lifecycle, billable-contract checks, line validation, duplicate billing, deposit caps, damage caps, GL mapping currency, period resolution, identifier, date, and amount validation messages with Laravel translation placeholders.
+  - Preserved rental billing, output VAT, receivable-entry creation, PostingEngine GL posting, period/tax-period guards, overbilling prevention, audit logging, optimistic locking, and operational branch semantics.
+  - Verified targeted rental invoice localization guard: 1 test, 120 assertions.
+  - Verified `Phase14RentalBillingTest`: 8 tests, 56 assertions.
+  - Verified `Phase15ProductHardeningTest`: 83 tests, 15426 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 78 implementation:
+  - Localized fixed-asset application service validation errors.
+  - Covered category/register/capitalization/depreciation schedule/depreciation run/disposal/location/movement workflows, period availability, currency, duplicate-number, lifecycle-status, date, and amount guards.
+  - Preserved capitalization, opening asset handling, depreciation math, depreciation posting/reversal, disposal gain/loss accounting, location movement history, audit logging, optimistic locking, period guards, and operational branch/location semantics.
+  - Verified targeted fixed-asset localization guard: 1 test, 413 assertions.
+  - Verified Phase 6 fixed-asset suites and Phase 10 fixed-asset movement suite.
+  - Verified `Phase15ProductHardeningTest`: 84 tests, 15839 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 79 implementation:
+  - Localized customer invoice and supplier bill validation errors.
+  - Covered source-document matching, lifecycle state guards, period/date guards, stock-source restrictions, GL/tax mapping currency checks, over-invoicing/over-billing caps, and exact integer amount validation.
+  - Preserved sales/purchasing invoice posting, VAT snapshots, AR/AP subledger entries, PostingEngine journals, source-document quantity locks, optimistic locking, period/tax-period guards, and operational branch/warehouse semantics.
+  - Verified targeted sales/purchasing invoice localization guard: 1 test, 389 assertions.
+  - Verified `Phase4Slice5CustomerInvoiceTest`: 19 tests, 84 assertions.
+  - Verified `Phase4Slice6SupplierBillTest`: 19 tests, 98 assertions.
+  - Verified `Phase15ProductHardeningTest`: 85 tests, 16228 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 80 implementation:
+  - Localized sales return, customer credit note, purchase return, and supplier adjustment note validation errors.
+  - Covered lifecycle state guards, source-document matching, period/date guards, stock-balance restrictions, GL/tax mapping currency checks, return/credit quantity caps, disposition/direction/tax-mode checks, and exact integer amount validation.
+  - Preserved VAT reversal/snapshot behavior, AR/AP settlement behavior, stock movement/costing behavior, PostingEngine journals, optimistic locking, period/tax-period guards, and operational branch/warehouse semantics.
+  - Fixed SupplierAdjustmentNote tax calculation to use an explicit adjustment date in the line-calculation helper.
+  - Verified targeted returns/adjustment localization guard: 1 test, 487 assertions.
+  - Verified `Phase4Slice10ReturnsCreditNotesTest`: 40 tests, 237 assertions.
+  - Verified Phase 7 sales/purchasing VAT suites: 9 tests, 48 assertions.
+  - Verified `Phase15ProductHardeningTest`: 86 tests, 16715 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 81 implementation:
+  - Localized sales order, purchase order, delivery note, and goods receipt validation errors.
+  - Covered order lifecycle state guards, customer/supplier activity checks, explicit currency/date validation, product/UOM validation, exact integer line-total checks, fulfillment source matching, delivery/receipt quantity caps, and confirmation/cancellation rules.
+  - Preserved `SO`/`PO`/`DN`/`GRN` sequence allocation, idempotent confirmation, deterministic row locks, stock receipt/issue integration, optimistic locking, audit logging, and operational warehouse semantics.
+  - Verified targeted order/fulfillment localization guard: 1 test, 297 assertions.
+  - Verified `Phase4Slice2SalesOrderTest`: 15 tests, 72 assertions.
+  - Verified `Phase4Slice3PurchaseOrderTest`: 16 tests, 74 assertions.
+  - Verified `Phase4Slice4FulfillmentTest`: 19 tests, 140 assertions.
+  - Verified `Phase15ProductHardeningTest`: 87 tests, 17012 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 82 implementation:
+  - Localized product, product category, unit of measure, customer, and supplier validation errors.
+  - Covered SKU/code uniqueness, product type/status checks, UOM/category activity checks, protected category/UOM deletes, and customer/supplier status validation.
+  - Preserved catalog master-data behavior, audit logging, optimistic locking, product category/UOM reference protection, and customer/supplier active/inactive semantics.
+  - Verified targeted catalog/customer/supplier localization guard: 1 test, 120 assertions.
+  - Verified `Phase3Slice1MasterDataTest`: 14 tests, 58 assertions.
+  - Verified `Phase4Slice1CatalogTest`: 12 tests, 66 assertions.
+  - Verified `Phase15ProductHardeningTest`: 88 tests, 17132 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 83 implementation:
+  - Localized accounting account mapping and financial statement mapping validation errors.
+  - Covered missing/inactive mapping messages, disallowed mapping keys, branch override target validation, mapping account type/nature guards, financial-statement line lifecycle checks, account assignment checks, and cash-flow classification safety.
+  - Preserved global mapping protection, branch-specific operational mapping overrides, statement-line assignment rules, cash/bank cash-flow policy, audit logging, and deletion-safety behavior.
+  - Verified targeted accounting mapping localization guard: 1 test, 93 assertions.
+  - Verified `Phase5Slice1FinancialStatementMappingTest`: 9 tests, 30 assertions.
+  - Verified `Phase5Slice3CashFlowStatementTest`: 9 tests, 46 assertions.
+  - Verified `Phase10BranchSpecificGlMappingTest`: 4 tests, 27 assertions.
+  - Verified `AccountTypeAndControlAccountTest`: 13 tests, 46 assertions.
+  - Verified `Phase15ProductHardeningTest`: 89 tests, 17225 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 84 implementation:
+  - Localized bank reconciliation, cash/bank book query, and cheque validation errors.
+  - Covered linked-GL checks, cheque lifecycle status guards, post-clear owner-decision blockers, bank account activity/currency checks, mapped account validation, financial period/date guards, reconciliation line edit/match/unmatch/delete guards, ledger candidate validation, finalization blockers, and zero-difference requirements.
+  - Preserved cheque posting, AR/AP subledger effects, PostingEngine journals, idempotent replay, deterministic locks, reconciliation matching/finalization behavior, cash/bank book read models, audit logging, and period guards.
+  - Verified targeted bank/cheque localization guard: 1 test, 358 assertions.
+  - Verified `Phase3Slice5ChequeTest`: 8 tests, 51 assertions.
+  - Verified `Phase3Slice6BankReconciliationTest`: 11 tests, 46 assertions.
+  - Verified `Phase15ProductHardeningTest`: 90 tests, 17583 assertions.
+  - Verified Concurrency suite: 7 tests, 16 assertions.
+  - Verified PostgreSQL cheque and bank-reconciliation stress commands with 50 workers each.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 85 implementation:
+  - Localized landed cost allocation validation errors.
+  - Covered lifecycle guards, optimistic locking, receipt currency checks, posting prerequisites, period/year checks, FX-rate guard, confirmed Goods Receipt rules, allocated split validation, mapped GL currency checks, supplier activity, eligible stock-line checks, manual split validation, allocation weights, and receipt-line purchase-cost exactness.
+  - Preserved landed cost allocation math, stock capitalization/COGS split behavior, input VAT/AP/GL posting, PostingEngine usage, period/tax-period guards, audit logging, and branch mapping lookup.
+  - Verified targeted landed-cost localization guard: 1 test, 82 assertions.
+  - Verified `Phase10LandedCostAllocationTest`: 5 tests, 40 assertions.
+  - Verified `Phase15ProductHardeningTest`: 91 tests, 17665 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 86 implementation:
+  - Localized receivable/payable allocation validation errors.
+  - Covered line presence, target-entry reference, duplicate target, posted receipt/payment status, positive integer amount, unapplied balance cap, missing target entry, customer/supplier mismatch, currency mismatch, positive AR/AP item, and remaining allocatable amount guards.
+  - Preserved allocation math, receipt/payment unapplied and allocated balance invariants, idempotency, deterministic locking, allocation reversal guards, audit calls, and no-GL-entry allocation behavior.
+  - Verified targeted AR/AP allocation localization guard: 1 test, 89 assertions.
+  - Verified `Phase3Slice4AllocationTest`: 7 tests, 38 assertions.
+  - Verified `Phase15ProductHardeningTest`: 92 tests, 17754 assertions.
+  - Verified allocation concurrency stress with 50 workers, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 87 implementation:
+  - Localized receivable/payable entry settlement validation errors.
+  - Covered settlement line presence, target-entry reference, self-settlement, duplicate target, source/target existence, source credit/debit eligibility, settlement amount, source/target remaining balance caps, customer/supplier mismatch, currency mismatch, target debit/credit eligibility, and reversal reason guards.
+  - Preserved settlement math, deterministic locking, allocation-aware remaining-balance checks, idempotency, settlement reversal guards, audit calls, and no extra GL posting in settlement.
+  - Verified targeted AR/AP settlement localization guard: 1 test, 101 assertions.
+  - Verified `Phase4Slice10ReturnsCreditNotesTest`: 40 tests, 237 assertions.
+  - Verified `Phase15ProductHardeningTest`: 93 tests, 17855 assertions.
+  - Verified settlement concurrency stress with 50 workers, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 88 implementation:
+  - Localized touched customer receipt, supplier payment, customer opening balance, and supplier opening balance validation errors.
+  - Covered draft-only cancellation, selected fiscal-year/period mismatch, and closed-period creation guards.
+  - Preserved receipt/payment and opening-balance creation, cancellation, posting, PostingEngine integration, AR/AP subledger creation, cash/bank GL resolution, idempotent posting, PeriodGuard checks, and audit logging.
+  - Verified targeted receipt/payment/opening-balance localization guard: 1 test, 31 assertions.
+  - Verified `Phase3Slice2ArApOpeningBalanceTest`: 14 tests, 61 assertions.
+  - Verified `Phase3Slice3ReceiptPaymentTest`: 14 tests, 71 assertions, 2 skipped.
+  - Verified `Phase15ProductHardeningTest`: 94 tests, 17886 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 89 implementation:
+  - Localized invoice revision and shared currency input validation errors.
+  - Covered credit-note/sales-return existence, posted-invoice requirement, missing invoice lines, required currency, ISO code validation, and source-document currency validation.
+  - Preserved invoice revision snapshot generation, returned/credited/net calculations, audit logging, and explicit-currency input behavior.
+  - Verified targeted invoice revision/currency input localization guard: 1 test, 29 assertions.
+  - Verified `Phase4Slice10ReturnsCreditNotesTest`: 40 tests, 237 assertions.
+  - Verified `Phase15ProductHardeningTest`: 95 tests, 17915 assertions.
+  - Verified broad `app/Application` raw validation-message scan returned 0 matches for the targeted pattern.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 90 implementation:
+  - Localized report export missing-ID abort messages in Bank Book, Cash Book, Customer Statement, and Supplier Statement controllers.
+  - Localized `CsvReportResponse` output-stream failure.
+  - Preserved report export behavior, report query services, CSV streaming, and financial visibility protections.
+  - Verified targeted report export localization guard: 1 test, 36 assertions.
+  - Verified `Phase3Slice8ReportsTest`: 12 tests, 180 assertions.
+  - Verified `Phase15ProductHardeningTest`: 96 tests, 17951 assertions.
+  - Verified raw controller/application/support error-message scan returned 0 matches for the targeted pattern.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 91 implementation:
+  - Added `CashBankBookCsvExporter` for Cash Book and Bank Book exports.
+  - Added `PartnerStatementCsvExporter` for Customer and Supplier Statement exports.
+  - Added shared `CsvReportResponse::stream()` to centralize CSV headers, output stream opening, localized stream failure handling, and handle cleanup.
+  - Removed `fputcsv`, `response()->stream`, and direct decimal formatting from the four touched statement report controllers.
+  - Verified targeted statement-export delegation guard: 1 test, 22 assertions.
+  - Verified `Phase3Slice8ReportsTest`: 12 tests, 180 assertions.
+  - Verified `Phase15ProductHardeningTest`: 97 tests, 18025 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 92 implementation:
+  - Added `ArApCsvReportExporter` for AR/AP aging and AR/AP-to-GL reconciliation exports.
+  - Added `ChequeRegisterCsvExporter` for Cheque Register exports.
+  - Removed `fputcsv`, `response()->stream`, and direct decimal formatting from the five touched AR/AP and cheque report controllers.
+  - Verified targeted AR/AP and cheque export delegation guard: 1 test, 28 assertions.
+  - Verified `Phase3Slice8ReportsTest`: 12 tests, 180 assertions.
+  - Verified `Phase15ProductHardeningTest`: 98 tests, 18105 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 93 implementation:
+  - Added `FinancialStatementCsvExporter` for Balance Sheet, Income Statement, and Cash Flow exports.
+  - Added `BranchProfitabilityCsvExporter` for Branch Profitability exports.
+  - Removed `fputcsv`, `response()->stream`, and local export-name helper logic from the four touched financial-statement/branch report controllers.
+  - Verified targeted financial-statement and branch export delegation guard: 1 test, 23 assertions.
+  - Verified `Phase5Slice2FinancialStatementsTest`: 8 tests, 54 assertions.
+  - Verified `Phase5Slice3CashFlowStatementTest`: 9 tests, 46 assertions.
+  - Verified `Phase10GlBranchProfitabilityTest`: 6 tests, 51 assertions.
+  - Verified `Phase15ProductHardeningTest`: 99 tests, 18180 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 94 implementation:
+  - Centralized the remaining report-export stream lifecycle in `CsvReportResponse::stream()`.
+  - Updated VAT summary/reconciliation exports and rental operations exports to use the shared stream boundary.
+  - Verified only `CsvReportResponse.php` owns direct stream/open/close handling inside `Application/Reports`.
+  - Verified targeted stream-boundary guard: 1 test, 148 assertions.
+  - Verified `Phase7Slice5VatReportsTest`: 9 tests, 44 assertions.
+  - Verified `Phase14RentalReportsCloseOutTest`: 3 tests, 41 assertions.
+  - Verified `Phase15ProductHardeningTest`: 100 tests, 18328 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 95 implementation:
+  - Added `FinancialPeriodReportOptions` for shared report period-selector data.
+  - Removed duplicated financial-period query/eager-load/map logic from Income Statement and Cash Flow report controllers.
+  - Preserved Inertia prop shape, route behavior, report filters, and financial visibility/export protections.
+  - Verified targeted period-options boundary guard: 1 test, 16 assertions.
+  - Verified `Phase5Slice2FinancialStatementsTest`: 8 tests, 54 assertions.
+  - Verified `Phase5Slice3CashFlowStatementTest`: 9 tests, 46 assertions.
+  - Verified `Phase15ProductHardeningTest`: 101 tests, 18374 assertions.
+  - Verified all controllers remain under 150 lines.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 96 implementation:
+  - Replaced the Bank Reconciliation Detail hardcoded `GL-Entry` fallback with dictionary-backed EN/AR copy.
+  - Preserved matched/unmatched line behavior and report data contracts.
+  - Verified targeted missing-reference UI guard: 1 test, 20 assertions.
+  - Verified `Phase3Slice8ReportsTest`: 12 tests, 180 assertions.
+  - Verified `Phase15ProductHardeningTest`: 102 tests, 18394 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 97 implementation:
+  - Replaced the Dashboard missing-user `User` fallback with `dict.app.header.unknownUser`.
+  - Preserved dashboard welcome interpolation, metrics, shortcuts, and app-shell behavior.
+  - Verified targeted dashboard fallback guard: 1 test, 16 assertions.
+  - Verified `MigratedPagesTest`: 2 tests, 83 assertions.
+  - Verified `Phase15ProductHardeningTest`: 103 tests, 18410 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 98 implementation:
+  - Replaced the AppLayout language-switcher `EN` / `ع` literals with `dict.common.language` labels.
+  - Preserved locale switching and header behavior.
+  - Verified targeted AppLayout dictionary guard: 1 test, 99 assertions.
+  - Verified `Phase15ProductHardeningTest`: 103 tests, 18413 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 99 implementation:
+  - Replaced the bank reconciliation finalization confirmation generated duplicate key with `bankReconciliationsShow.confirmFinalizeReconciliation`.
+  - Added explicit EN/AR finalization confirmation copy and preserved bank reconciliation workflow behavior.
+  - Verified targeted bank reconciliation dictionary guard: 1 test, 4 assertions.
+  - Verified `Phase3Slice6BankReconciliationTest`: 11 tests, 46 assertions.
+  - Verified `Phase15ProductHardeningTest`: 104 tests, 18417 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 100 implementation:
+  - Removed English parenthetical copy from used Arabic `catalogProducts` product type/status select labels.
+  - Preserved product values, English locale labels, and catalog form/service behavior.
+  - Verified targeted catalog label guard: 1 test, 15 assertions.
+  - Verified `Phase4Slice1CatalogTest`: 12 tests, 66 assertions.
+  - Verified `Phase15ProductHardeningTest`: 105 tests, 18432 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 101 implementation:
+  - Moved catalog category and UOM code/symbol placeholders from JSX into EN/AR dictionaries.
+  - Removed English parenthetical copy from ordinary Arabic catalog category/UOM labels.
+  - Verified targeted catalog form dictionary guard: 1 test, 15 assertions.
+  - Verified `Phase4Slice1CatalogTest`: 12 tests, 66 assertions.
+  - Verified `Phase15ProductHardeningTest`: 106 tests, 18447 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 102 implementation:
+  - Added `DashboardPageData` for dashboard counts and recent notification props.
+  - Refactored `DashboardController` to delegate page-data composition and removed direct model/table query composition from the controller.
+  - Verified targeted dashboard controller-boundary guard: 1 test, 11 assertions.
+  - Verified `MigratedPagesTest`: 2 tests, 83 assertions.
+  - Verified `Phase15ProductHardeningTest`: 107 tests, 18472 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 103 implementation:
+  - Added `CustomerPageData` and `SupplierPageData` for master-data index page composition.
+  - Refactored `CustomerController` and `SupplierController` to delegate index search/filter/pagination/currency props.
+  - Verified targeted master-data controller-boundary guard: 1 test, 14 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 108 tests, 18514 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 104 implementation:
+  - Added `CashAccountPageData` and `BankAccountPageData` for cash/bank index page composition.
+  - Refactored `CashAccountController` and `BankAccountController` to delegate index search/status/branch filtering, pagination, GL account/currency/branch option props.
+  - Verified targeted cash/bank controller-boundary guard: 1 test, 22 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 109 tests, 18564 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 105 implementation:
+  - Refactored `Accounting\TrialBalanceController` to use shared `FinancialPeriodReportOptions`.
+  - Removed direct `FinancialPeriod::query()->with('fiscalYear')` option composition from the Trial Balance controller.
+  - Verified targeted Trial Balance controller-boundary guard: 1 test, 6 assertions.
+  - Verified `AccountingCoreTest`: 19 tests, 79 assertions.
+  - Verified `Phase5Slice2FinancialStatementsTest`: 8 tests, 54 assertions.
+  - Verified `Phase15ProductHardeningTest`: 110 tests, 18570 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 106 implementation:
+  - Added `CustomerOpeningBalancePageData` and `SupplierOpeningBalancePageData`.
+  - Refactored AR/AP opening-balance controllers to delegate balances, partner options, fiscal-year options, financial-period options, and currency options.
+  - Verified targeted AR/AP opening-balance controller-boundary guard: 1 test, 26 assertions.
+  - Verified `Phase3Slice2ArApOpeningBalanceTest`: 14 tests, 61 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 111 tests, 18624 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 107 implementation:
+  - Added `CustomerReceiptPageData` and `SupplierPaymentPageData`.
+  - Refactored AR/AP receipt/payment controllers to delegate receipt/payment listing, partner options, cash/bank account options, fiscal-year options, financial-period options, and currency options.
+  - Verified targeted AR/AP receipt/payment controller-boundary guard: 1 test, 34 assertions.
+  - Verified `Phase3Slice3ReceiptPaymentTest`: 12 passed, 2 skipped, 71 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 112 tests, 18686 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 108 implementation:
+  - Added `IncomingChequePageData` and `OutgoingChequePageData`.
+  - Refactored incoming/outgoing cheque controllers to delegate cheque listing, filters, partner options, bank-account options, fiscal-year options, financial-period options, and currency options.
+  - Verified targeted cheque controller-boundary guard: 1 test, 30 assertions.
+  - Verified `Phase3Slice5ChequeTest`: 8 tests, 51 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 113 tests, 18744 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 109 implementation:
+  - Added `ReceivableAllocationPageData` and `PayableAllocationPageData`.
+  - Refactored allocation controllers to delegate posted unapplied source receipts/payments, selected source lookup, open target entries, existing allocations, partner options, and filters.
+  - Verified targeted allocation controller-boundary guard: 1 test, 22 assertions.
+  - Verified `Phase3Slice4AllocationTest`: 7 tests, 38 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 114 tests, 18794 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 110 implementation:
+  - Added `ReceivableEntrySettlementPageData` and `PayableEntrySettlementPageData`.
+  - Refactored AR/AP settlement controllers to delegate open source entries, selected source remaining amount, eligible target entries, existing settlements, partner options, and filters.
+  - Verified targeted settlement controller-boundary guard: 1 test, 26 assertions.
+  - Verified targeted Phase4 settlement methods: 5 tests, 23 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 115 tests, 18848 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 111 implementation:
+  - Added `SalesOrderPageData` and `PurchaseOrderPageData`.
+  - Refactored Sales/Purchase Order controllers to delegate order listing, search/status/partner filters, active partner options, currency options, and eligible product options.
+  - Verified targeted Sales/Purchase Order controller-boundary guard: 1 test, 24 assertions.
+  - Verified `Phase4Slice2SalesOrderTest`: 15 tests, 72 assertions.
+  - Verified `Phase4Slice3PurchaseOrderTest`: 16 tests, 74 assertions.
+  - Verified `Phase15ProductHardeningTest`: 116 tests, 18900 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 112 implementation:
+  - Added `DeliveryNotePageData` and `GoodsReceiptPageData`.
+  - Refactored Delivery/Goods Receipt controllers to delegate fulfillment listing, search/status/warehouse filters, confirmed source document selectors, and active warehouse options.
+  - Verified targeted Delivery/Goods controller-boundary guard: 1 test, 20 assertions.
+  - Verified `Phase4Slice4FulfillmentTest`: 19 tests, 140 assertions.
+  - Verified `Phase15ProductHardeningTest`: 117 tests, 18948 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 113 implementation:
+  - Added `CustomerInvoiceRevisionPageData`.
+  - Refactored the invoice revision controller to delegate listing, detail loading, relation eager-loading, search filtering, pagination, and snapshot decoding.
+  - Verified targeted invoice revision controller-boundary guard: 1 test, 9 assertions.
+  - Verified `Phase4Slice10ReturnsCreditNotesTest`: 40 tests, 237 assertions.
+  - Verified `Phase15ProductHardeningTest`: 118 tests, 18971 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 114 implementation:
+  - Added `AccountingAccountMappingPageData`.
+  - Refactored the mapping controller to delegate mapping keys, mapping rows, active account options, and operational branch options.
+  - Verified targeted mapping controller-boundary guard: 1 test, 11 assertions.
+  - Verified `Phase10BranchSpecificGlMappingTest`: 4 tests, 27 assertions.
+  - Verified `Phase15ProductHardeningTest`: 119 tests, 18996 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 115 implementation:
+  - Added `AccountingOverviewPageData`.
+  - Refactored the accounting overview controller to delegate active fiscal year lookup, recent journals, and posted/draft/account counts.
+  - Verified targeted overview controller-boundary guard: 1 test, 11 assertions.
+  - Verified `Phase15ProductHardeningTest`: 120 tests, 19021 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 116 implementation:
+  - Added `AccountCategoryPageData` and `AccountTypePageData`.
+  - Refactored account category/type controllers to delegate listing, eager-loading, counts, active category selectors, and ordering.
+  - Verified targeted account category/type controller-boundary guard: 1 test, 18 assertions.
+  - Verified `AccountCategoryTest`: 11 tests, 53 assertions.
+  - Verified `AccountTypeAndControlAccountTest`: 13 tests, 46 assertions.
+  - Verified `Phase15ProductHardeningTest`: 121 tests, 19067 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 117 implementation:
+  - Added `JournalPageData` and `OpeningBalancePageData`.
+  - Refactored Journal/Opening Balance controllers to delegate journal listing/form/detail selectors, fiscal-year selection, account options, and existing balance lookup.
+  - Verified targeted journal/opening-balance controller-boundary guard: 1 test, 25 assertions.
+  - Verified `AccountingCoreTest`: 19 tests, 79 assertions.
+  - Verified `Phase3Slice7UiTest`: 13 tests, 112 assertions.
+  - Verified `Phase15ProductHardeningTest`: 122 tests, 19120 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 118 implementation:
+  - Added `CurrencyPageData`, `ExchangeRatePageData`, `ChartOfAccountsPageData`, and `FinancialPeriodPageData`.
+  - Refactored Currency/FX/Chart/Period controllers to delegate index page-data composition while preserving existing actions.
+  - Verified targeted accounting master-data controller-boundary guard: 1 test, 34 assertions.
+  - Verified `AccountingCoreTest`: 19 tests, 79 assertions.
+  - Verified `MigratedPagesTest`: 2 tests, 83 assertions.
+  - Verified `Phase15ProductHardeningTest`: 123 tests, 19210 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 119 implementation:
+  - Added `ProductCategoryPageData`, `ProductPageData`, and `UnitOfMeasurePageData`.
+  - Refactored catalog controllers to delegate index filters, listings, pagination, active UOM options, and active category options.
+  - Verified targeted catalog controller-boundary guard: 1 test, 31 assertions.
+  - Verified `Phase4Slice1CatalogTest`: 12 tests, 66 assertions.
+  - Verified `Phase15ProductHardeningTest`: 124 tests, 19283 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 120 implementation:
+  - Added `ExpenseCategoryPageData`, `ExpensePageData`, `PrepaidSchedulePageData`, and `AccrualSchedulePageData`.
+  - Refactored expense/prepaid/accrual controllers to delegate index filters, listings, pagination, active selector options, statuses, and settlement-method options.
+  - Verified targeted expense/prepaid/accrual controller-boundary guard: 1 test, 66 assertions.
+  - Verified `Phase11ExpenseManagementTest`: 8 tests, 60 assertions.
+  - Verified `Phase12PrepaidAccruedExpenseTest`: 6 tests, 74 assertions.
+  - Verified `Phase15ProductHardeningTest`: 125 tests, 19405 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 121 implementation:
+  - Added `FixedAssetLocationPageData` and `FixedAssetDisposalPageData`.
+  - Extended `FixedAssetPageData` with edit lookup.
+  - Refactored fixed asset, location, and disposal controllers to delegate edit lookup, location index data, disposal listing filters, pagination, and detail eager-loading.
+  - Verified targeted fixed-asset controller-boundary guard: 1 test, 25 assertions.
+  - Verified `Phase10FixedAssetMovementTest`: 5 tests, 50 assertions.
+  - Verified `Phase6Slice6FixedAssetDisposalTest`: 15 tests, 60 assertions.
+  - Verified `Phase6Slice2FixedAssetRegisterTest`: 9 tests, 71 assertions.
+  - Verified `Phase15ProductHardeningTest`: 126 tests, 19458 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 122 implementation:
+  - Added `PayrollEmployeePageData`, `PayrollComponentPageData`, and `PayrollRunPageData`.
+  - Refactored payroll employee/component/run controllers to delegate index filters, listings, pagination, active selectors, statuses, run types, and payment-method options.
+  - Verified targeted payroll controller-boundary guard: 1 test, 36 assertions.
+  - Verified `Phase13PayrollFoundationTest`: 6 tests, 90 assertions.
+  - Verified `Phase15ProductHardeningTest`: 127 tests, 19536 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 123 implementation:
+  - Added `RentableItemPageData`, `RentalContractPageData`, `RentalHandoverPageData`, and `RentalReturnPageData`.
+  - Refactored rental operational controllers to delegate filters, listings, pagination, selectors, statuses, billing cycles, rate types, conditions, and outcomes.
+  - Verified targeted rental controller-boundary guard: 1 test, 53 assertions.
+  - Verified `Phase14RentalsFoundationTest`: 16 tests, 159 assertions.
+  - Verified `Phase14RentalBillingTest`: 8 tests, 56 assertions.
+  - Verified `Phase14RentalReportsCloseOutTest`: 3 tests, 41 assertions.
+  - Verified `Phase15ProductHardeningTest`: 128 tests, 19645 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 124 implementation:
+  - Added `WarehousePageData`, `StockBalancePageData`, `StockTransferPageData`, `StockCountPageData`, and `StockAdjustmentPageData`.
+  - Refactored inventory/warehouse controllers to delegate filters, listings, pagination, active selectors, warehouse/location types, and statuses.
+  - Verified targeted inventory controller-boundary guard: 1 test, 44 assertions.
+  - Verified `Phase10BranchWarehouseOperationsTest`: 5 tests, 87 assertions.
+  - Verified `Phase10StockCountAdjustmentTest`: 5 tests, 57 assertions.
+  - Verified `Phase4Slice8InventoryCostingTest`: 14 tests, 99 assertions, 1 skipped.
+  - Verified `Phase15ProductHardeningTest`: 129 tests, 19759 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 125 implementation:
+  - Added `LandedCostAllocationPageData` and `TreasuryTransferPageData`.
+  - Refactored landed-cost and treasury-transfer controllers to delegate filters, listings, pagination, selectors, statuses, and allocation methods.
+  - Verified targeted landed-cost/treasury controller-boundary guard: 1 test, 33 assertions.
+  - Verified `Phase10LandedCostAllocationTest`: 5 tests, 40 assertions.
+  - Verified `Phase10TreasuryTransferTest`: 4 tests, 34 assertions.
+  - Verified `Phase15ProductHardeningTest`: 130 tests, 19820 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 126 implementation:
+  - Added `TaxCodePageData`, `TaxRatePageData`, and `TaxPeriodPageData`.
+  - Refactored tax controllers to delegate tax-code listing/edit lookup, tax-rate listing/selectors, tax-period listing/detail, latest/filed return props, and base-currency resolution.
+  - Verified targeted tax controller-boundary guard: 1 test, 29 assertions.
+  - Verified explicit VAT/tax currency guard: 1 test, 47 assertions.
+  - Verified `Phase7Slice2TaxFoundationTest`: 7 tests, 38 assertions.
+  - Verified `Phase7Slice5VatReportsTest`: 9 tests, 44 assertions.
+  - Verified `Phase7Slice6TaxFilingTest`: 9 tests, 18 assertions.
+  - Verified `Phase15ProductHardeningTest`: 131 tests, 19894 assertions.
+  - Verified Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 127 implementation:
+  - Added `ReportPageOptions`.
+  - Refactored report controllers to delegate customer, supplier, product, currency, cash account, bank account, warehouse, and operational branch selector options.
+  - Verified targeted report selector-boundary guard: 1 test, 191 assertions.
+  - Verified `Phase3Slice8ReportsTest`: 12 tests, 180 assertions.
+  - Verified `Phase4Slice9OperationalReportsTest`: 7 tests, 85 assertions.
+  - Verified `Phase10BranchOperationalReportsTest`: 3 tests, 49 assertions.
+  - Verified `Phase10GlBranchProfitabilityTest`: 6 tests, 51 assertions.
+  - Verified `Phase7Slice5VatReportsTest`: 9 tests, 44 assertions.
+  - Verified `Phase15ProductHardeningTest`: 132 tests, 20115 assertions.
+  - Verified report-controller query/import scans, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 128 implementation:
+  - Added `BranchSettingsService`, `RoleSettingsService`, and `UserRoleAssignmentService`.
+  - Extended `BranchApprovalRuleService` with `indexData()` and `AuditLogQueryService` with `pageData()` / `usersList()`.
+  - Refactored branch settings, branch approval rule, role settings, user-role assignment, and audit log controllers to delegate query/persistence work.
+  - Verified targeted settings/audit boundary guard: 1 test, 277 assertions.
+  - Verified `SettingsActionsTest`: 3 tests, 19 assertions.
+  - Verified `M8ActionsTest`: 16 tests, 59 assertions.
+  - Verified `Phase10BranchApprovalRulesTest`: 5 tests, 30 assertions.
+  - Verified `M10AuditAndSchedulerTest`: 7 tests, 44 assertions.
+  - Verified `Phase15ProductHardeningTest`: 133 tests, 20434 assertions.
+  - Verified global controller query scan, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 129 implementation:
+  - Added shared `ReportFilterPanel`.
+  - Added visible currency filters, active-filter counts, and reset actions to sales order, purchase order, customer invoice, and supplier bill report pages.
+  - Updated report controllers to pass currency options through `ReportPageOptions`.
+  - Verified targeted operational report filter guard: 1 test, 68 assertions.
+  - Verified `Phase4Slice9OperationalReportsTest`: 7 tests, 85 assertions.
+  - Verified `Phase15ProductHardeningTest`: 134 tests, 20508 assertions.
+  - Verified global controller query scan, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 130 implementation:
+  - Applied `ReportFilterPanel` to Delivery Notes, Goods Receipts, and Stock Movements reports.
+  - Converted inventory-related report status/customer/supplier/product/warehouse filters to searchable selectors.
+  - Added visible Stock Movement currency filtering through controller-provided currency options.
+  - Verified targeted inventory report UX guard: 1 test, 121 assertions.
+  - Verified `Phase4Slice9OperationalReportsTest`: 7 tests, 85 assertions.
+  - Verified `Phase15ProductHardeningTest`: 135 tests, 20629 assertions.
+  - Verified global controller query scan, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 131 implementation:
+  - Replaced inline clear-filter handlers with named `clearFilters()` functions in Prepaids, Accruals, Payroll Components, Payroll Employees, and Payroll Runs.
+  - Added active-filter counts and disabled clear-filter buttons when no filters are active.
+  - Verified targeted expense/payroll filter reset guard: 1 test, 35 assertions.
+  - Verified `Phase12PrepaidAccruedExpenseTest`: 6 tests, 74 assertions.
+  - Verified `Phase13PayrollFoundationTest`: 6 tests, 90 assertions.
+  - Verified `Phase15ProductHardeningTest`: 136 tests, 20664 assertions.
+  - Verified global controller query scan, Pint, TypeScript typecheck, and Vite production build.
+- Completed Slice 132 implementation:
+  - Added active-filter counts and disabled no-op clear-filter actions across remaining inventory, expense, and rental workflow pages.
+  - Touched Stock Adjustments, Stock Counts, Warehouses, Stock Transfers, Stock Balances, Expenses, Expense Categories, Rental Handovers, Rental Returns, Rentable Items, Rental Contracts, and Rental Invoices.
+  - Verified targeted remaining clear-filter guard: 1 test, 59 assertions.
+  - Verified `Phase15ProductHardeningTest`: 137 tests, 20723 assertions.
+  - Verified focused inventory, expense, and rental suites plus Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 133 implementation:
+  - Replaced native rental status/type filter selects with shared `SearchableSelect` controls in Handovers, Returns, and Invoices.
+  - Preserved existing query parameters, reset behavior, dictionary labels, permissions, and workflow actions.
+  - Verified targeted rental filter-control guard: 1 test, 11 assertions.
+  - Verified `Phase15ProductHardeningTest`: 138 tests, 20734 assertions.
+  - Verified rental focused suites plus Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 134 implementation:
+  - Replaced native fixed-asset filter selects with shared `SearchableSelect` controls in Fixed Asset Register, Fixed Asset Locations, and Fixed Asset Disposals.
+  - Added active-filter counts and disabled no-op clear-filter buttons in the touched fixed asset pages.
+  - Added EN/AR dictionary keys for fixed-asset clear-filter actions.
+  - Verified targeted fixed-asset filter-control guard: 1 test, 60 assertions.
+  - Verified `Phase15ProductHardeningTest`: 139 tests, 20794 assertions.
+  - Verified focused fixed asset suites plus locale JSON validation, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Next Slice 135 target:
+  - Continue accountant-facing UI flow simplification and remaining clean-code scans.
+  - Keep all logic changes bounded to existing implemented modules; no deployment/cutover work unless explicitly resumed.
+
+## Prepared Phase 14 Rentals
+
+- `PHASE_14_RENTALS.md`: master contract for rentals.
+- `PHASE_14_SLICE_1_GEMINI_PROMPT.md`: docs-only decision-pack prompt.
+- `PHASE_14_RENTALS_POLICY_DECISION.md`: owner-facing decision pack.
+- Recommended path selected in chat: hybrid standalone rentable item register with optional product/fixed-asset links.
+- `PHASE_14_RENTALS_FOUNDATION_REPORT.md`: rentable item register implementation report.
+- Completed implementation: `rentable_item`, `rentable_item_status_event`, `RentableItemService`, `/rentals/items`, Rentals navigation, attachment registry, RBAC action expansion, EN/AR UI.
+- `PHASE_14_RENTAL_CONTRACTS_REPORT.md`: rental contract lifecycle implementation report.
+- Completed implementation: `rental_contract`, `rental_contract_line`, `rental_contract_status_event`, `RentalContractService`, `/rentals/contracts`, customer linkage, optional operational branch reference, item reservation/allocation/rented transitions, attachment registry, RBAC-gated lifecycle actions, EN/AR UI.
+- `PHASE_14_RENTAL_FULFILLMENT_REPORT.md`: rental handover, return, and inspection implementation report.
+- Completed implementation: `rental_handover`, `rental_handover_line`, `rental_return`, `rental_return_line`, `RentalFulfillmentService`, `/rentals/handovers`, `/rentals/returns`, handover confirmation, return submission/completion, item outcome transitions, attachment registry, RBAC-gated lifecycle actions, EN/AR UI.
+- `PHASE_14_RENTAL_BILLING_REPORT.md`: rental billing and accounting integration report.
+- Completed implementation: `rental_invoice`, `rental_invoice_line`, `RentalInvoiceService`, `/rentals/invoices`, deposits, rent billing, completed-return damage charges, late/other charges, output VAT, AR `receivable_entry`, PostingEngine GL entries, attachment registry, VAT register integration, period-close blocker, RBAC-gated lifecycle actions, EN/AR UI.
+- `PHASE_14_FINAL_VERIFICATION_REPORT.md`: rental operations report, CSV export, print UX, source scans, full suite/stress verification, and Phase 14 close-out.
+- Completed implementation: `RentalOperationsReportService`, `RentalOperationsReportController`, `/reports/rentals`, `/reports/rentals/export`, `Reports/RentalOperationsReport.tsx`, Reports Hub/sidebar links, readiness checks, and EN/AR UI.
+
+## Completed Phase 13 Payroll Foundation
+
+- Payroll employees implemented as standalone HR/payroll master data without any `user_id`, Company, or Tenant relationship.
+- Optional employee/payroll `branch_id` is implemented only as an operational/reporting reference.
+- Payroll components and employee recurring component assignments support fixed and percent-of-base salary calculations.
+- Payroll runs support draft, submit, approve, post, and cancel lifecycle.
+- Approved payroll runs allocate `PAY-YYYY-XXXXX` numbers through the existing atomic sequence allocator.
+- Payroll posting uses PostingEngine-balanced journals: Dr payroll expense, Cr payroll payable, and Cr payroll deductions payable.
+- Added default payroll GL mappings/accounts and default payroll component seed data.
+- Period close readiness blocks unposted payroll runs.
+- `/payroll/employees`, `/payroll/components`, and `/payroll/runs` pages are available with permission-aware navigation and EN/AR dictionary-backed UI text.
+- Payroll routes require granular payroll permissions plus sensitive `view_payroll`; posting requires `view_financials` too.
+- `PHASE_13_PAYROLL_FOUNDATION_REPORT.md` documents scope, guardrails, and verification results.
+
+## Completed Phase 12 Prepaid & Accrued Expenses
+
+- Prepaid schedules implemented with monthly recognition rows and exact integer remainder allocation.
+- Accrual schedules implemented with monthly accrual entries and exact integer remainder allocation.
+- Monthly prepaid recognition posts Dr expense / Cr prepaid expense asset through PostingEngine.
+- Monthly accrual posting posts Dr expense / Cr accrued expense liability through PostingEngine.
+- Added default mappings and seeded accounts for `prepaid_expense_asset` (`1800`) and `accrued_expense_liability` (`2500`).
+- Period close readiness blocks pending approved/active prepaid recognitions and accrual entries.
+- `/expenses/prepaids` and `/expenses/accruals` pages are available with EN/AR dictionary-backed UI text.
+- Optional `branch_id` on schedule headers is only an owner-approved operational/reporting reference, not tenant/security scope.
+- Removed stale currency `is_active` assumptions from affected controllers because `currency` is a registry table.
+- `PHASE_12_PREPAID_ACCRUED_EXPENSES_REPORT.md` documents scope, guardrails, and verification results.
+
+## Completed Phase 11 Expense Management
+
+- Expense Categories implemented with default expense account, default tax code, attachment requirement, active flag, optimistic lock versioning, in-use delete protection, and Spatie Activitylog audit.
+- Expenses implemented with draft/submit/approve/post/cancel lifecycle.
+- Settlement methods implemented:
+  - Supplier payable with AP `payable_entry`.
+  - Direct cash settlement through selected cash account GL.
+  - Direct bank settlement through selected bank account GL.
+- Expense posting uses PostingEngine-balanced journals: Dr expense, Dr input VAT when applicable, and Cr AP/cash/bank.
+- Tax-affecting expense posting is blocked for filed tax periods.
+- Period close readiness blocks unposted expenses.
+- Required-attachment categories block posting until an attachment exists.
+- Optional `expense.branch_id` is an owner-approved operational reference only, not tenant/security scope.
+- `/expenses` and `/expenses/categories` Inertia pages are available with EN/AR dictionary-backed UI text.
+- Expense visible-total UX avoids summing multiple currencies into one misleading amount.
+- `PHASE_11_EXPENSE_MANAGEMENT_REPORT.md` documents scope, guardrails, and verification results.
+
+## Prepared Phase 10 Track
+
+- `PRODUCT_EXTENSIBILITY_ROADMAP.md`: owner-approved product extensibility roadmap for multi-branch operations, transfers, branch-aware workflows, and future operational dimensions.
+- `PHASE_10_BRANCH_WAREHOUSE_OPERATIONS.md`: Phase 10 master contract, updated after implementation.
+- `PHASE_10_SLICE_1_GEMINI_PROMPT.md`: original Branch and Warehouse Operating Model Decision Pack prompt.
+- `PHASE_10_FINAL_REPORT.md`: implemented foundation pass report.
+- `PHASE_10_OPERATIONAL_COMPLETION_REPORT.md`: stock count, stock adjustment, warehouse document selector, and verification report.
+- `PHASE_10_TREASURY_TRANSFER_REPORT.md`: branch cash/bank assignment and internal treasury transfer verification report.
+- `PHASE_10_FIXED_ASSET_MOVEMENT_REPORT.md`: fixed asset locations, current branch/location position, and append-only movement history report.
+- `PHASE_10_BRANCH_OPERATIONAL_REPORTS_REPORT.md`: read-only branch operations snapshot, readiness checks, and verification report.
+- `PHASE_10_GL_BRANCH_PROFITABILITY_REPORT.md`: optional GL branch dimension, branch-filtered ledger, branch profitability, export/print, and verification report.
+- `PHASE_10_BRANCH_GL_MAPPING_REPORT.md`: optional branch-specific GL mapping overrides, global fallback, `/accounting/account-mappings`, and verification report.
+- `PHASE_10_BRANCH_APPROVAL_RULES_REPORT.md`: optional branch-aware approval rules for stock transfer, stock count, and stock adjustment approval gates.
+- `PHASE_10_LANDED_COST_ALLOCATION_REPORT.md`: landed cost/freight allocation over confirmed Goods Receipts with inventory/AP/GL posting and WAVG value adjustment.
+
+## Completed Phase 10 Foundation
+
+- Warehouse master data and stock locations implemented.
+- `stock_balance` and `stock_movement_ledger` are warehouse-aware.
+- Stock transfer workflow implemented with draft/submit/approve/issue/partial receipt/full receipt/cancel.
+- Internal transfers preserve cost and do not create revenue, VAT, AR/AP, or GL journals.
+- Warehouse and transfer pages added to Inventory navigation with dictionary-backed EN/AR UI text.
+- Stock balance and stock movement reports include warehouse filters.
+- New stress command: `php artisan accounting:stock-transfer-stress --workers=50`.
+- Stock count workflow implemented with draft/submit/approve/post/cancel lifecycle.
+- Stock adjustment workflow implemented with inventory gain/loss PostingEngine journals.
+- Delivery Notes, Goods Receipts, Sales Returns, and Purchase Returns now require/select an operational warehouse.
+- Delivery Note and Goods Receipt reports include warehouse filters.
+- Cash Accounts and Bank Accounts now support optional operational branch assignment and branch filters.
+- Treasury Transfers now support internal movement between cash/bank accounts with PostingEngine-backed Dr destination / Cr source journal posting.
+- Fixed Assets now support optional current branch/location assignment and append-only movement history.
+- Branch Operations report now summarizes branch-linked warehouses, stock, cash/bank balances, fixed assets, asset movements, and posted treasury transfers.
+- GL journals and ledger entries now support optional operational branch tagging for branch profitability reporting.
+- Branch Profitability report now calculates ledger-backed revenue, returns/allowances, COGS, expenses, other net, net income, margin, and unassigned P&L review rows.
+- Branch Profitability now supports protected CSV export and permission-aware print/export UI actions.
+- Account Mappings now support optional branch-specific GL override rows with global fallback and a dedicated `/accounting/account-mappings` UI.
+- Inventory-generated MWA postings now resolve branch-specific GL mappings when the operational warehouse supplies branch context.
+- Branch Approval Rules now support optional extra permission gates for stock transfer, stock count, and stock adjustment approval workflows.
+- Branch readiness checks now flag unassigned warehouses, stock, cash accounts, bank accounts, fixed assets, mixed currency scope, and unassigned P&L ledger rows.
+- Landed Cost Allocations now support freight/customs/insurance/clearance cost allocation against confirmed Goods Receipts with by-value, by-quantity, and manual methods.
+- Landed Cost posting now creates balanced GL journals, AP payable entries, and WAVG inventory value adjustments; costs tied to already-issued stock are expensed to COGS.
+
+## Completed Security Hardening Pass
+
+- Baseline security headers added to web responses.
+- Inactive authenticated users are logged out before protected page access.
+- Dashboard, settings, diagnostics, audit, accounting, reports, fixed assets, taxes, exports, and financial actions have explicit route-level authorization.
+- `taxes.file` is a sensitive capability and is not granted through the general accountant tax module grant.
+- Private local storage direct serving is disabled by default with `FILESYSTEM_LOCAL_SERVE=false`.
+- `SecurityHardeningTest` added to keep the protection from regressing.
+
+## Completed Stabilization / QA Gate
+
+- Added `php artisan qa:verify-local` for visible local verification of suites and feature files.
+- Corrected Phase 10 PostgreSQL tests to use UUID stock movement source identifiers.
+- Extracted repeated inventory page options into `InventoryPageOptions` to keep inventory controllers lighter.
+- Cleaned Delivery Notes and Goods Receipts report UI text into EN/AR dictionaries.
+- Reverified security, operational reports, Phase 10 feature files, Pint, TypeScript, and Vite build.
+
+## Remaining Phase 10 Product Extensions
+
+- None currently open in this branch-capable operations pass.
 
 ## Prepared Phase 9 Track
 
@@ -275,9 +1262,9 @@ Phase 6 Prepared execution files:
 - `PHASE_6_SLICE_6_GEMINI_PROMPT.md` (Disposal, Sale, Scrap, and Reversal Workflow - COMPLETE)
 - `PHASE_6_SLICE_7_GEMINI_PROMPT.md`
 
-Next execution step: no Phase 6 implementation slice remains. Choose the next bounded phase/module with the owner before creating new prompts.
+Next execution step: define the next bounded product track after the completed Phase 14 Rentals close-out. Branch cash/bank assignment, treasury transfer, fixed asset movement history, branch operational reports, branch profitability, branch-specific GL mapping overrides, branch-aware approval rules, landed cost/freight allocation, expense management, prepaid/accrued expense scheduling, payroll foundation, rentable item register foundation, rental contract lifecycle, rental fulfillment, rental billing, and rental operations reports are complete.
 
-Phase 6 must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text or hardcoded team/tenant/company/branch assumptions.
+Phase 6 future extensions must preserve exact permissions, especially `fixedAssets.view`, `fixedAssets.create`, `fixedAssets.edit`, `fixedAssets.delete`, `fixedAssets.post`, `fixedAssets.reverse`, `fixedAssets.export`, `view_financials`, `reports.view`, `reports.export`, `reports.print`, and `accounting.mappings` where applicable. Frontend pages must not add hardcoded visible text, hardcoded team/tenant/company assumptions, branch tenancy assumptions, or blanket branch scope.
 
 Review gate for all future implementation slices:
 
@@ -289,24 +1276,22 @@ Review gate for all future implementation slices:
 
 No required Phase 4 correction remains. Optional Production Deployment Readiness remains separate from Phase 5.
 
-Explicitly NOT STARTED modules requiring bounded owner prompts:
+Explicitly NOT STARTED / BLOCKED modules requiring bounded owner prompts:
 
-- Payroll.
-- Rentals.
+- Rental future extensions such as quotations, contract amendments/extensions, automated recurring rental invoice generation, deposit refunds, item profitability, and maintenance scheduling require bounded future slices.
+- Payroll future extensions such as payslips, salary payment execution, payroll reports, loans/advances, attendance inputs, and statutory payroll tax/social insurance rules.
 - Fixed Assets is complete for Phase 6. Future fixed-asset extensions such as tax depreciation books, maintenance, insurance, barcode, transfers, custody, or warehouse/location semantics require separate owner-approved prompts.
-- Full tax/VAT filing and reporting module beyond Slice 10 manual note tax fields.
-- Warehouse/location semantics.
-- Landed cost and freight allocation.
+- Phase 10 warehouse/stock-transfer foundation, stock counts, stock adjustments, operational warehouse document selectors, treasury transfers, fixed asset movements, branch reports, branch GL mappings, branch approvals, and landed cost/freight allocation are implemented.
+- Expense Management is implemented for supplier payable, cash, and bank expense workflows.
 
 ## Owner Decisions Still Needed
 
-Still do not implement these without explicit owner approval:
+Still do not implement these without explicit bounded slice approval:
 
-- full VAT/tax filing/reporting workflow beyond Slice 10 manual note tax fields.
 - FIFO, Standard Costing, or Non-Valued alternate inventory costing branches.
-- Warehouse/location semantics.
-- Warehouse-to-branch relationship.
-- Landed cost and freight allocation.
+- advanced warehouse/location semantics beyond the implemented foundation.
+- exact branch-to-warehouse relationship.
+- branch-specific access control or branch-scoped numbering.
 - Post-confirmation sales order cancellation behavior once delivery/invoice exists.
 - Post-confirmation purchase order cancellation behavior once goods receipt/bill exists.
 - Price lists, discounts, and contract pricing.
@@ -341,3 +1326,5 @@ npm run build
 ```
 
 Add slice-specific stress tests when a slice introduces concurrency-sensitive transitions or posting.
+
+

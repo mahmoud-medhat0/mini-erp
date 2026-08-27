@@ -16,6 +16,7 @@ class GoodsReceipt extends Model
     protected $fillable = [
         'number',
         'purchase_order_id',
+        'warehouse_id',
         'receipt_date',
         'status',
         'reference',
@@ -44,9 +45,19 @@ class GoodsReceipt extends Model
         return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
     public function lines(): HasMany
     {
         return $this->hasMany(GoodsReceiptLine::class, 'goods_receipt_id')->orderBy('line_no', 'asc');
+    }
+
+    public function landedCostAllocations(): HasMany
+    {
+        return $this->hasMany(LandedCostAllocation::class, 'goods_receipt_id')->orderBy('allocation_date', 'desc');
     }
 
     public function createdBy(): BelongsTo

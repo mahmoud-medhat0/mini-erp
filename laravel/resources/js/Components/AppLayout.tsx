@@ -12,6 +12,7 @@ export type NavKey =
   | 'settings.branches'
   | 'settings.numbering'
   | 'settings.users'
+  | 'settings.branch_approval_rules'
   | 'audit.view'
   | 'notifications'
   | 'foundation'
@@ -27,10 +28,24 @@ export type NavKey =
   | 'accounting.account_types'
   | 'accounting.account_categories'
   | 'accounting.statement_mappings'
+  | 'accounting.account_mappings'
   | 'customers.index'
   | 'suppliers.index'
+  | 'expenses.index'
+  | 'expense-categories.index'
+  | 'prepaid-schedules.index'
+  | 'accrual-schedules.index'
+  | 'payroll.employees.index'
+  | 'payroll.components.index'
+  | 'payroll.runs.index'
+  | 'rentals.contracts.index'
+  | 'rentals.invoices.index'
+  | 'rentals.handovers.index'
+  | 'rentals.returns.index'
+  | 'rentals.items.index'
   | 'cash-accounts.index'
   | 'bank-accounts.index'
+  | 'treasury-transfers.index'
   | 'customer-opening-balances.index'
   | 'supplier-opening-balances.index'
   | 'customer-receipts.index'
@@ -53,10 +68,15 @@ export type NavKey =
   | 'invoice-revisions.show'
   | 'purchase-orders.index'
   | 'goods-receipts.index'
+  | 'landed-costs.index'
   | 'purchase-returns.index'
   | 'supplier-adjustment-notes.index'
   | 'supplier-bills.index'
-  | 'inventory-balances.index'
+  | 'warehouses.index'
+  | 'stock-transfers.index'
+  | 'stock-counts.index'
+  | 'stock-adjustments.index'
+  | 'stock-balances.index'
   | 'reports.index'
   | 'reports.customer-statement'
   | 'reports.supplier-statement'
@@ -73,6 +93,9 @@ export type NavKey =
   | 'reports.customer-invoices'
   | 'reports.supplier-bills'
   | 'reports.stock-movements'
+  | 'reports.branch-operations'
+  | 'reports.branch-profitability'
+  | 'reports.rentals'
   | 'reports.balance_sheet'
   | 'reports.income_statement'
   | 'reports.cash_flow'
@@ -83,6 +106,7 @@ export type NavKey =
   | 'reports.vat-gl-reconciliation'
   | 'fixed-assets.index'
   | 'fixed-asset-categories.index'
+  | 'fixed-asset-locations.index'
   | 'fixed-assets.depreciation-runs.index'
   | 'fixed-assets-disposals.index'
   | 'taxes.codes.index'
@@ -95,7 +119,9 @@ type AppLayoutProps = {
   children: ReactNode;
 };
 
-const NAV_PERMS: Partial<Record<NavKey, string>> = {
+type NavPermission = string | string[];
+
+const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'accounting.index': 'accounting.view',
   'taxes.codes.index': 'taxes.view',
   'taxes.rates.index': 'taxes.view',
@@ -108,12 +134,15 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'accounting.opening_balances': 'accounting.view',
   'accounting.fx_rates': 'accounting.view',
   'accounting.currencies': 'accounting.view',
-  'accounting.periods': 'settings.configure',
+  'accounting.periods': ['accounting.view', 'accounting.periods', 'settings.configure'],
   'accounting.account_types': 'accounting.account_types',
   'accounting.account_categories': 'accounting.account_categories',
   'accounting.statement_mappings': 'accounting.mappings',
+  'accounting.account_mappings': 'accounting.mappings',
+  'settings.branch_approval_rules': 'approvals.configure',
   'fixed-assets.index': 'fixedAssets.view',
   'fixed-asset-categories.index': 'fixedAssets.view',
+  'fixed-asset-locations.index': 'fixedAssets.view',
   'fixed-assets.depreciation-runs.index': 'fixedAssets.view',
   'fixed-assets-disposals.index': 'fixedAssets.view',
   'customers.index': 'customers.view',
@@ -124,8 +153,21 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'supplier-opening-balances.index': 'suppliers.view',
   'supplier-payments.index': 'suppliers.view',
   'payable-allocations.index': 'suppliers.view',
+  'expenses.index': 'expenses.view',
+  'expense-categories.index': 'expenses.view',
+  'prepaid-schedules.index': 'expenses.view',
+  'accrual-schedules.index': 'expenses.view',
+  'payroll.employees.index': 'view_payroll',
+  'payroll.components.index': 'view_payroll',
+  'payroll.runs.index': 'view_payroll',
+  'rentals.contracts.index': 'rentals.view',
+  'rentals.invoices.index': 'rentals.view',
+  'rentals.handovers.index': 'rentals.view',
+  'rentals.returns.index': 'rentals.view',
+  'rentals.items.index': 'rentals.view',
   'cash-accounts.index': 'cash.view',
   'bank-accounts.index': 'banks.view',
+  'treasury-transfers.index': 'cash.view',
   'incoming-cheques.index': 'cheques.view',
   'outgoing-cheques.index': 'cheques.view',
   'bank-reconciliations.index': 'banks.view',
@@ -140,18 +182,29 @@ const NAV_PERMS: Partial<Record<NavKey, string>> = {
   'invoice-revisions.index': 'sales.view',
   'purchase-orders.index': 'purchasing.view',
   'goods-receipts.index': 'purchasing.view',
+  'landed-costs.index': 'purchasing.landed_costs',
   'purchase-returns.index': 'purchasing.view',
   'supplier-adjustment-notes.index': 'purchasing.view',
   'supplier-bills.index': 'purchasing.view',
+  'warehouses.index': 'inventory.view',
+  'stock-transfers.index': 'inventory.view',
+  'stock-counts.index': 'inventory.view',
+  'stock-adjustments.index': 'inventory.view',
+  'stock-balances.index': 'inventory.view',
   'reports.index': 'reports.view',
   'reports.balance_sheet': 'view_financials',
   'reports.income_statement': 'view_financials',
   'reports.cash_flow': 'view_financials',
+  'reports.branch-operations': 'view_financials',
+  'reports.branch-profitability': 'view_financials',
+  'reports.rentals': 'view_financials',
   'audit.view': 'audit.view',
 };
 
-const NAV_PERMS_FALLBACK: Partial<Record<NavKey, string>> = {
+const NAV_PERMS_FALLBACK: Partial<Record<NavKey, NavPermission>> = {
   'audit.view': 'settings.configure',
+  'treasury-transfers.index': 'banks.view',
+  'settings.branch_approval_rules': 'settings.configure',
 };
 
 export default function AppLayout({ active, children }: AppLayoutProps) {
@@ -164,8 +217,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const [accountingExpanded, setAccountingExpanded] = useState(() => active.startsWith('accounting'));
   const [arExpanded, setArExpanded] = useState(() => active.startsWith('customer') || active.startsWith('receivable'));
   const [apExpanded, setApExpanded] = useState(() => active.startsWith('supplier') || active.startsWith('payable'));
-  const [cashBankExpanded, setCashBankExpanded] = useState(() => active.includes('cash') || active.includes('bank') || active.includes('cheque'));
+  const [expensesExpanded, setExpensesExpanded] = useState(() => active.startsWith('expense'));
+  const [payrollExpanded, setPayrollExpanded] = useState(() => active.startsWith('payroll'));
+  const [rentalsExpanded, setRentalsExpanded] = useState(() => active.startsWith('rentals'));
+  const [cashBankExpanded, setCashBankExpanded] = useState(() => active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury'));
   const [catalogExpanded, setCatalogExpanded] = useState(() => active.startsWith('catalog') || active.includes('product') || active.includes('uom'));
+  const [inventoryExpanded, setInventoryExpanded] = useState(() => active.includes('inventory') || active.includes('warehouse') || active.includes('stock-'));
+  const [fixedAssetsExpanded, setFixedAssetsExpanded] = useState(() => active.startsWith('fixed-asset'));
   const [reportsExpanded, setReportsExpanded] = useState(() => active.startsWith('reports'));
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
@@ -174,7 +232,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const isRtl = locale === 'ar';
   const dict = getDictionary(locale);
   const can = useCan();
-  const accDict = (dict.app as any).accounting || {};
+  const accDict = dict.app.accounting;
+  const taxesDict = dict.app.taxes;
   const { post, processing } = useForm({});
 
   // Real live health check pinging backend /health endpoint
@@ -262,24 +321,42 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
 
   const isSettingsActive = active.startsWith('settings');
 
+  const hasNavPermission = (permission: NavPermission): boolean => {
+    if (Array.isArray(permission)) {
+      return permission.some((item) => hasNavPermission(item));
+    }
+    if (permission === 'view_financials') {
+      return can('reports.view') && can('view_financials');
+    }
+
+    return can(permission);
+  };
+
   const navAllowed = (key: NavKey): boolean => {
     const primary = NAV_PERMS[key];
     if (!primary) return true;
-    if (primary === 'view_financials') {
-      return can('reports.view') && can('view_financials');
-    }
-    if (can(primary)) return true;
+    if (hasNavPermission(primary)) return true;
     const fallback = NAV_PERMS_FALLBACK[key];
-    return !!fallback && can(fallback);
+    return !!fallback && hasNavPermission(fallback);
   };
 
   const showAccountingGroup =
-    can('accounting.view') || can('accounting.account_types') || can('accounting.account_categories') || can('accounting.mappings');
+    can('accounting.view') ||
+    can('accounting.periods') ||
+    can('settings.configure') ||
+    can('accounting.account_types') ||
+    can('accounting.account_categories') ||
+    can('accounting.mappings');
   const showArGroup = can('customers.view');
   const showApGroup = can('suppliers.view');
+  const showExpensesGroup = can('expenses.view');
+  const showPayrollGroup = can('payroll.view') && can('view_payroll');
+  const showRentalsGroup = can('rentals.view');
   const showCashBankGroup = can('cash.view') || can('banks.view') || can('cheques.view');
   const showCatalogGroup =
-    can('products.view') || can('uom.view') || can('sales.view') || can('purchasing.view');
+    can('products.view') || can('uom.view') || can('sales.view') || can('purchasing.view') || can('purchasing.landed_costs');
+  const showInventoryGroup = can('inventory.view');
+  const showFixedAssetsGroup = can('fixedAssets.view');
   const showReportsGroup = can('reports.view');
 
   return (
@@ -375,7 +452,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
             <div className="space-y-1">
               {!sidebarCollapsed ? (
                 <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
-                  {dict.app.nav.groups.overview || dict.app.nav.layoutKeys.overview}
+                  {dict.app.nav.groups.overview}
                 </p>
               ) : (
                 <div className="my-1 border-t border-[var(--border)]" />
@@ -489,7 +566,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
             <div className="space-y-3 pt-2 border-t border-[var(--border)]">
               {!sidebarCollapsed ? (
                 <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
-                  {dict.app.nav.groups.modules || dict.app.nav.layoutKeys.modulesAdministration}
+                  {dict.app.nav.groups.modules}
                 </p>
               ) : (
                 <div className="my-1 border-t border-[var(--border)]" />
@@ -510,7 +587,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/accounting"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (accDict.title || 'Accounting Core') : undefined}
+                      title={sidebarCollapsed ? accDict.title : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg
@@ -524,7 +601,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{accDict.title || 'Accounting Core'}</span> : null}
+                      {!sidebarCollapsed ? <span>{accDict.title}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button
@@ -548,19 +625,20 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   {(accountingExpanded || sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
-                        { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa || 'Chart of Accounts', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
-                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories || dict.app.nav.layoutKeys.accountCategories, icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-                        { key: 'accounting.account_types' as NavKey, href: '/accounting/account-types', label: accDict.accountTypes || 'Account Types', icon: 'M7 7h10M7 12h10M7 17h10' },
+                        { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa, icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+                        { key: 'accounting.account_categories' as NavKey, href: '/accounting/account-categories', label: accDict.accountCategories, icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+                        { key: 'accounting.account_types' as NavKey, href: '/accounting/account-types', label: accDict.accountTypes, icon: 'M7 7h10M7 12h10M7 17h10' },
                         { key: 'accounting.statement_mappings' as NavKey, href: '/accounting/statement-mappings', label: accDict.statementMappings, icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                        { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal || 'General Journal', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                        { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger || 'General Ledger', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                        { key: 'accounting.trial_balance' as NavKey, href: '/accounting/trial-balance', label: accDict.trialBalance || 'Trial Balance', icon: 'M3 6l9-4 9 4v14l-9 4-9-4V6z' },
-                        { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods || 'Fiscal Periods', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-                        { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances || 'Opening Balances', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                        { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates || 'Exchange Rates', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
-                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies || 'Currencies', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                        { key: 'taxes.codes.index' as NavKey, href: '/taxes/codes', label: (dict.app as any).taxes?.title || 'Tax Codes & Rates', icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z' },
-                        { key: 'taxes.periods.index' as NavKey, href: '/taxes/periods', label: (dict.app as any).taxes?.periods?.title || 'Tax Periods & Filing', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                        { key: 'accounting.account_mappings' as NavKey, href: '/accounting/account-mappings', label: accDict.accountMappings, icon: 'M10.5 6h9m-9 6h9m-9 6h9M4.5 6h.01M4.5 12h.01M4.5 18h.01' },
+                        { key: 'accounting.journal' as NavKey, href: '/accounting/journal', label: accDict.journal, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                        { key: 'accounting.ledger' as NavKey, href: '/accounting/ledger', label: accDict.ledger, icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+                        { key: 'accounting.trial_balance' as NavKey, href: '/accounting/trial-balance', label: accDict.trialBalance, icon: 'M3 6l9-4 9 4v14l-9 4-9-4V6z' },
+                        { key: 'accounting.periods' as NavKey, href: '/accounting/periods', label: accDict.periods, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                        { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances, icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates, icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                        { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies, icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { key: 'taxes.codes.index' as NavKey, href: '/taxes/codes', label: taxesDict.title, icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z' },
+                        { key: 'taxes.periods.index' as NavKey, href: '/taxes/periods', label: taxesDict.periods.title, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
@@ -706,13 +784,178 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                   ) : null}
                 </div>
 
-                {/* 4. Cash, Bank & Cheques Dropdown Group */}
+                {/* 4. Expenses Dropdown Group */}
+                <div className={`space-y-1 ${showExpensesGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('expense')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/expenses"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.expensesOperations : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('expense') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6m-6-4h6m-7 10h8a2 2 0 002-2V7.5L14.5 4H8a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.expensesOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setExpensesExpanded(!expensesExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${expensesExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(expensesExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'expenses.index' as NavKey, href: '/expenses', label: dict.app.nav.layoutKeys.expenses },
+                        { key: 'expense-categories.index' as NavKey, href: '/expenses/categories', label: dict.app.nav.layoutKeys.expenseCategories },
+                        { key: 'prepaid-schedules.index' as NavKey, href: '/expenses/prepaids', label: dict.app.nav.layoutKeys.prepaidSchedules },
+                        { key: 'accrual-schedules.index' as NavKey, href: '/expenses/accruals', label: dict.app.nav.layoutKeys.accrualSchedules },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 5. Payroll Dropdown Group */}
+                <div className={`space-y-1 ${showPayrollGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('payroll')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/payroll/runs"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.payrollOperations : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('payroll') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.payrollOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setPayrollExpanded(!payrollExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${payrollExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(payrollExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'payroll.runs.index' as NavKey, href: '/payroll/runs', label: dict.app.nav.layoutKeys.payrollRuns },
+                        { key: 'payroll.employees.index' as NavKey, href: '/payroll/employees', label: dict.app.nav.layoutKeys.employees },
+                        { key: 'payroll.components.index' as NavKey, href: '/payroll/components', label: dict.app.nav.layoutKeys.payrollComponents },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 6. Rentals Dropdown Group */}
+                <div className={`space-y-1 ${showRentalsGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('rentals')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/rentals/items"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.rentalsOperations : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('rentals') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8m-9 4h10M7 15h10M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.rentalsOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setRentalsExpanded(!rentalsExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${rentalsExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(rentalsExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'rentals.contracts.index' as NavKey, href: '/rentals/contracts', label: dict.app.nav.layoutKeys.rentalContracts },
+                        { key: 'rentals.invoices.index' as NavKey, href: '/rentals/invoices', label: dict.app.nav.layoutKeys.rentalInvoices },
+                        { key: 'rentals.handovers.index' as NavKey, href: '/rentals/handovers', label: dict.app.nav.layoutKeys.rentalHandovers },
+                        { key: 'rentals.returns.index' as NavKey, href: '/rentals/returns', label: dict.app.nav.layoutKeys.rentalReturns },
+                        { key: 'rentals.items.index' as NavKey, href: '/rentals/items', label: dict.app.nav.layoutKeys.rentalItems },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 7. Cash, Bank & Cheques Dropdown Group */}
                 <div className={`space-y-1 ${showCashBankGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
-                      active.includes('cash') || active.includes('bank') || active.includes('cheque')
+                      active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury')
                         ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
@@ -723,7 +966,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.cashBankCheques_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('cash') || active.includes('bank') || active.includes('cheque') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.cashBankCheques}</span> : null}
@@ -742,6 +985,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                       {[
                         { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: dict.app.nav.layoutKeys.cashAccounts },
                         { key: 'bank-accounts.index' as NavKey, href: '/bank-accounts', label: dict.app.nav.layoutKeys.bankAccounts },
+                        { key: 'treasury-transfers.index' as NavKey, href: '/treasury-transfers', label: dict.app.nav.layoutKeys.treasuryTransfers },
                         { key: 'incoming-cheques.index' as NavKey, href: '/incoming-cheques', label: dict.app.nav.layoutKeys.incomingCheques },
                         { key: 'outgoing-cheques.index' as NavKey, href: '/outgoing-cheques', label: dict.app.nav.layoutKeys.outgoingCheques },
                          { key: 'bank-reconciliations.index' as NavKey, href: '/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconciliations },
@@ -805,10 +1049,123 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'invoice-revisions.index' as NavKey, href: '/sales/invoice-revisions', label: dict.app.nav.layoutKeys.invoiceRevisions },
                         { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: dict.app.nav.layoutKeys.purchaseOrders },
                         { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: dict.app.nav.layoutKeys.goodsReceipts },
+                        { key: 'landed-costs.index' as NavKey, href: '/purchasing/landed-costs', label: dict.app.nav.layoutKeys.landedCosts },
                         { key: 'purchase-returns.index' as NavKey, href: '/purchasing/returns', label: dict.app.nav.layoutKeys.purchaseReturns },
                         { key: 'supplier-adjustment-notes.index' as NavKey, href: '/purchasing/adjustment-notes', label: dict.app.nav.layoutKeys.adjustmentNotes },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: dict.app.nav.layoutKeys.productCategories },
                          { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: dict.app.nav.layoutKeys.unitsOfMeasure },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 6. Inventory Dropdown Group */}
+                <div className={`space-y-1 ${showInventoryGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.includes('inventory') || active.includes('warehouse') || active.includes('stock-')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/inventory/stock-balances"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.inventoryOperations : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.includes('inventory') || active.includes('warehouse') || active.includes('stock-') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.inventoryOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setInventoryExpanded(!inventoryExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${inventoryExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(inventoryExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'warehouses.index' as NavKey, href: '/inventory/warehouses', label: dict.app.nav.layoutKeys.warehouses },
+                        { key: 'stock-transfers.index' as NavKey, href: '/inventory/transfers', label: dict.app.nav.layoutKeys.stockTransfers },
+                        { key: 'stock-counts.index' as NavKey, href: '/inventory/stock-counts', label: dict.app.nav.layoutKeys.stockCounts },
+                        { key: 'stock-adjustments.index' as NavKey, href: '/inventory/adjustments', label: dict.app.nav.layoutKeys.stockAdjustments },
+                        { key: 'stock-balances.index' as NavKey, href: '/inventory/stock-balances', label: dict.app.nav.layoutKeys.stockBalances },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 7. Fixed Assets Dropdown Group */}
+                <div className={`space-y-1 ${showFixedAssetsGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('fixed-asset')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/fixed-assets"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? accDict.fixedAssets : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('fixed-asset') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4 6 3v15M9 9h1m-1 4h1m4-4h1m-1 4h1M9 17h1m4 0h1" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{accDict.fixedAssets}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setFixedAssetsExpanded(!fixedAssetsExpanded)} className="p-1 hover:text-white transition-colors cursor-pointer">
+                        <svg className={`size-3.5 transition-transform duration-200 ${fixedAssetsExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(fixedAssetsExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'fixed-assets.index' as NavKey, href: '/fixed-assets', label: accDict.fixedAssets },
+                        { key: 'fixed-asset-categories.index' as NavKey, href: '/fixed-asset-categories', label: accDict.fixedAssetCategories },
+                        { key: 'fixed-asset-locations.index' as NavKey, href: '/fixed-asset-locations', label: accDict.fixedAssetLocations },
+                        { key: 'fixed-assets.depreciation-runs.index' as NavKey, href: '/fixed-assets-depreciation-runs', label: accDict.depreciationRuns },
+                        { key: 'fixed-assets-disposals.index' as NavKey, href: '/fixed-assets-disposals', label: accDict.disposals },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
@@ -870,7 +1227,10 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'reports.cheque-register' as NavKey, href: '/reports/cheque-register', label: dict.app.nav.layoutKeys.chequeRegister },
                         { key: 'reports.bank-reconciliations' as NavKey, href: '/reports/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconReport },
                         { key: 'reports.ar-gl-reconciliation' as NavKey, href: '/reports/ar-gl-reconciliation', label: dict.app.nav.layoutKeys.arToGlRecon },
-                         { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: dict.app.nav.layoutKeys.apToGlRecon },
+                        { key: 'reports.ap-gl-reconciliation' as NavKey, href: '/reports/ap-gl-reconciliation', label: dict.app.nav.layoutKeys.apToGlRecon },
+                        { key: 'reports.branch-operations' as NavKey, href: '/reports/branch-operations', label: dict.app.nav.layoutKeys.branchOperations },
+                        { key: 'reports.branch-profitability' as NavKey, href: '/reports/branch-profitability', label: dict.app.nav.layoutKeys.branchProfitability },
+                        { key: 'reports.rentals' as NavKey, href: '/reports/rentals', label: dict.app.nav.layoutKeys.rentalOperationsReport },
                         { key: 'reports.balance_sheet' as NavKey, href: '/reports/balance-sheet', label: accDict.balanceSheet },
                         { key: 'reports.income_statement' as NavKey, href: '/reports/income-statement', label: accDict.incomeStatement },
                         { key: 'reports.cash_flow' as NavKey, href: '/reports/cash-flow', label: accDict.cashFlowStatement },
@@ -905,7 +1265,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <Link
                       href="/settings"
                       onClick={() => setMobileMenuOpen(false)}
-                      title={sidebarCollapsed ? (dict.app.nav.groups.administration || 'Administration') : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.groups.administration : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
                       <svg
@@ -919,7 +1279,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      {!sidebarCollapsed ? <span>{dict.app.nav.groups.administration || 'Administration'}</span> : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.groups.administration}</span> : null}
                     </Link>
                     {!sidebarCollapsed ? (
                       <button
@@ -974,6 +1334,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'settings.company' as NavKey, href: '/settings/company', label: dict.app.settings.sections.company.title, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1 M14 7h1m-1 4h1m-1 4h1' },
                         { key: 'settings.branches' as NavKey, href: '/settings/branches', label: dict.app.settings.sections.branches.title, icon: 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' },
                         { key: 'settings.numbering' as NavKey, href: '/settings/numbering', label: dict.app.settings.sections.numbering.title, icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
+                        { key: 'settings.branch_approval_rules' as NavKey, href: '/settings/branch-approval-rules', label: dict.app.settings.sections.branchApprovalRules.title, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
                         { key: 'settings.users' as NavKey, href: '/settings/users', label: dict.app.settings.sections.users.title, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
                          { key: 'audit.view' as NavKey, href: '/audit-log', label: dict.app.nav.auditLog, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
@@ -1193,7 +1554,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 title={dict.app.header.switchLanguage}
                 className="flex size-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-extrabold text-[var(--text-primary)] shadow-xs transition-all hover:border-[var(--primary)]"
               >
-                {locale === 'ar' ? 'EN' : 'ع'}
+                {locale === 'ar' ? dict.common.language.en : dict.common.language.ar}
               </button>
 
               {/* Theme Toggle Icon */}
@@ -1236,8 +1597,8 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     <div onClick={() => setUserMenuOpen(false)} className="fixed inset-0 z-40" />
                     <div className="absolute end-0 top-full mt-2.5 z-50 w-56 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-2xl shadow-slate-900/30 backdrop-blur-xl animate-in fade-in duration-150">
                       <div className="border-b border-[var(--border)] pb-2 px-1">
-                        <p className="m-0 text-xs font-bold text-[var(--text-primary)] truncate">{props.auth.user?.name || 'Admin'}</p>
-                        <p className="m-0 mt-0.5 text-[10px] text-[var(--text-muted)] truncate">{props.auth.user?.email || 'admin@mini-erp.local'}</p>
+                        <p className="m-0 text-xs font-bold text-[var(--text-primary)] truncate">{props.auth.user?.name || dict.app.header.unknownUser}</p>
+                        <p className="m-0 mt-0.5 text-[10px] text-[var(--text-muted)] truncate">{props.auth.user?.email || dict.app.header.unknownEmail}</p>
                       </div>
 
                       <form onSubmit={logout} className="mt-2">

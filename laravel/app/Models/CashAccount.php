@@ -17,6 +17,7 @@ class CashAccount extends Model
     protected $fillable = [
         'code',
         'name',
+        'branch_id',
         'gl_account_id',
         'currency',
         'is_active',
@@ -38,6 +39,11 @@ class CashAccount extends Model
     public function glAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'gl_account_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function currencyRef(): BelongsTo

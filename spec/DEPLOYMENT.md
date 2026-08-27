@@ -1,6 +1,6 @@
 # DEPLOYMENT
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Current target: Laravel + Inertia + React + TypeScript + PostgreSQL.
@@ -40,7 +40,7 @@ Minimum environment groups:
 - locale: `APP_LOCALE`, `APP_FALLBACK_LOCALE`
 - database: `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSLMODE`
 - session/cache/queue: `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION`
-- mail/logging/storage: `MAIL_*`, `LOG_*`, `FILESYSTEM_DISK`
+- mail/logging/storage: `MAIL_*`, `LOG_*`, `FILESYSTEM_DISK`, `FILESYSTEM_LOCAL_SERVE`
 - frontend name: `VITE_APP_NAME`
 
 ## Build
@@ -130,6 +130,6 @@ Phase-specific stress commands from completed modules should also be run when th
 ## Release Notes
 
 - The ERP is a single-installation system unless the owner later defines otherwise.
-- Do not add tenant/company/branch ownership assumptions during deployment work.
+- Do not add tenant/company ownership assumptions or branch tenancy/security ownership assumptions during deployment work.
 - GitHub Actions are not currently required for this local migration track.
 - Production backup, restore testing, mail provider, storage provider, domain, HTTPS termination, queue process manager, and external scheduler mechanism remain deployment-owner decisions.

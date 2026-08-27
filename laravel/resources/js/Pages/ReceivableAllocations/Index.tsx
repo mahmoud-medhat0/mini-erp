@@ -5,7 +5,7 @@ import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '..
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type CustomerReceiptRow = {
   id: string;
@@ -33,6 +33,7 @@ type AllocationRow = {
   customerReceipt?: { id: string; number: string };
   receivableEntry?: { id: string; entry_date: string };
   customer?: { id: string; code: string; name: string };
+  currency: string;
   amount_minor: number;
   created_at: string;
 };
@@ -43,7 +44,7 @@ type ReceivableAllocationsProps = SharedPageProps & {
   openReceivables: ReceivableEntryRow[];
   existingAllocations: {
     data: AllocationRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   customers: Array<{ id: string; code: string; name: string }>;
   filters: {
@@ -62,6 +63,7 @@ export default function ReceivableAllocationsIndex({
   filters,
 }: ReceivableAllocationsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
@@ -122,7 +124,7 @@ export default function ReceivableAllocationsIndex({
 
   const receiptSelectOptions = receipts.map((r) => ({
     value: r.id,
-    label: `${r.number} - ${r.customer?.name || ''} (${formatMoney(r.unapplied_minor, r.currency)} متبقي)`,
+    label: `${r.number} - ${r.customer?.name || accDict.notAvailable} (${dict.app.pages.receivableAllocations.unappliedAmount} ${formatMoney(r.unapplied_minor, r.currency)})`,
   }));
 
   return (
@@ -207,7 +209,7 @@ export default function ReceivableAllocationsIndex({
                     {openReceivables.map((rec) => (
                       <tr key={rec.id} className="hover:bg-[var(--background)]/50">
                         <td className={`${tableClasses.td} font-mono text-xs`}>{rec.entry_date}</td>
-                        <td className={`${tableClasses.td} font-mono text-xs`}>{rec.due_date || '—'}</td>
+                        <td className={`${tableClasses.td} font-mono text-xs`}>{rec.due_date || accDict.notAvailable}</td>
                         <td className={`${tableClasses.td} font-mono text-xs`}>{formatMoney(rec.original_amount_minor, rec.currency)}</td>
                         <td className={`${tableClasses.td} font-mono font-bold text-xs text-amber-600`}>{formatMoney(rec.unapplied_minor, rec.currency)}</td>
                         <td className={tableClasses.td}>
@@ -268,10 +270,10 @@ export default function ReceivableAllocationsIndex({
             <tbody>
               {existingAllocations.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.customerReceipt?.number || '—'}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{row.customer?.name || '—'}</td>
+                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.customerReceipt?.number || accDict.notAvailable}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{row.customer?.name || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs text-emerald-600`}>
-                    {formatMoney(row.amount_minor, 'EGP')}
+                    {formatMoney(row.amount_minor, row.currency)}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{new Date(row.created_at).toLocaleString()}</td>
                   <td className={tableClasses.td}>

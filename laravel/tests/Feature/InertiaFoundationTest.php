@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class InertiaFoundationTest extends TestCase
@@ -25,6 +26,8 @@ class InertiaFoundationTest extends TestCase
         $this->withoutVite();
 
         $user = User::factory()->create();
+        Permission::findOrCreate('audit.view', 'web');
+        $user->givePermissionTo('audit.view');
 
         $this->actingAs($user);
 
@@ -37,5 +40,14 @@ class InertiaFoundationTest extends TestCase
                 ->where('auth.user.email', $user->email)
                 ->has('notifications')
                 ->etc());
+    }
+
+    public function test_foundation_diagnostic_page_requires_privileged_access(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/foundation')
+            ->assertForbidden();
     }
 }

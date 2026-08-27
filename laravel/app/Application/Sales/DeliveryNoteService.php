@@ -4,6 +4,7 @@ namespace App\Application\Sales;
 
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Inventory\WarehouseResolver;
 use App\Domain\Audit\AuditLogger;
 use App\Models\DeliveryNote;
 use App\Models\DeliveryNoteLine;
@@ -22,6 +23,7 @@ class DeliveryNoteService
     public function __construct(
         private readonly NumberSequenceAllocator $numberAllocator,
         private readonly MovingWeightedAverageInventoryService $inventoryService,
+        private readonly WarehouseResolver $warehouseResolver,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
     ) {}
@@ -31,25 +33,27 @@ class DeliveryNoteService
         return DB::transaction(function () use ($data, $actorId): DeliveryNote {
             $salesOrderId = $data['sales_order_id'] ?? null;
             if (! $salesOrderId) {
-                throw ValidationException::withMessages(['sales_order_id' => ['Sales Order is required.']]);
+                throw ValidationException::withMessages(['sales_order_id' => [__('Sales Order is required.')]]);
             }
 
             /** @var SalesOrder|null $salesOrder */
             $salesOrder = SalesOrder::query()->where('id', $salesOrderId)->lockForUpdate()->first();
             if (! $salesOrder || $salesOrder->status !== 'confirmed') {
-                throw ValidationException::withMessages(['sales_order_id' => ['Delivery Notes can only be created for confirmed Sales Orders.']]);
+                throw ValidationException::withMessages(['sales_order_id' => [__('Delivery Notes can only be created for confirmed Sales Orders.')]]);
             }
 
             $deliveryDate = $data['delivery_date'] ?? null;
             if (! $deliveryDate) {
-                throw ValidationException::withMessages(['delivery_date' => ['Delivery date is required.']]);
+                throw ValidationException::withMessages(['delivery_date' => [__('Delivery date is required.')]]);
             }
 
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? null);
             $validatedLines = $this->validateAndLockFulfillmentLines($salesOrder, $data['lines'] ?? []);
 
             /** @var DeliveryNote $deliveryNote */
             $deliveryNote = DeliveryNote::query()->create([
                 'sales_order_id' => $salesOrder->id,
+                'warehouse_id' => $warehouse->id,
                 'delivery_date' => $deliveryDate,
                 'status' => 'draft',
                 'reference' => $data['reference'] ?? null,
@@ -70,7 +74,7 @@ class DeliveryNoteService
                 ]);
             }
 
-            $deliveryNote->load(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
+            $deliveryNote->load(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -92,22 +96,24 @@ class DeliveryNoteService
             $deliveryNote = DeliveryNote::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($deliveryNote->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft delivery notes can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft delivery notes can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $deliveryNote->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             /** @var SalesOrder $salesOrder */
             $salesOrder = SalesOrder::query()->where('id', $deliveryNote->sales_order_id)->lockForUpdate()->firstOrFail();
 
             $deliveryDate = $data['delivery_date'] ?? $deliveryNote->delivery_date;
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? $deliveryNote->warehouse_id);
             $validatedLines = $this->validateAndLockFulfillmentLines($salesOrder, $data['lines'] ?? [], $deliveryNote->id);
 
             $before = $deliveryNote->toArray();
 
             $deliveryNote->update([
+                'warehouse_id' => $warehouse->id,
                 'delivery_date' => $deliveryDate,
                 'reference' => $data['reference'] ?? $deliveryNote->reference,
                 'notes' => $data['notes'] ?? $deliveryNote->notes,
@@ -128,7 +134,7 @@ class DeliveryNoteService
                 ]);
             }
 
-            $deliveryNote->load(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
+            $deliveryNote->load(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -150,15 +156,15 @@ class DeliveryNoteService
             $deliveryNote = DeliveryNote::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($deliveryNote->status === 'confirmed') {
-                return $deliveryNote->load(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
+                return $deliveryNote->load(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             if ($deliveryNote->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft delivery notes can be confirmed.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft delivery notes can be confirmed.')]]);
             }
 
             if ($deliveryNote->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Cannot confirm a delivery note without line items.']]);
+                throw ValidationException::withMessages(['lines' => [__('Cannot confirm a delivery note without line items.')]]);
             }
 
             /** @var SalesOrder $salesOrder */
@@ -193,6 +199,7 @@ class DeliveryNoteService
                             fiscalYearId: $period->fiscal_year_id,
                             financialPeriodId: $period->id,
                             actorId: $actorId,
+                            warehouseId: (string) $deliveryNote->warehouse_id,
                         );
                     }
                 }
@@ -222,10 +229,10 @@ class DeliveryNoteService
                 entityType: 'delivery_note',
                 entityId: $deliveryNote->id,
                 before: $before,
-                after: $deliveryNote->fresh(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $deliveryNote->fresh(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $deliveryNote->fresh(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
+            return $deliveryNote->fresh(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -241,11 +248,11 @@ class DeliveryNoteService
             $deliveryNote = DeliveryNote::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($deliveryNote->status === 'confirmed') {
-                throw ValidationException::withMessages(['status' => ['Confirmed delivery notes cannot be cancelled in this slice.']]);
+                throw ValidationException::withMessages(['status' => [__('Confirmed delivery notes cannot be cancelled in this slice.')]]);
             }
 
             if ($deliveryNote->status === 'cancelled') {
-                return $deliveryNote->load(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
+                return $deliveryNote->load(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             $before = $deliveryNote->toArray();
@@ -264,17 +271,17 @@ class DeliveryNoteService
                 entityType: 'delivery_note',
                 entityId: $deliveryNote->id,
                 before: $before,
-                after: $deliveryNote->fresh(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $deliveryNote->fresh(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $deliveryNote->fresh(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
+            return $deliveryNote->fresh(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
     private function validateAndLockFulfillmentLines(SalesOrder $salesOrder, array $lines, ?string $currentNoteId = null): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         // Lock SalesOrderLines in deterministic order
@@ -291,7 +298,7 @@ class DeliveryNoteService
             $lineIndex = $index + 1;
             $solId = $line['sales_order_line_id'] ?? null;
             if (! $solId || ! isset($orderLines[$solId])) {
-                throw ValidationException::withMessages(["lines.{$index}.sales_order_line_id" => ["Line {$lineIndex} does not belong to the selected Sales Order."]]);
+                throw ValidationException::withMessages(["lines.{$index}.sales_order_line_id" => [__('Line :line does not belong to the selected Sales Order.', ['line' => $lineIndex])]]);
             }
 
             /** @var SalesOrderLine $soLine */
@@ -299,7 +306,7 @@ class DeliveryNoteService
 
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
             if ($quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
+                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex])]]);
             }
 
             // Calculate cumulative delivered quantity from active (non-cancelled) DeliveryNotes
@@ -321,7 +328,7 @@ class DeliveryNoteService
                 $fraction = str_pad((string) intdiv($maxAllowedE6 % 1000000, 10000), 2, '0', STR_PAD_LEFT);
                 $maxAllowedDecimal = "{$whole}.{$fraction}";
                 throw ValidationException::withMessages([
-                    "lines.{$index}.quantity_e6" => ["Delivered quantity on line {$lineIndex} exceeds remaining Sales Order quantity. Maximum remaining allowed is {$maxAllowedDecimal}."],
+                    "lines.{$index}.quantity_e6" => [__('Delivered quantity on line :line exceeds remaining Sales Order quantity. Maximum remaining allowed is :maximum.', ['line' => $lineIndex, 'maximum' => $maxAllowedDecimal])],
                 ]);
             }
 

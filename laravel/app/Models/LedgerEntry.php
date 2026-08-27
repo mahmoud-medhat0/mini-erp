@@ -20,6 +20,7 @@ class LedgerEntry extends Model
         'journal_line_id',
         'account_id',
         'financial_period_id',
+        'branch_id',
         'entry_date',
         'debit_minor',
         'credit_minor',
@@ -61,6 +62,11 @@ class LedgerEntry extends Model
     public function period(): BelongsTo
     {
         return $this->belongsTo(FinancialPeriod::class, 'financial_period_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function currencyRef(): BelongsTo

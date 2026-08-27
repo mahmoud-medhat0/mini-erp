@@ -20,13 +20,13 @@ class ProductCategoryService
 
         if ($code === '') {
             throw ValidationException::withMessages([
-                'code' => ['Product category code is required.'],
+                'code' => [__('Product category code is required.')],
             ]);
         }
 
         if (ProductCategory::query()->where('code', $code)->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Product category code [{$code}] already exists."],
+                'code' => [__('Product category code [:code] already exists.', ['code' => $code])],
             ]);
         }
 
@@ -66,7 +66,7 @@ class ProductCategoryService
             $code = strtoupper(trim((string) $data['code']));
             if ($code !== $category->code && ProductCategory::query()->where('code', $code)->where('id', '!=', $id)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Product category code [{$code}] already exists."],
+                    'code' => [__('Product category code [:code] already exists.', ['code' => $code])],
                 ]);
             }
             $category->code = $code;
@@ -107,7 +107,7 @@ class ProductCategoryService
 
         if ($category->products()->exists()) {
             throw ValidationException::withMessages([
-                'id' => ["Cannot delete Product Category [{$category->code}] because it is referenced by existing products."],
+                'id' => [__('Cannot delete Product Category [:code] because it is referenced by existing products.', ['code' => $category->code])],
             ]);
         }
 

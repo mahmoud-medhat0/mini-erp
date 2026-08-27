@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\MasterData\SupplierPageData;
 use App\Application\MasterData\SupplierService;
-use App\Models\Currency;
-use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,42 +13,12 @@ class SupplierController extends Controller
 {
     public function __construct(
         private readonly SupplierService $supplierService,
+        private readonly SupplierPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-
-        $query = Supplier::query();
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
-
-        if ($status && in_array($status, ['active', 'inactive'], true)) {
-            $query->where('status', $status);
-        }
-
-        $suppliers = $query->orderBy('code', 'asc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $currencies = Currency::query()->where('is_active', true)->get();
-
-        return Inertia::render('Suppliers/Index', [
-            'suppliers' => $suppliers,
-            'currencies' => $currencies,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
-        ]);
+        return Inertia::render('Suppliers/Index', $this->pageData->indexData($request->only(['search', 'status'])));
     }
 
     public function store(Request $request): RedirectResponse
@@ -66,7 +35,7 @@ class SupplierController extends Controller
 
         $this->supplierService->create($validated, $request->user()?->id);
 
-        return back()->with('success', 'Supplier created successfully.');
+        return back()->with('success', __('Supplier created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -87,6 +56,6 @@ class SupplierController extends Controller
 
         $this->supplierService->update($id, $validated, $expectedVersion, $request->user()?->id);
 
-        return back()->with('success', 'Supplier updated successfully.');
+        return back()->with('success', __('Supplier updated successfully.'));
     }
 }

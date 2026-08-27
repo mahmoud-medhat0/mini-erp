@@ -15,6 +15,7 @@ class AccountingAccountMapping extends Model
 
     protected $fillable = [
         'key',
+        'branch_id',
         'account_id',
         'description',
         'is_system',
@@ -32,6 +33,11 @@ class AccountingAccountMapping extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'account_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function creator(): BelongsTo

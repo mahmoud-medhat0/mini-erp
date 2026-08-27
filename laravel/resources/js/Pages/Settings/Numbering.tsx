@@ -10,6 +10,20 @@ type NumberingProps = SharedPageProps & {
   sequences: SequenceRow[];
 };
 
+function resetPolicyOptions(dict: ReturnType<typeof getDictionary>) {
+  return [
+    { value: 'never', label: dict.app.pages.settingsNumbering.resetPolicies.never },
+    { value: 'yearly', label: dict.app.pages.settingsNumbering.resetPolicies.yearly },
+    { value: 'monthly', label: dict.app.pages.settingsNumbering.resetPolicies.monthly },
+  ];
+}
+
+function resetPolicyLabel(policy: string | null | undefined, dict: ReturnType<typeof getDictionary>) {
+  const labels = dict.app.pages.settingsNumbering.resetPolicies as Record<string, string>;
+
+  return labels[policy ?? 'yearly'] ?? (policy ?? '');
+}
+
 function NumberingFormModal({
   sequence,
   dict,
@@ -74,7 +88,6 @@ function NumberingFormModal({
 
       <form onSubmit={submit} className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Key */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
               {dict.app.fields.key} <span className="text-[var(--danger)]">*</span>
@@ -83,14 +96,13 @@ function NumberingFormModal({
               type="text"
               value={data.key}
               onChange={(event) => setData('key', event.target.value)}
-              placeholder="e.g. sales.invoice"
+              placeholder={dict.app.pages.settingsNumbering.keyPlaceholder}
               className="w-full font-mono rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
             {errors.key ? <p className="m-0 text-xs font-semibold text-[var(--danger)]">{errors.key}</p> : null}
           </div>
 
-          {/* Doc Type */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
               {dict.app.fields.docType} <span className="text-[var(--danger)]">*</span>
@@ -99,13 +111,12 @@ function NumberingFormModal({
               type="text"
               value={data.doc_type}
               onChange={(event) => setData('doc_type', event.target.value)}
-              placeholder="e.g. SalesInvoice"
+              placeholder={dict.app.pages.settingsNumbering.docTypePlaceholder}
               className="w-full font-mono rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
           </div>
 
-          {/* Prefix */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
               {dict.app.fields.prefix} <span className="text-[var(--danger)]">*</span>
@@ -114,7 +125,7 @@ function NumberingFormModal({
               type="text"
               value={data.prefix}
               onChange={(event) => setData('prefix', event.target.value)}
-              placeholder="e.g. INV-"
+              placeholder={dict.app.pages.settingsNumbering.prefixPlaceholder}
               className="w-full font-mono rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
@@ -141,11 +152,7 @@ function NumberingFormModal({
           {/* Reset Policy */}
           <SearchableSelect
             label={dict.app.fields.resetPolicy}
-            options={[
-              { value: 'never', label: 'Never' },
-              { value: 'yearly', label: 'Yearly' },
-              { value: 'monthly', label: 'Monthly' },
-            ]}
+            options={resetPolicyOptions(dict)}
             value={data.reset_policy}
             onChange={(val) => setData('reset_policy', val ?? 'yearly')}
             isSearchable={false}
@@ -171,7 +178,7 @@ function NumberingFormModal({
           <div className="pb-1.5">
             <ToggleSwitch
               label={dict.app.fields.includeYear}
-              description="Format: PREFIX-YEAR-NUMBER"
+              description={dict.app.pages.settingsNumbering.includeYearFormatDescription}
               checked={data.include_year}
               onChange={(val) => setData('include_year', val)}
             />
@@ -231,6 +238,8 @@ function SequenceDetailModal({
   dict: ReturnType<typeof getDictionary>;
   onClose: () => void;
 }) {
+  const accDict = dict.app.accounting;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
       <Card className="w-full max-w-lg border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
@@ -273,7 +282,7 @@ function SequenceDetailModal({
         <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
           <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
             <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.prefix}</span>
-            <span className="font-mono font-bold text-[var(--text-primary)]">{sequence.prefix || '-'}</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">{sequence.prefix || accDict.notAvailable}</span>
           </div>
           <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
             <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.nextValue}</span>
@@ -281,16 +290,18 @@ function SequenceDetailModal({
           </div>
           <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
             <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.padding}</span>
-            <span className="font-mono font-bold text-[var(--text-primary)]">{sequence.padding} digits</span>
+            <span className="font-mono font-bold text-[var(--text-primary)]">
+              {dict.app.pages.settingsNumbering.paddingDigits.replace('{count}', String(sequence.padding))}
+            </span>
           </div>
           <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
             <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.resetPolicy}</span>
-            <StatusBadge tone="info">{sequence.resetPolicy ?? 'yearly'}</StatusBadge>
+            <StatusBadge tone="info">{resetPolicyLabel(sequence.resetPolicy, dict)}</StatusBadge>
           </div>
           <div className="col-span-2 rounded-xl bg-[var(--background)] p-3 border border-[var(--border)] flex items-center justify-between">
             <span className="text-xs text-[var(--text-muted)] font-semibold">{dict.app.fields.includeYear}</span>
             <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${sequence.includeYear ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-gray-500/10 text-gray-500'}`}>
-              {sequence.includeYear ? 'Yes (YYYY-)' : 'No'}
+              {sequence.includeYear ? dict.app.pages.settingsNumbering.includeYearYes : dict.app.pages.settingsNumbering.includeYearNo}
             </span>
           </div>
         </div>
@@ -398,7 +409,7 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                       </td>
                       <td className={tableClasses.td}>
                         <StatusBadge tone="info">
-                          {sequence.resetPolicy}
+                          {resetPolicyLabel(sequence.resetPolicy, dict)}
                         </StatusBadge>
                       </td>
                       <td className={tableClasses.td}>

@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -36,6 +37,13 @@ type SalesOrderOption = {
   }>;
 };
 
+type WarehouseOption = {
+  id: string;
+  code: string;
+  name: { en?: string; ar?: string } | string;
+  is_default?: boolean;
+};
+
 type DeliveryNoteLineItem = {
   id?: string;
   sales_order_line_id: string;
@@ -49,6 +57,7 @@ type DeliveryNoteRow = {
   id: string;
   number?: string | null;
   sales_order_id: string;
+  warehouse_id: string;
   delivery_date: string;
   status: 'draft' | 'confirmed' | 'cancelled';
   reference?: string | null;
@@ -60,6 +69,7 @@ type DeliveryNoteRow = {
     number?: string | null;
     customer?: CustomerOption | null;
   } | null;
+  warehouse?: WarehouseOption | null;
   lines: Array<{
     id: string;
     line_no: number;
@@ -85,14 +95,17 @@ type DeliveryNotesProps = SharedPageProps & {
     links: any[];
   };
   confirmedSalesOrders: SalesOrderOption[];
+  warehouses: WarehouseOption[];
   filters: {
     search?: string;
     status?: string;
+    warehouse_id?: string;
   };
 };
 
-export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSalesOrders, filters }: DeliveryNotesProps) {
+export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSalesOrders, warehouses, filters }: DeliveryNotesProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -104,6 +117,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
   const { data, setData, post, put, processing, errors, reset } = useForm({
     sales_order_id: confirmedSalesOrders[0]?.id || '',
+    warehouse_id: warehouses[0]?.id || '',
     delivery_date: todayStr,
     reference: '',
     notes: '',
@@ -118,7 +132,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
         selectedSo.lines.map((l) => ({
           sales_order_line_id: l.id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || 'PCS',
+          uom_name: l.unitOfMeasure?.name || dict.app.pages.salesDeliveryNotes.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -144,6 +158,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
     setEditingNote(note);
     setData({
       sales_order_id: note.sales_order_id,
+      warehouse_id: note.warehouse_id || warehouses[0]?.id || '',
       delivery_date: note.delivery_date,
       reference: note.reference || '',
       notes: note.notes || '',
@@ -156,7 +171,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
           id: l.id,
           sales_order_line_id: l.sales_order_line_id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || 'PCS',
+          uom_name: l.unitOfMeasure?.name || dict.app.pages.salesDeliveryNotes.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -278,6 +293,19 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
           <div className="flex flex-wrap items-center gap-3">
             <select
+              value={filters.warehouse_id || ''}
+              onChange={(e) => router.get('/sales/delivery-notes', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
+              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">{dict.app.pages.salesDeliveryNotes.allWarehouses}</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={filters.status || ''}
               onChange={(e) => router.get('/sales/delivery-notes', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
@@ -303,6 +331,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                   <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.deliveryNote}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.salesOrder}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.customer}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.warehouse}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.deliveryDate}</th>
                   <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.status}</th>
                   <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesDeliveryNotes.actions}</th>
@@ -314,8 +343,9 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {note.number || dict.app.pages.salesDeliveryNotes.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.salesOrder?.number || '-'}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{note.salesOrder?.customer?.name || '-'}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{note.salesOrder?.number || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{note.salesOrder?.customer?.name || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{note.warehouse ? `${note.warehouse.code} - ${getLocalizedName(note.warehouse.name, locale)}` : accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{note.delivery_date}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={getStatusTone(note.status)}>
@@ -374,7 +404,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                     {dict.app.pages.salesDeliveryNotes.confirmedSalesOrder} *
@@ -394,6 +424,27 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                     ))}
                   </select>
                   {errors.sales_order_id ? <p className="mt-1 text-[10px] text-red-500">{errors.sales_order_id}</p> : null}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                    {dict.app.pages.salesDeliveryNotes.warehouse} *
+                  </label>
+                  <select
+                    value={data.warehouse_id}
+                    onChange={(e) => setData('warehouse_id', e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">{dict.app.pages.salesDeliveryNotes.selectWarehouse}</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                        {warehouse.is_default ? ` (${dict.app.pages.salesDeliveryNotes.defaultWarehouse})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
                 </div>
 
                 <div>
@@ -419,7 +470,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                   type="text"
                   value={data.reference}
                   onChange={(e) => setData('reference', e.target.value)}
-                  placeholder="e.g. TRUCK-DELIV-01"
+                  placeholder={dict.app.pages.salesDeliveryNotes.referencePlaceholder}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                 />
               </div>

@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Application\Accounting\OpeningBalancePageData;
 use App\Application\Accounting\OpeningBalanceService;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
-use App\Models\Account;
-use App\Models\FiscalYear;
-use App\Models\OpeningBalance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,30 +15,16 @@ class OpeningBalanceController extends Controller
 {
     use AuthorizesAccountingRequests;
 
-    public function __construct(private readonly OpeningBalanceService $openingBalanceService) {}
+    public function __construct(
+        private readonly OpeningBalanceService $openingBalanceService,
+        private readonly OpeningBalancePageData $pageData,
+    ) {}
 
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        $fiscalYears = FiscalYear::query()->orderBy('year', 'desc')->get();
-        $selectedYearId = $request->query('fiscal_year_id') ?? $fiscalYears->first()?->id;
-
-        $existingBalances = [];
-        if ($selectedYearId) {
-            $existingBalances = OpeningBalance::query()
-                ->where('fiscal_year_id', $selectedYearId)
-                ->get()
-                ->keyBy('account_id')
-                ->toArray();
-        }
-
-        return Inertia::render('Accounting/OpeningBalances', [
-            'fiscalYears' => $fiscalYears,
-            'selectedYearId' => $selectedYearId,
-            'accounts' => Account::query()->with('group')->orderBy('code')->get(),
-            'existingBalances' => $existingBalances,
-        ]);
+        return Inertia::render('Accounting/OpeningBalances', $this->pageData->indexData($request->query('fiscal_year_id')));
     }
 
     public function save(Request $request): RedirectResponse

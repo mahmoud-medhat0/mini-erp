@@ -32,7 +32,7 @@ class TaxCalculationService
 
         if (! $taxCode->is_active) {
             throw ValidationException::withMessages([
-                'tax_code_id' => ["Tax code [{$taxCode->code}] is inactive."],
+                'tax_code_id' => [__('Tax code [:code] is inactive.', ['code' => $taxCode->code])],
             ]);
         }
 
@@ -52,7 +52,10 @@ class TaxCalculationService
 
         if (! $rateRecord) {
             throw ValidationException::withMessages([
-                'document_date' => ["No active tax rate found for tax code [{$taxCode->code}] on date [{$documentDate}]."],
+                'document_date' => [__('No active tax rate found for tax code [:code] on date [:date].', [
+                    'code' => $taxCode->code,
+                    'date' => $documentDate,
+                ])],
             ]);
         }
 
@@ -92,7 +95,7 @@ class TaxCalculationService
         }
 
         throw ValidationException::withMessages([
-            'calculation_mode' => ["Unsupported calculation mode [{$taxCode->calculation_mode}]."],
+            'calculation_mode' => [__('Unsupported calculation mode [:mode].', ['mode' => $taxCode->calculation_mode])],
         ]);
     }
 }

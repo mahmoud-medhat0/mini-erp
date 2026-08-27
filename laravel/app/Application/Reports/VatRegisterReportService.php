@@ -5,6 +5,7 @@ namespace App\Application\Reports;
 use App\Models\CustomerCreditNote;
 use App\Models\CustomerInvoice;
 use App\Models\PurchaseReturn;
+use App\Models\RentalInvoice;
 use App\Models\SalesReturn;
 use App\Models\SupplierAdjustmentNote;
 use App\Models\SupplierBill;
@@ -155,9 +156,51 @@ class VatRegisterReportService
                     $totalOutputGross += $gross;
                 }
             }
+
+            // 4. Output VAT - Rental Invoices (+)
+            $rentalInvoices = RentalInvoice::query()
+                ->with(['customer', 'lines.taxCode'])
+                ->where('status', 'posted')
+                ->whereBetween('invoice_date', [$fromDate, $toDate])
+                ->get();
+
+            foreach ($rentalInvoices as $invoice) {
+                foreach ($invoice->lines as $line) {
+                    if (! $line->tax_code_id) {
+                        continue;
+                    }
+                    if ($taxCodeId && $line->tax_code_id !== $taxCodeId) {
+                        continue;
+                    }
+
+                    $subtotal = (int) $line->line_total_minor;
+                    $tax = (int) $line->tax_amount_minor;
+                    $gross = (int) ($line->gross_amount_minor ?: ($subtotal + $tax));
+
+                    $rows[] = [
+                        'document_type' => 'rental_invoice',
+                        'document_id' => (string) $invoice->id,
+                        'document_number' => $invoice->number ?? 'DRAFT',
+                        'document_date' => Carbon::parse($invoice->invoice_date)->format('Y-m-d'),
+                        'entity_type' => 'customer',
+                        'entity_name' => $invoice->customer?->name ?? '—',
+                        'tax_category' => 'output',
+                        'tax_code_id' => (string) $line->tax_code_id,
+                        'tax_code' => $line->taxCode?->code ?? '—',
+                        'tax_rate_bps' => (int) $line->tax_rate_bps,
+                        'subtotal_minor' => $subtotal,
+                        'tax_amount_minor' => $tax,
+                        'gross_amount_minor' => $gross,
+                    ];
+
+                    $totalOutputSubtotal += $subtotal;
+                    $totalOutputTax += $tax;
+                    $totalOutputGross += $gross;
+                }
+            }
         }
 
-        // 4. Input VAT - Supplier Bills (+)
+        // 5. Input VAT - Supplier Bills (+)
         if ($type === 'all' || $type === 'input') {
             $supplierBills = SupplierBill::query()
                 ->with(['supplier', 'lines.taxCode'])

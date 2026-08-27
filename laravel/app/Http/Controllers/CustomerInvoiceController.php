@@ -2,13 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Sales\CustomerInvoicePageData;
 use App\Application\Sales\CustomerInvoiceService;
-use App\Models\Customer;
-use App\Models\CustomerInvoice;
-use App\Models\DeliveryNote;
-use App\Models\Product;
-use App\Models\SalesOrder;
-use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,82 +13,15 @@ class CustomerInvoiceController extends Controller
 {
     public function __construct(
         private readonly CustomerInvoiceService $customerInvoiceService,
+        private readonly CustomerInvoicePageData $customerInvoicePageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-
-        $query = CustomerInvoice::query()->with([
-            'customer',
-            'salesOrder',
-            'deliveryNote',
-            'lines.product',
-            'lines.unitOfMeasure',
-            'journalEntry',
-            'receivableEntry',
-        ]);
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($cq) use ($search): void {
-                        $cq->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($status && in_array($status, CustomerInvoiceService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
-        }
-
-        $customerInvoices = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $activeCustomers = Customer::query()->where('status', 'active')->orderBy('name', 'asc')->get();
-
-        // Non-stock and service products ONLY for Slice 5
-        $eligibleProducts = Product::query()
-            ->with('unitOfMeasure')
-            ->where('status', 'active')
-            ->where('is_sales_enabled', true)
-            ->whereIn('type', ['service', 'non_stock'])
-            ->orderBy('code', 'asc')
-            ->get();
-
-        $confirmedSalesOrders = SalesOrder::query()
-            ->with(['customer', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'confirmed')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        $confirmedDeliveryNotes = DeliveryNote::query()
-            ->with(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'confirmed')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        $taxCodes = TaxCode::query()
-            ->with(['rates' => fn ($q) => $q->where('is_active', true)->orderBy('effective_from', 'desc')])
-            ->where('is_active', true)
-            ->orderBy('code', 'asc')
-            ->get();
-
-        return Inertia::render('Sales/CustomerInvoices', [
-            'customerInvoices' => $customerInvoices,
-            'activeCustomers' => $activeCustomers,
-            'eligibleProducts' => $eligibleProducts,
-            'confirmedSalesOrders' => $confirmedSalesOrders,
-            'confirmedDeliveryNotes' => $confirmedDeliveryNotes,
-            'taxCodes' => $taxCodes,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
-        ]);
+        return Inertia::render('Sales/CustomerInvoices', $this->customerInvoicePageData->indexData([
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+        ]));
     }
 
     public function store(Request $request): RedirectResponse
@@ -104,7 +32,7 @@ class CustomerInvoiceController extends Controller
             'delivery_note_id' => ['nullable', 'uuid'],
             'invoice_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'fx_rate_e6' => ['nullable', 'integer'],
             'reference' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -121,7 +49,7 @@ class CustomerInvoiceController extends Controller
 
         $this->customerInvoiceService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Invoice created successfully.');
+        return redirect()->back()->with('success', __('Customer Invoice created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -145,34 +73,34 @@ class CustomerInvoiceController extends Controller
 
         $this->customerInvoiceService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Invoice updated successfully.');
+        return redirect()->back()->with('success', __('Customer Invoice updated successfully.'));
     }
 
     public function submit(Request $request, string $id): RedirectResponse
     {
         $this->customerInvoiceService->submit($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Invoice submitted successfully.');
+        return redirect()->back()->with('success', __('Customer Invoice submitted successfully.'));
     }
 
     public function approve(Request $request, string $id): RedirectResponse
     {
         $this->customerInvoiceService->approve($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Invoice approved successfully.');
+        return redirect()->back()->with('success', __('Customer Invoice approved successfully.'));
     }
 
     public function post(Request $request, string $id): RedirectResponse
     {
         $this->customerInvoiceService->post($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Invoice posted to AR/GL successfully.');
+        return redirect()->back()->with('success', __('Customer Invoice posted to AR/GL successfully.'));
     }
 
     public function cancel(Request $request, string $id): RedirectResponse
     {
         $this->customerInvoiceService->cancel($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Invoice cancelled successfully.');
+        return redirect()->back()->with('success', __('Customer Invoice cancelled successfully.'));
     }
 }

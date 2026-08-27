@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -22,6 +23,10 @@ class MigratedPagesTest extends TestCase
 
         $user = User::factory()->create();
         $role = Role::query()->create(['name' => 'VIEWER', 'guard_name' => 'web', 'is_template' => true]);
+        foreach (['dashboard.view', 'settings.view', 'settings.company', 'settings.branches', 'settings.numbering', 'users.configure'] as $permission) {
+            Permission::findOrCreate($permission, 'web');
+        }
+        $role->givePermissionTo(['dashboard.view', 'settings.view', 'settings.company', 'settings.branches', 'settings.numbering', 'users.configure']);
         $user->assignRole($role);
 
         $company = Company::query()->create([

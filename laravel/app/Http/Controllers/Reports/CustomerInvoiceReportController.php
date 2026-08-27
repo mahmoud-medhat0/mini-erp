@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Application\Reports\CustomerInvoiceReportService;
+use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
-use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -13,9 +12,12 @@ use Inertia\Response;
 
 class CustomerInvoiceReportController extends Controller
 {
+    public function __construct(private readonly ReportPageOptions $options) {}
+
     public function index(Request $request, CustomerInvoiceReportService $service): Response
     {
         Gate::authorize('reports.view');
+        Gate::authorize('view_financials');
 
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
@@ -35,9 +37,6 @@ class CustomerInvoiceReportController extends Controller
             search: $search ? (string) $search : null
         );
 
-        $customers = Customer::query()->where('status', 'active')->orderBy('name')->get(['id', 'code', 'name']);
-        $products = Product::query()->where('status', 'active')->orderBy('code')->get(['id', 'code', 'name']);
-
         return Inertia::render('Reports/CustomerInvoicesReport', [
             'reportData' => $data,
             'filters' => [
@@ -49,8 +48,9 @@ class CustomerInvoiceReportController extends Controller
                 'currency' => $currency ?? '',
                 'search' => $search ?? '',
             ],
-            'customers' => $customers,
-            'products' => $products,
+            'customers' => $this->options->activeCustomers(sortBy: 'name', columns: ['id', 'code', 'name']),
+            'products' => $this->options->activeProducts(columns: ['id', 'code', 'name']),
+            'currencies' => $this->options->currencies(columns: ['code']),
         ]);
     }
 }

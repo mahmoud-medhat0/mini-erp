@@ -22,7 +22,7 @@ type EditProps = SharedPageProps & {
 
 export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
   const dict = getDictionary(locale);
-  const taxDict = (dict.app as any).taxes || {};
+  const taxDict = dict.app.taxes;
 
   const nameObj = typeof taxCode.name === 'object' ? taxCode.name : { en: taxCode.name, ar: taxCode.name };
 
@@ -44,18 +44,18 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
 
   return (
     <AppLayout active="taxes.codes.index">
-      <Head title={taxDict.editTaxCode || 'Edit Tax Code'} />
+      <Head title={taxDict.editTaxCode} />
 
       <div className="space-y-6 max-w-3xl mx-auto">
         <PageHeader
-          title={taxDict.editTaxCode || 'Edit Tax Code'}
+          title={taxDict.editTaxCode}
           description={`${taxCode.code}`}
           actions={
             <Link
               href="/taxes/codes"
               className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition text-sm font-medium"
             >
-              {taxDict.backToCodes || 'Back to Tax Codes'}
+              {taxDict.backToCodes}
             </Link>
           }
         />
@@ -64,7 +64,7 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {taxDict.code || 'Code'} *
+                {taxDict.code} *
               </label>
               <input
                 type="text"
@@ -80,7 +80,7 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.nameEn || 'English Name'} *
+                  {taxDict.nameEn} *
                 </label>
                 <input
                   type="text"
@@ -92,7 +92,7 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.nameAr || 'Arabic Name'} *
+                  {taxDict.nameAr} *
                 </label>
                 <input
                   type="text"
@@ -107,30 +107,30 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.calculationMode || 'Calculation Mode'}
+                  {taxDict.calculationMode}
                 </label>
                 <select
                   value={data.calculation_mode}
-                  onChange={(e) => setData('calculation_mode', e.target.value as any)}
+                  onChange={(e) => setData('calculation_mode', e.target.value as TaxCode['calculation_mode'])}
                   className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
                 >
-                  <option value="exclusive">{taxDict.exclusive || 'Tax-Exclusive (Net + Tax)'}</option>
-                  <option value="inclusive">{taxDict.inclusive || 'Tax-Inclusive (Gross Includes Tax)'}</option>
-                  <option value="exempt">{taxDict.exempt || 'Exempt / Out of Scope'}</option>
+                  <option value="exclusive">{taxDict.exclusive}</option>
+                  <option value="inclusive">{taxDict.inclusive}</option>
+                  <option value="exempt">{taxDict.exempt}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.recoverabilityMode || 'Recoverability Mode'}
+                  {taxDict.recoverabilityMode}
                 </label>
                 <select
                   value={data.recoverability_mode}
-                  onChange={(e) => setData('recoverability_mode', e.target.value as any)}
+                  onChange={(e) => setData('recoverability_mode', e.target.value as TaxCode['recoverability_mode'])}
                   className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
                 >
-                  <option value="full">{taxDict.full || '100% Recoverable Input VAT'}</option>
-                  <option value="none">{taxDict.none || 'Non-Recoverable'}</option>
+                  <option value="full">{taxDict.full}</option>
+                  <option value="none">{taxDict.none}</option>
                 </select>
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
                 className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
               <label htmlFor="is_active" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                {taxDict.active || 'Active'}
+                {taxDict.active}
               </label>
             </div>
 
@@ -153,14 +153,14 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
                 href="/taxes/codes"
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition text-sm font-medium"
               >
-                {taxDict.cancel || 'Cancel'}
+                {taxDict.cancel}
               </Link>
               <button
                 type="submit"
                 disabled={processing}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
               >
-                {taxDict.save || 'Save Changes'}
+                {taxDict.save}
               </button>
             </div>
           </form>

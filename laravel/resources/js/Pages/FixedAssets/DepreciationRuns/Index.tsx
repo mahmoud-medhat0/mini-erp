@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
 import { Card, PageHeader } from '../../../Components/Primitives';
+import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
 
@@ -44,7 +45,8 @@ type IndexProps = SharedPageProps & {
 
 export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }: IndexProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
+  const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
 
   const [showPostModal, setShowPostModal] = useState(false);
 
@@ -129,11 +131,11 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
                       <td className="px-4 py-3">
                         {run.financial_period
                           ? `${run.financial_period.start_date} ${appDict.periodDateSeparator} ${run.financial_period.end_date}`
-                          : '-'}
+                          : appDict.notAvailable}
                       </td>
                       <td className="px-4 py-3 text-right rtl:text-left font-mono font-medium">{run.asset_count}</td>
                       <td className="px-4 py-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                        {run.total_depreciation_minor}
+                        {formatAmount(run.total_depreciation_minor)}
                       </td>
                       <td className="px-4 py-3 text-center capitalize">
                         <span
@@ -151,7 +153,7 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
                           href={`/fixed-assets-depreciation-runs/${run.id}`}
                           className="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400"
                         >
-                          {appDict.viewDetails}
+                          {appDict.viewDetail}
                         </Link>
                       </td>
                     </tr>

@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Sales\SalesOrderPageData;
 use App\Application\Sales\SalesOrderService;
-use App\Models\Currency;
-use App\Models\Customer;
-use App\Models\Product;
-use App\Models\SalesOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,60 +12,13 @@ use Inertia\Response;
 class SalesOrderController extends Controller
 {
     public function __construct(
+        private readonly SalesOrderPageData $pageData,
         private readonly SalesOrderService $salesOrderService,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-        $customerId = $request->query('customer_id');
-
-        $query = SalesOrder::query()->with(['customer', 'lines.product', 'lines.unitOfMeasure']);
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($cq) use ($search): void {
-                        $cq->where('name', 'like', "%{$search}%")
-                            ->orWhere('code', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($status && in_array($status, SalesOrderService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
-        }
-
-        if ($customerId) {
-            $query->where('customer_id', $customerId);
-        }
-
-        $salesOrders = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $customers = Customer::query()->where('status', 'active')->orderBy('name', 'asc')->get();
-        $currencies = Currency::query()->orderBy('code', 'asc')->get();
-        $products = Product::query()
-            ->with('unitOfMeasure')
-            ->where('status', 'active')
-            ->where('is_sales_enabled', true)
-            ->orderBy('code', 'asc')
-            ->get();
-
-        return Inertia::render('Sales/SalesOrders', [
-            'salesOrders' => $salesOrders,
-            'customers' => $customers,
-            'currencies' => $currencies,
-            'products' => $products,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'customer_id' => $customerId,
-            ],
-        ]);
+        return Inertia::render('Sales/SalesOrders', $this->pageData->indexData($request->only(['search', 'status', 'customer_id'])));
     }
 
     public function store(Request $request): RedirectResponse
@@ -77,7 +27,7 @@ class SalesOrderController extends Controller
             'customer_id' => ['required', 'uuid'],
             'order_date' => ['required', 'date'],
             'expected_delivery_date' => ['nullable', 'date', 'after_or_equal:order_date'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'fx_rate_e6' => ['nullable', 'integer', 'min:1'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
@@ -91,7 +41,7 @@ class SalesOrderController extends Controller
 
         $this->salesOrderService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Sales Order created successfully.');
+        return redirect()->back()->with('success', __('Sales Order created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -100,7 +50,7 @@ class SalesOrderController extends Controller
             'customer_id' => ['required', 'uuid'],
             'order_date' => ['required', 'date'],
             'expected_delivery_date' => ['nullable', 'date', 'after_or_equal:order_date'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'fx_rate_e6' => ['nullable', 'integer', 'min:1'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
@@ -115,27 +65,27 @@ class SalesOrderController extends Controller
 
         $this->salesOrderService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Sales Order updated successfully.');
+        return redirect()->back()->with('success', __('Sales Order updated successfully.'));
     }
 
     public function submit(Request $request, string $id): RedirectResponse
     {
         $this->salesOrderService->submit($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Sales Order submitted successfully.');
+        return redirect()->back()->with('success', __('Sales Order submitted successfully.'));
     }
 
     public function confirm(Request $request, string $id): RedirectResponse
     {
         $this->salesOrderService->confirm($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Sales Order confirmed successfully.');
+        return redirect()->back()->with('success', __('Sales Order confirmed successfully.'));
     }
 
     public function cancel(Request $request, string $id): RedirectResponse
     {
         $this->salesOrderService->cancel($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Sales Order cancelled successfully.');
+        return redirect()->back()->with('success', __('Sales Order cancelled successfully.'));
     }
 }

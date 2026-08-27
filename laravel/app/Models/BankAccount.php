@@ -18,6 +18,7 @@ class BankAccount extends Model
         'code',
         'name',
         'bank_name',
+        'branch_id',
         'account_number',
         'iban',
         'swift',
@@ -42,6 +43,11 @@ class BankAccount extends Model
     public function glAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'gl_account_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function currencyRef(): BelongsTo

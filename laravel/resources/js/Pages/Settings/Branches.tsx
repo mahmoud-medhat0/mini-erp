@@ -66,7 +66,6 @@ function BranchFormModal({
 
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-3">
-          {/* Branch Code */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
               {dict.app.fields.code} <span className="text-[var(--danger)]">*</span>
@@ -75,40 +74,38 @@ function BranchFormModal({
               type="text"
               value={data.code}
               onChange={(event) => setData('code', event.target.value)}
-              placeholder="e.g. CAI-01"
+              placeholder={dict.app.fields.branchCodePlaceholder}
               className="w-full font-mono rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
             {errors.code ? <p className="m-0 text-xs font-semibold text-[var(--danger)]">{errors.code}</p> : null}
           </div>
 
-          {/* Name English */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {dict.app.fields.branch} (English) <span className="text-[var(--danger)]">*</span>
+              {dict.app.fields.nameEn} <span className="text-[var(--danger)]">*</span>
             </label>
             <input
               type="text"
               value={data.name_en}
               onChange={(event) => setData('name_en', event.target.value)}
-              placeholder="e.g. Cairo Main Branch"
+              placeholder={dict.app.fields.branchNameEnPlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
             {errors.name_en ? <p className="m-0 text-xs font-semibold text-[var(--danger)]">{errors.name_en}</p> : null}
           </div>
 
-          {/* Name Arabic */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-              {dict.app.fields.branch} (العربية) <span className="text-[var(--danger)]">*</span>
+              {dict.app.fields.nameAr} <span className="text-[var(--danger)]">*</span>
             </label>
             <input
               type="text"
               dir="rtl"
               value={data.name_ar}
               onChange={(event) => setData('name_ar', event.target.value)}
-              placeholder="مثال: فرع القاهرة الرئيسي"
+              placeholder={dict.app.fields.branchNameArPlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
@@ -223,9 +220,9 @@ export default function Branches({ branches, locale }: BranchesProps) {
                         <div className="flex flex-col min-w-44">
                           <span className="font-bold text-[var(--text-primary)] text-sm">{branch.name}</span>
                           <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
-                            <span>EN: {branch.nameEn}</span>
+                            <span>{dict.app.fields.nameEn}: {branch.nameEn}</span>
                             <span>•</span>
-                            <span>AR: {branch.nameAr}</span>
+                            <span>{dict.app.fields.nameAr}: {branch.nameAr}</span>
                           </div>
                         </div>
                       </td>
@@ -270,7 +267,7 @@ export default function Branches({ branches, locale }: BranchesProps) {
                           <button
                             type="button"
                             onClick={() => {
-                              if (confirm(dict.app.actions.confirmDelete || 'Are you sure you want to delete this branch?')) {
+                              if (confirm(dict.app.messages.confirmDeleteBranch.replace('{name}', branch.name ?? branch.code))) {
                                 router.delete(`/settings/branches/${branch.id}`);
                               }
                             }}

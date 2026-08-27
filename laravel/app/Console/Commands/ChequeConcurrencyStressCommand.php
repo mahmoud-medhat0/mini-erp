@@ -6,6 +6,8 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\IncomingChequeService;
 use App\Application\Accounting\OutgoingChequeService;
 use App\Application\Accounting\PeriodService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\Customer;
@@ -25,6 +27,8 @@ use Throwable;
 
 class ChequeConcurrencyStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:cheque-concurrency-stress {--workers=50}';
 
     protected $description = 'Run PostgreSQL cheque transition concurrency stress checks.';
@@ -34,6 +38,7 @@ class ChequeConcurrencyStressCommand extends Command
         AccountingAccountMappingService $mappingService,
         IncomingChequeService $incomingService,
         OutgoingChequeService $outgoingService,
+        BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
         $driver = DB::connection()->getDriverName();
         $workers = max(2, min((int) $this->option('workers'), 250));
@@ -50,6 +55,7 @@ class ChequeConcurrencyStressCommand extends Command
 
         try {
             $user = User::query()->first() ?? User::factory()->create();
+            $currency = $this->resolveStressCurrency($baseCurrencyResolver);
             $suffix = Str::upper(Str::random(8));
             $yearNum = random_int(2400, 8999);
 
@@ -60,12 +66,12 @@ class ChequeConcurrencyStressCommand extends Command
             $fiscalYear = $periodService->createFiscalYear($yearNum, "{$yearNum}-01-01", "{$yearNum}-12-31");
             $period = $fiscalYear->periods()->firstOrFail();
 
-            $accounts = $this->createAccountsAndMappings($mappingService, $user->id, $suffix);
+            $accounts = $this->createAccountsAndMappings($mappingService, $user->id, $suffix, $currency);
             $bankAccount = BankAccount::query()->create([
                 'code' => "BANK-CHQ-{$suffix}",
                 'name' => ['en' => 'Cheque Stress Bank Account'],
                 'gl_account_id' => $accounts['bank']->id,
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_active' => true,
             ]);
 
@@ -86,6 +92,7 @@ class ChequeConcurrencyStressCommand extends Command
                 "{$yearNum}-01-01",
                 $user->id,
                 "IN-IDEM-{$suffix}",
+                $currency,
             );
 
             $sharedKeyResults = $this->runIncomingClearWorkers(
@@ -120,6 +127,7 @@ class ChequeConcurrencyStressCommand extends Command
                 "{$yearNum}-01-01",
                 $user->id,
                 "IN-RACE-{$suffix}",
+                $currency,
             );
 
             $clearVsBounceResults = Concurrency::run([
@@ -180,6 +188,7 @@ class ChequeConcurrencyStressCommand extends Command
                 "{$yearNum}-01-01",
                 $user->id,
                 "OUT-CLEAR-{$suffix}",
+                $currency,
             );
 
             $outgoingClearResults = $this->runOutgoingClearWorkers(
@@ -226,14 +235,14 @@ class ChequeConcurrencyStressCommand extends Command
     /**
      * @return array<string, Account>
      */
-    private function createAccountsAndMappings(AccountingAccountMappingService $mappingService, int $actorId, string $suffix): array
+    private function createAccountsAndMappings(AccountingAccountMappingService $mappingService, int $actorId, string $suffix, string $currency): array
     {
         $arControl = Account::query()->create([
             'code' => "1100-AR-CHQ-{$suffix}",
             'name' => ['en' => 'AR Cheque Control'],
             'type' => 'asset',
             'nature' => 'debit',
-            'currency' => 'EGP',
+            'currency' => $currency,
             'is_control' => true,
             'allow_manual_posting' => false,
             'is_active' => true,
@@ -244,7 +253,7 @@ class ChequeConcurrencyStressCommand extends Command
             'name' => ['en' => 'AP Cheque Control'],
             'type' => 'liability',
             'nature' => 'credit',
-            'currency' => 'EGP',
+            'currency' => $currency,
             'is_control' => true,
             'allow_manual_posting' => false,
             'is_active' => true,
@@ -255,7 +264,7 @@ class ChequeConcurrencyStressCommand extends Command
             'name' => ['en' => 'Cheques Under Collection'],
             'type' => 'asset',
             'nature' => 'debit',
-            'currency' => 'EGP',
+            'currency' => $currency,
             'is_control' => false,
             'allow_manual_posting' => true,
             'is_active' => true,
@@ -266,7 +275,7 @@ class ChequeConcurrencyStressCommand extends Command
             'name' => ['en' => 'Cheques Payable'],
             'type' => 'liability',
             'nature' => 'credit',
-            'currency' => 'EGP',
+            'currency' => $currency,
             'is_control' => false,
             'allow_manual_posting' => true,
             'is_active' => true,
@@ -277,7 +286,7 @@ class ChequeConcurrencyStressCommand extends Command
             'name' => ['en' => 'Cheque Stress Bank'],
             'type' => 'asset',
             'nature' => 'debit',
-            'currency' => 'EGP',
+            'currency' => $currency,
             'is_control' => false,
             'allow_manual_posting' => true,
             'is_active' => true,
@@ -305,11 +314,12 @@ class ChequeConcurrencyStressCommand extends Command
         string $date,
         int $actorId,
         string $chequeNumber,
+        string $currency,
     ): IncomingCheque {
         $draft = $incomingService->createDraft([
             'customer_id' => $customerId,
             'cheque_number' => $chequeNumber,
-            'currency' => 'EGP',
+            'currency' => $currency,
             'amount_minor' => 150000,
         ], $actorId);
 
@@ -325,12 +335,13 @@ class ChequeConcurrencyStressCommand extends Command
         string $date,
         int $actorId,
         string $chequeNumber,
+        string $currency,
     ): OutgoingCheque {
         $draft = $outgoingService->createDraft([
             'supplier_id' => $supplierId,
             'bank_account_id' => $bankAccountId,
             'cheque_number' => $chequeNumber,
-            'currency' => 'EGP',
+            'currency' => $currency,
             'amount_minor' => 250000,
         ], $actorId);
 

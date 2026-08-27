@@ -27,22 +27,22 @@ class CustomerInvoiceRevisionService
     ): CustomerInvoiceRevision {
         return DB::transaction(function () use ($customerInvoiceId, $customerCreditNoteId, $salesReturnId, $actorId): CustomerInvoiceRevision {
             if ($customerCreditNoteId && ! CustomerCreditNote::query()->where('id', $customerCreditNoteId)->exists()) {
-                throw ValidationException::withMessages(['customer_credit_note_id' => ['Customer Credit Note does not exist.']]);
+                throw ValidationException::withMessages(['customer_credit_note_id' => [__('Customer Credit Note does not exist.')]]);
             }
 
             if ($salesReturnId && ! SalesReturn::query()->where('id', $salesReturnId)->exists()) {
-                throw ValidationException::withMessages(['sales_return_id' => ['Sales Return does not exist.']]);
+                throw ValidationException::withMessages(['sales_return_id' => [__('Sales Return does not exist.')]]);
             }
 
             /** @var CustomerInvoice $invoice */
             $invoice = CustomerInvoice::query()->with(['lines'])->where('id', $customerInvoiceId)->lockForUpdate()->firstOrFail();
 
             if ($invoice->status !== 'posted') {
-                throw ValidationException::withMessages(['status' => ['Revisions can only be generated for posted customer invoices.']]);
+                throw ValidationException::withMessages(['status' => [__('Revisions can only be generated for posted customer invoices.')]]);
             }
 
             if ($invoice->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Customer invoice has no lines to revise.']]);
+                throw ValidationException::withMessages(['lines' => [__('Customer invoice has no lines to revise.')]]);
             }
 
             $maxNo = (int) CustomerInvoiceRevision::query()->where('customer_invoice_id', $invoice->id)->max('revision_no');

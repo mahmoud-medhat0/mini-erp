@@ -17,6 +17,7 @@ class JournalLine extends Model
         'journal_entry_id',
         'line_no',
         'account_id',
+        'branch_id',
         'memo',
         'debit_minor',
         'credit_minor',
@@ -46,6 +47,11 @@ class JournalLine extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'account_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function currencyRef(): BelongsTo

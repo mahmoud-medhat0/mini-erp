@@ -2,13 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Sales\CustomerCreditNotePageData;
 use App\Application\Sales\CustomerCreditNoteService;
 use App\Application\Sales\CustomerInvoiceRevisionService;
-use App\Models\Customer;
-use App\Models\CustomerCreditNote;
-use App\Models\CustomerInvoice;
-use App\Models\SalesReturn;
-use App\Models\TaxCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,77 +15,16 @@ class CustomerCreditNoteController extends Controller
     public function __construct(
         private readonly CustomerCreditNoteService $customerCreditNoteService,
         private readonly CustomerInvoiceRevisionService $customerInvoiceRevisionService,
+        private readonly CustomerCreditNotePageData $customerCreditNotePageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-        $customerId = $request->query('customer_id');
-
-        $query = CustomerCreditNote::query()->with([
-            'customer',
-            'customerInvoice',
-            'salesReturn',
-            'lines',
-            'journalEntry',
-            'receivableEntry',
-        ]);
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhere('reason', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($cq) use ($search): void {
-                        $cq->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($status && in_array($status, CustomerCreditNoteService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
-        }
-
-        if ($customerId) {
-            $query->where('customer_id', $customerId);
-        }
-
-        $customerCreditNotes = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $activeCustomers = Customer::query()->where('status', 'active')->orderBy('name', 'asc')->get();
-
-        $postedCustomerInvoices = CustomerInvoice::query()
-            ->with(['customer', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'posted')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        $postedSalesReturns = SalesReturn::query()
-            ->with(['customer', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'posted')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        $taxCodes = TaxCode::query()
-            ->with(['rates' => fn ($q) => $q->where('is_active', true)->orderBy('effective_from', 'desc')])
-            ->where('is_active', true)
-            ->orderBy('code', 'asc')
-            ->get();
-
-        return Inertia::render('Sales/CustomerCreditNotes', [
-            'customerCreditNotes' => $customerCreditNotes,
-            'activeCustomers' => $activeCustomers,
-            'postedCustomerInvoices' => $postedCustomerInvoices,
-            'postedSalesReturns' => $postedSalesReturns,
-            'taxCodes' => $taxCodes,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'customer_id' => $customerId,
-            ],
-        ]);
+        return Inertia::render('Sales/CustomerCreditNotes', $this->customerCreditNotePageData->indexData([
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+            'customer_id' => $request->query('customer_id'),
+        ]));
     }
 
     public function store(Request $request): RedirectResponse
@@ -100,7 +35,7 @@ class CustomerCreditNoteController extends Controller
             'sales_return_id' => ['nullable', 'uuid'],
             'credit_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date'],
-            'currency' => ['required', 'string', 'size:3'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'tax_mode' => ['nullable', 'string', 'in:none,manual_rate,manual_amount'],
             'tax_rate_bps' => ['nullable', 'integer', 'min:0'],
             'tax_minor_override' => ['nullable', 'integer', 'min:0'],
@@ -117,7 +52,7 @@ class CustomerCreditNoteController extends Controller
 
         $this->customerCreditNoteService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Credit Note created successfully.');
+        return redirect()->back()->with('success', __('Customer Credit Note created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -127,7 +62,7 @@ class CustomerCreditNoteController extends Controller
             'sales_return_id' => ['nullable', 'uuid'],
             'credit_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date'],
-            'currency' => ['nullable', 'string', 'size:3'],
+            'currency' => ['nullable', 'string', 'size:3', 'exists:currency,code'],
             'tax_mode' => ['nullable', 'string', 'in:none,manual_rate,manual_amount'],
             'tax_rate_bps' => ['nullable', 'integer', 'min:0'],
             'tax_minor_override' => ['nullable', 'integer', 'min:0'],
@@ -145,21 +80,21 @@ class CustomerCreditNoteController extends Controller
 
         $this->customerCreditNoteService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Credit Note updated successfully.');
+        return redirect()->back()->with('success', __('Customer Credit Note updated successfully.'));
     }
 
     public function submit(Request $request, string $id): RedirectResponse
     {
         $this->customerCreditNoteService->submit($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Credit Note submitted successfully.');
+        return redirect()->back()->with('success', __('Customer Credit Note submitted successfully.'));
     }
 
     public function approve(Request $request, string $id): RedirectResponse
     {
         $this->customerCreditNoteService->approve($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Credit Note approved successfully.');
+        return redirect()->back()->with('success', __('Customer Credit Note approved successfully.'));
     }
 
     public function post(Request $request, string $id): RedirectResponse
@@ -178,8 +113,8 @@ class CustomerCreditNoteController extends Controller
         }
 
         $message = $note->customer_invoice_id
-            ? 'Customer Credit Note posted to AR/GL successfully. Invoice revision generated.'
-            : 'Customer Credit Note posted to AR/GL successfully.';
+            ? __('Customer Credit Note posted to AR/GL successfully. Invoice revision generated.')
+            : __('Customer Credit Note posted to AR/GL successfully.');
 
         return redirect()->back()->with('success', $message);
     }
@@ -188,6 +123,6 @@ class CustomerCreditNoteController extends Controller
     {
         $this->customerCreditNoteService->cancel($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Customer Credit Note cancelled successfully.');
+        return redirect()->back()->with('success', __('Customer Credit Note cancelled successfully.'));
     }
 }

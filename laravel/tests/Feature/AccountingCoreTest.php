@@ -112,6 +112,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
                 'description' => 'Test Sales Journal',
             ],
             [
@@ -186,6 +187,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
@@ -204,6 +206,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->controlAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
@@ -226,6 +229,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
@@ -250,6 +254,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
@@ -277,6 +282,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->cashAccount->id, 'debit_minor' => 25000, 'credit_minor' => 0],
@@ -441,6 +447,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2027-06-15', // Period is 2026-01-01 to 2026-01-31
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->cashAccount->id, 'debit_minor' => 1000, 'credit_minor' => 0],
@@ -459,6 +466,7 @@ class AccountingCoreTest extends TestCase
             [
                 'entry_date' => '2026-01-15',
                 'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
             ],
             [
                 ['account_id' => $this->cashAccount->id, 'debit_minor' => 5000, 'credit_minor' => 0],

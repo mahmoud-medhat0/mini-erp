@@ -1,7 +1,8 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -37,6 +38,33 @@ type ScheduleRow = {
   } | null;
 };
 
+type BranchOption = {
+  id: string;
+  code: string;
+  name: Record<string, string> | string;
+};
+
+type AssetLocationOption = {
+  id: string;
+  code: string;
+  name: Record<string, string> | string;
+  branch_id?: string | null;
+  branch?: BranchOption | null;
+};
+
+type MovementRow = {
+  id: string;
+  number: string;
+  movement_date: string;
+  from_branch?: BranchOption | null;
+  to_branch?: BranchOption | null;
+  from_location?: AssetLocationOption | null;
+  to_location?: AssetLocationOption | null;
+  reason?: string | null;
+  notes?: string | null;
+  creator?: { id: number; name: string } | null;
+};
+
 type AssetDetail = {
   id: string;
   asset_number: string;
@@ -57,13 +85,18 @@ type AssetDetail = {
   journal_entry_id?: string | null;
   capitalized_at?: string | null;
   serial_number?: string | null;
+  branch_id?: string | null;
+  fixed_asset_location_id?: string | null;
   created_at: string;
   category?: CategoryOption | null;
+  branch?: BranchOption | null;
+  location?: AssetLocationOption | null;
   journal_entry?: JournalInfo | null;
   capitalizer?: { id: number; name: string } | null;
   creator?: { id: number; name: string } | null;
   updater?: { id: number; name: string } | null;
   depreciation_schedules?: ScheduleRow[];
+  movements?: MovementRow[];
 };
 
 type AttachmentRow = {
@@ -77,26 +110,38 @@ type AttachmentRow = {
 type ShowProps = SharedPageProps & {
   asset: AssetDetail;
   attachments?: AttachmentRow[];
+  branches: BranchOption[];
+  locations: AssetLocationOption[];
   can: {
     edit: boolean;
     delete: boolean;
     post: boolean;
     reverse: boolean;
+    transfer: boolean;
     generate_schedule: boolean;
     view_financials: boolean;
   };
 };
 
-export default function FixedAssetShow({ locale, asset, attachments = [], can }: ShowProps) {
+export default function FixedAssetShow({ locale, asset, attachments = [], branches = [], locations = [], can }: ShowProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
 
   const [showCapitalizeModal, setShowCapitalizeModal] = useState(false);
   const [generatingSchedule, setGeneratingSchedule] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
 
   const { data, setData, post, processing, errors, reset } = useForm({
     capitalization_mode: 'manual_capitalization' as 'opening_already_capitalized' | 'manual_capitalization',
     capitalization_date: asset.in_service_date || new Date().toISOString().split('T')[0],
+  });
+
+  const moveForm = useForm({
+    movement_date: new Date().toISOString().split('T')[0],
+    to_branch_id: asset.branch_id || '',
+    to_location_id: asset.fixed_asset_location_id || '',
+    reason: '',
+    notes: '',
   });
 
   function handleDelete() {
@@ -128,8 +173,15 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
     });
   }
 
+  function handleMoveAsset(e: FormEvent) {
+    e.preventDefault();
+    moveForm.post(`/fixed-assets/${asset.id}/movements`, {
+      onSuccess: () => setShowMoveModal(false),
+    });
+  }
+
   const [showDisposeModal, setShowDisposeModal] = useState(false);
-  const disposalDict = (dict.app as any).fixedAssetsDisposals;
+  const disposalDict = dict.app.fixedAssetsDisposals;
 
   const disposeForm = useForm({
     disposal_date: new Date().toISOString().split('T')[0],
@@ -182,6 +234,25 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
   const depreciableBase = asset.cost_minor - asset.salvage_value_minor;
   const netBookValue = asset.cost_minor - asset.opening_accumulated_depreciation_minor;
   const schedules = asset.depreciation_schedules || [];
+  const movements = asset.movements || [];
+  const moveErrors = moveForm.errors as Record<string, string | undefined>;
+  const branchOptions = branches.map((branch) => ({
+    value: branch.id,
+    label: `${branch.code} - ${getLocalizedName(branch.name, locale)}`,
+  }));
+  const locationOptions = locations.map((location) => ({
+    value: location.id,
+    label: `${location.code} - ${getLocalizedName(location.name, locale)}`,
+    sublabel: location.branch ? `${location.branch.code} - ${getLocalizedName(location.branch.name, locale)}` : undefined,
+  }));
+
+  function formatBranch(branch?: BranchOption | null): string {
+    return branch ? `${branch.code} - ${getLocalizedName(branch.name, locale)}` : appDict.notAssigned;
+  }
+
+  function formatLocation(location?: AssetLocationOption | null): string {
+    return location ? `${location.code} - ${getLocalizedName(location.name, locale)}` : appDict.notAssigned;
+  }
 
   return (
     <AppLayout active="fixed-assets.index">
@@ -235,6 +306,15 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
                   {disposalDict.disposeAsset}
                 </button>
               )}
+              {can.transfer && (
+                <button
+                  type="button"
+                  onClick={() => setShowMoveModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  {appDict.moveAsset}
+                </button>
+              )}
               {can.reverse && asset.status === 'active' && asset.capitalization_mode === 'manual_capitalization' && (
                 <button
                   type="button"
@@ -272,7 +352,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
               <div>
                 <dt className="text-slate-500 dark:text-slate-400">{appDict.assetCategory}</dt>
                 <dd className="font-medium text-slate-900 dark:text-slate-100">
-                  {asset.category ? formatName(asset.category.name) : '-'}
+                  {asset.category ? formatName(asset.category.name) : appDict.notAvailable}
                 </dd>
               </div>
 
@@ -298,7 +378,17 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
 
               <div>
                 <dt className="text-slate-500 dark:text-slate-400">{appDict.serialNumber}</dt>
-                <dd className="font-mono text-slate-900 dark:text-slate-100">{asset.serial_number || '-'}</dd>
+                <dd className="font-mono text-slate-900 dark:text-slate-100">{asset.serial_number || appDict.notAvailable}</dd>
+              </div>
+
+              <div>
+                <dt className="text-slate-500 dark:text-slate-400">{appDict.branch}</dt>
+                <dd className="font-medium text-slate-900 dark:text-slate-100">{formatBranch(asset.branch)}</dd>
+              </div>
+
+              <div>
+                <dt className="text-slate-500 dark:text-slate-400">{appDict.assetLocation}</dt>
+                <dd className="font-medium text-slate-900 dark:text-slate-100">{formatLocation(asset.location)}</dd>
               </div>
 
               <div>
@@ -323,7 +413,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
 
                   <div>
                     <dt className="text-slate-500 dark:text-slate-400">{appDict.capitalizationDate}</dt>
-                    <dd className="font-medium text-slate-900 dark:text-slate-100">{asset.capitalization_date || '-'}</dd>
+                    <dd className="font-medium text-slate-900 dark:text-slate-100">{asset.capitalization_date || appDict.notAvailable}</dd>
                   </div>
                 </>
               )}
@@ -357,23 +447,23 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
               <dl className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <dt className="text-slate-500">{appDict.historicalCost}</dt>
-                  <dd className="font-semibold text-slate-900 dark:text-slate-100">{asset.cost_minor} {asset.currency}</dd>
+                  <dd className="font-semibold text-slate-900 dark:text-slate-100">{formatMoney(asset.cost_minor, asset.currency)}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">{appDict.salvageValue}</dt>
-                  <dd className="font-medium text-slate-900 dark:text-slate-100">{asset.salvage_value_minor} {asset.currency}</dd>
+                  <dd className="font-medium text-slate-900 dark:text-slate-100">{formatMoney(asset.salvage_value_minor, asset.currency)}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">{appDict.depreciableBase}</dt>
-                  <dd className="font-medium text-slate-900 dark:text-slate-100">{depreciableBase} {asset.currency}</dd>
+                  <dd className="font-medium text-slate-900 dark:text-slate-100">{formatMoney(depreciableBase, asset.currency)}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-slate-500">{appDict.openingAccumulatedDepreciation}</dt>
-                  <dd className="font-medium text-slate-900 dark:text-slate-100">{asset.opening_accumulated_depreciation_minor} {asset.currency}</dd>
+                  <dd className="font-medium text-slate-900 dark:text-slate-100">{formatMoney(asset.opening_accumulated_depreciation_minor, asset.currency)}</dd>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-slate-200 dark:border-slate-700">
                   <dt className="font-semibold text-slate-900 dark:text-slate-100">{appDict.netBookValue}</dt>
-                  <dd className="font-bold text-indigo-600 dark:text-indigo-400">{netBookValue} {asset.currency}</dd>
+                  <dd className="font-bold text-indigo-600 dark:text-indigo-400">{formatMoney(netBookValue, asset.currency)}</dd>
                 </div>
               </dl>
             ) : (
@@ -435,13 +525,13 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
                           {row.period_start_date} {appDict.periodDateSeparator} {row.period_end_date}
                         </td>
                         <td className="px-3 py-2 text-right rtl:text-left font-mono font-medium">
-                          {row.depreciation_minor} {asset.currency}
+                          {formatMoney(row.depreciation_minor, asset.currency)}
                         </td>
                         <td className="px-3 py-2 text-right rtl:text-left font-mono">
-                          {row.accumulated_depreciation_minor} {asset.currency}
+                          {formatMoney(row.accumulated_depreciation_minor, asset.currency)}
                         </td>
                         <td className="px-3 py-2 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                          {row.net_book_value_minor} {asset.currency}
+                          {formatMoney(row.net_book_value_minor, asset.currency)}
                         </td>
                         <td className="px-3 py-2 text-center capitalize">
                           <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full ${row.status === 'posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'}`}>
@@ -456,6 +546,60 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
             )}
           </Card>
         )}
+
+        <Card className="p-6 space-y-4">
+          <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-700">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {appDict.assetMovementHistory}
+            </h3>
+            {can.transfer && (
+              <button
+                type="button"
+                onClick={() => setShowMoveModal(true)}
+                className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+              >
+                {appDict.moveAsset}
+              </button>
+            )}
+          </div>
+
+          {movements.length === 0 ? (
+            <p className="text-sm text-slate-500 italic py-4 text-center">{appDict.noAssetMovements}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left rtl:text-right text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 uppercase text-[10px] text-slate-500 dark:text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2">{appDict.number}</th>
+                    <th className="px-3 py-2">{appDict.movementDate}</th>
+                    <th className="px-3 py-2">{appDict.from}</th>
+                    <th className="px-3 py-2">{appDict.to}</th>
+                    <th className="px-3 py-2">{appDict.reason}</th>
+                    <th className="px-3 py-2">{appDict.createdBy}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {movements.map((movement) => (
+                    <tr key={movement.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <td className="px-3 py-2 font-mono font-semibold">{movement.number}</td>
+                      <td className="px-3 py-2 font-mono">{movement.movement_date}</td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{formatBranch(movement.from_branch)}</div>
+                        <div className="text-slate-500">{formatLocation(movement.from_location)}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{formatBranch(movement.to_branch)}</div>
+                        <div className="text-slate-500">{formatLocation(movement.to_location)}</div>
+                      </td>
+                      <td className="px-3 py-2">{movement.reason || appDict.notAvailable}</td>
+                      <td className="px-3 py-2">{movement.creator?.name || appDict.notAvailable}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
 
       {showCapitalizeModal && (
@@ -528,6 +672,92 @@ export default function FixedAssetShow({ locale, asset, attachments = [], can }:
                   className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {appDict.capitalizeAsset}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {showMoveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+          <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {appDict.moveAsset} ({asset.asset_number})
+            </h3>
+
+            <form onSubmit={handleMoveAsset} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {appDict.movementDate}
+                </label>
+                <input
+                  type="date"
+                  value={moveForm.data.movement_date}
+                  onChange={(e) => moveForm.setData('movement_date', e.target.value)}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  required
+                />
+                {moveForm.errors.movement_date && <p className="mt-1 text-xs text-rose-600">{moveForm.errors.movement_date}</p>}
+              </div>
+
+              <SearchableSelect
+                label={appDict.destinationBranch}
+                options={branchOptions}
+                value={moveForm.data.to_branch_id || null}
+                onChange={(value) => moveForm.setData('to_branch_id', value || '')}
+                placeholder={appDict.notAssigned}
+              />
+
+              <SearchableSelect
+                label={appDict.destinationLocation}
+                options={locationOptions}
+                value={moveForm.data.to_location_id || null}
+                onChange={(value) => moveForm.setData('to_location_id', value || '')}
+                placeholder={appDict.notAssigned}
+                error={moveForm.errors.to_location_id}
+              />
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {appDict.reason}
+                </label>
+                <input
+                  type="text"
+                  value={moveForm.data.reason}
+                  onChange={(e) => moveForm.setData('reason', e.target.value)}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {appDict.notes}
+                </label>
+                <textarea
+                  value={moveForm.data.notes}
+                  onChange={(e) => moveForm.setData('notes', e.target.value)}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  rows={3}
+                />
+              </div>
+
+              {moveErrors.movement && <p className="text-xs text-rose-600">{moveErrors.movement}</p>}
+              {moveErrors.asset && <p className="text-xs text-rose-600">{moveErrors.asset}</p>}
+
+              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMoveModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
+                >
+                  {appDict.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={moveForm.processing}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {appDict.recordMovement}
                 </button>
               </div>
             </form>

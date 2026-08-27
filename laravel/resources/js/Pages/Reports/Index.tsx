@@ -8,6 +8,7 @@ import { useCan } from '../../lib/permissions';
 export default function ReportsIndex({ locale }: SharedPageProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const taxDict = dict.app.taxes;
   const can = useCan();
   const canViewFinancials = can('view_financials');
   const canViewFixedAssetReports = can('reports.view') && canViewFinancials;
@@ -140,6 +141,29 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
           desc: dict.app.pages.reports.immutableAuditLedgerOfStockMovements,
           href: '/reports/stock-movements',
         },
+        ...(canViewFinancials
+          ? [
+              {
+                name: dict.app.pages.reports.rentalOperationsRegister,
+                desc: dict.app.pages.reports.rentalOperationsRegisterDescription,
+                href: '/reports/rentals',
+              },
+            ]
+          : []),
+        ...(canViewFinancials
+          ? [
+              {
+                name: dict.app.pages.branchOperationsReport.title,
+                desc: dict.app.pages.branchOperationsReport.description,
+                href: '/reports/branch-operations',
+              },
+              {
+                name: dict.app.pages.branchProfitabilityReport.title,
+                desc: dict.app.pages.branchProfitabilityReport.description,
+                href: '/reports/branch-profitability',
+              },
+            ]
+          : []),
       ],
     },
     ...(canViewFixedAssetReports
@@ -179,21 +203,21 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
     ...(canViewFinancials
       ? [
           {
-            title: (dict.app.taxes as any)?.title || 'Tax & VAT Reports',
+            title: taxDict.title,
             reports: [
               {
-                name: (dict.app.taxes as any)?.vatRegister?.title || 'VAT Register',
-                desc: (dict.app.taxes as any)?.vatRegister?.subtitle || 'Detailed line-item audit trail of output and input tax for posted transactions.',
+                name: taxDict.vatRegister.title,
+                desc: taxDict.vatRegister.subtitle,
                 href: '/reports/vat-register',
               },
               {
-                name: (dict.app.taxes as any)?.vatSummary?.title || 'VAT Summary Report',
-                desc: (dict.app.taxes as any)?.vatSummary?.subtitle || 'Summary of output and input VAT grouped by tax code for return preparation.',
+                name: taxDict.vatSummary.title,
+                desc: taxDict.vatSummary.subtitle,
                 href: '/reports/vat-summary',
               },
               {
-                name: (dict.app.taxes as any)?.vatGlReconciliation?.title || 'VAT to GL Reconciliation',
-                desc: (dict.app.taxes as any)?.vatGlReconciliation?.subtitle || 'Compares posted tax register totals against GL ledger movement for Output and Input VAT.',
+                name: taxDict.vatGlReconciliation.title,
+                desc: taxDict.vatGlReconciliation.subtitle,
                 href: '/reports/vat-gl-reconciliation',
               },
             ],

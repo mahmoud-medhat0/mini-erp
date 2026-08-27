@@ -17,7 +17,7 @@ class BankBookQueryService
 
         if (! $bankAccount->glAccount) {
             throw ValidationException::withMessages([
-                'bank_account_id' => ['Bank account does not have a linked GL account.'],
+                'bank_account_id' => [__('Bank account does not have a linked GL account.')],
             ]);
         }
 

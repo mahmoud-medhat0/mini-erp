@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Taxes;
 
 use App\Application\Taxes\TaxMasterDataService;
+use App\Application\Taxes\TaxRatePageData;
 use App\Http\Controllers\Controller;
-use App\Models\TaxCode;
-use App\Models\TaxRate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,26 +14,14 @@ class TaxRateController extends Controller
 {
     public function __construct(
         private readonly TaxMasterDataService $service,
+        private readonly TaxRatePageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'taxes.view');
 
-        $query = TaxRate::query()->with('taxCode');
-
-        if ($request->filled('tax_code_id')) {
-            $query->where('tax_code_id', $request->input('tax_code_id'));
-        }
-
-        $taxRates = $query->orderBy('effective_from', 'desc')->paginate(20)->withQueryString();
-        $taxCodes = TaxCode::query()->orderBy('code')->get();
-
-        return Inertia::render('Taxes/Rates/Index', [
-            'taxRates' => $taxRates,
-            'taxCodes' => $taxCodes,
-            'filters' => $request->only(['tax_code_id']),
-        ]);
+        return Inertia::render('Taxes/Rates/Index', $this->pageData->indexData($request->only(['tax_code_id'])));
     }
 
     public function store(Request $request): RedirectResponse
@@ -52,7 +39,7 @@ class TaxRateController extends Controller
         $this->service->createTaxRate($validated, $request->user()?->id);
 
         return redirect()->back()
-            ->with('success', 'Tax rate created successfully.');
+            ->with('success', __('Tax rate created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -69,7 +56,7 @@ class TaxRateController extends Controller
         $this->service->updateTaxRate($id, $validated, $request->user()?->id);
 
         return redirect()->back()
-            ->with('success', 'Tax rate updated successfully.');
+            ->with('success', __('Tax rate updated successfully.'));
     }
 
     public function destroy(Request $request, string $id): RedirectResponse
@@ -79,7 +66,7 @@ class TaxRateController extends Controller
         $this->service->deleteTaxRate($id, $request->user()?->id);
 
         return redirect()->back()
-            ->with('success', 'Tax rate deleted successfully.');
+            ->with('success', __('Tax rate deleted successfully.'));
     }
 
     private function authorizePermission(Request $request, string $permission): void

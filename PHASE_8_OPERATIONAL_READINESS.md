@@ -1,6 +1,6 @@
 # MINI ERP - PHASE 8 OPERATIONAL READINESS & E2E SMOKE
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Phase 8 starts after Phase 7 Tax / VAT is fully closed out.
@@ -29,7 +29,7 @@ Prompts in this phase are intentionally written with neutral engineering languag
 - do not paste `.env` contents or private configuration values
 - list required environment variable names only, not their values
 - do not run destructive commands
-- do not add tenant/company/branch ownership assumptions
+- do not add tenant/company ownership assumptions or branch tenancy/security ownership assumptions
 - do not add external filing, collection integrations, payroll, rentals, projects, or budgeting
 - do not introduce GitHub Actions as a requirement because the owner stated no connected actions pipeline is currently used
 

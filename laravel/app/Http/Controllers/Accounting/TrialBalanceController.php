@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Accounting;
 
 use App\Application\Accounting\GeneralLedgerService;
+use App\Application\Reports\FinancialPeriodReportOptions;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
-use App\Models\FinancialPeriod;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,7 +14,10 @@ class TrialBalanceController extends Controller
 {
     use AuthorizesAccountingRequests;
 
-    public function __construct(private readonly GeneralLedgerService $glService) {}
+    public function __construct(
+        private readonly GeneralLedgerService $glService,
+        private readonly FinancialPeriodReportOptions $periodOptions,
+    ) {}
 
     public function __invoke(Request $request): Response
     {
@@ -29,7 +32,8 @@ class TrialBalanceController extends Controller
                 'credit' => $tbData['total_credit'],
                 'is_balanced' => $tbData['is_balanced'],
             ],
-            'periods' => FinancialPeriod::query()->with('fiscalYear')->orderBy('start_date', 'desc')->get(),
+            'displayCurrency' => $tbData['display_currency'],
+            'periods' => $this->periodOptions->all(),
             'filters' => $request->only(['period_id', 'start_date', 'end_date', 'include_zero']),
         ]);
     }

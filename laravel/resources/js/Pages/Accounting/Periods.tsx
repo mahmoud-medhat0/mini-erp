@@ -2,7 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -28,12 +28,20 @@ type ReadinessPayload = {
 
 export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
   const dict = getDictionary(locale);
-  const accDict = ((dict.app as any).accounting || {}) as Record<string, unknown>;
-  const actionsDict = (dict.app.actions || {}) as Record<string, unknown>;
-  const tx = (key: string) => (typeof accDict[key] === 'string' ? accDict[key] : '');
-  const ax = (key: string) => (typeof actionsDict[key] === 'string' ? actionsDict[key] : '');
+  const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
+  type AccountingKey = keyof typeof accDict;
+  type ActionKey = keyof typeof actionsDict;
+  const tx = (key: AccountingKey): string => accDict[key] as string;
+  const ax = (key: ActionKey): string => actionsDict[key] as string;
+  const txDynamic = (key: string, fallback: AccountingKey): string => {
+    const value = accDict[key as AccountingKey];
+
+    return typeof value === 'string' ? value : tx(fallback);
+  };
 
   const can = useCan();
+  const canCreateFiscalYear = can('settings.configure');
   const canClose = can('close_period');
   const canReopen = can('reopen_period');
 
@@ -145,11 +153,11 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
 
   const getEntityLabel = (entityType: string) => {
     const key = `entity_${entityType}`;
-    return tx(key) || tx('entity_unknown');
+    return txDynamic(key, 'entity_unknown');
   };
 
   const getBlockerStatusLabel = (status: string) => {
-    const keyByStatus: Record<string, string> = {
+    const keyByStatus: Record<string, AccountingKey> = {
       draft: 'statusDraft',
       submitted: 'statusSubmitted',
       approved: 'statusApproved',
@@ -161,7 +169,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
       in_progress: 'statusInProgress',
     };
 
-    return tx(keyByStatus[status] || 'statusUnknown');
+    return txDynamic(keyByStatus[status] ?? 'statusUnknown', 'statusUnknown');
   };
 
   return (
@@ -171,7 +179,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
       <PageHeader
         title={tx('fiscalStructure')}
         description={tx('fiscalStructureDesc')}
-        actions={
+        actions={canCreateFiscalYear ? (
           <button
             type="button"
             onClick={() => setShowAddYear(!showAddYear)}
@@ -182,7 +190,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
             </svg>
             <span>{tx('createFiscalYear')}</span>
           </button>
-        }
+        ) : null}
       />
 
       {showAddYear ? (
@@ -253,6 +261,13 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
             </div>
           </form>
         </Card>
+      ) : null}
+
+      {fiscalYears.length === 0 && !showAddYear ? (
+        <EmptyState
+          title={tx('noFiscalYearsTitle')}
+          description={tx('noFiscalYearsDesc')}
+        />
       ) : null}
 
       {activeModalPeriod && modalMode ? (

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Application\Accounting\CurrencyPageData;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
@@ -14,20 +15,13 @@ class CurrencyController extends Controller
 {
     use AuthorizesAccountingRequests;
 
+    public function __construct(private readonly CurrencyPageData $pageData) {}
+
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        return Inertia::render('Accounting/Currencies', [
-            'currencies' => Currency::query()
-                ->with([
-                    'accounts' => fn ($q) => $q->select('id', 'code', 'name', 'type', 'nature', 'currency')->orderBy('code'),
-                    'exchangeRates' => fn ($q) => $q->select('id', 'currency', 'date', 'rate_e6')->orderBy('date', 'desc'),
-                ])
-                ->withCount(['accounts', 'journalEntries', 'exchangeRates'])
-                ->orderBy('code')
-                ->get(),
-        ]);
+        return Inertia::render('Accounting/Currencies', $this->pageData->indexData());
     }
 
     public function store(Request $request): RedirectResponse

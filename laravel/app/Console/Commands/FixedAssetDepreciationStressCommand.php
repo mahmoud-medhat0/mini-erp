@@ -6,6 +6,8 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodService;
 use App\Application\FixedAssets\FixedAssetDepreciationEngineService;
 use App\Application\FixedAssets\FixedAssetDepreciationPostingService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\AccountGroup;
 use App\Models\FinancialPeriod;
@@ -25,18 +27,25 @@ use Throwable;
 
 class FixedAssetDepreciationStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:fixed-asset-depreciation-stress {--workers=50 : Number of concurrent workers}';
 
     protected $description = 'Stress test fixed asset depreciation run posting under high concurrency';
 
-    public function handle(FixedAssetDepreciationEngineService $engineService, FixedAssetDepreciationPostingService $postingService, PeriodService $periodService): int
-    {
+    public function handle(
+        FixedAssetDepreciationEngineService $engineService,
+        FixedAssetDepreciationPostingService $postingService,
+        PeriodService $periodService,
+        BaseCurrencyResolver $baseCurrencyResolver,
+    ): int {
         $workersCount = (int) $this->option('workers');
         $dbDriver = DB::getDriverName();
 
         $this->info("Running Fixed Asset Depreciation Concurrency Stress Test on DB driver: [{$dbDriver}] with [{$workersCount}] workers..");
 
         $user = User::query()->first() ?? User::factory()->create();
+        $currency = $this->resolveStressCurrency($baseCurrencyResolver);
 
         // Setup test data in clean state
         $year = random_int(3000, 8999);
@@ -68,6 +77,7 @@ class FixedAssetDepreciationStressCommand extends Command
             'type' => 'expense',
             'nature' => 'debit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -79,6 +89,7 @@ class FixedAssetDepreciationStressCommand extends Command
             'type' => 'asset',
             'nature' => 'credit',
             'account_group_id' => $group->id,
+            'currency' => $currency,
             'is_control' => false,
             'is_active' => true,
         ]);
@@ -101,7 +112,7 @@ class FixedAssetDepreciationStressCommand extends Command
             'asset_number' => 'FA-STRESS-'.$year.'-001',
             'name' => ['en' => 'Stress Asset', 'ar' => 'أصل ضغط'],
             'fixed_asset_category_id' => $category->id,
-            'currency' => 'EGP',
+            'currency' => $currency,
             'acquisition_date' => "{$year}-01-01",
             'in_service_date' => "{$year}-01-01",
             'cost_minor' => 1200000,

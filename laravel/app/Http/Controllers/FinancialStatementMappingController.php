@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Accounting\FinancialStatementMappingPageData;
 use App\Application\Accounting\FinancialStatementMappingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,45 +13,15 @@ use Inertia\Response;
 class FinancialStatementMappingController extends Controller
 {
     public function __construct(
-        private FinancialStatementMappingService $mappingService
+        private FinancialStatementMappingService $mappingService,
+        private FinancialStatementMappingPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
         Gate::authorize('accounting.mappings');
 
-        $data = $this->mappingService->getMappingData();
-
-        return Inertia::render('Accounting/FinancialStatementMappings', [
-            'lines' => $data['lines'],
-            'unmappedAccounts' => $data['unmapped_accounts'],
-            'statementTypes' => [
-                ['value' => 'balance_sheet'],
-                ['value' => 'income_statement'],
-            ],
-            'sectionOptions' => [
-                ['value' => 'current_assets'],
-                ['value' => 'non_current_assets'],
-                ['value' => 'current_liabilities'],
-                ['value' => 'non_current_liabilities'],
-                ['value' => 'equity'],
-                ['value' => 'revenue'],
-                ['value' => 'contra_revenue'],
-                ['value' => 'cogs'],
-                ['value' => 'operating_expenses'],
-                ['value' => 'other_income'],
-                ['value' => 'other_expenses'],
-            ],
-            'normalBalances' => [
-                ['value' => 'debit'],
-                ['value' => 'credit'],
-            ],
-            'cashFlowActivities' => [
-                ['value' => 'operating'],
-                ['value' => 'investing'],
-                ['value' => 'financing'],
-            ],
-        ]);
+        return Inertia::render('Accounting/FinancialStatementMappings', $this->pageData->indexData());
     }
 
     public function storeLine(Request $request): RedirectResponse
@@ -69,21 +40,10 @@ class FinancialStatementMappingController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $name = [
-            'en' => $validated['name_en'],
-            'ar' => $validated['name_ar'] ?: $validated['name_en'],
-        ];
-
-        $this->mappingService->createStatementLine([
-            'code' => $validated['code'],
-            'statement_type' => $validated['statement_type'],
-            'cash_flow_activity' => $validated['cash_flow_activity'] ?? null,
-            'section_code' => $validated['section_code'],
-            'name' => $name,
-            'normal_balance' => $validated['normal_balance'],
-            'sort_order' => $validated['sort_order'] ?? 0,
-            'is_active' => $validated['is_active'] ?? true,
-        ], (int) $request->user()?->id);
+        $this->mappingService->createStatementLine(
+            $this->pageData->createLinePayload($validated),
+            (int) $request->user()?->id
+        );
 
         return redirect()->back()->with('success', __('Statement line created successfully.'));
     }
@@ -104,36 +64,11 @@ class FinancialStatementMappingController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $payload = [];
-        if (! empty($validated['code'])) {
-            $payload['code'] = $validated['code'];
-        }
-        if (! empty($validated['statement_type'])) {
-            $payload['statement_type'] = $validated['statement_type'];
-        }
-        if (array_key_exists('cash_flow_activity', $validated)) {
-            $payload['cash_flow_activity'] = $validated['cash_flow_activity'];
-        }
-        if (! empty($validated['section_code'])) {
-            $payload['section_code'] = $validated['section_code'];
-        }
-        if (! empty($validated['normal_balance'])) {
-            $payload['normal_balance'] = $validated['normal_balance'];
-        }
-        if (isset($validated['sort_order'])) {
-            $payload['sort_order'] = (int) $validated['sort_order'];
-        }
-        if (isset($validated['is_active'])) {
-            $payload['is_active'] = (bool) $validated['is_active'];
-        }
-        if (! empty($validated['name_en'])) {
-            $payload['name'] = [
-                'en' => $validated['name_en'],
-                'ar' => $validated['name_ar'] ?: $validated['name_en'],
-            ];
-        }
-
-        $this->mappingService->updateStatementLine($id, $payload, (int) $request->user()?->id);
+        $this->mappingService->updateStatementLine(
+            $id,
+            $this->pageData->updateLinePayload($validated),
+            (int) $request->user()?->id
+        );
 
         return redirect()->back()->with('success', __('Statement line updated successfully.'));
     }

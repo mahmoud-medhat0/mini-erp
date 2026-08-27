@@ -33,13 +33,13 @@ class BankReconciliationService
 
             if (! $bankAccountId || ! $financialPeriodId || ! $dateFrom || ! $dateTo) {
                 throw ValidationException::withMessages([
-                    'bank_account_id' => ['Bank account, financial period, date from, and date to are required.'],
+                    'bank_account_id' => [__('Bank account, financial period, date from, and date to are required.')],
                 ]);
             }
 
             if ($dateFrom > $dateTo) {
                 throw ValidationException::withMessages([
-                    'date_from' => ['Date from must be prior to or equal to date to.'],
+                    'date_from' => [__('Date from must be prior to or equal to date to.')],
                 ]);
             }
 
@@ -47,7 +47,7 @@ class BankReconciliationService
             $bankAccount = BankAccount::query()->where('id', $bankAccountId)->lockForUpdate()->firstOrFail();
             if (! $bankAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'bank_account_id' => ['Selected bank account is inactive.'],
+                    'bank_account_id' => [__('Selected bank account is inactive.')],
                 ]);
             }
 
@@ -55,7 +55,7 @@ class BankReconciliationService
             $period = FinancialPeriod::query()->where('id', $financialPeriodId)->lockForUpdate()->firstOrFail();
             if ($period->is_closed) {
                 throw ValidationException::withMessages([
-                    'financial_period_id' => ['Financial period is closed.'],
+                    'financial_period_id' => [__('Financial period is closed.')],
                 ]);
             }
 
@@ -64,7 +64,12 @@ class BankReconciliationService
 
             if ($dateFrom < $startDate || $dateTo > $endDate) {
                 throw ValidationException::withMessages([
-                    'date_from' => ["Reconciliation date range [{$dateFrom} - {$dateTo}] must fall within period range [{$startDate} - {$endDate}]."],
+                    'date_from' => [__('Reconciliation date range [:date_from - :date_to] must fall within period range [:start - :end].', [
+                        'date_from' => $dateFrom,
+                        'date_to' => $dateTo,
+                        'start' => $startDate,
+                        'end' => $endDate,
+                    ])],
                 ]);
             }
 
@@ -131,7 +136,7 @@ class BankReconciliationService
 
             if ($recon->status === 'reconciled') {
                 throw ValidationException::withMessages([
-                    'status' => ['Cannot modify lines on a reconciled bank reconciliation.'],
+                    'status' => [__('Cannot modify lines on a reconciled bank reconciliation.')],
                 ]);
             }
 
@@ -146,13 +151,17 @@ class BankReconciliationService
 
             if (! $statementDate || $statementDate < $dateFrom || $statementDate > $dateTo) {
                 throw ValidationException::withMessages([
-                    'statement_date' => ["Statement line date [{$statementDate}] must be within reconciliation date range [{$dateFrom} - {$dateTo}]."],
+                    'statement_date' => [__('Statement line date [:statement_date] must be within reconciliation date range [:date_from - :date_to].', [
+                        'statement_date' => $statementDate,
+                        'date_from' => $dateFrom,
+                        'date_to' => $dateTo,
+                    ])],
                 ]);
             }
 
             if ($debit < 0 || $credit < 0 || ($debit > 0 && $credit > 0) || ($debit === 0 && $credit === 0)) {
                 throw ValidationException::withMessages([
-                    'debit_minor' => ['Exactly one of debit_minor or credit_minor must be greater than zero.'],
+                    'debit_minor' => [__('Exactly one of debit_minor or credit_minor must be greater than zero.')],
                 ]);
             }
 
@@ -210,13 +219,13 @@ class BankReconciliationService
 
             if ($recon->status === 'reconciled') {
                 throw ValidationException::withMessages([
-                    'status' => ['Cannot modify lines on a reconciled bank reconciliation.'],
+                    'status' => [__('Cannot modify lines on a reconciled bank reconciliation.')],
                 ]);
             }
 
             if ($line->status === 'matched') {
                 throw ValidationException::withMessages([
-                    'status' => ['Unmatch statement line before modifying line details.'],
+                    'status' => [__('Unmatch statement line before modifying line details.')],
                 ]);
             }
 
@@ -231,13 +240,17 @@ class BankReconciliationService
 
             if ($statementDate < $dateFrom || $statementDate > $dateTo) {
                 throw ValidationException::withMessages([
-                    'statement_date' => ["Statement line date [{$statementDate}] must be within reconciliation date range [{$dateFrom} - {$dateTo}]."],
+                    'statement_date' => [__('Statement line date [:statement_date] must be within reconciliation date range [:date_from - :date_to].', [
+                        'statement_date' => $statementDate,
+                        'date_from' => $dateFrom,
+                        'date_to' => $dateTo,
+                    ])],
                 ]);
             }
 
             if ($debit < 0 || $credit < 0 || ($debit > 0 && $credit > 0) || ($debit === 0 && $credit === 0)) {
                 throw ValidationException::withMessages([
-                    'debit_minor' => ['Exactly one of debit_minor or credit_minor must be greater than zero.'],
+                    'debit_minor' => [__('Exactly one of debit_minor or credit_minor must be greater than zero.')],
                 ]);
             }
 
@@ -288,13 +301,13 @@ class BankReconciliationService
 
             if ($recon->status === 'reconciled') {
                 throw ValidationException::withMessages([
-                    'status' => ['Cannot delete lines from a reconciled bank reconciliation.'],
+                    'status' => [__('Cannot delete lines from a reconciled bank reconciliation.')],
                 ]);
             }
 
             if ($line->status === 'matched') {
                 throw ValidationException::withMessages([
-                    'status' => ['Unmatch statement line before deleting.'],
+                    'status' => [__('Unmatch statement line before deleting.')],
                 ]);
             }
 
@@ -392,7 +405,7 @@ class BankReconciliationService
 
                     if ($recon->status === 'reconciled') {
                         throw ValidationException::withMessages([
-                            'status' => ['Cannot match line on a reconciled bank reconciliation.'],
+                            'status' => [__('Cannot match line on a reconciled bank reconciliation.')],
                         ]);
                     }
 
@@ -403,7 +416,7 @@ class BankReconciliationService
 
                     if ($line->status === 'matched') {
                         throw ValidationException::withMessages([
-                            'line_id' => ['Statement line is already matched to another ledger entry. Unmatch first.'],
+                            'line_id' => [__('Statement line is already matched to another ledger entry. Unmatch first.')],
                         ]);
                     }
 
@@ -421,21 +434,24 @@ class BankReconciliationService
 
                     if ($alreadyMatched) {
                         throw ValidationException::withMessages([
-                            'ledger_entry_id' => ['Ledger entry is already matched to another statement line.'],
+                            'ledger_entry_id' => [__('Ledger entry is already matched to another statement line.')],
                         ]);
                     }
 
                     // GL Account check
                     if ($ledgerEntry->account_id !== $bankAccount->gl_account_id) {
                         throw ValidationException::withMessages([
-                            'ledger_entry_id' => ['Ledger entry GL account does not match bank account GL account.'],
+                            'ledger_entry_id' => [__('Ledger entry GL account does not match bank account GL account.')],
                         ]);
                     }
 
                     // Currency check
                     if ($ledgerEntry->currency !== $recon->currency) {
                         throw ValidationException::withMessages([
-                            'ledger_entry_id' => ["Ledger entry currency [{$ledgerEntry->currency}] does not match reconciliation currency [{$recon->currency}]."],
+                            'ledger_entry_id' => [__('Ledger entry currency [:ledger_currency] does not match reconciliation currency [:reconciliation_currency].', [
+                                'ledger_currency' => $ledgerEntry->currency,
+                                'reconciliation_currency' => $recon->currency,
+                            ])],
                         ]);
                     }
 
@@ -445,7 +461,11 @@ class BankReconciliationService
 
                     if ($ledgerDate < $dateFrom || $ledgerDate > $dateTo) {
                         throw ValidationException::withMessages([
-                            'ledger_entry_id' => ["Ledger entry date [{$ledgerDate}] must be within reconciliation date range [{$dateFrom} - {$dateTo}]."],
+                            'ledger_entry_id' => [__('Ledger entry date [:ledger_date] must be within reconciliation date range [:date_from - :date_to].', [
+                                'ledger_date' => $ledgerDate,
+                                'date_from' => $dateFrom,
+                                'date_to' => $dateTo,
+                            ])],
                         ]);
                     }
 
@@ -455,7 +475,10 @@ class BankReconciliationService
 
                     if ($lineSigned !== $ledgerSigned) {
                         throw ValidationException::withMessages([
-                            'ledger_entry_id' => ["Statement line signed movement [{$lineSigned}] does not match ledger entry signed movement [{$ledgerSigned}]."],
+                            'ledger_entry_id' => [__('Statement line signed movement [:statement_movement] does not match ledger entry signed movement [:ledger_movement].', [
+                                'statement_movement' => $lineSigned,
+                                'ledger_movement' => $ledgerSigned,
+                            ])],
                         ]);
                     }
 
@@ -527,7 +550,7 @@ class BankReconciliationService
 
                     if ($recon->status === 'reconciled') {
                         throw ValidationException::withMessages([
-                            'status' => ['Cannot unmatch line on a reconciled bank reconciliation.'],
+                            'status' => [__('Cannot unmatch line on a reconciled bank reconciliation.')],
                         ]);
                     }
 
@@ -620,7 +643,7 @@ class BankReconciliationService
 
                     if (($statementOpening + $statementMovement) !== $statementClosing) {
                         throw ValidationException::withMessages([
-                            'statement_closing_balance_minor' => ['Statement self-check failed: statement opening + movement != closing balance.'],
+                            'statement_closing_balance_minor' => [__('Statement self-check failed: statement opening + movement != closing balance.')],
                         ]);
                     }
 
@@ -628,7 +651,7 @@ class BankReconciliationService
                     $unmatchedLineCount = $lines->where('status', '!=', 'matched')->count();
                     if ($unmatchedLineCount > 0) {
                         throw ValidationException::withMessages([
-                            'lines' => ["Reconciliation contains [{$unmatchedLineCount}] unmatched statement line(s). All statement lines must be matched before finalization."],
+                            'lines' => [__('Reconciliation contains [:count] unmatched statement line(s). All statement lines must be matched before finalization.', ['count' => $unmatchedLineCount])],
                         ]);
                     }
 
@@ -651,7 +674,11 @@ class BankReconciliationService
                     if (! empty($unmatchedSystemEntries)) {
                         $unmatchedCount = count($unmatchedSystemEntries);
                         throw ValidationException::withMessages([
-                            'system_entries' => ["Date range [{$dateFrom} - {$dateTo}] contains [{$unmatchedCount}] unmatched bank ledger entry(ies). All bank ledger entries in the reconciliation period must be matched or accounted for before finalization."],
+                            'system_entries' => [__('Date range [:date_from - :date_to] contains [:count] unmatched bank ledger entry(ies). All bank ledger entries in the reconciliation period must be matched or accounted for before finalization.', [
+                                'date_from' => $dateFrom,
+                                'date_to' => $dateTo,
+                                'count' => $unmatchedCount,
+                            ])],
                         ]);
                     }
 
@@ -659,7 +686,7 @@ class BankReconciliationService
                     $summary = $this->computeSummaryArray($recon);
                     if ($summary['difference_minor'] !== 0) {
                         throw ValidationException::withMessages([
-                            'difference_minor' => ["Reconciliation difference is [{$summary['difference_minor']}]. Difference must be zero to finalize."],
+                            'difference_minor' => [__('Reconciliation difference is [:difference]. Difference must be zero to finalize.', ['difference' => $summary['difference_minor']])],
                         ]);
                     }
 

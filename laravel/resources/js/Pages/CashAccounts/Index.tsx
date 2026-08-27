@@ -2,14 +2,17 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
+import type { AccountOption, CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
 type CashAccountRow = {
   id: string;
   code: string;
   name: string;
+  branch_id?: string | null;
+  branch?: { id: string; code: string; name: Record<string, string> | string } | null;
   currency: string;
   gl_account_id: string;
   gl_account?: { id: string; code: string; name: string };
@@ -20,19 +23,23 @@ type CashAccountRow = {
 type CashAccountsProps = SharedPageProps & {
   cashAccounts: {
     data: CashAccountRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   glAccounts: AccountOption[];
   currencies: CurrencyOption[];
+  branches: Array<{ id: string; code: string; name: Record<string, string> | string }>;
   filters: {
     search?: string;
     status?: string;
+    branch_id?: string;
   };
 };
 
-export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [], currencies = [], filters }: CashAccountsProps) {
+export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [], currencies = [], branches = [], filters }: CashAccountsProps) {
   const dict = getDictionary(locale);
   const can = useCan();
+  const pageDict = dict.app.pages.cashAccounts;
+  const accDict = dict.app.accounting;
 
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<CashAccountRow | null>(null);
@@ -40,7 +47,8 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
   const { data, setData, post, patch, processing, errors, reset } = useForm({
     code: '',
     name: '',
-    currency: 'EGP',
+    branch_id: '',
+    currency: '',
     gl_account_id: '',
     is_active: true,
     lock_version: 0,
@@ -57,6 +65,7 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
     setData({
       code: acc.code,
       name: acc.name,
+      branch_id: acc.branch_id || '',
       currency: acc.currency,
       gl_account_id: acc.gl_account_id,
       is_active: acc.is_active,
@@ -93,6 +102,21 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
     value: c.code,
     label: `${c.code} (${c.name})`,
   }));
+  const branchOptions = branches.map((b) => ({
+    value: b.id,
+    label: `${b.code} - ${getLocalizedName(b.name, locale)}`,
+  }));
+
+  const applyFilters = (next: Record<string, string>) => {
+    const params = new URLSearchParams();
+    const search = next.search ?? filters.search ?? '';
+    const branchId = next.branch_id ?? filters.branch_id ?? '';
+
+    if (search) params.set('search', search);
+    if (branchId) params.set('branch_id', branchId);
+
+    window.location.href = `/cash-accounts${params.toString() ? `?${params.toString()}` : ''}`;
+  };
 
   return (
     <AppLayout active="cash-accounts.index">
@@ -123,11 +147,21 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 const target = e.target as HTMLInputElement;
-                window.location.href = `/cash-accounts?search=${encodeURIComponent(target.value)}`;
+                applyFilters({ search: target.value });
               }
             }}
             className="w-72 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
           />
+          <select
+            value={filters.branch_id || ''}
+            onChange={(e) => applyFilters({ branch_id: e.target.value })}
+            className="w-56 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
+          >
+            <option value="">{pageDict.allBranches}</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>{branch.code} - {getLocalizedName(branch.name, locale)}</option>
+            ))}
+          </select>
         </div>
       </Card>
 
@@ -143,6 +177,7 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
               <tr>
                 <th className={tableClasses.th}>{dict.app.pages.cashAccounts.code}</th>
                 <th className={tableClasses.th}>{dict.app.pages.cashAccounts.name}</th>
+                <th className={tableClasses.th}>{pageDict.branch}</th>
                 <th className={tableClasses.th}>{dict.app.pages.cashAccounts.currency}</th>
                 <th className={tableClasses.th}>{dict.app.pages.cashAccounts.linkedGlAccount}</th>
                 <th className={tableClasses.th}>{dict.app.pages.cashAccounts.status}</th>
@@ -154,9 +189,12 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
                 <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{acc.code}</td>
                   <td className={`${tableClasses.td} font-semibold`}>{acc.name}</td>
+                  <td className={tableClasses.td}>
+                    {acc.branch ? `${acc.branch.code} - ${getLocalizedName(acc.branch.name, locale)}` : pageDict.noBranch}
+                  </td>
                   <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{acc.currency}</td>
                   <td className={tableClasses.td}>
-                    {acc.gl_account ? `${acc.gl_account.code} - ${acc.gl_account.name}` : '—'}
+                    {acc.gl_account ? `${acc.gl_account.code} - ${acc.gl_account.name}` : accDict.notAvailable}
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={acc.is_active ? 'ok' : 'muted'}>
@@ -211,10 +249,23 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
                   <SearchableSelect
                     options={currencyOptions}
                     value={data.currency}
-                    onChange={(val) => setData('currency', val || 'EGP')}
+                    onChange={(val) => setData('currency', val || '')}
                     isClearable={false}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                  {pageDict.branch}
+                </label>
+                <SearchableSelect
+                  options={branchOptions}
+                  value={data.branch_id}
+                  onChange={(val) => setData('branch_id', val || '')}
+                  placeholder={pageDict.noBranch}
+                />
+                {errors.branch_id && <p className="text-xs text-red-500 mt-1">{errors.branch_id}</p>}
               </div>
 
               <div>

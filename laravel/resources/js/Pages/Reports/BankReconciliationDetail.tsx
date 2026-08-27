@@ -51,6 +51,7 @@ type BankReconciliationDetailProps = SharedPageProps & {
 export default function BankReconciliationDetail({ locale, detail }: BankReconciliationDetailProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const { reconciliation, summary } = detail;
 
   return (
@@ -133,7 +134,9 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
                     <td className="p-3">
                       {line.matched_ledger_entry ? (
                         <div>
-                          <span className="font-mono font-bold text-blue-600">{line.matched_ledger_entry.journal_number || 'GL-Entry'}</span>
+                          <span className="font-mono font-bold text-blue-600">
+                            {line.matched_ledger_entry.journal_number || dict.app.pages.reportsBankReconciliationDetail.missingGlJournalReference}
+                          </span>
                           <span className="text-[var(--text-secondary)] ms-2">({line.matched_ledger_entry.entry_date})</span>
                         </div>
                       ) : (
@@ -141,7 +144,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
                       )}
                     </td>
                     <td className="p-3 text-end font-mono">
-                      {line.matched_ledger_entry ? formatMoney(matchedNet, reconciliation.bank_account.currency) : '—'}
+                      {line.matched_ledger_entry ? formatMoney(matchedNet, reconciliation.bank_account.currency) : accDict.notAvailable}
                     </td>
                   </tr>
                 );

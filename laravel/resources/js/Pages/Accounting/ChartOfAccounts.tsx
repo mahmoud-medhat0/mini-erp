@@ -6,6 +6,8 @@ import { getAccountTypeLabel, getLocalizedName, getAccountNatureLabel } from '..
 import { getDictionary } from '../../lib/i18n';
 import type { AccountGroupRow, AccountRow, AccountTypeItem, CurrencyRow, SharedPageProps } from '../../Types';
 
+type AccountNature = 'debit' | 'credit';
+
 type CoaProps = SharedPageProps & {
   groups: AccountGroupRow[];
   accounts: AccountRow[];
@@ -13,15 +15,20 @@ type CoaProps = SharedPageProps & {
   currencies?: CurrencyRow[];
 };
 
+function toAccountNature(value: string | number | null, fallback: AccountNature): AccountNature {
+  return value === 'credit' || value === 'debit' ? value : fallback;
+}
+
 export default function ChartOfAccounts({ locale, groups = [], accounts = [], accountTypes = [], currencies = [] }: CoaProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
-  const actionsDict = dict.app.actions || {};
+  const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
 
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [showAddAccount, setShowAddAccount] = useState(false);
 
   const defaultTypeId = accountTypes[0]?.id || '';
+  const defaultNature: AccountNature = accountTypes[0]?.normal_balance === 'credit' ? 'credit' : 'debit';
 
   const groupForm = useForm({
     code: '',
@@ -38,9 +45,9 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
     name_en: '',
     name_ar: '',
     account_type_id: defaultTypeId,
-    nature: accountTypes[0]?.normal_balance || 'debit',
+    nature: defaultNature,
     account_group_id: '',
-    currency: 'EGP',
+    currency: '',
     is_control: false,
     allow_manual_posting: true,
   });
@@ -71,8 +78,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
   }));
 
   const natureOptions = [
-    { value: 'debit', label: accDict.debitOption || 'Debit (مدين)' },
-    { value: 'credit', label: accDict.creditOption || 'Credit (دائن)' },
+    { value: 'debit', label: accDict.debitOption },
+    { value: 'credit', label: accDict.creditOption },
   ];
 
   // Filter groups by account_type_id if selected in accountForm
@@ -95,18 +102,18 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
     accountForm.setData((prev) => ({
       ...prev,
       account_type_id: typeId,
-      nature: (selectedAt ? selectedAt.normal_balance : prev.nature) as 'debit' | 'credit',
+      nature: selectedAt ? selectedAt.normal_balance : toAccountNature(prev.nature, defaultNature),
       account_group_id: '', // reset group if incompatible
     }));
   };
 
   return (
     <AppLayout active="accounting.coa">
-      <Head title={accDict.coa || 'Chart of Accounts'} />
+      <Head title={accDict.coa} />
 
       <PageHeader
-        title={accDict.coa || 'Chart of Accounts'}
-        description={accDict.coaDesc || 'Hierarchical account classification and General Ledger accounts matrix.'}
+        title={accDict.coa}
+        description={accDict.coaDesc}
         actions={
           <div className="flex items-center gap-3">
             <button
@@ -120,7 +127,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span>{accDict.addGroup || 'Add Account Group'}</span>
+              <span>{accDict.addGroup}</span>
             </button>
 
             <button
@@ -134,7 +141,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span>{accDict.addAccount || 'Add Account'}</span>
+              <span>{accDict.addAccount}</span>
             </button>
           </div>
         }
@@ -144,7 +151,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
       {showAddGroup ? (
         <Card className="p-6 mb-6 border-2 border-[var(--primary)]/40 shadow-2xl bg-[var(--surface)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
-            <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addGroup || 'Add Account Group'}</h3>
+            <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addGroup}</h3>
             <button
               type="button"
               onClick={() => setShowAddGroup(false)}
@@ -153,7 +160,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span>{actionsDict.cancel || 'Cancel'}</span>
+              <span>{actionsDict.cancel}</span>
             </button>
           </div>
 
@@ -164,7 +171,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 type="text"
                 value={groupForm.data.code}
                 onChange={(e) => groupForm.setData('code', e.target.value)}
-                placeholder="e.g. 1000"
+                placeholder={accDict.groupCodePlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-mono"
                 required
               />
@@ -175,7 +182,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 type="text"
                 value={groupForm.data.name_en}
                 onChange={(e) => groupForm.setData('name_en', e.target.value)}
-                placeholder="e.g. Current Assets"
+                placeholder={accDict.groupNameEnPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
                 required
               />
@@ -186,14 +193,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 type="text"
                 value={groupForm.data.name_ar}
                 onChange={(e) => groupForm.setData('name_ar', e.target.value)}
-                placeholder={accDict.groupPlaceholderAr || 'مثال: الأصول المتداولة'}
+                placeholder={accDict.groupNameArPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
                 required
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.accountTypes || 'Account Type'}
+                {accDict.accountTypes}
               </label>
               <SearchableSelect
                 options={accountTypeSelectOptions}
@@ -208,14 +215,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 onClick={() => setShowAddGroup(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="submit"
                 disabled={groupForm.processing}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
-                {actionsDict.save || 'Save'}
+                {actionsDict.save}
               </button>
             </div>
           </form>
@@ -226,7 +233,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
       {showAddAccount ? (
         <Card className="p-6 mb-6 border-2 border-[var(--primary)]/40 shadow-2xl bg-[var(--surface)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
-            <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addAccount || 'Add Account'}</h3>
+            <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addAccount}</h3>
             <button
               type="button"
               onClick={() => setShowAddAccount(false)}
@@ -235,7 +242,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-              <span>{actionsDict.cancel || 'Cancel'}</span>
+              <span>{actionsDict.cancel}</span>
             </button>
           </div>
 
@@ -246,7 +253,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 type="text"
                 value={accountForm.data.code}
                 onChange={(e) => accountForm.setData('code', e.target.value)}
-                placeholder="e.g. 1101"
+                placeholder={accDict.accountCodePlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-mono"
                 required
               />
@@ -257,7 +264,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 type="text"
                 value={accountForm.data.name_en}
                 onChange={(e) => accountForm.setData('name_en', e.target.value)}
-                placeholder="e.g. Petty Cash"
+                placeholder={accDict.accountNameEnPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
                 required
               />
@@ -268,14 +275,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 type="text"
                 value={accountForm.data.name_ar}
                 onChange={(e) => accountForm.setData('name_ar', e.target.value)}
-                placeholder={accDict.accountPlaceholderAr || 'مثال: النقدية بالخزينة'}
+                placeholder={accDict.accountNameArPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-xs text-[var(--text-primary)]"
                 required
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.accountTypes || 'Account Type'}
+                {accDict.accountTypes}
               </label>
               <SearchableSelect
                 options={accountTypeSelectOptions}
@@ -286,7 +293,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.accountGroup || 'Account Group'}
+                {accDict.accountGroup}
               </label>
               <SearchableSelect
                 options={groupOptions}
@@ -297,32 +304,36 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.accountNature || 'Nature'}
+                {accDict.accountNature}
               </label>
               <SearchableSelect
                 options={natureOptions}
                 value={accountForm.data.nature}
-                onChange={(val) => accountForm.setData('nature', (val as 'debit' | 'credit') || 'debit')}
+                onChange={(val) => accountForm.setData('nature', toAccountNature(val, defaultNature))}
                 isClearable={false}
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {accDict.currency || 'Currency'}
+                {accDict.currency}
               </label>
               <SearchableSelect
                 options={currencyOptions}
                 value={accountForm.data.currency}
-                onChange={(val) => accountForm.setData('currency', val || 'EGP')}
+                onChange={(val) => accountForm.setData('currency', val || '')}
                 isClearable={false}
+                placeholder={accDict.selectAccountCurrency}
               />
+              {currencyOptions.length === 0 ? (
+                <p className="mt-2 text-xs font-semibold text-amber-600 dark:text-amber-400">{accDict.noCurrencyOptions}</p>
+              ) : null}
             </div>
             <div className="sm:col-span-2 lg:col-span-3 pt-2">
               <ToggleSwitch
                 checked={accountForm.data.is_control}
                 onChange={(chk) => accountForm.setData('is_control', chk)}
-                label={accDict.controlAccountLabel || 'Control Account (Subledger Only)'}
-                description={accDict.controlAccountDesc || 'If enabled, direct manual postings will be blocked unless posting via authorized subledger handlers.'}
+                label={accDict.controlAccountLabel}
+                description={accDict.controlAccountDesc}
               />
             </div>
             <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-3 pt-2">
@@ -331,14 +342,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                 onClick={() => setShowAddAccount(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
-                {actionsDict.cancel || 'Cancel'}
+                {actionsDict.cancel}
               </button>
               <button
                 type="submit"
-                disabled={accountForm.processing}
+                disabled={accountForm.processing || !accountForm.data.currency || currencyOptions.length === 0}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
-                {actionsDict.save || 'Save'}
+                {actionsDict.save}
               </button>
             </div>
           </form>
@@ -350,14 +361,14 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
         <table className={tableClasses.table}>
           <thead>
             <tr>
-              <th className={tableClasses.th}>{dict.app.fields.code || dict.app.pages.accountingChartOfAccounts.code}</th>
-              <th className={tableClasses.th}>{accDict.accountName || dict.app.pages.accountingChartOfAccounts.accountName}</th>
-              <th className={tableClasses.th}>{accDict.accountGroup || dict.app.pages.accountingChartOfAccounts.group}</th>
-              <th className={tableClasses.th}>{accDict.accountType || dict.app.pages.accountingChartOfAccounts.type}</th>
-              <th className={tableClasses.th}>{accDict.currency || dict.app.pages.accountingChartOfAccounts.currency}</th>
-              <th className={tableClasses.th}>{accDict.accountNature || dict.app.pages.accountingChartOfAccounts.nature}</th>
-              <th className={tableClasses.th}>{accDict.controlAccountHeader || dict.app.pages.accountingChartOfAccounts.controlAccount}</th>
-              <th className={tableClasses.th}>{dict.app.fields.status || dict.app.pages.accountingChartOfAccounts.status}</th>
+              <th className={tableClasses.th}>{dict.app.fields.code}</th>
+              <th className={tableClasses.th}>{accDict.accountName}</th>
+              <th className={tableClasses.th}>{accDict.accountGroup}</th>
+              <th className={tableClasses.th}>{accDict.accountType}</th>
+              <th className={tableClasses.th}>{accDict.currency}</th>
+              <th className={tableClasses.th}>{accDict.accountNature}</th>
+              <th className={tableClasses.th}>{accDict.controlAccountHeader}</th>
+              <th className={tableClasses.th}>{dict.app.fields.status}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -370,7 +381,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                   <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(acc.name, locale)}</span>
                 </td>
                 <td className={tableClasses.td}>
-                  <span className="text-xs text-[var(--text-secondary)]">{acc.group ? getLocalizedName(acc.group.name, locale) : '-'}</span>
+                  <span className="text-xs text-[var(--text-secondary)]">{acc.group ? getLocalizedName(acc.group.name, locale) : accDict.notAvailable}</span>
                 </td>
                 <td className={tableClasses.td}>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
@@ -378,24 +389,24 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
                   </span>
                 </td>
                 <td className={tableClasses.td}>
-                  <span className="font-mono font-bold text-xs text-[var(--text-secondary)]">{acc.currency || 'EGP'}</span>
+                  <span className="font-mono font-bold text-xs text-[var(--text-secondary)]">{acc.currency || accDict.missingCurrency}</span>
                 </td>
                 <td className={tableClasses.td}>
                   {acc.nature.toLowerCase() === 'debit' ? (
                     <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                      {accDict.debitBadge || 'DEBIT'}
+                      {accDict.debitBadge}
                     </span>
                   ) : (
                     <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
-                      {accDict.creditBadge || 'CREDIT'}
+                      {accDict.creditBadge}
                     </span>
                   )}
                 </td>
                 <td className={tableClasses.td}>
                   {acc.is_control ? (
-                    <StatusBadge tone="warning">{accDict.controlBadge || dict.app.pages.accountingChartOfAccounts.controlAccount_2}</StatusBadge>
+                    <StatusBadge tone="warning">{accDict.controlBadge}</StatusBadge>
                   ) : (
-                    <span className="text-xs text-[var(--text-muted)]">{accDict.standardBadge || dict.app.pages.accountingChartOfAccounts.standard}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{accDict.standardBadge}</span>
                   )}
                 </td>
                 <td className={tableClasses.td}>

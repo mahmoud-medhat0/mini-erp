@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Application\Accounting\JournalDraftService;
 use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Support\CurrencyInput;
 use App\Models\Account;
 use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
@@ -80,6 +81,11 @@ class AccountingDemoSeeder extends Seeder
         // 4. Resolve Account Models
         $cashAccount = Account::query()->where('code', '1100')->firstOrFail();
         $salesAccount = Account::query()->where('code', '4100')->firstOrFail();
+        $currency = CurrencyInput::related($cashAccount->currency, 'currency', 'Demo cash account');
+
+        if ($currency !== CurrencyInput::related($salesAccount->currency, 'currency', 'Demo sales account')) {
+            throw new \InvalidArgumentException('Demo sale accounts must use the same currency.');
+        }
 
         // 5. Create Draft, Submit, Approve, and Post via Business Services
         $draftService = app(JournalDraftService::class);
@@ -95,7 +101,7 @@ class AccountingDemoSeeder extends Seeder
                 'source_id' => 'demo-sale-receipt-001',
                 'description' => 'Demo posted sale receipt',
                 'reference' => $demoReference,
-                'currency' => 'EGP',
+                'currency' => $currency,
             ];
 
             $linesData = [

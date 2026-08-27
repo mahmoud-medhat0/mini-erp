@@ -27,14 +27,14 @@ class PayableAllocationService
     {
         if (empty($lines)) {
             throw ValidationException::withMessages([
-                'lines' => ['Allocation lines cannot be empty.'],
+                'lines' => [__('Allocation lines cannot be empty.')],
             ]);
         }
 
         foreach ($lines as $line) {
             if (! isset($line['payable_entry_id']) || ! is_string($line['payable_entry_id']) || $line['payable_entry_id'] === '') {
                 throw ValidationException::withMessages([
-                    'payable_entry_id' => ['Every allocation line must reference a payable entry.'],
+                    'payable_entry_id' => [__('Every allocation line must reference a payable entry.')],
                 ]);
             }
         }
@@ -42,7 +42,7 @@ class PayableAllocationService
         $targetIds = array_column($lines, 'payable_entry_id');
         if (count($targetIds) !== count(array_unique($targetIds))) {
             throw ValidationException::withMessages([
-                'lines' => ['Duplicate target payable entry IDs in single allocation command.'],
+                'lines' => [__('Duplicate target payable entry IDs in single allocation command.')],
             ]);
         }
 
@@ -62,7 +62,9 @@ class PayableAllocationService
 
                     if ($payment->status !== 'posted') {
                         throw ValidationException::withMessages([
-                            'status' => ["Only posted payments can be allocated. Current status: [{$payment->status}]."],
+                            'status' => [__('Only posted payments can be allocated. Current status: [:status].', [
+                                'status' => $payment->status,
+                            ])],
                         ]);
                     }
 
@@ -72,7 +74,7 @@ class PayableAllocationService
                         $amount = $line['amount_minor'] ?? 0;
                         if (! is_int($amount) || $amount <= 0) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ['Allocation amount must be a positive integer.'],
+                                'amount_minor' => [__('Allocation amount must be a positive integer.')],
                             ]);
                         }
                         $totalRequested += $amount;
@@ -80,7 +82,10 @@ class PayableAllocationService
 
                     if ($totalRequested > $payment->unapplied_minor) {
                         throw ValidationException::withMessages([
-                            'amount_minor' => ["Allocation total [{$totalRequested}] exceeds payment unapplied amount [{$payment->unapplied_minor}]."],
+                            'amount_minor' => [__('Allocation total [:total] exceeds payment unapplied amount [:unapplied].', [
+                                'total' => $totalRequested,
+                                'unapplied' => $payment->unapplied_minor,
+                            ])],
                         ]);
                     }
 
@@ -97,7 +102,7 @@ class PayableAllocationService
 
                     if ($targetEntries->count() !== count($targetIds)) {
                         throw ValidationException::withMessages([
-                            'payable_entry_id' => ['One or more target payable entries do not exist.'],
+                            'payable_entry_id' => [__('One or more target payable entries do not exist.')],
                         ]);
                     }
 
@@ -111,26 +116,36 @@ class PayableAllocationService
 
                         if (! $target) {
                             throw ValidationException::withMessages([
-                                'payable_entry_id' => ["Target payable entry [{$targetId}] does not exist."],
+                                'payable_entry_id' => [__('Target payable entry [:entry] does not exist.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ((string) $target->supplier_id !== (string) $payment->supplier_id) {
                             throw ValidationException::withMessages([
-                                'supplier_id' => ["Target entry [{$targetId}] supplier does not match payment supplier."],
+                                'supplier_id' => [__('Target entry [:entry] supplier does not match payment supplier.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ($target->currency !== $payment->currency) {
                             throw ValidationException::withMessages([
-                                'currency' => ["Target entry [{$targetId}] currency [{$target->currency}] does not match payment currency [{$payment->currency}]."],
+                                'currency' => [__('Target entry [:entry] currency [:entry_currency] does not match payment currency [:payment_currency].', [
+                                    'entry' => $targetId,
+                                    'entry_currency' => $target->currency,
+                                    'payment_currency' => $payment->currency,
+                                ])],
                             ]);
                         }
 
                         $allocatableAmount = $target->credit_minor - $target->debit_minor;
                         if ($allocatableAmount <= 0) {
                             throw ValidationException::withMessages([
-                                'payable_entry_id' => ["Target entry [{$targetId}] is not a positive AP item."],
+                                'payable_entry_id' => [__('Target entry [:entry] is not a positive AP item.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
@@ -147,7 +162,10 @@ class PayableAllocationService
 
                         if ($lineAmount > $remainingAllocatable) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ["Allocation amount [{$lineAmount}] exceeds target remaining allocatable amount [{$remainingAllocatable}]."],
+                                'amount_minor' => [__('Allocation amount [:amount] exceeds target remaining allocatable amount [:remaining].', [
+                                    'amount' => $lineAmount,
+                                    'remaining' => $remainingAllocatable,
+                                ])],
                             ]);
                         }
 
@@ -222,12 +240,15 @@ class PayableAllocationService
 
                     if ($allocation->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Allocation [{$allocationId}] is already reversed."],
+                            'status' => [__('Allocation :id is already reversed.', ['id' => $allocationId])],
                         ]);
                     }
 
                     if ($allocation->status !== 'active') {
-                        throw new InvalidArgumentException("Allocation [{$allocationId}] cannot be reversed from status [{$allocation->status}].");
+                        throw new InvalidArgumentException(__('Allocation :id cannot be reversed from status :status.', [
+                            'id' => $allocationId,
+                            'status' => $allocation->status,
+                        ]));
                     }
 
                     // 1. Lock Parent Payment Row
@@ -251,12 +272,15 @@ class PayableAllocationService
 
                     if ($allocation->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Allocation [{$allocationId}] is already reversed."],
+                            'status' => [__('Allocation :id is already reversed.', ['id' => $allocationId])],
                         ]);
                     }
 
                     if ($allocation->status !== 'active') {
-                        throw new InvalidArgumentException("Allocation [{$allocationId}] cannot be reversed from status [{$allocation->status}].");
+                        throw new InvalidArgumentException(__('Allocation :id cannot be reversed from status :status.', [
+                            'id' => $allocationId,
+                            'status' => $allocation->status,
+                        ]));
                     }
 
                     // 4. Update Allocation Status

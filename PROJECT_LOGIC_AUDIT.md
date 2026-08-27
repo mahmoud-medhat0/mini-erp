@@ -1,9 +1,11 @@
 # Project Logic Audit
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 Date: 2026-08-21
+
+> **Historical Baseline Notice:** This audit captured the Laravel state after M10 only. It is retained for reasoning history and no-multi-tenant corrections, not for current implementation completeness. For current module status after Phase 13, use `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, `CONTINUE_HERE.md`, and `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`.
 
 Scope: current Laravel target after M10 Spatie Activitylog tightening. Older Next.js code and generated specs are historical unless they match owner corrections and the current Laravel implementation.
 
@@ -25,7 +27,7 @@ Implemented and verified:
 - M9 attachments and notifications services.
 - M10 Spatie Activitylog active audit backend, read-only audit viewer, scheduler registration, and queue/jobs baseline.
 
-Not implemented:
+Not implemented at the time of this historical audit:
 
 - Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, Projects, Budgeting, and full financial statements.
 - AR/AP + Cash/Bank/Cheques are the recommended next phase.
@@ -66,7 +68,7 @@ Implemented route areas:
 - Audit log viewer.
 - Accounting: dashboard, chart of accounts, account categories/types, periods, FX rates, journals, journal detail/actions, ledger, trial balance, opening balances.
 
-No routes exist for Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements.
+At the time of this historical audit, no routes existed for Sales, Purchasing, Inventory, Payroll, Rentals, Fixed Assets, or full financial statements. This statement is stale after later phases and must not be used as current status.
 
 ## Domain Logic Review
 

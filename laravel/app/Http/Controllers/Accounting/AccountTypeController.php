@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Accounting;
 
+use App\Application\Accounting\AccountTypePageData;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
 use App\Models\AccountCategory;
@@ -17,23 +18,13 @@ class AccountTypeController extends Controller
 {
     use AuthorizesAccountingRequests;
 
+    public function __construct(private readonly AccountTypePageData $pageData) {}
+
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.account_types');
 
-        return Inertia::render('Accounting/AccountTypes', [
-            'accountTypes' => AccountType::query()
-                ->with(['accountCategory', 'groups', 'accounts'])
-                ->withCount(['groups', 'accounts'])
-                ->orderBy('sort_order')
-                ->orderBy('code')
-                ->get(),
-            'accountCategories' => AccountCategory::query()
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('code')
-                ->get(),
-        ]);
+        return Inertia::render('Accounting/AccountTypes', $this->pageData->indexData());
     }
 
     public function store(Request $request): RedirectResponse

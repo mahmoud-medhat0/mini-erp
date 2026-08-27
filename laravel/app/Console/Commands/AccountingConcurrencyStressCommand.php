@@ -6,8 +6,10 @@ use App\Application\Accounting\JournalDraftService;
 use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Accounting\ReversalService;
+use App\Application\Support\BaseCurrencyResolver;
 use App\Models\Account;
 use App\Models\AccountGroup;
+use App\Models\Currency;
 use App\Models\User;
 use App\Support\Numbering\NumberSequenceAllocator;
 use Illuminate\Console\Command;
@@ -27,6 +29,7 @@ class AccountingConcurrencyStressCommand extends Command
         ReversalService $reversalService,
         PeriodService $periodService,
         NumberSequenceAllocator $allocator,
+        BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
         $driver = DB::connection()->getDriverName();
         $this->info("Running Accounting Integrity & Sequence Stress test on DB driver: {$driver}");
@@ -35,6 +38,16 @@ class AccountingConcurrencyStressCommand extends Command
 
         try {
             $user = User::query()->first() ?? User::factory()->create();
+            $currency = $baseCurrencyResolver->resolve();
+
+            Currency::query()->firstOrCreate(
+                ['code' => $currency],
+                [
+                    'name' => ['en' => $currency, 'ar' => $currency],
+                    'symbol' => $currency,
+                    'exponent' => 2,
+                ],
+            );
 
             // 1. Setup temporary fiscal year, period and accounts
             $yearNum = 2090 + rand(1, 99);
@@ -56,6 +69,7 @@ class AccountingConcurrencyStressCommand extends Command
                 'nature' => 'debit',
                 'account_group_id' => $group->id,
                 'is_control' => false,
+                'currency' => $currency,
             ]);
 
             $rev = Account::create([
@@ -66,6 +80,7 @@ class AccountingConcurrencyStressCommand extends Command
                 'nature' => 'credit',
                 'account_group_id' => $group->id,
                 'is_control' => false,
+                'currency' => $currency,
             ]);
 
             // Case 1: Sequential Number Sequence Allocation
@@ -88,6 +103,7 @@ class AccountingConcurrencyStressCommand extends Command
                 [
                     'entry_date' => "{$yearNum}-01-15",
                     'financial_period_id' => $period->id,
+                    'currency' => $currency,
                     'description' => 'Idempotent Post Test',
                 ],
                 [

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Catalog;
 
+use App\Application\Catalog\UnitOfMeasurePageData;
 use App\Application\Catalog\UnitOfMeasureService;
 use App\Http\Controllers\Controller;
-use App\Models\UnitOfMeasure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,32 +14,12 @@ class UnitOfMeasureController extends Controller
 {
     public function __construct(
         private readonly UnitOfMeasureService $uomService,
+        private readonly UnitOfMeasurePageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-
-        $query = UnitOfMeasure::query();
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('symbol', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
-            });
-        }
-
-        $uoms = $query->orderBy('code', 'asc')
-            ->paginate(15)
-            ->withQueryString();
-
-        return Inertia::render('Catalog/UnitsOfMeasure', [
-            'uoms' => $uoms,
-            'filters' => [
-                'search' => $search,
-            ],
-        ]);
+        return Inertia::render('Catalog/UnitsOfMeasure', $this->pageData->indexData($request->only(['search'])));
     }
 
     public function store(Request $request): RedirectResponse
@@ -53,7 +33,7 @@ class UnitOfMeasureController extends Controller
 
         $this->uomService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Unit of Measure created successfully.');
+        return redirect()->back()->with('success', __('Unit of Measure created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
@@ -68,13 +48,13 @@ class UnitOfMeasureController extends Controller
 
         $this->uomService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Unit of Measure updated successfully.');
+        return redirect()->back()->with('success', __('Unit of Measure updated successfully.'));
     }
 
     public function destroy(Request $request, string $id): RedirectResponse
     {
         $this->uomService->delete($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Unit of Measure deleted successfully.');
+        return redirect()->back()->with('success', __('Unit of Measure deleted successfully.'));
     }
 }

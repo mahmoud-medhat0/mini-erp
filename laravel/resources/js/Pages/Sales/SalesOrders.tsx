@@ -91,6 +91,7 @@ type SalesOrdersProps = SharedPageProps & {
 
 export default function SalesOrdersIndex({ locale, salesOrders, customers, currencies, products, filters }: SalesOrdersProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -112,7 +113,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
     customer_id: customers[0]?.id || '',
     order_date: todayStr,
     expected_delivery_date: '',
-    currency: currencies[0]?.code || 'USD',
+    currency: currencies[0]?.code || '',
     fx_rate_e6: 1000000,
     reference: '',
     notes: '',
@@ -136,7 +137,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
       customer_id: customers[0]?.id || '',
       order_date: todayStr,
       expected_delivery_date: '',
-      currency: currencies[0]?.code || 'USD',
+      currency: currencies[0]?.code || '',
       fx_rate_e6: 1000000,
       reference: '',
       notes: '',
@@ -369,7 +370,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {order.number || dict.app.pages.salesSalesOrders.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-medium`}>{order.customer?.name || '-'}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{order.customer?.name || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{order.order_date}</td>
                     <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
                       {formatMoney(order.total_minor, order.currency)}
@@ -520,7 +521,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     type="text"
                     value={data.reference}
                     onChange={(e) => setData('reference', e.target.value)}
-                    placeholder="e.g. PO-CUST-123"
+                    placeholder={dict.app.pages.salesSalesOrders.referencePlaceholder}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                   />
                 </div>
@@ -576,7 +577,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                           <input
                             type="text"
                             disabled
-                            value={lineProd?.unit_of_measure?.name || 'PCS'}
+                            value={lineProd?.unit_of_measure?.name || dict.app.pages.salesSalesOrders.noUom}
                             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--text-muted)] font-medium"
                           />
                         </div>

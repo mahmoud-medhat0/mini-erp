@@ -33,6 +33,7 @@ type CustomerStatementProps = SharedPageProps & {
 
 export default function CustomerStatement({ locale, report, customers, currencies, filters }: CustomerStatementProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
 
   const [customerId, setCustomerId] = useState(filters.customer_id || '');
   const [dateFrom, setDateFrom] = useState(filters.date_from);
@@ -158,10 +159,10 @@ export default function CustomerStatement({ locale, report, customers, currencie
                       <td className="p-3 font-mono">{line.reference}</td>
                       <td className="p-3 text-[var(--text-secondary)]">{line.description}</td>
                       <td className="p-3 text-end font-mono">
-                        {line.debit_minor > 0 ? formatMoney(line.debit_minor, report.filters.currency) : '—'}
+                        {line.debit_minor > 0 ? formatMoney(line.debit_minor, report.filters.currency) : accDict.zeroAmount}
                       </td>
                       <td className="p-3 text-end font-mono">
-                        {line.credit_minor > 0 ? formatMoney(line.credit_minor, report.filters.currency) : '—'}
+                        {line.credit_minor > 0 ? formatMoney(line.credit_minor, report.filters.currency) : accDict.zeroAmount}
                       </td>
                       <td className="p-3 text-end font-mono font-bold">
                         {formatMoney(line.running_balance_minor, report.filters.currency)}

@@ -42,6 +42,11 @@ class PurchaseReturn extends Model
         return $this->belongsTo(GoodsReceipt::class, 'goods_receipt_id');
     }
 
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'warehouse_id');
+    }
+
     public function supplierBill(): BelongsTo
     {
         return $this->belongsTo(SupplierBill::class, 'supplier_bill_id');

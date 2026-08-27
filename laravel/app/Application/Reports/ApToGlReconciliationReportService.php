@@ -12,9 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class ApToGlReconciliationReportService
 {
+    public function __construct(
+        private readonly ReportCurrencyResolver $currencyResolver,
+    ) {}
+
     public function generate(string $asOfDate, ?string $currency = null): array
     {
-        $targetCurrency = $currency ?? 'EGP';
+        $targetCurrency = $this->currencyResolver->resolve($currency);
 
         // 1. Fetch AP control account mapping
         $mapping = AccountingAccountMapping::query()

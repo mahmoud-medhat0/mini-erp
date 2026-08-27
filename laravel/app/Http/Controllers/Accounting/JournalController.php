@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers\Accounting;
 
-use App\Application\Accounting\GeneralLedgerService;
 use App\Application\Accounting\JournalDraftService;
+use App\Application\Accounting\JournalPageData;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Accounting\ReversalService;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
-use App\Models\Account;
-use App\Models\Currency;
-use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,29 +22,21 @@ class JournalController extends Controller
         private readonly JournalDraftService $draftService,
         private readonly PostingEngine $postingEngine,
         private readonly ReversalService $reversalService,
-        private readonly GeneralLedgerService $glService,
+        private readonly JournalPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        return Inertia::render('Accounting/GeneralJournal', [
-            'journals' => $this->glService->getGeneralJournal($request->all()),
-            'periods' => FinancialPeriod::query()->with('fiscalYear')->orderBy('start_date', 'desc')->get(),
-            'filters' => $request->only(['status', 'period_id', 'start_date', 'end_date']),
-        ]);
+        return Inertia::render('Accounting/GeneralJournal', $this->pageData->indexData($request->all()));
     }
 
     public function create(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.create');
 
-        return Inertia::render('Accounting/JournalForm', [
-            'periods' => FinancialPeriod::query()->with('fiscalYear')->whereIn('status', ['open', 'reopened'])->orderBy('start_date', 'desc')->get(),
-            'accounts' => Account::query()->where('is_active', true)->orderBy('code')->get(),
-            'currencies' => Currency::query()->orderBy('code')->get(),
-        ]);
+        return Inertia::render('Accounting/JournalForm', $this->pageData->createData());
     }
 
     public function store(Request $request): RedirectResponse
@@ -57,11 +46,13 @@ class JournalController extends Controller
         $validated = $request->validate([
             'entry_date' => ['required', 'date'],
             'financial_period_id' => ['required', 'uuid', 'exists:financial_period,id'],
+            'branch_id' => ['nullable', 'uuid', 'exists:branch,id'],
             'description' => ['nullable', 'string'],
             'reference' => ['nullable', 'string', 'max:100'],
-            'currency' => ['nullable', 'string', 'size:3', 'exists:currency,code'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
             'lines' => ['required', 'array', 'min:2'],
             'lines.*.account_id' => ['required', 'uuid', 'exists:account,id'],
+            'lines.*.branch_id' => ['nullable', 'uuid', 'exists:branch,id'],
             'lines.*.debit_minor' => ['required', 'integer', 'min:0'],
             'lines.*.credit_minor' => ['required', 'integer', 'min:0'],
             'lines.*.memo' => ['nullable', 'string', 'max:255'],
@@ -76,12 +67,7 @@ class JournalController extends Controller
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        $journalEntry->load(['lines.account', 'period.fiscalYear', 'currencyRef', 'createdBy', 'postedBy', 'reversesEntry', 'reversalEntry']);
-
-        return Inertia::render('Accounting/JournalDetail', [
-            'journal' => $journalEntry,
-            'openPeriods' => FinancialPeriod::query()->with('fiscalYear')->whereIn('status', ['open', 'reopened'])->orderBy('start_date', 'desc')->get(),
-        ]);
+        return Inertia::render('Accounting/JournalDetail', $this->pageData->showData($journalEntry));
     }
 
     public function submit(Request $request, JournalEntry $journalEntry): RedirectResponse

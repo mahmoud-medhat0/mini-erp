@@ -9,6 +9,7 @@ const sections = [
   { key: 'company', href: '/settings/company' },
   { key: 'branches', href: '/settings/branches' },
   { key: 'numbering', href: '/settings/numbering' },
+  { key: 'branchApprovalRules', href: '/settings/branch-approval-rules' },
   { key: 'users', href: '/settings/users' },
 ] as const;
 

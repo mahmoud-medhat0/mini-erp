@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { type FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
 import { Card, PageHeader } from '../../../Components/Primitives';
+import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
 
@@ -44,7 +45,8 @@ export default function DepreciationRunPreview({
   can,
 }: PreviewProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
+  const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
   const { post, processing } = useForm({
     financial_period_id: period.id,
   });
@@ -55,7 +57,7 @@ export default function DepreciationRunPreview({
   }
 
   function formatName(name?: { en: string; ar: string } | string | null): string {
-    if (!name) return '-';
+    if (!name) return appDict.notAvailable;
     if (typeof name === 'object' && name !== null) {
       return locale === 'ar' ? name.ar || name.en : name.en || name.ar;
     }
@@ -107,7 +109,7 @@ export default function DepreciationRunPreview({
           <Card className="p-4">
             <div className="text-xs font-semibold uppercase text-slate-500">{appDict.totalDepreciation}</div>
             <div className="mt-2 font-mono text-xl font-bold text-indigo-600 dark:text-indigo-400">
-              {totalDepreciationMinor}
+              {formatAmount(totalDepreciationMinor)}
             </div>
           </Card>
         </div>
@@ -140,22 +142,22 @@ export default function DepreciationRunPreview({
                         {row.asset ? (
                           <Link href={`/fixed-assets/${row.asset.id}`}>{row.asset.asset_number}</Link>
                         ) : (
-                          '-'
+                          appDict.notAvailable
                         )}
                       </td>
-                      <td className="px-3 py-2">{row.asset ? formatName(row.asset.name) : '-'}</td>
+                      <td className="px-3 py-2">{row.asset ? formatName(row.asset.name) : appDict.notAvailable}</td>
                       <td className="px-3 py-2">
-                        {row.asset?.category ? formatName(row.asset.category.name) : '-'}
+                        {row.asset?.category ? formatName(row.asset.category.name) : appDict.notAvailable}
                       </td>
                       <td className="px-3 py-2 font-mono">{row.period_number}</td>
                       <td className="px-3 py-2 text-right rtl:text-left font-mono font-medium">
-                        {row.depreciation_minor}
+                        {formatAmount(row.depreciation_minor)}
                       </td>
                       <td className="px-3 py-2 text-right rtl:text-left font-mono">
-                        {row.accumulated_depreciation_minor}
+                        {formatAmount(row.accumulated_depreciation_minor)}
                       </td>
                       <td className="px-3 py-2 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                        {row.net_book_value_minor}
+                        {formatAmount(row.net_book_value_minor)}
                       </td>
                     </tr>
                   ))

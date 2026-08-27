@@ -107,8 +107,12 @@ class Phase3Slice2ArApOpeningBalanceTest extends TestCase
 
     public function test_slice2_tables_exist_without_tenant_company_or_branch_id(): void
     {
+        $this->assertTrue(Schema::hasTable('accounting_account_mapping'), 'Table [accounting_account_mapping] must exist.');
+        $this->assertFalse(Schema::hasColumn('accounting_account_mapping', 'company_id'), 'Table [accounting_account_mapping] must NOT contain company_id.');
+        $this->assertTrue(Schema::hasColumn('accounting_account_mapping', 'branch_id'), 'Table [accounting_account_mapping] must contain Phase 10 approved optional operational branch override.');
+        $this->assertFalse(Schema::hasColumn('accounting_account_mapping', 'tenant_id'), 'Table [accounting_account_mapping] must NOT contain tenant_id.');
+
         $tables = [
-            'accounting_account_mapping',
             'receivable_entry',
             'payable_entry',
             'customer_opening_balance',

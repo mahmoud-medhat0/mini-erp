@@ -27,7 +27,7 @@ class ReceivableEntrySettlementService
     {
         if (empty($lines)) {
             throw ValidationException::withMessages([
-                'lines' => ['Settlement lines cannot be empty.'],
+                'lines' => [__('Settlement lines cannot be empty.')],
             ]);
         }
 
@@ -36,12 +36,12 @@ class ReceivableEntrySettlementService
             $targetId = $line['target_receivable_entry_id'] ?? $line['receivable_entry_id'] ?? null;
             if (! is_string($targetId) || $targetId === '') {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.target_receivable_entry_id" => ['Every settlement line must reference a target receivable entry.'],
+                    "lines.{$index}.target_receivable_entry_id" => [__('Every settlement line must reference a target receivable entry.')],
                 ]);
             }
             if ($targetId === $sourceCreditEntryId) {
                 throw ValidationException::withMessages([
-                    "lines.{$index}.target_receivable_entry_id" => ['Cannot settle a receivable entry against itself.'],
+                    "lines.{$index}.target_receivable_entry_id" => [__('Cannot settle a receivable entry against itself.')],
                 ]);
             }
             $targetIds[] = $targetId;
@@ -49,7 +49,7 @@ class ReceivableEntrySettlementService
 
         if (count($targetIds) !== count(array_unique($targetIds))) {
             throw ValidationException::withMessages([
-                'lines' => ['Duplicate target receivable entry IDs in single settlement command.'],
+                'lines' => [__('Duplicate target receivable entry IDs in single settlement command.')],
             ]);
         }
 
@@ -77,14 +77,18 @@ class ReceivableEntrySettlementService
 
                     if (! $sourceEntry) {
                         throw ValidationException::withMessages([
-                            'source_receivable_entry_id' => ["Source receivable entry [{$sourceCreditEntryId}] does not exist."],
+                            'source_receivable_entry_id' => [__('Source receivable entry [:entry] does not exist.', [
+                                'entry' => $sourceCreditEntryId,
+                            ])],
                         ]);
                     }
 
                     $sourceCreditCapacity = (int) $sourceEntry->credit_minor - (int) $sourceEntry->debit_minor;
                     if ($sourceCreditCapacity <= 0) {
                         throw ValidationException::withMessages([
-                            'source_receivable_entry_id' => ["Source entry [{$sourceCreditEntryId}] is not an open credit AR item."],
+                            'source_receivable_entry_id' => [__('Source entry [:entry] is not an open credit AR item.', [
+                                'entry' => $sourceCreditEntryId,
+                            ])],
                         ]);
                     }
 
@@ -104,7 +108,7 @@ class ReceivableEntrySettlementService
                         $amount = $line['amount_minor'] ?? 0;
                         if (! is_int($amount) || $amount <= 0) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ['Settlement amount must be a positive integer.'],
+                                'amount_minor' => [__('Settlement amount must be a positive integer.')],
                             ]);
                         }
                         $totalRequested += $amount;
@@ -112,7 +116,10 @@ class ReceivableEntrySettlementService
 
                     if ($totalRequested > $remainingSourceCredit) {
                         throw ValidationException::withMessages([
-                            'amount_minor' => ["Total settlement amount [{$totalRequested}] exceeds source entry remaining credit [{$remainingSourceCredit}]."],
+                            'amount_minor' => [__('Total settlement amount [:total] exceeds source entry remaining credit [:remaining].', [
+                                'total' => $totalRequested,
+                                'remaining' => $remainingSourceCredit,
+                            ])],
                         ]);
                     }
 
@@ -126,26 +133,36 @@ class ReceivableEntrySettlementService
 
                         if (! $target) {
                             throw ValidationException::withMessages([
-                                'target_receivable_entry_id' => ["Target receivable entry [{$targetId}] does not exist."],
+                                'target_receivable_entry_id' => [__('Target receivable entry [:entry] does not exist.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ((string) $target->customer_id !== (string) $sourceEntry->customer_id) {
                             throw ValidationException::withMessages([
-                                'customer_id' => ["Target entry [{$targetId}] customer does not match source entry customer."],
+                                'customer_id' => [__('Target entry [:entry] customer does not match source entry customer.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
                         if ($target->currency !== $sourceEntry->currency) {
                             throw ValidationException::withMessages([
-                                'currency' => ["Target entry [{$targetId}] currency [{$target->currency}] does not match source entry currency [{$sourceEntry->currency}]."],
+                                'currency' => [__('Target entry [:entry] currency [:entry_currency] does not match source entry currency [:source_currency].', [
+                                    'entry' => $targetId,
+                                    'entry_currency' => $target->currency,
+                                    'source_currency' => $sourceEntry->currency,
+                                ])],
                             ]);
                         }
 
                         $targetDebitCapacity = (int) $target->debit_minor - (int) $target->credit_minor;
                         if ($targetDebitCapacity <= 0) {
                             throw ValidationException::withMessages([
-                                'target_receivable_entry_id' => ["Target entry [{$targetId}] is not a positive debit AR item."],
+                                'target_receivable_entry_id' => [__('Target entry [:entry] is not a positive debit AR item.', [
+                                    'entry' => $targetId,
+                                ])],
                             ]);
                         }
 
@@ -169,7 +186,10 @@ class ReceivableEntrySettlementService
 
                         if ($lineAmount > $remainingTargetDebit) {
                             throw ValidationException::withMessages([
-                                'amount_minor' => ["Settlement amount [{$lineAmount}] exceeds target entry remaining debit [{$remainingTargetDebit}]."],
+                                'amount_minor' => [__('Settlement amount [:amount] exceeds target entry remaining debit [:remaining].', [
+                                    'amount' => $lineAmount,
+                                    'remaining' => $remainingTargetDebit,
+                                ])],
                             ]);
                         }
 
@@ -215,7 +235,7 @@ class ReceivableEntrySettlementService
     {
         if (trim($reason) === '') {
             throw ValidationException::withMessages([
-                'reason' => ['Reversal reason is required.'],
+                'reason' => [__('Reversal reason is required.')],
             ]);
         }
 
@@ -233,12 +253,15 @@ class ReceivableEntrySettlementService
 
                     if ($settlement->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Settlement [{$settlementId}] is already reversed."],
+                            'status' => [__('Settlement :id is already reversed.', ['id' => $settlementId])],
                         ]);
                     }
 
                     if ($settlement->status !== 'active') {
-                        throw new InvalidArgumentException("Settlement [{$settlementId}] cannot be reversed from status [{$settlement->status}].");
+                        throw new InvalidArgumentException(__('Settlement :id cannot be reversed from status :status.', [
+                            'id' => $settlementId,
+                            'status' => $settlement->status,
+                        ]));
                     }
 
                     // Lock involved entries and settlement in deterministic ascending order
@@ -258,7 +281,7 @@ class ReceivableEntrySettlementService
 
                     if ($settlement->status === 'reversed') {
                         throw ValidationException::withMessages([
-                            'status' => ["Settlement [{$settlementId}] is already reversed."],
+                            'status' => [__('Settlement :id is already reversed.', ['id' => $settlementId])],
                         ]);
                     }
 

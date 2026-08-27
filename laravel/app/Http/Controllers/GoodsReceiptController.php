@@ -2,68 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Purchasing\GoodsReceiptPageData;
 use App\Application\Purchasing\GoodsReceiptService;
-use App\Models\GoodsReceipt;
-use App\Models\PurchaseOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class GoodsReceiptController extends Controller
 {
     public function __construct(
+        private readonly GoodsReceiptPageData $pageData,
         private readonly GoodsReceiptService $goodsReceiptService,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-
-        $query = GoodsReceipt::query()->with(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure']);
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('purchaseOrder', function ($pq) use ($search): void {
-                        $pq->where('number', 'like', "%{$search}%")
-                            ->orWhereHas('supplier', function ($sq) use ($search): void {
-                                $sq->where('name', 'like', "%{$search}%");
-                            });
-                    });
-            });
-        }
-
-        if ($status && in_array($status, GoodsReceiptService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
-        }
-
-        $goodsReceipts = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $confirmedPurchaseOrders = PurchaseOrder::query()
-            ->with(['supplier', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'confirmed')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        return Inertia::render('Purchasing/GoodsReceipts', [
-            'goodsReceipts' => $goodsReceipts,
-            'confirmedPurchaseOrders' => $confirmedPurchaseOrders,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
-        ]);
+        return Inertia::render('Purchasing/GoodsReceipts', $this->pageData->indexData($request->only(['search', 'status', 'warehouse_id'])));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'purchase_order_id' => ['required', 'uuid'],
+            'warehouse_id' => ['required', 'uuid', Rule::exists('warehouse', 'id')->where('is_active', true)],
             'receipt_date' => ['required', 'date'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
@@ -75,12 +38,13 @@ class GoodsReceiptController extends Controller
 
         $this->goodsReceiptService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Goods Receipt created successfully.');
+        return redirect()->back()->with('success', __('Goods Receipt created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
     {
         $validated = $request->validate([
+            'warehouse_id' => ['required', 'uuid', Rule::exists('warehouse', 'id')->where('is_active', true)],
             'receipt_date' => ['required', 'date'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
@@ -93,20 +57,20 @@ class GoodsReceiptController extends Controller
 
         $this->goodsReceiptService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Goods Receipt updated successfully.');
+        return redirect()->back()->with('success', __('Goods Receipt updated successfully.'));
     }
 
     public function confirm(Request $request, string $id): RedirectResponse
     {
         $this->goodsReceiptService->confirm($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Goods Receipt confirmed successfully.');
+        return redirect()->back()->with('success', __('Goods Receipt confirmed successfully.'));
     }
 
     public function cancel(Request $request, string $id): RedirectResponse
     {
         $this->goodsReceiptService->cancel($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Goods Receipt cancelled successfully.');
+        return redirect()->back()->with('success', __('Goods Receipt cancelled successfully.'));
     }
 }

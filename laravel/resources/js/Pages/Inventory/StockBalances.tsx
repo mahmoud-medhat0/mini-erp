@@ -1,126 +1,230 @@
-import React from 'react';
+import { Head, router } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
+
 import AppLayout from '../../Components/AppLayout';
-import { Head } from '@inertiajs/react';
+import { Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
+import { getDictionary } from '../../lib/i18n';
+import type { SharedPageProps } from '../../Types';
 
-interface Product {
-    id: string;
-    code: string;
-    name: string;
-    type: string;
+type TranslatedName = Record<string, string> | string | null;
+
+type Product = {
+  id: string;
+  code: string;
+  name: TranslatedName;
+  type: string;
+};
+
+type UnitOfMeasure = {
+  id: string;
+  code: string;
+  name: TranslatedName;
+  symbol?: string;
+};
+
+type Branch = {
+  id: string;
+  code: string;
+  name: TranslatedName;
+};
+
+type Warehouse = {
+  id: string;
+  code: string;
+  name: TranslatedName;
+  branch?: Branch | null;
+};
+
+type StockBalance = {
+  id: string;
+  warehouse_id?: string | null;
+  product_id: string;
+  unit_of_measure_id: string;
+  currency: string;
+  quantity_e6: number;
+  valuation_amount_minor: number;
+  avg_unit_cost_e6: number;
+  warehouse?: Warehouse | null;
+  product?: Product | null;
+  unit_of_measure?: UnitOfMeasure | null;
+};
+
+type PaginatedData<T> = {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  total: number;
+};
+
+type StockBalancesProps = SharedPageProps & {
+  balances: PaginatedData<StockBalance>;
+  warehouses: Warehouse[];
+  filters: {
+    warehouse_id?: string;
+  };
+};
+
+function formatQuantityE6(quantityE6: number): string {
+  const sign = quantityE6 < 0 ? '-' : '';
+  const absolute = Math.abs(Math.trunc(quantityE6));
+  const whole = Math.floor(absolute / 1000000).toLocaleString();
+  const fraction = String(absolute % 1000000).padStart(6, '0').replace(/0+$/, '');
+
+  return `${sign}${whole}${fraction ? `.${fraction}` : ''}`;
 }
 
-interface UnitOfMeasure {
-    id: string;
-    code: string;
-    name: string;
-}
+export default function StockBalances({ locale, balances, warehouses, filters }: StockBalancesProps) {
+  const dict = getDictionary(locale);
+  const pageDict = dict.app.pages.stockBalances;
+  const [warehouseId, setWarehouseId] = useState(filters.warehouse_id || '');
 
-interface StockBalance {
-    id: string;
-    product_id: string;
-    unit_of_measure_id: string;
-    currency: string;
-    quantity_e6: number;
-    valuation_amount_minor: number;
-    avg_unit_cost_e6: number;
-    product?: Product;
-    unit_of_measure?: UnitOfMeasure;
-}
+  const warehouseOptions = useMemo(
+    () => warehouses.map((warehouse) => ({
+      value: warehouse.id,
+      label: `${warehouse.code} - ${getLocalizedName(warehouse.name, locale)}`,
+      sublabel: warehouse.branch
+        ? `${warehouse.branch.code} - ${getLocalizedName(warehouse.branch.name, locale)}`
+        : pageDict.notAssigned,
+    })),
+    [locale, pageDict.notAssigned, warehouses],
+  );
 
-interface PaginatedData<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    total: number;
-}
+  const totals = useMemo(
+    () => balances.data.reduce(
+      (carry, balance) => ({
+        quantity: carry.quantity + Number(balance.quantity_e6 || 0),
+        valuation: carry.valuation + Number(balance.valuation_amount_minor || 0),
+      }),
+      { quantity: 0, valuation: 0 },
+    ),
+    [balances.data],
+  );
+  const activeFilterCount = [warehouseId].filter(Boolean).length;
 
-interface Props {
-    balances: PaginatedData<StockBalance>;
-}
+  function applyFilter() {
+    router.get('/inventory/stock-balances', { warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });
+  }
 
-export default function StockBalances({ balances }: Props) {
-    const formatQty = (qtyE6: number) => {
-        const val = qtyE6 / 1000000;
-        return val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-    };
+  function clearFilter() {
+    setWarehouseId('');
+    router.get('/inventory/stock-balances', {}, { preserveState: true, preserveScroll: true });
+  }
 
-    const formatMoney = (minor: number, currency: string) => {
-        const val = minor / 100;
-        return `${currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    };
+  return (
+    <AppLayout active="stock-balances.index">
+      <Head title={pageDict.headTitle} />
 
-    const formatAvgCost = (avgE6: number, currency: string) => {
-        const val = avgE6 / 1000000;
-        return `${currency} ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}`;
-    };
+      <PageHeader
+        title={pageDict.title}
+        description={pageDict.description}
+      />
 
-    return (
-        <AppLayout active="inventory-balances.index">
-            <Head title="Stock Balances / أرصدة المخزون" />
+      <div className="space-y-5">
+        <Card className="p-4">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
+            <SearchableSelect
+              label={pageDict.warehouse}
+              options={warehouseOptions}
+              value={warehouseId}
+              onChange={(value) => setWarehouseId(value || '')}
+              placeholder={pageDict.allWarehouses}
+            />
+            <button
+              type="button"
+              onClick={applyFilter}
+              className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-xs font-bold text-white shadow-sm transition-all hover:opacity-90"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M6 10h12M10 16h4" />
+              </svg>
+              <span>{pageDict.applyFilter}</span>
+            </button>
+            <button
+              type="button"
+              onClick={clearFilter}
+              disabled={activeFilterCount === 0}
+              className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-xs font-bold text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--background)]"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span>{pageDict.clearFilter}</span>
+            </button>
+          </div>
+        </Card>
 
-            <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Stock Balances / أرصدة المخزون</h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Moving weighted average physical inventory balances and valuation.
-                        </p>
-                    </div>
-                </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricCard label={pageDict.totalRows} value={balances.total.toLocaleString()} tone="blue" />
+          <MetricCard label={pageDict.totalQuantity} value={formatQuantityE6(totals.quantity)} tone="emerald" />
+          <MetricCard label={pageDict.totalValuation} value={formatMoney(totals.valuation, balances.data[0]?.currency || pageDict.noCurrency)} tone="purple" />
+        </div>
 
-                <div className="bg-white shadow rounded-lg overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Product / المنتج
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    UOM / وحدة القياس
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Quantity / الكمية
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Avg Unit Cost / متوسط التكلفة
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Total Valuation / إجمالي التقييم
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {balances.data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                                        No stock balances recorded yet. / لا توجد أرصدة مخزون مسجلة بعد.
-                                    </td>
-                                </tr>
-                            ) : (
-                                balances.data.map((b) => (
-                                    <tr key={b.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {b.product ? `${b.product.code} - ${b.product.name}` : b.product_id}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {b.unit_of_measure ? `${b.unit_of_measure.code}` : b.unit_of_measure_id}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
-                                            {formatQty(b.quantity_e6)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">
-                                            {formatAvgCost(b.avg_unit_cost_e6, b.currency)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900">
-                                            {formatMoney(b.valuation_amount_minor, b.currency)}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </AppLayout>
-    );
+        {balances.data.length === 0 ? (
+          <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
+        ) : (
+          <div className={tableClasses.wrap}>
+            <table className={tableClasses.table}>
+              <thead>
+                <tr>
+                  <th className={tableClasses.th}>{pageDict.warehouse}</th>
+                  <th className={tableClasses.th}>{pageDict.branch}</th>
+                  <th className={tableClasses.th}>{pageDict.product}</th>
+                  <th className={tableClasses.th}>{pageDict.uom}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.quantity}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.avgCost}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.valuation}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {balances.data.map((balance) => (
+                  <tr key={balance.id} className="hover:bg-[var(--background)]">
+                    <td className={tableClasses.td}>
+                      <div className="flex min-w-48 flex-col gap-1">
+                        <span className="font-mono text-xs font-bold text-[var(--text-primary)]">{balance.warehouse?.code || pageDict.notAssigned}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          {getLocalizedName(balance.warehouse?.name, locale) || pageDict.notAssigned}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={tableClasses.td}>
+                      {balance.warehouse?.branch ? (
+                        <StatusBadge tone="info">
+                          {balance.warehouse.branch.code} - {getLocalizedName(balance.warehouse.branch.name, locale)}
+                        </StatusBadge>
+                      ) : (
+                        <span className="text-xs text-[var(--text-muted)]">{pageDict.notAssigned}</span>
+                      )}
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="flex min-w-52 flex-col gap-1">
+                        <span className="font-mono text-xs font-bold text-[var(--text-primary)]">
+                          {balance.product?.code || balance.product_id}
+                        </span>
+                        <span className="text-xs text-[var(--text-secondary)]">
+                          {getLocalizedName(balance.product?.name, locale)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="font-mono text-xs font-bold">{balance.unit_of_measure?.code || balance.unit_of_measure_id}</span>
+                    </td>
+                    <td className={`${tableClasses.td} text-end font-mono font-bold`}>
+                      {formatQuantityE6(balance.quantity_e6)}
+                    </td>
+                    <td className={`${tableClasses.td} text-end font-mono font-bold text-[var(--text-secondary)]`}>
+                      {formatMoney(balance.avg_unit_cost_e6, balance.currency)}
+                    </td>
+                    <td className={`${tableClasses.td} text-end font-mono font-extrabold`}>
+                      {formatMoney(balance.valuation_amount_minor, balance.currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </AppLayout>
+  );
 }

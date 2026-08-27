@@ -1,6 +1,6 @@
 # LARAVEL ERP RUNTIME PROCESSES, STORAGE, MAIL, AND LOGS OPERATIONS
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 **Target Application:** Laravel 13.x + Inertia.js + React + PostgreSQL 15+  
@@ -153,6 +153,8 @@ php artisan tokens:gc --batch=100
 - **Local Disk Mode (`FILESYSTEM_DISK=local`):**
   - Storage path: `storage/app/private/`
   - Host Requirement: Web server application user (`www-data`) must have read/write permissions on `storage/app/private/`.
+  - Security Requirement: keep `FILESYSTEM_LOCAL_SERVE=false` so framework `/storage/*` routes are not registered for the private disk.
+  - Validation: run `php artisan route:list` and confirm no direct `storage.local` route exists.
 - **Cloud Object Storage Mode (`FILESYSTEM_DISK=s3`):**
   - Configured via environment variable names: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`.
   - Bucket Privacy: S3 bucket MUST be configured as private. File downloads are delivered strictly through application-authenticated controller routes using `AttachmentService`.

@@ -2,68 +2,31 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Sales\DeliveryNotePageData;
 use App\Application\Sales\DeliveryNoteService;
-use App\Models\DeliveryNote;
-use App\Models\SalesOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DeliveryNoteController extends Controller
 {
     public function __construct(
+        private readonly DeliveryNotePageData $pageData,
         private readonly DeliveryNoteService $deliveryNoteService,
     ) {}
 
     public function index(Request $request): Response
     {
-        $search = $request->query('search');
-        $status = $request->query('status');
-
-        $query = DeliveryNote::query()->with(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure']);
-
-        if ($search) {
-            $query->where(function ($q) use ($search): void {
-                $q->where('number', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('salesOrder', function ($sq) use ($search): void {
-                        $sq->where('number', 'like', "%{$search}%")
-                            ->orWhereHas('customer', function ($cq) use ($search): void {
-                                $cq->where('name', 'like', "%{$search}%");
-                            });
-                    });
-            });
-        }
-
-        if ($status && in_array($status, DeliveryNoteService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $status);
-        }
-
-        $deliveryNotes = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $confirmedSalesOrders = SalesOrder::query()
-            ->with(['customer', 'lines.product', 'lines.unitOfMeasure'])
-            ->where('status', 'confirmed')
-            ->orderBy('number', 'asc')
-            ->get();
-
-        return Inertia::render('Sales/DeliveryNotes', [
-            'deliveryNotes' => $deliveryNotes,
-            'confirmedSalesOrders' => $confirmedSalesOrders,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-            ],
-        ]);
+        return Inertia::render('Sales/DeliveryNotes', $this->pageData->indexData($request->only(['search', 'status', 'warehouse_id'])));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'sales_order_id' => ['required', 'uuid'],
+            'warehouse_id' => ['required', 'uuid', Rule::exists('warehouse', 'id')->where('is_active', true)],
             'delivery_date' => ['required', 'date'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
@@ -75,12 +38,13 @@ class DeliveryNoteController extends Controller
 
         $this->deliveryNoteService->create($validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Delivery Note created successfully.');
+        return redirect()->back()->with('success', __('Delivery Note created successfully.'));
     }
 
     public function update(Request $request, string $id): RedirectResponse
     {
         $validated = $request->validate([
+            'warehouse_id' => ['required', 'uuid', Rule::exists('warehouse', 'id')->where('is_active', true)],
             'delivery_date' => ['required', 'date'],
             'reference' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
@@ -93,20 +57,20 @@ class DeliveryNoteController extends Controller
 
         $this->deliveryNoteService->update($id, $validated, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Delivery Note updated successfully.');
+        return redirect()->back()->with('success', __('Delivery Note updated successfully.'));
     }
 
     public function confirm(Request $request, string $id): RedirectResponse
     {
         $this->deliveryNoteService->confirm($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Delivery Note confirmed successfully.');
+        return redirect()->back()->with('success', __('Delivery Note confirmed successfully.'));
     }
 
     public function cancel(Request $request, string $id): RedirectResponse
     {
         $this->deliveryNoteService->cancel($id, $request->user()?->id);
 
-        return redirect()->back()->with('success', 'Delivery Note cancelled successfully.');
+        return redirect()->back()->with('success', __('Delivery Note cancelled successfully.'));
     }
 }

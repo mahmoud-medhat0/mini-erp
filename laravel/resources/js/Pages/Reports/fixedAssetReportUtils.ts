@@ -40,7 +40,7 @@ export function fallbackText(value: string | number | null | undefined, fallback
   return String(value);
 }
 
-export function formatMinor(minor: number | null | undefined, currency = 'EGP'): string {
+export function formatMinor(minor: number | null | undefined, currency = ''): string {
   const amount = Number.isFinite(minor) ? Number(minor) : 0;
   const sign = amount < 0 ? '-' : '';
   const digits = String(Math.abs(Math.trunc(amount))).padStart(3, '0');
@@ -48,7 +48,7 @@ export function formatMinor(minor: number | null | undefined, currency = 'EGP'):
   const fractional = digits.slice(-2);
   const grouped = major.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-  return `${sign}${grouped}.${fractional} ${currency}`;
+  return `${sign}${grouped}.${fractional}${currency ? ` ${currency}` : ''}`;
 }
 
 export function fixedAssetStatusLabel(status: string, dict: any): string {

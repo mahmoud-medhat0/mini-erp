@@ -8,14 +8,15 @@ use App\Models\LedgerEntry;
 class VatToGlReconciliationService
 {
     public function __construct(
-        private readonly VatRegisterReportService $registerService
+        private readonly VatRegisterReportService $registerService,
+        private readonly ReportCurrencyResolver $currencyResolver,
     ) {}
 
     public function generate(array $filters = []): array
     {
         $fromDate = $filters['from_date'] ?? null;
         $toDate = $filters['to_date'] ?? null;
-        $currency = $filters['currency'] ?? 'USD';
+        $currency = $this->currencyResolver->resolve($filters['currency'] ?? null);
 
         $registerData = $this->registerService->generate([
             'from_date' => $fromDate,

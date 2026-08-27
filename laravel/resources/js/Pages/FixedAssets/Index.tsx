@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -27,6 +28,10 @@ type AssetRow = {
   status: 'draft' | 'active' | 'fully_depreciated' | 'disposed';
   serial_number?: string | null;
   category?: CategoryOption | null;
+  branch_id?: string | null;
+  fixed_asset_location_id?: string | null;
+  branch?: { id: string; code: string; name: Record<string, string> | string } | null;
+  location?: { id: string; code: string; name: Record<string, string> | string } | null;
 };
 
 type IndexProps = SharedPageProps & {
@@ -35,31 +40,72 @@ type IndexProps = SharedPageProps & {
     links: any[];
   };
   categories: CategoryOption[];
+  branches: Array<{ id: string; code: string; name: Record<string, string> | string }>;
+  locations: Array<{ id: string; code: string; name: Record<string, string> | string }>;
   filters: {
     search?: string;
     category_id?: string;
     status?: string;
+    branch_id?: string;
+    location_id?: string;
   };
   can: {
     create: boolean;
     edit: boolean;
     delete: boolean;
     post: boolean;
+    transfer: boolean;
     export: boolean;
     view_financials: boolean;
   };
 };
 
-export default function FixedAssetsIndex({ locale, assets, categories, filters, can }: IndexProps) {
+export default function FixedAssetsIndex({ locale, assets, categories, branches = [], locations = [], filters, can }: IndexProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).accounting || {};
+  const appDict = dict.app.accounting;
 
   const [search, setSearch] = useState(filters.search || '');
   const [selectedCat, setSelectedCat] = useState(filters.category_id || '');
   const [selectedStatus, setSelectedStatus] = useState(filters.status || '');
+  const [selectedBranch, setSelectedBranch] = useState(filters.branch_id || '');
+  const [selectedLocation, setSelectedLocation] = useState(filters.location_id || '');
+  const categoryOptions = useMemo(() => categories.map((cat) => ({
+    value: cat.id,
+    label: `${formatName(cat.name)} (${cat.code})`,
+  })), [categories, locale]);
+  const branchOptions = useMemo(() => branches.map((branch) => ({
+    value: branch.id,
+    label: `${branch.code} - ${getLocalizedName(branch.name, locale)}`,
+  })), [branches, locale]);
+  const locationOptions = useMemo(() => locations.map((location) => ({
+    value: location.id,
+    label: `${location.code} - ${getLocalizedName(location.name, locale)}`,
+  })), [locations, locale]);
+  const statusOptions = [
+    { value: 'draft', label: appDict.fixedAssetStatusDraft },
+    { value: 'active', label: appDict.fixedAssetStatusActive },
+    { value: 'fully_depreciated', label: appDict.fixedAssetStatusFullyDepreciated },
+    { value: 'disposed', label: appDict.fixedAssetStatusDisposed },
+  ];
+  const activeFilterCount = [search, selectedCat, selectedStatus, selectedBranch, selectedLocation].filter(Boolean).length;
 
   function handleFilter() {
-    router.get('/fixed-assets', { search, category_id: selectedCat, status: selectedStatus }, { preserveState: true });
+    router.get('/fixed-assets', {
+      search,
+      category_id: selectedCat,
+      status: selectedStatus,
+      branch_id: selectedBranch,
+      location_id: selectedLocation,
+    }, { preserveState: true, preserveScroll: true });
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setSelectedCat('');
+    setSelectedStatus('');
+    setSelectedBranch('');
+    setSelectedLocation('');
+    router.get('/fixed-assets', {}, { preserveState: true, preserveScroll: true });
   }
 
   function formatName(name: { en: string; ar: string } | string): string {
@@ -100,6 +146,12 @@ export default function FixedAssetsIndex({ locale, assets, categories, filters, 
               >
                 {appDict.fixedAssetCategories}
               </Link>
+              <Link
+                href="/fixed-asset-locations"
+                className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+              >
+                {appDict.fixedAssetLocations}
+              </Link>
               {can.create && (
                 <Link
                   href="/fixed-assets/create"
@@ -121,36 +173,12 @@ export default function FixedAssetsIndex({ locale, assets, categories, filters, 
               onChange={(e) => setSearch(e.target.value)}
               className="rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
             />
-            <select
-              value={selectedCat}
-              onChange={(e) => setSelectedCat(e.target.value)}
-              className="rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-            >
-              <option value="">{appDict.allAssetCategories}</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {formatName(cat.name)} ({cat.code})
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-            >
-              <option value="">{appDict.allStatuses}</option>
-              <option value="draft">{appDict.fixedAssetStatusDraft}</option>
-              <option value="active">{appDict.fixedAssetStatusActive}</option>
-              <option value="fully_depreciated">{appDict.fixedAssetStatusFullyDepreciated}</option>
-              <option value="disposed">{appDict.fixedAssetStatusDisposed}</option>
-            </select>
-            <button
-              type="button"
-              onClick={handleFilter}
-              className="px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
-            >
-              {appDict.filter}
-            </button>
+            <SearchableSelect options={[{ value: '', label: appDict.allAssetCategories }, ...categoryOptions]} value={selectedCat || null} onChange={(value) => setSelectedCat(value || '')} label={appDict.assetCategory} />
+            <SearchableSelect options={[{ value: '', label: appDict.allStatuses }, ...statusOptions]} value={selectedStatus || null} onChange={(value) => setSelectedStatus(value || '')} label={appDict.status} />
+            <SearchableSelect options={[{ value: '', label: appDict.allBranches }, ...branchOptions]} value={selectedBranch || null} onChange={(value) => setSelectedBranch(value || '')} label={appDict.branch} />
+            <SearchableSelect options={[{ value: '', label: appDict.allAssetLocations }, ...locationOptions]} value={selectedLocation || null} onChange={(value) => setSelectedLocation(value || '')} label={appDict.assetLocation} />
+            <Button onClick={handleFilter}>{appDict.filter}</Button>
+            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{appDict.clearFilters}</Button>
           </div>
 
           {assets.data.length === 0 ? (
@@ -166,6 +194,8 @@ export default function FixedAssetsIndex({ locale, assets, categories, filters, 
                     <th className={tableClasses.th}>{appDict.assetNumber}</th>
                     <th className={tableClasses.th}>{appDict.name}</th>
                     <th className={tableClasses.th}>{appDict.assetCategory}</th>
+                    <th className={tableClasses.th}>{appDict.branch}</th>
+                    <th className={tableClasses.th}>{appDict.assetLocation}</th>
                     <th className={tableClasses.th}>{appDict.acquisitionDate}</th>
                     <th className={tableClasses.th}>{appDict.cost}</th>
                     <th className={tableClasses.th}>{appDict.status}</th>
@@ -184,11 +214,17 @@ export default function FixedAssetsIndex({ locale, assets, categories, filters, 
                         </td>
                         <td className={tableClasses.td}>{formatName(asset.name)}</td>
                         <td className={tableClasses.td}>
-                          {asset.category ? formatName(asset.category.name) : '-'}
+                          {asset.category ? formatName(asset.category.name) : appDict.notAvailable}
+                        </td>
+                        <td className={tableClasses.td}>
+                          {asset.branch ? `${asset.branch.code} - ${getLocalizedName(asset.branch.name, locale)}` : appDict.notAssigned}
+                        </td>
+                        <td className={tableClasses.td}>
+                          {asset.location ? `${asset.location.code} - ${getLocalizedName(asset.location.name, locale)}` : appDict.notAssigned}
                         </td>
                         <td className={tableClasses.td}>{asset.acquisition_date}</td>
                         <td className={tableClasses.td}>
-                          {can.view_financials ? `${asset.cost_minor} ${asset.currency}` : '***'}
+                          {can.view_financials ? formatMoney(asset.cost_minor, asset.currency) : appDict.restrictedValue}
                         </td>
                         <td className={tableClasses.td}>
                           <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${st.className}`}>

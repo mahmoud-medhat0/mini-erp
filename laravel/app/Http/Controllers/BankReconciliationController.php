@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Application\Accounting\BankReconciliationPageData;
 use App\Application\Accounting\BankReconciliationService;
-use App\Models\BankAccount;
-use App\Models\BankReconciliation;
-use App\Models\Currency;
-use App\Models\FinancialPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,43 +13,15 @@ class BankReconciliationController extends Controller
 {
     public function __construct(
         private readonly BankReconciliationService $service,
+        private readonly BankReconciliationPageData $pageData,
     ) {}
 
     public function index(Request $request): Response
     {
-        $status = $request->query('status');
-        $bankAccountId = $request->query('bank_account_id');
-
-        $query = BankReconciliation::query()
-            ->with(['bankAccount', 'financialPeriod']);
-
-        if ($status) {
-            $query->where('status', $status);
-        }
-
-        if ($bankAccountId) {
-            $query->where('bank_account_id', $bankAccountId);
-        }
-
-        $reconciliations = $query->orderBy('date_from', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $bankAccounts = BankAccount::query()->where('is_active', true)->orderBy('code')->get();
-        $periods = FinancialPeriod::query()->where('is_closed', false)->orderBy('start_date', 'asc')->get();
-        $currencies = Currency::query()->where('is_active', true)->get();
-
-        return Inertia::render('BankReconciliations/Index', [
-            'reconciliations' => $reconciliations,
-            'bankAccounts' => $bankAccounts,
-            'periods' => $periods,
-            'currencies' => $currencies,
-            'filters' => [
-                'status' => $status,
-                'bank_account_id' => $bankAccountId,
-            ],
-        ]);
+        return Inertia::render('BankReconciliations/Index', $this->pageData->indexData([
+            'status' => $request->query('status'),
+            'bank_account_id' => $request->query('bank_account_id'),
+        ]));
     }
 
     public function store(Request $request): RedirectResponse
@@ -70,23 +39,12 @@ class BankReconciliationController extends Controller
         $recon = $this->service->createDraft($validated, (int) $request->user()->id);
 
         return redirect()->route('bank-reconciliations.show', $recon->id)
-            ->with('success', 'Bank reconciliation draft created.');
+            ->with('success', __('Bank reconciliation draft created.'));
     }
 
     public function show(string $id): Response
     {
-        $reconciliation = BankReconciliation::query()
-            ->with(['bankAccount', 'financialPeriod', 'lines.matchedLedgerEntry.journalEntry'])
-            ->findOrFail($id);
-
-        $summary = $this->service->summary($id);
-        $candidates = $this->service->candidateLedgerEntries($id);
-
-        return Inertia::render('BankReconciliations/Show', [
-            'reconciliation' => $reconciliation,
-            'summary' => $summary,
-            'candidates' => $candidates,
-        ]);
+        return Inertia::render('BankReconciliations/Show', $this->pageData->showData($id));
     }
 
     public function addLine(Request $request, string $id): RedirectResponse
@@ -101,7 +59,7 @@ class BankReconciliationController extends Controller
 
         $this->service->addLine($id, $validated, (int) $request->user()->id);
 
-        return back()->with('success', 'Statement line added.');
+        return back()->with('success', __('Statement line added.'));
     }
 
     public function updateLine(Request $request, string $id, string $lineId): RedirectResponse
@@ -116,14 +74,14 @@ class BankReconciliationController extends Controller
 
         $this->service->updateLine($lineId, $validated, (int) $request->user()->id);
 
-        return back()->with('success', 'Statement line updated.');
+        return back()->with('success', __('Statement line updated.'));
     }
 
     public function deleteLine(Request $request, string $id, string $lineId): RedirectResponse
     {
         $this->service->deleteLine($lineId, (int) $request->user()->id);
 
-        return back()->with('success', 'Statement line deleted.');
+        return back()->with('success', __('Statement line deleted.'));
     }
 
     public function matchLine(Request $request, string $id, string $lineId): RedirectResponse
@@ -134,20 +92,20 @@ class BankReconciliationController extends Controller
 
         $this->service->matchLine($lineId, $validated['ledger_entry_id'], (int) $request->user()->id);
 
-        return back()->with('success', 'Statement line matched to system ledger entry.');
+        return back()->with('success', __('Statement line matched to system ledger entry.'));
     }
 
     public function unmatchLine(Request $request, string $id, string $lineId): RedirectResponse
     {
         $this->service->unmatchLine($lineId, (int) $request->user()->id);
 
-        return back()->with('success', 'Statement line unmatched.');
+        return back()->with('success', __('Statement line unmatched.'));
     }
 
     public function finalize(Request $request, string $id): RedirectResponse
     {
         $this->service->finalize($id, (int) $request->user()->id);
 
-        return back()->with('success', 'Bank reconciliation finalized successfully.');
+        return back()->with('success', __('Bank reconciliation finalized successfully.'));
     }
 }

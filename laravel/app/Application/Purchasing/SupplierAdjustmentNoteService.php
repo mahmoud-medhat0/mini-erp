@@ -5,6 +5,7 @@ namespace App\Application\Purchasing;
 use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
+use App\Application\Support\CurrencyInput;
 use App\Application\Taxes\TaxCalculationService;
 use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
@@ -45,23 +46,23 @@ class SupplierAdjustmentNoteService
         return DB::transaction(function () use ($data, $actorId): SupplierAdjustmentNote {
             $supplierId = $data['supplier_id'] ?? null;
             if (! $supplierId) {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier is required.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier is required.')]]);
             }
 
             /** @var Supplier|null $supplier */
             $supplier = Supplier::query()->where('id', $supplierId)->first();
             if (! $supplier || $supplier->status !== 'active') {
-                throw ValidationException::withMessages(['supplier_id' => ['Supplier must be active.']]);
+                throw ValidationException::withMessages(['supplier_id' => [__('Supplier must be active.')]]);
             }
 
             $direction = $this->validateDirection($data['direction'] ?? null);
             [$taxMode, $taxRateBps, $manualTaxAmountMinor] = $this->resolveTaxConfiguration($data, 'none', 0, 0);
 
-            $currency = $data['currency'] ?? 'USD';
+            $currency = CurrencyInput::required($data['currency'] ?? null);
 
             $adjustmentDate = $data['adjustment_date'] ?? null;
             if (! $adjustmentDate) {
-                throw ValidationException::withMessages(['adjustment_date' => ['Adjustment date is required.']]);
+                throw ValidationException::withMessages(['adjustment_date' => [__('Adjustment date is required.')]]);
             }
 
             $period = $this->resolveFinancialPeriodForDate($adjustmentDate);
@@ -81,7 +82,8 @@ class SupplierAdjustmentNoteService
                 $taxMode,
                 $taxRateBps,
                 $supplierBillId,
-                $purchaseReturnId
+                $purchaseReturnId,
+                $adjustmentDate
             );
 
             $subtotalMinor = array_sum(array_column($validatedLines, 'line_subtotal_minor'));
@@ -157,11 +159,11 @@ class SupplierAdjustmentNoteService
             $note = SupplierAdjustmentNote::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($note->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft supplier adjustment notes can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft supplier adjustment notes can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $note->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             /** @var Supplier $supplier */
@@ -188,7 +190,8 @@ class SupplierAdjustmentNoteService
                 $taxMode,
                 $taxRateBps,
                 $supplierBillId,
-                $purchaseReturnId
+                $purchaseReturnId,
+                (string) $adjustmentDate
             );
 
             $subtotalMinor = array_sum(array_column($validatedLines, 'line_subtotal_minor'));
@@ -263,11 +266,11 @@ class SupplierAdjustmentNoteService
             $note = SupplierAdjustmentNote::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($note->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft supplier adjustment notes can be submitted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft supplier adjustment notes can be submitted.')]]);
             }
 
             if ($note->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Supplier adjustment note must have at least one line item before submitting.']]);
+                throw ValidationException::withMessages(['lines' => [__('Supplier adjustment note must have at least one line item before submitting.')]]);
             }
 
             $before = $note->toArray();
@@ -304,11 +307,11 @@ class SupplierAdjustmentNoteService
             }
 
             if (! in_array($note->status, ['draft', 'submitted'], true)) {
-                throw ValidationException::withMessages(['status' => ['Only draft or submitted supplier adjustment notes can be approved.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft or submitted supplier adjustment notes can be approved.')]]);
             }
 
             if ($note->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Supplier adjustment note must have at least one line item before approving.']]);
+                throw ValidationException::withMessages(['lines' => [__('Supplier adjustment note must have at least one line item before approving.')]]);
             }
 
             $before = $note->toArray();
@@ -341,7 +344,7 @@ class SupplierAdjustmentNoteService
             $note = SupplierAdjustmentNote::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($note->status === 'posted') {
-                throw ValidationException::withMessages(['status' => ['Posted supplier adjustment notes cannot be cancelled in this slice.']]);
+                throw ValidationException::withMessages(['status' => [__('Posted supplier adjustment notes cannot be cancelled in this slice.')]]);
             }
 
             if ($note->status === 'cancelled') {
@@ -382,18 +385,18 @@ class SupplierAdjustmentNoteService
             }
 
             if ($note->status !== 'approved') {
-                throw ValidationException::withMessages(['status' => ['Only approved supplier adjustment notes can be posted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only approved supplier adjustment notes can be posted.')]]);
             }
 
             if ($note->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Cannot post supplier adjustment note without line items.']]);
+                throw ValidationException::withMessages(['lines' => [__('Cannot post supplier adjustment note without line items.')]]);
             }
 
             $noteDate = $note->adjustment_date->format('Y-m-d');
             $this->taxPeriodGuard->ensureDateNotFiled($noteDate);
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $note->financial_period_id, $noteDate);
             if ($period->fiscal_year_id !== $note->fiscal_year_id) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the note fiscal year.']]);
+                throw ValidationException::withMessages(['financial_period_id' => [__('Financial period does not belong to the note fiscal year.')]]);
             }
 
             $isDecrease = $note->direction === 'decrease_payable';
@@ -403,19 +406,19 @@ class SupplierAdjustmentNoteService
             $totalMinor = (int) $note->total_minor;
 
             if ($totalMinor <= 0) {
-                throw ValidationException::withMessages(['total_minor' => ['Cannot post a supplier adjustment note with a zero or negative total.']]);
+                throw ValidationException::withMessages(['total_minor' => [__('Cannot post a supplier adjustment note with a zero or negative total.')]]);
             }
 
             $apAccount = $this->mappingService->getAccount('ap_control');
             if ($apAccount->currency !== $note->currency) {
-                throw ValidationException::withMessages(['currency' => ['Mapped AP Control account currency must match note currency.']]);
+                throw ValidationException::withMessages(['currency' => [__('Mapped AP Control account currency must match note currency.')]]);
             }
 
             $contraAccount = null;
             if ($subtotalMinor > 0) {
                 $contraAccount = $this->mappingService->getAccount($isDecrease ? 'purchase_returns_allowances' : 'purchase_expense');
                 if ($contraAccount->currency !== $note->currency) {
-                    throw ValidationException::withMessages(['currency' => ['Mapped contra account currency must match note currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Mapped contra account currency must match note currency.')]]);
                 }
             }
 
@@ -423,7 +426,7 @@ class SupplierAdjustmentNoteService
             if ($taxMinor > 0) {
                 $taxAccount = $this->mappingService->getAccount('input_tax_receivable');
                 if ($taxAccount->currency !== $note->currency) {
-                    throw ValidationException::withMessages(['currency' => ['Mapped Input Tax Receivable account currency must match note currency.']]);
+                    throw ValidationException::withMessages(['currency' => [__('Mapped Input Tax Receivable account currency must match note currency.')]]);
                 }
             }
 
@@ -597,7 +600,7 @@ class SupplierAdjustmentNoteService
             ->first();
 
         if (! $period) {
-            throw ValidationException::withMessages(['adjustment_date' => ["No open financial period covers date {$date}."]]);
+            throw ValidationException::withMessages(['adjustment_date' => [__('No open financial period covers date :date.', ['date' => $date])]]);
         }
 
         return $period;
@@ -606,7 +609,7 @@ class SupplierAdjustmentNoteService
     private function validateDirection(?string $direction): string
     {
         if (! $direction || ! in_array($direction, self::ALLOWED_DIRECTIONS, true)) {
-            throw ValidationException::withMessages(['direction' => ['Direction must be one of: '.implode(', ', self::ALLOWED_DIRECTIONS).'.']]);
+            throw ValidationException::withMessages(['direction' => [__('Direction must be one of: :allowed.', ['allowed' => implode(', ', self::ALLOWED_DIRECTIONS)])]]);
         }
 
         return $direction;
@@ -616,14 +619,14 @@ class SupplierAdjustmentNoteService
     {
         $taxMode = $data['tax_mode'] ?? $fallbackMode;
         if (! in_array($taxMode, self::ALLOWED_TAX_MODES, true)) {
-            throw ValidationException::withMessages(['tax_mode' => ['Tax mode must be one of: '.implode(', ', self::ALLOWED_TAX_MODES).'.']]);
+            throw ValidationException::withMessages(['tax_mode' => [__('Tax mode must be one of: :allowed.', ['allowed' => implode(', ', self::ALLOWED_TAX_MODES)])]]);
         }
 
         $taxRateBps = 0;
         if ($taxMode === 'manual_rate') {
             $taxRateBps = (int) ($data['tax_rate_bps'] ?? $fallbackRateBps);
             if ($taxRateBps < 0) {
-                throw ValidationException::withMessages(['tax_rate_bps' => ['Tax rate cannot be negative.']]);
+                throw ValidationException::withMessages(['tax_rate_bps' => [__('Tax rate cannot be negative.')]]);
             }
         }
 
@@ -631,7 +634,7 @@ class SupplierAdjustmentNoteService
         if ($taxMode === 'manual_amount') {
             $manualTaxAmountMinor = (int) ($data['tax_amount_minor'] ?? $fallbackTaxMinor);
             if ($manualTaxAmountMinor < 0) {
-                throw ValidationException::withMessages(['tax_amount_minor' => ['Manual tax amount cannot be negative.']]);
+                throw ValidationException::withMessages(['tax_amount_minor' => [__('Manual tax amount cannot be negative.')]]);
             }
         }
 
@@ -643,13 +646,13 @@ class SupplierAdjustmentNoteService
         /** @var SupplierBill|null $supplierBill */
         $supplierBill = SupplierBill::query()->where('id', $supplierBillId)->first();
         if (! $supplierBill || $supplierBill->supplier_id !== $supplierId) {
-            throw ValidationException::withMessages(['supplier_bill_id' => ['Supplier Bill does not belong to the selected supplier.']]);
+            throw ValidationException::withMessages(['supplier_bill_id' => [__('Supplier Bill does not belong to the selected supplier.')]]);
         }
         if ($supplierBill->status !== 'posted') {
-            throw ValidationException::withMessages(['supplier_bill_id' => ['Supplier Bill must be posted.']]);
+            throw ValidationException::withMessages(['supplier_bill_id' => [__('Supplier Bill must be posted.')]]);
         }
         if ($supplierBill->currency !== $currency) {
-            throw ValidationException::withMessages(['supplier_bill_id' => ['Currency must match the Supplier Bill currency.']]);
+            throw ValidationException::withMessages(['supplier_bill_id' => [__('Currency must match the Supplier Bill currency.')]]);
         }
     }
 
@@ -658,17 +661,17 @@ class SupplierAdjustmentNoteService
         /** @var PurchaseReturn|null $purchaseReturn */
         $purchaseReturn = PurchaseReturn::query()->where('id', $purchaseReturnId)->first();
         if (! $purchaseReturn || $purchaseReturn->supplier_id !== $supplierId) {
-            throw ValidationException::withMessages(['purchase_return_id' => ['Purchase Return does not belong to the selected supplier.']]);
+            throw ValidationException::withMessages(['purchase_return_id' => [__('Purchase Return does not belong to the selected supplier.')]]);
         }
         if ($purchaseReturn->currency !== $currency) {
-            throw ValidationException::withMessages(['purchase_return_id' => ['Currency must match the Purchase Return currency.']]);
+            throw ValidationException::withMessages(['purchase_return_id' => [__('Currency must match the Purchase Return currency.')]]);
         }
     }
 
-    private function validateAndCalculateLines(array $lines, string $taxMode, int $taxRateBps, ?string $supplierBillId, ?string $purchaseReturnId): array
+    private function validateAndCalculateLines(array $lines, string $taxMode, int $taxRateBps, ?string $supplierBillId, ?string $purchaseReturnId, ?string $adjustmentDate): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         $validatedLines = [];
@@ -678,20 +681,20 @@ class SupplierAdjustmentNoteService
 
             $description = $line['description'] ?? null;
             if (! is_string($description) || trim($description) === '') {
-                throw ValidationException::withMessages(["lines.{$index}.description" => ["Description on line {$lineIndex} is required."]]);
+                throw ValidationException::withMessages(["lines.{$index}.description" => [__('Description on line :line is required.', ['line' => $lineIndex])]]);
             }
 
             $quantityE6 = null;
             if (isset($line['quantity_e6']) && $line['quantity_e6'] !== null && $line['quantity_e6'] !== '') {
                 $quantityE6 = (int) $line['quantity_e6'];
                 if ($quantityE6 <= 0) {
-                    throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex])]]);
                 }
             }
 
             $unitCostMinor = (int) ($line['unit_cost_minor'] ?? 0);
             if ($unitCostMinor < 0) {
-                throw ValidationException::withMessages(["lines.{$index}.unit_cost_minor" => ["Unit cost on line {$lineIndex} cannot be negative."]]);
+                throw ValidationException::withMessages(["lines.{$index}.unit_cost_minor" => [__('Unit cost on line :line cannot be negative.', ['line' => $lineIndex])]]);
             }
 
             if ($quantityE6 !== null) {
@@ -705,13 +708,13 @@ class SupplierAdjustmentNoteService
             $supplierBillLineId = $line['supplier_bill_line_id'] ?? null;
             if ($supplierBillLineId) {
                 if (! $supplierBillId) {
-                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Line {$lineIndex} references a Supplier Bill line but no Supplier Bill was selected."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => [__('Line :line references a Supplier Bill line but no Supplier Bill was selected.', ['line' => $lineIndex])]]);
                 }
 
                 /** @var SupplierBillLine|null $billLine */
                 $billLine = SupplierBillLine::query()->where('id', $supplierBillLineId)->first();
                 if (! $billLine || $billLine->supplier_bill_id !== $supplierBillId) {
-                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => ["Line {$lineIndex} does not belong to the selected Supplier Bill."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.supplier_bill_line_id" => [__('Line :line does not belong to the selected Supplier Bill.', ['line' => $lineIndex])]]);
                 }
 
                 if (! $taxCodeId && $billLine->tax_code_id) {
@@ -722,13 +725,13 @@ class SupplierAdjustmentNoteService
             $purchaseReturnLineId = $line['purchase_return_line_id'] ?? null;
             if ($purchaseReturnLineId) {
                 if (! $purchaseReturnId) {
-                    throw ValidationException::withMessages(["lines.{$index}.purchase_return_line_id" => ["Line {$lineIndex} references a Purchase Return line but no Purchase Return was selected."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.purchase_return_line_id" => [__('Line :line references a Purchase Return line but no Purchase Return was selected.', ['line' => $lineIndex])]]);
                 }
 
                 /** @var PurchaseReturnLine|null $returnLine */
                 $returnLine = PurchaseReturnLine::query()->where('id', $purchaseReturnLineId)->first();
                 if (! $returnLine || $returnLine->purchase_return_id !== $purchaseReturnId) {
-                    throw ValidationException::withMessages(["lines.{$index}.purchase_return_line_id" => ["Line {$lineIndex} does not belong to the selected Purchase Return."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.purchase_return_line_id" => [__('Line :line does not belong to the selected Purchase Return.', ['line' => $lineIndex])]]);
                 }
 
                 if (! $taxCodeId && $returnLine->tax_code_id) {
@@ -740,7 +743,7 @@ class SupplierAdjustmentNoteService
             $lineTaxMinor = 0;
 
             if ($taxCodeId) {
-                $calcDate = $data['adjustment_date'] ?? now()->format('Y-m-d');
+                $calcDate = $adjustmentDate ?? now()->format('Y-m-d');
                 $taxResult = $this->taxCalcService->calculateTax($taxCodeId, $lineSubtotalMinor, $calcDate);
                 $lineTaxRateBps = $taxResult['rate_bps'];
                 $lineTaxMinor = $taxResult['tax_minor'];
@@ -784,7 +787,7 @@ class SupplierAdjustmentNoteService
     private function checkedAdd(int $left, int $right): int
     {
         if ($right > 0 && $left > PHP_INT_MAX - $right) {
-            throw ValidationException::withMessages(['line_total_minor' => ['Calculation exceeds supported integer range.']]);
+            throw ValidationException::withMessages(['line_total_minor' => [__('Calculation exceeds supported integer range.')]]);
         }
 
         return $left + $right;
@@ -793,7 +796,7 @@ class SupplierAdjustmentNoteService
     private function assertMultiplyWithinRange(int $left, int $right, string $field): void
     {
         if ($left !== 0 && $right !== 0 && $left > intdiv(PHP_INT_MAX, $right)) {
-            throw ValidationException::withMessages([$field => ['Calculation exceeds supported integer range.']]);
+            throw ValidationException::withMessages([$field => [__('Calculation exceeds supported integer range.')]]);
         }
     }
 }

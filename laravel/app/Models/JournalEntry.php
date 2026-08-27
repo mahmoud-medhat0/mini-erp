@@ -18,6 +18,7 @@ class JournalEntry extends Model
         'number',
         'entry_date',
         'financial_period_id',
+        'branch_id',
         'source_type',
         'source_id',
         'description',
@@ -56,6 +57,11 @@ class JournalEntry extends Model
     public function period(): BelongsTo
     {
         return $this->belongsTo(FinancialPeriod::class, 'financial_period_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function lines(): HasMany

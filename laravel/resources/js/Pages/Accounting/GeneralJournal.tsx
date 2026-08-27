@@ -17,39 +17,39 @@ type GeneralJournalProps = SharedPageProps & {
 
 export default function GeneralJournal({ locale, journals, periods = [], filters }: GeneralJournalProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
+  const accDict = dict.app.accounting;
 
   const getStatusLabel = (status: string) => {
     const s = status.toLowerCase();
-    const map: Record<string, { en: string; ar: string }> = {
-      draft: { en: 'DRAFT', ar: 'مسودة' },
-      submitted: { en: 'SUBMITTED', ar: 'مقدم للمراجعة' },
-      approved: { en: 'APPROVED', ar: 'معتمد' },
-      posted: { en: 'POSTED', ar: 'رحل' },
-      reversed: { en: 'REVERSED', ar: 'معكوس' },
+    const map: Record<string, string> = {
+      draft: accDict.statusDraft,
+      submitted: accDict.statusSubmitted,
+      approved: accDict.statusApproved,
+      posted: accDict.statusPosted,
+      reversed: accDict.statusReversed,
     };
-    if (!map[s]) return status.toUpperCase();
-    return locale === 'ar' ? map[s].ar : map[s].en;
+
+    return map[s] ?? accDict.statusUnknown;
   };
 
   const statusFilterList = [
-    { key: '', label: accDict.statusAll || 'ALL' },
-    { key: 'draft', label: accDict.statusDraft || 'DRAFT' },
-    { key: 'submitted', label: accDict.statusSubmitted || 'SUBMITTED' },
-    { key: 'approved', label: accDict.statusApproved || 'APPROVED' },
-    { key: 'posted', label: accDict.statusPosted || 'POSTED' },
-    { key: 'reversed', label: accDict.statusReversed || 'REVERSED' },
+    { key: '', label: accDict.statusAll },
+    { key: 'draft', label: accDict.statusDraft },
+    { key: 'submitted', label: accDict.statusSubmitted },
+    { key: 'approved', label: accDict.statusApproved },
+    { key: 'posted', label: accDict.statusPosted },
+    { key: 'reversed', label: accDict.statusReversed },
   ];
 
   const [selectedJournal, setSelectedJournal] = useState<JournalRow | null>(null);
 
   return (
     <AppLayout active="accounting.journal">
-      <Head title={accDict.journal || 'General Journal'} />
+      <Head title={accDict.journal} />
 
       <PageHeader
-        title={accDict.journal || 'General Journal'}
-        description={accDict.journalDesc || 'General Journal Vouchers stream across draft, submitted, approved, posted and reversed statuses.'}
+        title={accDict.journal}
+        description={accDict.journalDesc}
         actions={
           <Link
             href="/accounting/journal/create"
@@ -58,7 +58,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            <span>{accDict.createVoucher || 'Create Journal Voucher'}</span>
+            <span>{accDict.createVoucher}</span>
           </Link>
         }
       />
@@ -79,7 +79,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                     {dict.app.actions.numberDetails}
                   </h3>
                   <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {selectedJournal.number || selectedJournal.entry_number || 'DRAFT'}
+                    {selectedJournal.number || selectedJournal.entry_number || accDict.draftBadge}
                   </span>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
 
             <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.entryDate || 'Entry Date'}</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.entryDate}</span>
                 <span className="font-mono font-bold text-[var(--text-primary)]">{formatDate(selectedJournal.entry_date)}</span>
               </div>
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
@@ -106,16 +106,16 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                 </StatusBadge>
               </div>
               <div className="col-span-2 rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.description || 'Description'}</span>
-                <span className="font-bold text-[var(--text-primary)]">{selectedJournal.description || (accDict.manualJournal || 'Manual Journal')}</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.description}</span>
+                <span className="font-bold text-[var(--text-primary)]">{selectedJournal.description || accDict.manualJournal}</span>
               </div>
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.reference || 'Reference'}</span>
-                <span className="font-mono text-[var(--text-primary)]">{selectedJournal.reference || '-'}</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.reference}</span>
+                <span className="font-mono text-[var(--text-primary)]">{selectedJournal.reference || accDict.notAvailable}</span>
               </div>
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
-                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.createdBy || 'Created By'}</span>
-                <span className="text-[var(--text-primary)] font-semibold">{selectedJournal.createdBy?.name || '-'}</span>
+                <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.createdBy}</span>
+                <span className="text-[var(--text-primary)] font-semibold">{selectedJournal.createdBy?.name || accDict.systemActor}</span>
               </div>
             </div>
 
@@ -131,7 +131,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                 href={`/accounting/journal/${selectedJournal.id}`}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
               >
-                <span>{accDict.viewDetail || 'View Full Voucher'}</span>
+                <span>{accDict.viewFullVoucher}</span>
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
@@ -144,7 +144,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">{accDict.filterStatus || 'Filter Status'}:</span>
+            <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">{accDict.filterStatus}:</span>
             {statusFilterList.map((st) => (
               <Link
                 key={st.key}
@@ -164,20 +164,20 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
 
       {journals.data.length === 0 ? (
         <EmptyState
-          title={accDict.noJournals || dict.app.pages.accountingGeneralJournal.noJournalVouchersYet}
-          description={accDict.noJournalsDesc || dict.app.pages.accountingGeneralJournal.createANewJournalVoucherTo}
+          title={accDict.noJournals}
+          description={accDict.noJournalsDesc}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{accDict.voucherNumber || 'Voucher #'}</th>
-                <th className={tableClasses.th}>{accDict.entryDate || 'Entry Date'}</th>
-                <th className={tableClasses.th}>{accDict.description || 'Description'}</th>
-                <th className={tableClasses.th}>{accDict.reference || 'Reference'}</th>
+                <th className={tableClasses.th}>{accDict.voucherNumber}</th>
+                <th className={tableClasses.th}>{accDict.entryDate}</th>
+                <th className={tableClasses.th}>{accDict.description}</th>
+                <th className={tableClasses.th}>{accDict.reference}</th>
                 <th className={tableClasses.th}>{dict.app.fields.status}</th>
-                <th className={tableClasses.th}>{accDict.createdBy || 'Created By'}</th>
+                <th className={tableClasses.th}>{accDict.createdBy}</th>
                 <th className={tableClasses.th} />
               </tr>
             </thead>
@@ -195,7 +195,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
-                      <span>{j.number ? j.number : (accDict.draftBadge || 'DRAFT')}</span>
+                      <span>{j.number ? j.number : accDict.draftBadge}</span>
                     </button>
                   </td>
                   <td className={tableClasses.td}>
@@ -203,11 +203,11 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                   </td>
                   <td className={tableClasses.td}>
                     <span className="font-bold text-xs text-[var(--text-primary)]">
-                      {j.description || (accDict.manualJournal || 'Manual Journal')}
+                      {j.description || accDict.manualJournal}
                     </span>
                   </td>
                   <td className={tableClasses.td}>
-                    <span className="font-mono text-xs text-[var(--text-secondary)]">{j.reference || '-'}</span>
+                    <span className="font-mono text-xs text-[var(--text-secondary)]">{j.reference || accDict.notAvailable}</span>
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
@@ -215,14 +215,14 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    <span className="text-xs text-[var(--text-secondary)]">{j.createdBy?.name || '-'}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{j.createdBy?.name || accDict.systemActor}</span>
                   </td>
                   <td className={tableClasses.td}>
                     <Link
                       href={`/accounting/journal/${j.id}`}
                       className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-[var(--background)] transition-colors inline-flex items-center gap-1"
                     >
-                      <span>{accDict.viewDetail || 'View Detail'}</span>
+                      <span>{accDict.viewDetail}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>

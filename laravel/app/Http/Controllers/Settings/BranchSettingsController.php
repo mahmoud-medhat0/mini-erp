@@ -2,16 +2,11 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Domain\Audit\AuditLogger;
+use App\Application\Settings\BranchSettingsService;
 use App\Http\Controllers\Concerns\AuthorizesSettingsManagement;
-use App\Http\Controllers\Concerns\ResolvesLocalizedModelFields;
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
-use App\Support\Concurrency\OptimisticLock;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,32 +14,12 @@ use Inertia\Response;
 class BranchSettingsController extends Controller
 {
     use AuthorizesSettingsManagement;
-    use ResolvesLocalizedModelFields;
 
-    public function __construct(
-        private readonly AuditLogger $auditLogger,
-        private readonly OptimisticLock $optimisticLock,
-    ) {}
+    public function __construct(private readonly BranchSettingsService $service) {}
 
     public function index(Request $request): Response
     {
-        $locale = $this->locale($request);
-
-        return Inertia::render('Settings/Branches', [
-            'branches' => Branch::query()
-                ->orderBy('code')
-                ->get()
-                ->map(fn (Branch $branch): array => [
-                    'id' => $branch->id,
-                    'code' => $branch->code,
-                    'name' => $this->modelTranslation($branch, 'name', $locale),
-                    'nameEn' => $this->modelTranslation($branch, 'name', 'en'),
-                    'nameAr' => $this->modelTranslation($branch, 'name', 'ar'),
-                    'isActive' => $branch->is_active,
-                    'lockVersion' => (int) $branch->lock_version,
-                ])
-                ->values(),
-        ]);
+        return Inertia::render('Settings/Branches', $this->service->indexData($request->user()));
     }
 
     public function store(Request $request): RedirectResponse
@@ -58,17 +33,7 @@ class BranchSettingsController extends Controller
             'is_active' => ['nullable'],
         ]);
 
-        $id = (string) Str::uuid();
-
-        DB::table('branch')->insert([
-            'id' => $id,
-            'code' => $validated['code'],
-            'name' => json_encode(['en' => $validated['name_en'], 'ar' => $validated['name_ar']], JSON_THROW_ON_ERROR),
-            'is_active' => $request->boolean('is_active', true),
-            'lock_version' => 0,
-        ]);
-
-        $this->auditLogger->record($request->user()->id, 'branch.create', 'branch', $id, after: $validated);
+        $this->service->create($validated, $request->boolean('is_active', true), $request->user()->id);
 
         return back()->with('success', __('Branch saved.'));
     }
@@ -85,23 +50,7 @@ class BranchSettingsController extends Controller
             'lock_version' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $before = (array) DB::table('branch')->where('id', $branchId)->first();
-
-        abort_if($before === [], 404);
-
-        $payload = [
-            'code' => $validated['code'],
-            'name' => json_encode(['en' => $validated['name_en'], 'ar' => $validated['name_ar']], JSON_THROW_ON_ERROR),
-            'is_active' => $request->boolean('is_active'),
-        ];
-
-        if (isset($validated['lock_version'])) {
-            $this->optimisticLock->update('branch', ['id' => $branchId], (int) $validated['lock_version'], $payload);
-        } else {
-            DB::table('branch')->where('id', $branchId)->update($payload);
-        }
-
-        $this->auditLogger->record($request->user()->id, 'branch.update', 'branch', $branchId, before: $before, after: $validated);
+        $this->service->update($branchId, $validated, $request->boolean('is_active'), $request->user()->id);
 
         return back()->with('success', __('Branch saved.'));
     }
@@ -110,14 +59,7 @@ class BranchSettingsController extends Controller
     {
         $this->authorizeManagement($request, 'settings.branches');
 
-        $branch = DB::table('branch')->where('id', $branchId)->first();
-        abort_if(! $branch, 404);
-
-        $before = (array) $branch;
-
-        DB::table('branch')->where('id', $branchId)->delete();
-
-        $this->auditLogger->record($request->user()->id, 'branch.delete', 'branch', $branchId, before: $before);
+        $this->service->delete($branchId, $request->user()->id);
 
         return back()->with('success', __('Branch deleted successfully.'));
     }

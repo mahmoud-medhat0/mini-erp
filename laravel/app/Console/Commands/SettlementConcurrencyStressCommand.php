@@ -8,6 +8,8 @@ use App\Application\Accounting\PayableEntrySettlementService;
 use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\ReceivableEntrySettlementService;
 use App\Application\Accounting\SupplierOpeningBalanceService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\Customer;
 use App\Models\PayableEntry;
@@ -26,6 +28,8 @@ use Throwable;
 
 class SettlementConcurrencyStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:settlement-concurrency-stress {--workers=50}';
 
     protected $description = 'Run PostgreSQL concurrent AR/AP note settlement and over-settlement stress checks.';
@@ -35,6 +39,7 @@ class SettlementConcurrencyStressCommand extends Command
         AccountingAccountMappingService $mappingService,
         CustomerOpeningBalanceService $cobService,
         SupplierOpeningBalanceService $sobService,
+        BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
         $driver = DB::connection()->getDriverName();
         $workers = max(2, min((int) $this->option('workers'), 250));
@@ -51,6 +56,7 @@ class SettlementConcurrencyStressCommand extends Command
 
         try {
             $user = User::query()->first() ?? User::factory()->create();
+            $currency = $this->resolveStressCurrency($baseCurrencyResolver);
             $suffix = Str::upper(Str::random(8));
             $yearNum = random_int(2300, 8999);
 
@@ -66,7 +72,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'name' => ['en' => 'AR Settlement Stress Control'],
                 'type' => 'asset',
                 'nature' => 'debit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => true,
                 'allow_manual_posting' => false,
                 'is_active' => true,
@@ -77,7 +83,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'name' => ['en' => 'AP Settlement Stress Control'],
                 'type' => 'liability',
                 'nature' => 'credit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => true,
                 'allow_manual_posting' => false,
                 'is_active' => true,
@@ -88,7 +94,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'name' => ['en' => 'Settlement Stress Offset'],
                 'type' => 'equity',
                 'nature' => 'credit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_control' => false,
                 'allow_manual_posting' => true,
                 'is_active' => true,
@@ -114,7 +120,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'fiscal_year_id' => $fiscalYear->id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$yearNum}-01-01",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'amount_minor' => 300000,
             ], $user->id);
             $postedCustomerDebit = $cobService->post($customerDebitCob->id, $user->id);
@@ -127,7 +133,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'journal_entry_id' => $postedCustomerDebit->journal_entry_id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$yearNum}-01-01",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'debit_minor' => 0,
                 'credit_minor' => 300000,
                 'created_by' => $user->id,
@@ -139,7 +145,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'fiscal_year_id' => $fiscalYear->id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$yearNum}-01-01",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'amount_minor' => 300000,
             ], $user->id);
             $postedSupplierCredit = $sobService->post($supplierCreditSob->id, $user->id);
@@ -152,7 +158,7 @@ class SettlementConcurrencyStressCommand extends Command
                 'journal_entry_id' => $postedSupplierCredit->journal_entry_id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$yearNum}-01-01",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'debit_minor' => 300000,
                 'credit_minor' => 0,
                 'created_by' => $user->id,

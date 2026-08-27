@@ -13,36 +13,6 @@ type UsersProps = SharedPageProps & {
   allPermissions?: string[];
 };
 
-const CATEGORY_META: Record<string, { labelEn: string; labelAr: string }> = {
-  accounting: { labelEn: 'Accounting & Ledger', labelAr: 'المحاسبة والدفاتر' },
-  audit: { labelEn: 'Audit & Compliance', labelAr: 'المراجعة والتدقيق' },
-  banks: { labelEn: 'Bank Accounts', labelAr: 'الحسابات البنكية' },
-  budgeting: { labelEn: 'Budgets & Forecasting', labelAr: 'الموازنات والتخطيط' },
-  cash: { labelEn: 'Cash & Treasury', labelAr: 'النقدية والخزينة' },
-  cheques: { labelEn: 'Cheques Management', labelAr: 'الشيكات والأوراق المالية' },
-  close_period: { labelEn: 'Period Closing', labelAr: 'إغلاق الفترات المالية' },
-  costCenters: { labelEn: 'Cost Centers', labelAr: 'مراكز التكلفة' },
-  customers: { labelEn: 'Customers & CRM', labelAr: 'العملاء والشركاء' },
-  dashboard: { labelEn: 'Dashboard & Analytics', labelAr: 'لوحة التحكم والتحليلات' },
-  equipment: { labelEn: 'Assets & Equipment', labelAr: 'الأصول والمعدات' },
-  expenses: { labelEn: 'Expenses & Claims', labelAr: 'المصروفات والعهد' },
-  fixedAssets: { labelEn: 'Fixed Assets', labelAr: 'الأصول الثابتة' },
-  inventory: { labelEn: 'Inventory & Stock', labelAr: 'المخزون والمستودعات' },
-  partners: { labelEn: 'Business Partners', labelAr: 'شركاء الأعمال' },
-  payroll: { labelEn: 'Payroll & HR', labelAr: 'المرتبات والموارد البشرية' },
-  projects: { labelEn: 'Projects & Tasks', labelAr: 'المشاريع والمهام' },
-  purchasing: { labelEn: 'Purchases & Procurement', labelAr: 'المشتريات والتوريد' },
-  recurring: { labelEn: 'Recurring Entries', labelAr: 'القيود الدوريّة' },
-  rentals: { labelEn: 'Rentals & Leases', labelAr: 'الإيجارات والعقود' },
-  reports: { labelEn: 'Financial Reports', labelAr: 'التقارير المالية' },
-  sales: { labelEn: 'Sales & Invoicing', labelAr: 'المبيعات والفواتير' },
-  settings: { labelEn: 'System Settings', labelAr: 'إعدادات النظام' },
-  suppliers: { labelEn: 'Suppliers & Vendors', labelAr: 'الموردين والتجار' },
-  taxes: { labelEn: 'Taxes & VAT', labelAr: 'الضرائب والإقرارات' },
-  users: { labelEn: 'Users & Permissions', labelAr: 'المستخدمين والمجموعات' },
-  general: { labelEn: 'General System', labelAr: 'النظام العام' },
-};
-
 function CategoryIcon({ categoryKey, className = 'size-4' }: { categoryKey: string; className?: string }) {
   const iconPaths: Record<string, string> = {
     accounting: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z',
@@ -89,22 +59,20 @@ function formatPermission(perm: string, dict: ReturnType<typeof getDictionary>):
 
   const parts = perm.split('.');
   if (parts.length === 2) {
-    const domainMeta = CATEGORY_META[parts[0]];
-    const isAr = dict.app.actions.cancel === 'إلغاء';
-    const domain = domainMeta ? (isAr ? domainMeta.labelAr : domainMeta.labelEn) : (parts[0].charAt(0).toUpperCase() + parts[0].slice(1));
-    const action = parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
+    const categoryLabels = dict.app.permissionCategories as Record<string, string>;
+    const actionLabels = dict.app.permissionActions as Record<string, string>;
+    const domain = categoryLabels[parts[0]] || categoryLabels.general || parts[0];
+    const action = actionLabels[parts[1]] || parts[1].replace(/_/g, ' ');
     return `${domain}: ${action}`;
   }
 
-  return perm;
+  return (dict.app.permissionActions as Record<string, string>)[perm] || perm.replace(/_/g, ' ');
 }
 
-function getCategoryTitle(key: string, isRtl: boolean): string {
-  const meta = CATEGORY_META[key];
-  if (meta) {
-    return isRtl ? meta.labelAr : meta.labelEn;
-  }
-  return key.charAt(0).toUpperCase() + key.slice(1);
+function getCategoryTitle(key: string, dict: ReturnType<typeof getDictionary>): string {
+  const labels = dict.app.permissionCategories as Record<string, string>;
+
+  return labels[key] || labels.general || key;
 }
 
 function groupPermissionsByCategory(permissions: string[]) {
@@ -135,8 +103,8 @@ function UserFormModal({
 }) {
   const roleOptions = roles.map((r) => ({ value: String(r.id), label: r.name }));
   const languageOptions = [
-    { value: 'en', label: 'English' },
-    { value: 'ar', label: 'العربية (Arabic)' },
+    { value: 'en', label: dict.common.language.en },
+    { value: 'ar', label: dict.common.language.ar },
   ];
 
   const initialRoleId = user?.roles[0]?.id ? String(user.roles[0].id) : (roleOptions[0]?.value ?? '');
@@ -197,7 +165,7 @@ function UserFormModal({
               type="text"
               value={data.name}
               onChange={(e) => setData('name', e.target.value)}
-              placeholder="e.g. Mahmoud Medhat"
+              placeholder={dict.app.fields.fullNamePlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
@@ -213,7 +181,7 @@ function UserFormModal({
               type="email"
               value={data.email}
               onChange={(e) => setData('email', e.target.value)}
-              placeholder="e.g. mahmoud@minierp.test"
+              placeholder={dict.app.fields.emailPlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required
             />
@@ -229,7 +197,7 @@ function UserFormModal({
               type="password"
               value={data.password}
               onChange={(e) => setData('password', e.target.value)}
-              placeholder={user ? '••••••••' : 'At least 8 characters'}
+              placeholder={user ? dict.app.fields.passwordMaskedPlaceholder : dict.app.fields.passwordPlaceholder}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
               required={!user}
               minLength={8}
@@ -400,13 +368,11 @@ function RoleFormModal({
   role,
   allPermissions,
   dict,
-  isRtl = false,
   onClose,
 }: {
   role?: RoleRow;
   allPermissions: string[];
   dict: ReturnType<typeof getDictionary>;
-  isRtl?: boolean;
   onClose: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -553,7 +519,7 @@ function RoleFormModal({
               </span>
 
               {categoriesList.map((catKey) => {
-                const catTitle = getCategoryTitle(catKey, isRtl);
+                const catTitle = getCategoryTitle(catKey, dict);
                 const catPerms = groupedPermissions[catKey] || [];
                 const selectedCount = catPerms.filter((p) => data.permissions.includes(p)).length;
                 const isSelected = activeCategory === catKey && !searchTerm.trim();
@@ -607,7 +573,7 @@ function RoleFormModal({
                   <div className="flex items-center gap-2.5">
                     <CategoryIcon categoryKey={activeCategory} className="size-5 text-blue-500" />
                     <span className="font-bold text-sm text-[var(--text-primary)]">
-                      {getCategoryTitle(activeCategory, isRtl)}
+                      {getCategoryTitle(activeCategory, dict)}
                     </span>
                     <span className="rounded-full bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
                       {activeCatSelectedCount} / {activeCatPerms.length} {dict.app.fields.selected}
@@ -624,7 +590,7 @@ function RoleFormModal({
                 </div>
               ) : (
                 <div className="border-b border-[var(--border)] pb-2 text-xs font-bold text-[var(--text-secondary)]">
-                  Search Results: {searchedPerms.length} permissions found
+                  {dict.app.fields.permissionSearchResults.replace('{count}', String(searchedPerms.length))}
                 </div>
               )}
 
@@ -763,10 +729,12 @@ function RevokeRoleButton({
   userId,
   roleId,
   roleName,
+  dict,
 }: {
   userId: number | string;
   roleId: number | string;
   roleName: string;
+  dict: ReturnType<typeof getDictionary>;
 }) {
   const { delete: destroy, processing } = useForm({ user_id: userId, role_id: roleId });
 
@@ -782,7 +750,7 @@ function RevokeRoleButton({
         <button
           type="submit"
           disabled={processing}
-          title="Revoke Role"
+          title={dict.app.actions.revoke}
           className="rounded p-0.5 text-blue-500 hover:bg-blue-500/20 hover:text-red-500 transition-colors disabled:opacity-50"
         >
           <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -799,7 +767,7 @@ function DeleteRoleButton({ roleId, roleName, dict }: { roleId: number | string;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const msg = (dict.app.messages.confirmDeleteRole || 'Are you sure you want to delete role "{name}"?').replace('{name}', roleName);
+    const msg = dict.app.messages.confirmDeleteRole.replace('{name}', roleName);
     if (confirm(msg)) {
       destroy(`/settings/roles/${roleId}`, { preserveScroll: true });
     }
@@ -838,10 +806,10 @@ function DeleteUserButton({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSelf) {
-      alert(dict.app.messages.cannotDeleteSelf || "You cannot delete your own logged-in account!");
+      alert(dict.app.messages.cannotDeleteSelf);
       return;
     }
-    const msg = (dict.app.messages.confirmDeleteUser || 'Are you sure you want to delete user "{name}"?').replace('{name}', userName);
+    const msg = dict.app.messages.confirmDeleteUser.replace('{name}', userName);
     if (confirm(msg)) {
       destroy(`/settings/users/${userId}`, { preserveScroll: true });
     }
@@ -1043,7 +1011,7 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
                           ) : (
                             <div className="flex flex-wrap gap-2">
                               {user.roles.map((role) => (
-                                <RevokeRoleButton key={role.id} userId={user.id} roleId={role.id} roleName={role.name} />
+                                <RevokeRoleButton key={role.id} userId={user.id} roleId={role.id} roleName={role.name} dict={dict} />
                               ))}
                             </div>
                           )}
@@ -1092,7 +1060,6 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
               role={editingRole ?? undefined}
               allPermissions={defaultPermissions}
               dict={dict}
-              isRtl={locale === 'ar'}
               onClose={() => {
                 setShowAddRoleForm(false);
                 setEditingRole(null);

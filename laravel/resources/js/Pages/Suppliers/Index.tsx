@@ -19,6 +19,8 @@ type SupplierRow = {
   created_at: string;
 };
 
+type SupplierStatus = SupplierRow['status'];
+
 type SuppliersProps = SharedPageProps & {
   suppliers: {
     data: SupplierRow[];
@@ -30,8 +32,13 @@ type SuppliersProps = SharedPageProps & {
   };
 };
 
+function toSupplierStatus(value: string): SupplierStatus {
+  return value === 'inactive' ? 'inactive' : 'active';
+}
+
 export default function SuppliersIndex({ locale, suppliers, filters }: SuppliersProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -149,9 +156,9 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                 <tr key={supplier.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{supplier.code}</td>
                   <td className={`${tableClasses.td} font-semibold`}>{supplier.name}</td>
-                  <td className={tableClasses.td}>{supplier.phone || '—'}</td>
-                  <td className={tableClasses.td}>{supplier.email || '—'}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{supplier.tax_number || '—'}</td>
+                  <td className={tableClasses.td}>{supplier.phone || accDict.notAvailable}</td>
+                  <td className={tableClasses.td}>{supplier.email || accDict.notAvailable}</td>
+                  <td className={`${tableClasses.td} font-mono text-xs`}>{supplier.tax_number || accDict.notAvailable}</td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={supplier.status === 'active' ? 'ok' : 'muted'}>
                       {supplier.status === 'active' ? dict.app.pages.suppliers.active_2 : dict.app.pages.suppliers.inactive_2}
@@ -204,7 +211,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                   </label>
                   <select
                     value={data.status}
-                    onChange={(e) => setData('status', e.target.value as any)}
+                    onChange={(e) => setData('status', toSupplierStatus(e.target.value))}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
                   >
                     <option value="active">{dict.app.pages.suppliers.active}</option>

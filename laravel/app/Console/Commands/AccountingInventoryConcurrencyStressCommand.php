@@ -3,9 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\AccountingAccountMapping;
-use App\Models\Currency;
 use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
 use App\Models\Product;
@@ -18,11 +19,13 @@ use Illuminate\Support\Str;
 
 class AccountingInventoryConcurrencyStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:inventory-concurrency-stress {--workers=50}';
 
     protected $description = 'Stress test Moving Weighted Average Inventory Costing integrity';
 
-    public function handle(): int
+    public function handle(BaseCurrencyResolver $baseCurrencyResolver): int
     {
         $workers = (int) $this->option('workers');
         $this->info("Starting Inventory Integrity Stress Test with {$workers} iterations...");
@@ -35,9 +38,8 @@ class AccountingInventoryConcurrencyStressCommand extends Command
             'locale' => 'en',
         ]);
 
-        $currency = Currency::query()->firstOrCreate(['code' => 'USD'], [
-            'name' => 'US Dollar', 'symbol' => '$', 'sub_unit' => 'Cent', 'sub_unit_to_unit' => 100, 'is_active' => true,
-        ]);
+        $currencyCode = $this->resolveStressCurrency($baseCurrencyResolver);
+        $runId = now()->format('YmdHis').'-'.Str::lower(Str::random(8));
 
         $fiscalYear = FiscalYear::query()->firstOrCreate(['year' => 2026], [
             'start_date' => '2026-01-01', 'end_date' => '2026-12-31', 'status' => 'open', 'created_by' => $user->id, 'updated_by' => $user->id, 'lock_version' => 1,
@@ -47,24 +49,26 @@ class AccountingInventoryConcurrencyStressCommand extends Command
             'name' => 'January 2026', 'start_date' => '2026-01-01', 'end_date' => '2026-01-31', 'status' => 'open', 'created_by' => $user->id, 'updated_by' => $user->id, 'lock_version' => 1,
         ]);
 
-        $inventoryAcc = Account::query()->firstOrCreate(['code' => '1300-STRESS'], [
-            'name' => 'Inventory Asset Stress', 'type' => 'asset', 'nature' => 'debit', 'currency' => 'USD', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+        $inventoryAcc = Account::query()->create([
+            'code' => "1300-STRESS-{$runId}",
+            'name' => 'Inventory Asset Stress', 'type' => 'asset', 'nature' => 'debit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
         ]);
-        $grniAcc = Account::query()->firstOrCreate(['code' => '2200-STRESS'], [
-            'name' => 'GRNI Clearing Stress', 'type' => 'liability', 'nature' => 'credit', 'currency' => 'USD', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+        $grniAcc = Account::query()->create([
+            'code' => "2200-STRESS-{$runId}",
+            'name' => 'GRNI Clearing Stress', 'type' => 'liability', 'nature' => 'credit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
         ]);
-        $cogsAcc = Account::query()->firstOrCreate(['code' => '5200-STRESS'], [
-            'name' => 'COGS Stress', 'type' => 'expense', 'nature' => 'debit', 'currency' => 'USD', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+        $cogsAcc = Account::query()->create([
+            'code' => "5200-STRESS-{$runId}",
+            'name' => 'COGS Stress', 'type' => 'expense', 'nature' => 'debit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
         ]);
 
-        AccountingAccountMapping::query()->updateOrCreate(['key' => 'inventory_asset'], ['account_id' => $inventoryAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
-        AccountingAccountMapping::query()->updateOrCreate(['key' => 'grni_clearing'], ['account_id' => $grniAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
-        AccountingAccountMapping::query()->updateOrCreate(['key' => 'cogs'], ['account_id' => $cogsAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
+        AccountingAccountMapping::query()->updateOrCreate(['key' => 'inventory_asset', 'branch_id' => null], ['account_id' => $inventoryAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
+        AccountingAccountMapping::query()->updateOrCreate(['key' => 'grni_clearing', 'branch_id' => null], ['account_id' => $grniAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
+        AccountingAccountMapping::query()->updateOrCreate(['key' => 'cogs', 'branch_id' => null], ['account_id' => $cogsAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
 
         $uom = UnitOfMeasure::query()->firstOrCreate(['code' => 'PCS-STR'], ['name' => ['en' => 'Pieces'], 'symbol' => 'pcs', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
         $cat = ProductCategory::query()->firstOrCreate(['code' => 'CAT-STR'], ['name' => ['en' => 'Stress Cat'], 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
 
-        $runId = now()->format('YmdHis').'-'.Str::lower(Str::random(8));
         $product = Product::query()->create([
             'code' => "PROD-STRESS-INV-{$runId}",
             'name' => ['en' => "Stress Inventory Product {$runId}"],
@@ -84,7 +88,7 @@ class AccountingInventoryConcurrencyStressCommand extends Command
 
         $this->info("Executing {$workers} receipt iterations...");
         $receiptQtyE6 = 1000000; // 1 unit
-        $unitCostMinor = 1000; // 10.00 USD
+        $unitCostMinor = 1000; // 10.00 in configured stress currency minor units.
 
         for ($i = 0; $i < $workers; $i++) {
             $sourceId = (string) Str::uuid();
@@ -97,7 +101,7 @@ class AccountingInventoryConcurrencyStressCommand extends Command
                 movementDate: '2026-01-15',
                 productId: $product->id,
                 unitOfMeasureId: $uom->id,
-                currency: 'USD',
+                currency: $currencyCode,
                 quantityE6: $receiptQtyE6,
                 unitCostMinor: $unitCostMinor,
                 fiscalYearId: $fiscalYear->id,
@@ -130,7 +134,7 @@ class AccountingInventoryConcurrencyStressCommand extends Command
                 movementDate: '2026-01-20',
                 productId: $product->id,
                 unitOfMeasureId: $uom->id,
-                currency: 'USD',
+                currency: $currencyCode,
                 quantityE6: $receiptQtyE6,
                 fiscalYearId: $fiscalYear->id,
                 financialPeriodId: $period->id,

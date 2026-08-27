@@ -11,10 +11,14 @@ use Illuminate\Support\Facades\DB;
 
 class SupplierStatementReportService
 {
+    public function __construct(
+        private readonly ReportCurrencyResolver $currencyResolver,
+    ) {}
+
     public function generate(string $supplierId, string $dateFrom, string $dateTo, ?string $currency = null): array
     {
         $supplier = Supplier::query()->findOrFail($supplierId);
-        $targetCurrency = $currency ?? 'EGP';
+        $targetCurrency = $this->currencyResolver->resolve($currency);
 
         // 1. Calculate opening balance before dateFrom (Opening Balance + Payable Entries - Supplier Payments)
         $obPrior = (int) SupplierOpeningBalance::query()

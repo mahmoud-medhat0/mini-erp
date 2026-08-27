@@ -1,6 +1,6 @@
 # DEPLOYMENT ENVIRONMENT & SECRETS CHECKLIST
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
 **Target Stack:** Laravel 13.x + Inertia.js + React + PostgreSQL 15+  
@@ -87,6 +87,7 @@
 | Variable Name | Purpose | Required Environments | Value Category / Format | Owner/Operator Notes | Validation Method |
 |---|---|---|---|---|---|
 | `FILESYSTEM_DISK` | Default disk for document attachments and exports. | Local, Staging, Production | Disk name (`local` / `s3`) | `local` uses `storage/app/private`; `s3` uses object storage. | Upload document attachment via UI. |
+| `FILESYSTEM_LOCAL_SERVE` | Controls Laravel framework direct serving routes for the local private disk. | Local, Staging, Production | Boolean string (`false` recommended) | Keep `false` so private attachments are delivered only through authenticated application routes. | Confirm `/storage/*` routes are absent from `php artisan route:list`. |
 | `AWS_ACCESS_KEY_ID` | Access key for AWS S3 object storage (if used). | Staging, Production *(if S3 enabled)* | AWS Key ID string | Required only if `FILESYSTEM_DISK=s3`. | Upload test file to S3 bucket. |
 | `AWS_SECRET_ACCESS_KEY` | Secret key for AWS S3 object storage (if used). | Staging, Production *(if S3 enabled)* | AWS Secret String | Keep in host secrets manager. | Upload test file to S3 bucket. |
 | `AWS_DEFAULT_REGION` | AWS region hosting S3 storage bucket. | Staging, Production *(if S3 enabled)* | Region string (`us-east-1` / `eu-central-1`) | Match cloud provider bucket region. | Verify region S3 endpoint resolution. |

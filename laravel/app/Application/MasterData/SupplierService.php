@@ -23,7 +23,7 @@ class SupplierService
 
         if (Supplier::query()->where('code', $data['code'])->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Supplier code [{$data['code']}] already exists."],
+                'code' => [__('Supplier code [:code] already exists.', ['code' => $data['code']])],
             ]);
         }
 
@@ -68,7 +68,7 @@ class SupplierService
         if (isset($data['code']) && $data['code'] !== $supplier->code) {
             if (Supplier::query()->where('code', $data['code'])->where('id', '!=', $id)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Supplier code [{$data['code']}] already exists."],
+                    'code' => [__('Supplier code [:code] already exists.', ['code' => $data['code']])],
                 ]);
             }
         }
@@ -111,7 +111,7 @@ class SupplierService
     {
         if (! is_string($status) || ! in_array($status, ['active', 'inactive'], true)) {
             throw ValidationException::withMessages([
-                'status' => ['Supplier status must be active or inactive.'],
+                'status' => [__('Supplier status must be active or inactive.')],
             ]);
         }
     }

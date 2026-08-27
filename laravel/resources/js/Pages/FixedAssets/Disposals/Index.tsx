@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { Card, PageHeader } from '../../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect } from '../../../Components/Primitives';
 import { formatMoney } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -47,28 +47,59 @@ type IndexProps = SharedPageProps & {
 
 export default function DisposalsIndex({ locale, disposals, filters }: IndexProps) {
   const dict = getDictionary(locale);
-  const appDict = (dict.app as any).fixedAssetsDisposals;
+  const appDict = dict.app.fixedAssetsDisposals;
 
   const [search, setSearch] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
   const [typeFilter, setTypeFilter] = useState(filters.disposal_type || '');
+  const typeOptions = [
+    { value: 'sale', label: appDict.sale },
+    { value: 'scrap', label: appDict.scrap },
+    { value: 'retirement', label: appDict.retirement },
+  ];
+  const statusOptions = [
+    { value: 'posted', label: appDict.statusPosted },
+    { value: 'reversed', label: appDict.statusReversed },
+  ];
+  const activeFilterCount = [search, statusFilter, typeFilter].filter(Boolean).length;
 
   function getAssetName(asset?: FixedAsset | null): string {
-    if (!asset) return '-';
+    if (!asset) return appDict.notAvailable;
     if (typeof asset.name === 'string') return asset.name;
     return asset.name[locale] || asset.name.en || asset.asset_number;
+  }
+
+  function formatDisposalType(type: FixedAssetDisposal['disposal_type']): string {
+    const labels: Record<FixedAssetDisposal['disposal_type'], string> = {
+      sale: appDict.sale,
+      scrap: appDict.scrap,
+      retirement: appDict.retirement,
+    };
+
+    return labels[type];
   }
 
   function formatDisposalStatus(status: FixedAssetDisposal['status']): string {
     return status === 'posted' ? appDict.statusPosted : appDict.statusReversed;
   }
 
+  function formatAssetMoney(amountMinor: number, asset?: FixedAsset | null): string {
+    return asset?.currency ? formatMoney(amountMinor, asset.currency) : appDict.notAvailable;
+  }
+
   function handleFilterChange() {
     router.get(
       '/fixed-assets-disposals',
       { search, status: statusFilter, disposal_type: typeFilter },
-      { preserveState: true, replace: true }
+      { preserveState: true, preserveScroll: true, replace: true }
     );
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setStatusFilter('');
+    setTypeFilter('');
+    router.get('/fixed-assets-disposals', {}, { preserveState: true, preserveScroll: true, replace: true });
   }
 
   return (
@@ -94,7 +125,7 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
 
         {/* Filter Card */}
         <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_220px_220px_auto_auto] md:items-end">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 {appDict.search}
@@ -109,51 +140,10 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {appDict.disposalType}
-              </label>
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value);
-                  router.get('/fixed-assets-disposals', { search, status: statusFilter, disposal_type: e.target.value }, { preserveState: true });
-                }}
-                className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-              >
-                <option value="">{appDict.allTypes}</option>
-                <option value="sale">{appDict.sale}</option>
-                <option value="scrap">{appDict.scrap}</option>
-                <option value="retirement">{appDict.retirement}</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {appDict.status}
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  router.get('/fixed-assets-disposals', { search, status: e.target.value, disposal_type: typeFilter }, { preserveState: true });
-                }}
-                className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-              >
-                <option value="">{appDict.allStatuses}</option>
-                <option value="posted">{appDict.statusPosted}</option>
-                <option value="reversed">{appDict.statusReversed}</option>
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button
-                onClick={handleFilterChange}
-                className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-md font-medium text-sm hover:bg-slate-200 transition"
-              >
-                {appDict.applyFilters}
-              </button>
-            </div>
+            <SearchableSelect options={[{ value: '', label: appDict.allTypes }, ...typeOptions]} value={typeFilter || null} onChange={(value) => setTypeFilter(value || '')} label={appDict.disposalType} />
+            <SearchableSelect options={[{ value: '', label: appDict.allStatuses }, ...statusOptions]} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} label={appDict.status} />
+            <Button onClick={handleFilterChange}>{appDict.applyFilters}</Button>
+            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{appDict.clearFilters}</Button>
           </div>
         </Card>
 
@@ -194,18 +184,18 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
                       <td className="px-4 py-3">{item.disposal_date}</td>
                       <td className="px-4 py-3 capitalize">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
-                          {appDict[item.disposal_type]}
+                          {formatDisposalType(item.disposal_type)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">{formatMoney(item.proceeds_minor, item.asset?.currency)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{formatMoney(item.net_book_value_minor, item.asset?.currency)}</td>
+                      <td className="px-4 py-3 text-right font-mono">{formatAssetMoney(item.proceeds_minor, item.asset)}</td>
+                      <td className="px-4 py-3 text-right font-mono">{formatAssetMoney(item.net_book_value_minor, item.asset)}</td>
                       <td className="px-4 py-3 text-right font-mono font-semibold">
                         {item.gain_minor > 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">+{formatMoney(item.gain_minor, item.asset?.currency)}</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">+{formatAssetMoney(item.gain_minor, item.asset)}</span>
                         ) : item.loss_minor > 0 ? (
-                          <span className="text-rose-600 dark:text-rose-400">-{formatMoney(item.loss_minor, item.asset?.currency)}</span>
+                          <span className="text-rose-600 dark:text-rose-400">-{formatAssetMoney(item.loss_minor, item.asset)}</span>
                         ) : (
-                          <span className="text-slate-500">0.00</span>
+                          <span className="text-slate-500">{formatAssetMoney(0, item.asset)}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">

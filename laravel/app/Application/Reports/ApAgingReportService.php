@@ -9,9 +9,13 @@ use Illuminate\Support\Carbon;
 
 class ApAgingReportService
 {
+    public function __construct(
+        private readonly ReportCurrencyResolver $currencyResolver,
+    ) {}
+
     public function generate(string $asOfDate, ?string $supplierId = null, ?string $currency = null): array
     {
-        $targetCurrency = $currency ?? 'EGP';
+        $targetCurrency = $this->currencyResolver->resolve($currency);
         $asOf = Carbon::parse($asOfDate)->startOfDay();
 
         $query = PayableEntry::query()

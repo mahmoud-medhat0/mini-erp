@@ -289,16 +289,46 @@ class Phase3Slice9StressIntegrityTest extends TestCase
 
     public function test_no_tenant_company_branch_scoping_introduced(): void
     {
-        $prohibitedColumns = ['company_id', 'branch_id', 'tenant_id', 'current_company', 'current_branch'];
+        $prohibitedColumns = ['company_id', 'tenant_id', 'current_company', 'current_branch'];
+        $branchOperationalReferenceTables = [
+            'warehouse',
+            'cash_account',
+            'bank_account',
+            'fixed_asset',
+            'fixed_asset_location',
+            'journal_entry',
+            'journal_line',
+            'ledger_entry',
+            'accounting_account_mapping',
+            'branch_approval_rule',
+            'expense',
+            'prepaid_schedule',
+            'accrual_schedule',
+            'employee',
+            'payroll_run',
+            'payroll_run_line',
+            'rentable_item',
+            'rental_contract',
+            'rental_invoice',
+            'rental_handover',
+            'rental_return',
+        ];
         $tables = DB::connection()->getSchemaBuilder()->getTableListing();
 
         foreach ($tables as $table) {
+            $tableName = str_contains($table, '.') ? substr(strrchr($table, '.'), 1) : $table;
+
             foreach ($prohibitedColumns as $col) {
                 $this->assertFalse(
                     Schema::hasColumn($table, $col),
                     "Prohibited tenancy/company column [{$col}] was found in table [{$table}]. Owner decisions mandate no tenant/company scoping."
                 );
             }
+
+            $this->assertTrue(
+                ! Schema::hasColumn($table, 'branch_id') || in_array($tableName, $branchOperationalReferenceTables, true),
+                "Unsupported branch scope column [branch_id] was found in table [{$table}]. Branch is allowed only as an owner-approved operational reference."
+            );
         }
     }
 }

@@ -3,11 +3,12 @@
 namespace App\Console\Commands;
 
 use App\Application\Accounting\BankReconciliationService;
+use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\BankReconciliation;
 use App\Models\BankReconciliationLine;
-use App\Models\Currency;
 use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
 use App\Models\JournalEntry;
@@ -21,11 +22,13 @@ use Illuminate\Support\Str;
 
 class BankReconciliationConcurrencyStressCommand extends Command
 {
+    use ResolvesStressCurrency;
+
     protected $signature = 'accounting:bank-reconciliation-concurrency-stress {--workers=50}';
 
     protected $description = 'Run PostgreSQL Bank Reconciliation concurrency stress test';
 
-    public function handle(BankReconciliationService $reconService): int
+    public function handle(BankReconciliationService $reconService, BaseCurrencyResolver $baseCurrencyResolver): int
     {
         $driver = DB::connection()->getDriverName();
         $workerCount = (int) $this->option('workers');
@@ -33,14 +36,8 @@ class BankReconciliationConcurrencyStressCommand extends Command
         $this->info("Running Bank Reconciliation Concurrency Stress Test on DB driver: [{$driver}] with [{$workerCount}] workers..");
 
         // Setup baseline models inside transaction
-        $fixture = DB::transaction(function () {
-            Currency::query()->firstOrCreate(['code' => 'EGP'], [
-                'name' => 'Egyptian Pound',
-                'symbol' => 'EGP',
-                'precision' => 2,
-                'is_active' => true,
-            ]);
-
+        $fixture = DB::transaction(function () use ($baseCurrencyResolver) {
+            $currency = $this->resolveStressCurrency($baseCurrencyResolver);
             $user = User::factory()->create();
 
             $stressYear = (FiscalYear::query()->max('year') ?? 2100) + 1;
@@ -66,7 +63,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
                 'name' => 'Bank Stress GL Account',
                 'type' => 'asset',
                 'nature' => 'debit',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'is_active' => true,
             ]);
 
@@ -75,7 +72,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
                 'name' => 'Stress Bank Main',
                 'account_number' => 'ACC-STRESS-'.Str::random(6),
                 'bank_name' => 'Stress Bank',
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'gl_account_id' => $bankGlAccount->id,
                 'is_active' => true,
             ]);
@@ -85,7 +82,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
                 'number' => 'JV-RECON-'.Str::random(6),
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$stressYear}-01-15",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'fx_rate_e6' => 1000000,
                 'description' => 'Recon Stress Test Deposit',
                 'status' => 'posted',
@@ -98,7 +95,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
                 'account_id' => $bankGlAccount->id,
                 'debit_minor' => 500000,
                 'credit_minor' => 0,
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'fx_rate_e6' => 1000000,
                 'debit_txn_minor' => 500000,
                 'credit_txn_minor' => 0,
@@ -110,7 +107,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
                 'account_id' => $bankGlAccount->id,
                 'financial_period_id' => $period->id,
                 'entry_date' => "{$stressYear}-01-15",
-                'currency' => 'EGP',
+                'currency' => $currency,
                 'debit_minor' => 500000,
                 'credit_minor' => 0,
                 'fx_rate_e6' => 1000000,

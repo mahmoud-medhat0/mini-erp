@@ -77,7 +77,7 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
               <SearchableSelect
                 options={currencies.map((c) => ({ value: c.code, label: c.code }))}
                 value={currency}
-                onChange={(val) => setCurrency(val || 'EGP')}
+                onChange={(val) => setCurrency(val || '')}
               />
             </div>
             <div>

@@ -1,6 +1,8 @@
 # GO-LIVE SMOKE, SECURITY CHECKLIST, AND ACCEPTANCE GATE
 
-> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company/branch ownership, currentCompany/currentBranch context, company_id, branch_id, tenant_id, or Spatie Teams scope. See root `NO_MULTI_TENANT_POLICY.md`.
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
+
+> **Branch-Capable Product Direction:** Future product work must support multiple operational branches and branch transfer workflows without treating branches as tenants. See root `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
 **Target Application:** Laravel 13.x + Inertia.js + React + PostgreSQL 15+  
@@ -26,6 +28,13 @@ Before a staging or production cutover is approved, the System Owner and System 
 
 No production cutover should proceed while any mandatory owner/operator decision remains unresolved.
 
+Product scope note:
+
+- Current go-live acceptance covers the implemented ERP scope through Phase 13 Payroll Foundation.
+- Warehouses, stock transfers, stock counts, stock adjustments, warehouse-aware fulfillment/return selectors, branch cash/bank transfers, fixed asset branch/location movement, branch operational reports, branch-filtered ledger review, branch profitability, Branch Profitability export/print, optional branch-specific GL mapping overrides, optional branch-aware approval rules for inventory approvals, and landed cost/freight allocation are implemented product scope.
+- Expense management, prepaid/accrued expense scheduling, and payroll foundation workflows are implemented product scope.
+- Adding future capabilities must follow `PRODUCT_EXTENSIBILITY_ROADMAP.md` and must not introduce multi-tenant architecture.
+
 ---
 
 ## 2. Environment Sanity Checks
@@ -43,6 +52,7 @@ Perform these checks on the target host without printing secret values:
 | `CACHE_STORE` | approved deployment value |
 | `QUEUE_CONNECTION` | approved deployment value |
 | `FILESYSTEM_DISK` | approved deployment value |
+| `FILESYSTEM_LOCAL_SERVE` | `false` unless a formally reviewed signed-file-serving policy is approved |
 | `MAIL_MAILER` | approved deployment value |
 | `LOG_CHANNEL` | approved deployment value |
 
@@ -64,6 +74,7 @@ The QA/functional tester validates:
 
 - [ ] login page renders.
 - [ ] valid active user can log in.
+- [ ] inactive authenticated user cannot access protected pages and is logged out.
 - [ ] session is established.
 - [ ] CSRF-protected actions still submit correctly.
 - [ ] dashboard renders after authentication.
@@ -129,7 +140,28 @@ Acceptance rule:
 
 ---
 
-## 7. Attachment Smoke
+## 7. Inventory And Operations Smoke
+
+Validate:
+
+- [ ] Warehouses page opens for a user with `inventory.view`.
+- [ ] Stock Transfers page opens and shows source/destination warehouse fields.
+- [ ] Stock Counts page opens and shows count lifecycle actions according to permissions.
+- [ ] Stock Adjustments page opens and shows adjustment lifecycle actions according to permissions.
+- [ ] Stock Balances report opens with warehouse filter.
+- [ ] Stock Movement report opens with warehouse filter.
+- [ ] Delivery Note and Goods Receipt screens require/select an operational warehouse.
+- [ ] Sales Return and Purchase Return screens require/select an operational warehouse.
+- [ ] user without inventory permissions cannot mutate inventory workflows.
+
+Acceptance rule:
+
+- Inventory smoke in production should be read-only unless the owner approves a harmless test document and reversal/cleanup plan.
+- Warehouse and branch references are operational dimensions only, not tenant/security context.
+
+---
+
+## 8. Attachment Smoke
 
 Validate attachment behavior in staging first:
 
@@ -145,13 +177,34 @@ Production note:
 
 ---
 
-## 8. Permission-Denied Smoke
+## 9. Payroll Smoke
+
+Validate payroll behavior with a test user that has approved payroll permissions:
+
+- [ ] Payroll Employees page opens only for users with `payroll.view` and `view_payroll`.
+- [ ] Payroll Components page opens only for users with `payroll.view` and `view_payroll`.
+- [ ] Payroll Runs page opens only for users with `payroll.view` and `view_payroll`.
+- [ ] employee create/update actions require the matching payroll write permission and `view_payroll`.
+- [ ] payroll run generation, submit, approve, post, and cancel actions follow permission-aware UI visibility.
+- [ ] payroll posting requires `payroll.post`, `view_payroll`, and `view_financials`.
+- [ ] payroll attachments on employees or payroll runs are delivered only through authenticated application routes.
+- [ ] a user without `view_payroll` cannot see payroll navigation or open payroll pages.
+
+Acceptance rule:
+
+- Payroll smoke in production should be read-only unless the owner approves a harmless test payroll run and reversal/cancellation plan.
+- Payroll branch references are operational/reporting dimensions only, not tenant/security context.
+
+---
+
+## 10. Permission-Denied Smoke
 
 Validate least-privilege behavior:
 
 - [ ] user without `reports.view` cannot open financial reports.
 - [ ] user without tax permissions cannot open tax admin pages.
 - [ ] user without posting permission cannot post financial documents.
+- [ ] user without `view_payroll` cannot open payroll pages or payroll attachments.
 - [ ] user without admin/settings permissions cannot modify users, roles, company profile, or numbering.
 
 Acceptance rule:
@@ -160,7 +213,7 @@ Acceptance rule:
 
 ---
 
-## 9. Scheduler And Queue Status Smoke
+## 11. Scheduler And Queue Status Smoke
 
 Validate:
 
@@ -182,7 +235,7 @@ Do not clear failed jobs until the operator has recorded the failure IDs and roo
 
 ---
 
-## 10. Backup Availability Confirmation
+## 12. Backup Availability Confirmation
 
 Before production cutover:
 
@@ -199,7 +252,7 @@ Reference:
 
 ---
 
-## 11. Rollback Readiness Confirmation
+## 13. Rollback Readiness Confirmation
 
 Before production cutover:
 
@@ -216,7 +269,7 @@ Reference:
 
 ---
 
-## 12. Security Checklist
+## 14. Security Checklist
 
 | Security Item | Acceptance |
 |---|---|
@@ -226,6 +279,12 @@ Reference:
 | Session/cookie settings | Reviewed for target environment |
 | File storage | Private by default |
 | Private storage exposure | No public direct access to `storage/app/private` |
+| Framework storage route | `/storage/*` is absent unless explicitly approved |
+| Security headers | Baseline web security headers are present on web responses |
+| Route authorization | Protected application routes have explicit `can` / `permission.any` / `permission.all` middleware or documented service-level entity authorization |
+| Tax filing permission | `taxes.file` exists as a sensitive capability and is assigned only to approved filing roles |
+| Payroll visibility permission | `view_payroll` exists as a sensitive capability and is required alongside payroll module permissions |
+| Inactive users | Protected access rechecks `users.is_active` |
 | Audit logging | Spatie Activitylog active |
 | Spatie teams | Disabled |
 | Operator access | Least-privilege access only |
@@ -234,7 +293,7 @@ Reference:
 
 ---
 
-## 13. Final Go / No-Go Checklist
+## 15. Final Go / No-Go Checklist
 
 Production cutover is **GO** only when all mandatory checks are true:
 
@@ -248,6 +307,8 @@ Production cutover is **GO** only when all mandatory checks are true:
 - [ ] login/dashboard smoke pass.
 - [ ] accounting report smoke pass.
 - [ ] tax report smoke pass.
+- [ ] inventory and operations smoke pass.
+- [ ] payroll smoke pass or payroll production smoke is formally deferred by owner.
 - [ ] attachment smoke pass or is formally deferred by owner.
 - [ ] permission-denied smoke pass.
 - [ ] security checklist pass.

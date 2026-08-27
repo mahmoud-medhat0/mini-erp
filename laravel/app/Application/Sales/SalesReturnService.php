@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Accounting\PeriodGuard;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
+use App\Application\Inventory\WarehouseResolver;
 use App\Application\Taxes\TaxPeriodGuard;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Customer;
@@ -34,6 +35,7 @@ class SalesReturnService
         private readonly AccountingAccountMappingService $mappingService,
         private readonly PostingEngine $postingEngine,
         private readonly MovingWeightedAverageInventoryService $inventoryService,
+        private readonly WarehouseResolver $warehouseResolver,
         private readonly AuditLogger $auditLogger,
         private readonly PeriodGuard $periodGuard,
         private readonly TaxPeriodGuard $taxPeriodGuard,
@@ -44,34 +46,35 @@ class SalesReturnService
         return DB::transaction(function () use ($data, $actorId): SalesReturn {
             $customerId = $data['customer_id'] ?? null;
             if (! $customerId) {
-                throw ValidationException::withMessages(['customer_id' => ['Customer is required.']]);
+                throw ValidationException::withMessages(['customer_id' => [__('Customer is required.')]]);
             }
 
             /** @var Customer|null $customer */
             $customer = Customer::query()->where('id', $customerId)->first();
             if (! $customer || $customer->status !== 'active') {
-                throw ValidationException::withMessages(['customer_id' => ['Customer must be active.']]);
+                throw ValidationException::withMessages(['customer_id' => [__('Customer must be active.')]]);
             }
 
             $deliveryNoteId = $data['delivery_note_id'] ?? null;
             if (! $deliveryNoteId) {
-                throw ValidationException::withMessages(['delivery_note_id' => ['Delivery Note is required.']]);
+                throw ValidationException::withMessages(['delivery_note_id' => [__('Delivery Note is required.')]]);
             }
 
             /** @var DeliveryNote|null $deliveryNote */
             $deliveryNote = DeliveryNote::query()->with('salesOrder')->where('id', $deliveryNoteId)->lockForUpdate()->first();
             if (! $deliveryNote || $deliveryNote->status !== 'confirmed') {
-                throw ValidationException::withMessages(['delivery_note_id' => ['Sales returns can only reference confirmed Delivery Notes.']]);
+                throw ValidationException::withMessages(['delivery_note_id' => [__('Sales returns can only reference confirmed Delivery Notes.')]]);
             }
             if ($deliveryNote->salesOrder->customer_id !== $customer->id) {
-                throw ValidationException::withMessages(['customer_id' => ['Customer must match the Delivery Note customer.']]);
+                throw ValidationException::withMessages(['customer_id' => [__('Customer must match the Delivery Note customer.')]]);
             }
 
             $currency = $deliveryNote->salesOrder->currency;
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? $deliveryNote->warehouse_id ?? null);
 
             $returnDate = $data['return_date'] ?? null;
             if (! $returnDate) {
-                throw ValidationException::withMessages(['return_date' => ['Return date is required.']]);
+                throw ValidationException::withMessages(['return_date' => [__('Return date is required.')]]);
             }
 
             $period = $this->resolveFinancialPeriodForDate($returnDate);
@@ -81,7 +84,7 @@ class SalesReturnService
                 /** @var CustomerInvoice|null $customerInvoice */
                 $customerInvoice = CustomerInvoice::query()->where('id', $customerInvoiceId)->first();
                 if (! $customerInvoice || $customerInvoice->customer_id !== $customer->id) {
-                    throw ValidationException::withMessages(['customer_invoice_id' => ['Customer Invoice must belong to this customer.']]);
+                    throw ValidationException::withMessages(['customer_invoice_id' => [__('Customer Invoice must belong to this customer.')]]);
                 }
             }
 
@@ -96,6 +99,7 @@ class SalesReturnService
             $salesReturn = SalesReturn::query()->create([
                 'customer_id' => $customer->id,
                 'delivery_note_id' => $deliveryNote->id,
+                'warehouse_id' => $warehouse->id,
                 'customer_invoice_id' => $customerInvoiceId,
                 'fiscal_year_id' => $period->fiscal_year_id,
                 'financial_period_id' => $period->id,
@@ -130,7 +134,7 @@ class SalesReturnService
                 ]);
             }
 
-            $salesReturn->load(['customer', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure']);
+            $salesReturn->load(['customer', 'deliveryNote', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -152,15 +156,16 @@ class SalesReturnService
             $salesReturn = SalesReturn::query()->with(['lines'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($salesReturn->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft sales returns can be updated.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft sales returns can be updated.')]]);
             }
 
             if (isset($data['lock_version']) && (int) $data['lock_version'] !== $salesReturn->lock_version) {
-                throw ValidationException::withMessages(['lock_version' => ['The record has been modified by another user. Please refresh and try again.']]);
+                throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
             }
 
             /** @var DeliveryNote|null $deliveryNote */
             $deliveryNote = DeliveryNote::query()->with('salesOrder')->where('id', $salesReturn->delivery_note_id)->lockForUpdate()->first();
+            $warehouse = $this->warehouseResolver->active($data['warehouse_id'] ?? $salesReturn->warehouse_id ?? $deliveryNote?->warehouse_id ?? null);
 
             $returnDate = $data['return_date'] ?? $salesReturn->return_date->format('Y-m-d');
             $period = $this->resolveFinancialPeriodForDate($returnDate);
@@ -170,7 +175,7 @@ class SalesReturnService
                 /** @var CustomerInvoice|null $customerInvoice */
                 $customerInvoice = CustomerInvoice::query()->where('id', $customerInvoiceId)->first();
                 if (! $customerInvoice || $customerInvoice->customer_id !== $salesReturn->customer_id) {
-                    throw ValidationException::withMessages(['customer_invoice_id' => ['Customer Invoice must belong to this customer.']]);
+                    throw ValidationException::withMessages(['customer_invoice_id' => [__('Customer Invoice must belong to this customer.')]]);
                 }
             }
 
@@ -186,6 +191,7 @@ class SalesReturnService
             $salesReturn->update([
                 'fiscal_year_id' => $period->fiscal_year_id,
                 'financial_period_id' => $period->id,
+                'warehouse_id' => $warehouse->id,
                 'return_date' => $returnDate,
                 'customer_invoice_id' => $customerInvoiceId,
                 'reason' => $data['reason'] ?? $salesReturn->reason,
@@ -217,7 +223,7 @@ class SalesReturnService
                 ]);
             }
 
-            $salesReturn->load(['customer', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure']);
+            $salesReturn->load(['customer', 'deliveryNote', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -239,11 +245,11 @@ class SalesReturnService
             $salesReturn = SalesReturn::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($salesReturn->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => ['Only draft sales returns can be submitted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft sales returns can be submitted.')]]);
             }
 
             if ($salesReturn->lines()->count() === 0) {
-                throw ValidationException::withMessages(['lines' => ['Sales return must have at least one line item before submitting.']]);
+                throw ValidationException::withMessages(['lines' => [__('Sales return must have at least one line item before submitting.')]]);
             }
 
             $before = $salesReturn->toArray();
@@ -262,10 +268,10 @@ class SalesReturnService
                 entityType: 'sales_return',
                 entityId: $salesReturn->id,
                 before: $before,
-                after: $salesReturn->fresh(['customer', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $salesReturn->fresh(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $salesReturn->fresh(['customer', 'lines.product', 'lines.unitOfMeasure']);
+            return $salesReturn->fresh(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -276,11 +282,11 @@ class SalesReturnService
             $salesReturn = SalesReturn::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($salesReturn->status === 'approved') {
-                return $salesReturn->load(['customer', 'lines.product', 'lines.unitOfMeasure']);
+                return $salesReturn->load(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             if (! in_array($salesReturn->status, ['draft', 'submitted'], true)) {
-                throw ValidationException::withMessages(['status' => ['Only draft or submitted sales returns can be approved.']]);
+                throw ValidationException::withMessages(['status' => [__('Only draft or submitted sales returns can be approved.')]]);
             }
 
             $before = $salesReturn->toArray();
@@ -299,10 +305,10 @@ class SalesReturnService
                 entityType: 'sales_return',
                 entityId: $salesReturn->id,
                 before: $before,
-                after: $salesReturn->fresh(['customer', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $salesReturn->fresh(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $salesReturn->fresh(['customer', 'lines.product', 'lines.unitOfMeasure']);
+            return $salesReturn->fresh(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -313,11 +319,11 @@ class SalesReturnService
             $salesReturn = SalesReturn::query()->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($salesReturn->status === 'posted') {
-                throw ValidationException::withMessages(['status' => ['Posted sales returns cannot be cancelled.']]);
+                throw ValidationException::withMessages(['status' => [__('Posted sales returns cannot be cancelled.')]]);
             }
 
             if ($salesReturn->status === 'cancelled') {
-                return $salesReturn->load(['customer', 'lines.product', 'lines.unitOfMeasure']);
+                return $salesReturn->load(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             $before = $salesReturn->toArray();
@@ -336,10 +342,10 @@ class SalesReturnService
                 entityType: 'sales_return',
                 entityId: $salesReturn->id,
                 before: $before,
-                after: $salesReturn->fresh(['customer', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $salesReturn->fresh(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $salesReturn->fresh(['customer', 'lines.product', 'lines.unitOfMeasure']);
+            return $salesReturn->fresh(['customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -350,22 +356,22 @@ class SalesReturnService
             $salesReturn = SalesReturn::query()->with(['lines.product'])->where('id', $id)->lockForUpdate()->firstOrFail();
 
             if ($salesReturn->status === 'posted') {
-                return $salesReturn->load(['customer', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure']);
+                return $salesReturn->load(['customer', 'deliveryNote', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
             }
 
             if ($salesReturn->status !== 'approved') {
-                throw ValidationException::withMessages(['status' => ['Only approved sales returns can be posted.']]);
+                throw ValidationException::withMessages(['status' => [__('Only approved sales returns can be posted.')]]);
             }
 
             if ($salesReturn->lines->isEmpty()) {
-                throw ValidationException::withMessages(['lines' => ['Sales return must have at least one line item before posting.']]);
+                throw ValidationException::withMessages(['lines' => [__('Sales return must have at least one line item before posting.')]]);
             }
 
             $returnDate = $salesReturn->return_date->format('Y-m-d');
             $this->taxPeriodGuard->ensureDateNotFiled($returnDate);
             $period = $this->periodGuard->assertPeriodOpenForPostingWithLock((string) $salesReturn->financial_period_id, $returnDate);
             if ($period->fiscal_year_id !== $salesReturn->fiscal_year_id) {
-                throw ValidationException::withMessages(['financial_period_id' => ['Financial period does not belong to the sales return fiscal year.']]);
+                throw ValidationException::withMessages(['financial_period_id' => [__('Financial period does not belong to the sales return fiscal year.')]]);
             }
 
             $before = $salesReturn->toArray();
@@ -387,6 +393,7 @@ class SalesReturnService
                         fiscalYearId: $salesReturn->fiscal_year_id,
                         financialPeriodId: $salesReturn->financial_period_id,
                         actorId: $actorId,
+                        warehouseId: (string) $salesReturn->warehouse_id,
                     );
                 } elseif ($disposition === 'restock_manual_value') {
                     $this->inventoryService->recordReturn(
@@ -402,6 +409,7 @@ class SalesReturnService
                         fiscalYearId: $salesReturn->fiscal_year_id,
                         financialPeriodId: $salesReturn->financial_period_id,
                         actorId: $actorId,
+                        warehouseId: (string) $salesReturn->warehouse_id,
                     );
 
                     if ((int) $line->variance_minor !== 0) {
@@ -420,6 +428,7 @@ class SalesReturnService
                         fiscalYearId: $salesReturn->fiscal_year_id,
                         financialPeriodId: $salesReturn->financial_period_id,
                         actorId: $actorId,
+                        warehouseId: (string) $salesReturn->warehouse_id,
                     );
                 }
             }
@@ -445,10 +454,10 @@ class SalesReturnService
                 entityType: 'sales_return',
                 entityId: $salesReturn->id,
                 before: $before,
-                after: $salesReturn->fresh(['customer', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
+                after: $salesReturn->fresh(['customer', 'deliveryNote', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])->toArray(),
             );
 
-            return $salesReturn->fresh(['customer', 'deliveryNote', 'lines.product', 'lines.unitOfMeasure']);
+            return $salesReturn->fresh(['customer', 'deliveryNote', 'warehouse', 'lines.product', 'lines.unitOfMeasure']);
         });
     }
 
@@ -537,7 +546,7 @@ class SalesReturnService
             ->first();
 
         if (! $period) {
-            throw ValidationException::withMessages(['return_date' => ["No open financial period covers date {$date}."]]);
+            throw ValidationException::withMessages(['return_date' => [__('No open financial period covers date :date.', ['date' => $date])]]);
         }
 
         return $period;
@@ -546,7 +555,7 @@ class SalesReturnService
     private function validateAndCalculateLines(array $lines, DeliveryNote $deliveryNote, ?string $customerInvoiceId, ?string $currentReturnId): array
     {
         if (empty($lines)) {
-            throw ValidationException::withMessages(['lines' => ['At least one line item is required.']]);
+            throw ValidationException::withMessages(['lines' => [__('At least one line item is required.')]]);
         }
 
         /** @var CustomerInvoice|null $customerInvoice */
@@ -555,7 +564,7 @@ class SalesReturnService
             /** @var CustomerInvoice|null $customerInvoice */
             $customerInvoice = CustomerInvoice::query()->where('id', $customerInvoiceId)->first();
             if (! $customerInvoice || $customerInvoice->customer_id !== $deliveryNote->salesOrder->customer_id) {
-                throw ValidationException::withMessages(['customer_invoice_id' => ['Customer Invoice must belong to the Delivery Note customer.']]);
+                throw ValidationException::withMessages(['customer_invoice_id' => [__('Customer Invoice must belong to the Delivery Note customer.')]]);
             }
         }
 
@@ -566,49 +575,52 @@ class SalesReturnService
 
             $dnlId = $line['delivery_note_line_id'] ?? null;
             if (! $dnlId) {
-                throw ValidationException::withMessages(["lines.{$index}.delivery_note_line_id" => ["Line {$lineIndex} must reference a Delivery Note line."]]);
+                throw ValidationException::withMessages(["lines.{$index}.delivery_note_line_id" => [__('Line :line must reference a Delivery Note line.', ['line' => $lineIndex])]]);
             }
 
             /** @var DeliveryNoteLine|null $dnLine */
             $dnLine = DeliveryNoteLine::query()->where('id', $dnlId)->where('delivery_note_id', $deliveryNote->id)->lockForUpdate()->first();
             if (! $dnLine) {
-                throw ValidationException::withMessages(["lines.{$index}.delivery_note_line_id" => ["Line {$lineIndex} does not belong to the selected Delivery Note."]]);
+                throw ValidationException::withMessages(["lines.{$index}.delivery_note_line_id" => [__('Line :line does not belong to the selected Delivery Note.', ['line' => $lineIndex])]]);
             }
 
             $productId = $line['product_id'] ?? null;
             if (! $productId) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product on line {$lineIndex} is required."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product on line :line is required.', ['line' => $lineIndex])]]);
             }
 
             /** @var Product|null $product */
             $product = Product::query()->where('id', $productId)->first();
             if (! $product) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product on line {$lineIndex} does not exist."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product on line :line does not exist.', ['line' => $lineIndex])]]);
             }
             if ($product->status !== 'active') {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product [{$product->code}] is inactive."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product [:code] is inactive.', ['code' => $product->code])]]);
             }
 
             if ($dnLine->product_id !== $product->id) {
-                throw ValidationException::withMessages(["lines.{$index}.product_id" => ["Product on line {$lineIndex} must match the selected Delivery Note line."]]);
+                throw ValidationException::withMessages(["lines.{$index}.product_id" => [__('Product on line :line must match the selected Delivery Note line.', ['line' => $lineIndex])]]);
             }
 
             $uomId = $dnLine->unit_of_measure_id;
 
             $quantityE6 = (int) ($line['quantity_e6'] ?? 0);
             if ($quantityE6 <= 0) {
-                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => ["Quantity on line {$lineIndex} must be greater than zero."]]);
+                throw ValidationException::withMessages(["lines.{$index}.quantity_e6" => [__('Quantity on line :line must be greater than zero.', ['line' => $lineIndex])]]);
             }
 
             $disposition = $line['disposition'] ?? null;
             if (! $disposition || ! in_array($disposition, self::ALLOWED_DISPOSITIONS, true)) {
-                throw ValidationException::withMessages(["lines.{$index}.disposition" => ["Disposition on line {$lineIndex} must be one of: ".implode(', ', self::ALLOWED_DISPOSITIONS).'.']]);
+                throw ValidationException::withMessages(["lines.{$index}.disposition" => [__('Disposition on line :line must be one of: :allowed.', [
+                    'line' => $lineIndex,
+                    'allowed' => implode(', ', self::ALLOWED_DISPOSITIONS),
+                ])]]);
             }
 
             $manualRestockValueMinor = null;
             if ($disposition === 'restock_manual_value') {
                 if (! isset($line['manual_restock_value_minor']) || (int) $line['manual_restock_value_minor'] < 0) {
-                    throw ValidationException::withMessages(["lines.{$index}.manual_restock_value_minor" => ["Manual restock value on line {$lineIndex} is required and must be >= 0."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.manual_restock_value_minor" => [__('Manual restock value on line :line is required and must be >= 0.', ['line' => $lineIndex])]]);
                 }
                 $manualRestockValueMinor = (int) $line['manual_restock_value_minor'];
             }
@@ -643,7 +655,10 @@ class SalesReturnService
                 $whole = intdiv($maxAllowedE6, 1000000);
                 $fraction = str_pad((string) abs($maxAllowedE6 % 1000000), 6, '0', STR_PAD_LEFT);
                 throw ValidationException::withMessages([
-                    "lines.{$index}.quantity_e6" => ["Returned quantity on line {$lineIndex} exceeds remaining Delivery Note line quantity. Maximum remaining allowed is {$whole}.{$fraction}."],
+                    "lines.{$index}.quantity_e6" => [__('Returned quantity on line :line exceeds remaining Delivery Note line quantity. Maximum remaining allowed is :maximum.', [
+                        'line' => $lineIndex,
+                        'maximum' => "{$whole}.{$fraction}",
+                    ])],
                 ]);
             }
 
@@ -652,16 +667,16 @@ class SalesReturnService
                 /** @var CustomerInvoiceLine|null $cil */
                 $cil = CustomerInvoiceLine::query()->where('id', $customerInvoiceLineId)->first();
                 if (! $cil) {
-                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => ["Customer Invoice line on line {$lineIndex} does not exist."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => [__('Customer Invoice line on line :line does not exist.', ['line' => $lineIndex])]]);
                 }
                 if ($customerInvoice && $cil->customer_invoice_id !== $customerInvoice->id) {
-                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => ["Customer Invoice line on line {$lineIndex} does not belong to the selected Customer Invoice."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => [__('Customer Invoice line on line :line does not belong to the selected Customer Invoice.', ['line' => $lineIndex])]]);
                 }
                 if ($cil->product_id !== $product->id) {
-                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => ["Product on line {$lineIndex} must match the selected Customer Invoice line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => [__('Product on line :line must match the selected Customer Invoice line.', ['line' => $lineIndex])]]);
                 }
                 if ($cil->unit_of_measure_id !== $uomId) {
-                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => ["Unit of measure on line {$lineIndex} must match the selected Customer Invoice line."]]);
+                    throw ValidationException::withMessages(["lines.{$index}.customer_invoice_line_id" => [__('Unit of measure on line :line must match the selected Customer Invoice line.', ['line' => $lineIndex])]]);
                 }
             }
 

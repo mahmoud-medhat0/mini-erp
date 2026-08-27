@@ -9,6 +9,7 @@ class BankReconciliationReportService
 {
     public function __construct(
         private readonly BankReconciliationService $bankReconciliationService,
+        private readonly ReportCurrencyResolver $currencyResolver,
     ) {}
 
     public function generateIndex(?string $bankAccountId = null, ?string $status = null, ?string $dateFrom = null, ?string $dateTo = null): array
@@ -44,7 +45,7 @@ class BankReconciliationReportService
                     'id' => $recon->bankAccount?->id,
                     'code' => $recon->bankAccount?->code,
                     'name' => $recon->bankAccount?->name,
-                    'currency' => $recon->bankAccount?->currency ?? 'EGP',
+                    'currency' => $recon->bankAccount?->currency ?? $this->currencyResolver->resolve(),
                 ],
                 'statement_reference' => $recon->statement_reference,
                 'date_from' => $recon->date_from,
@@ -83,7 +84,7 @@ class BankReconciliationReportService
                     'id' => $recon->bankAccount?->id,
                     'code' => $recon->bankAccount?->code,
                     'name' => $recon->bankAccount?->name,
-                    'currency' => $recon->bankAccount?->currency ?? 'EGP',
+                    'currency' => $recon->bankAccount?->currency ?? $this->currencyResolver->resolve(),
                 ],
                 'statement_reference' => $recon->statement_reference,
                 'date_from' => $recon->date_from,

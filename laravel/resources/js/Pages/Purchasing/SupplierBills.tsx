@@ -5,7 +5,7 @@ import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../C
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -82,15 +82,47 @@ type SupplierBillRow = {
   }>;
 };
 
+type SupplierBillSourceLine = {
+  id: string;
+  product_id: string;
+  unit_of_measure_id: string;
+  description?: string | null;
+  quantity_e6: number;
+  unit_price_minor?: number;
+  product?: ProductOption | null;
+  purchaseOrderLine?: { unit_price_minor?: number | null } | null;
+  purchase_order_line?: { unit_price_minor?: number | null } | null;
+};
+
+type ConfirmedPurchaseOrder = {
+  id: string;
+  number?: string | null;
+  supplier_id?: string | null;
+  currency?: string | null;
+  supplier?: { id?: string; name?: string | null } | null;
+  lines?: SupplierBillSourceLine[];
+};
+
+type ConfirmedGoodsReceipt = {
+  id: string;
+  number?: string | null;
+  supplier_id?: string | null;
+  currency?: string | null;
+  supplier?: { id?: string; name?: string | null } | null;
+  purchaseOrder?: ConfirmedPurchaseOrder | null;
+  purchase_order?: ConfirmedPurchaseOrder | null;
+  lines?: SupplierBillSourceLine[];
+};
+
 type SupplierBillsProps = SharedPageProps & {
   supplierBills: {
     data: SupplierBillRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   activeSuppliers: SupplierOption[];
   eligibleProducts: ProductOption[];
-  confirmedPurchaseOrders: any[];
-  confirmedGoodsReceipts: any[];
+  confirmedPurchaseOrders: ConfirmedPurchaseOrder[];
+  confirmedGoodsReceipts: ConfirmedGoodsReceipt[];
   taxCodes?: TaxCodeOption[];
   filters: {
     search?: string;
@@ -110,6 +142,7 @@ export default function SupplierBillsIndex({
 }: SupplierBillsProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -145,7 +178,7 @@ export default function SupplierBillsIndex({
     goods_receipt_id: '',
     bill_date: todayStr,
     due_date: todayStr,
-    currency: 'USD',
+    currency: '',
     fx_rate_e6: 1000000,
     supplier_reference: '',
     reference: '',
@@ -166,6 +199,14 @@ export default function SupplierBillsIndex({
     return '';
   };
 
+  const getGoodsReceiptPurchaseOrder = (goodsReceipt: ConfirmedGoodsReceipt): ConfirmedPurchaseOrder | null => {
+    return goodsReceipt.purchaseOrder ?? goodsReceipt.purchase_order ?? null;
+  };
+
+  const getSourceLineUnitCostMinor = (line: SupplierBillSourceLine): number => {
+    return line.purchaseOrderLine?.unit_price_minor ?? line.purchase_order_line?.unit_price_minor ?? line.unit_price_minor ?? 0;
+  };
+
   const openCreateModal = () => {
     setEditingBill(null);
     setSourceMode('manual');
@@ -176,7 +217,7 @@ export default function SupplierBillsIndex({
       goods_receipt_id: '',
       bill_date: todayStr,
       due_date: todayStr,
-      currency: 'USD',
+      currency: '',
       fx_rate_e6: 1000000,
       supplier_reference: '',
       reference: '',
@@ -266,22 +307,22 @@ export default function SupplierBillsIndex({
 
     setData((d) => ({
       ...d,
-      supplier_id: po.supplier_id,
+      supplier_id: po.supplier_id || '',
       purchase_order_id: po.id,
       goods_receipt_id: '',
-      currency: po.currency,
+      currency: po.currency || '',
     }));
 
     if (po.lines) {
       const items: BillLineForm[] = po.lines
-        .filter((l: any) => l.product?.type !== 'stock')
-        .map((l: any) => ({
-          product_id: l.product_id,
-          unit_of_measure_id: l.unit_of_measure_id,
-          purchase_order_line_id: l.id,
-          description: l.description || getProductName(l.product),
-          quantity: l.quantity_e6 / 1000000,
-          unit_cost: l.unit_price_minor / 100,
+        .filter((line) => line.product?.type !== 'stock')
+        .map((line) => ({
+          product_id: line.product_id,
+          unit_of_measure_id: line.unit_of_measure_id,
+          purchase_order_line_id: line.id,
+          description: line.description || getProductName(line.product),
+          quantity: line.quantity_e6 / 1000000,
+          unit_cost: (line.unit_price_minor ?? 0) / 100,
         }));
       setLineItems(items);
     }
@@ -293,22 +334,22 @@ export default function SupplierBillsIndex({
 
     setData((d) => ({
       ...d,
-      supplier_id: gr.supplier_id,
+      supplier_id: gr.supplier_id || '',
       goods_receipt_id: gr.id,
       purchase_order_id: '',
-      currency: gr.currency || gr.purchaseOrder?.currency || 'USD',
+      currency: gr.currency || getGoodsReceiptPurchaseOrder(gr)?.currency || '',
     }));
 
     if (gr.lines) {
       const items: BillLineForm[] = gr.lines
-        .filter((l: any) => l.product?.type !== 'stock')
-        .map((l: any) => ({
-          product_id: l.product_id,
-          unit_of_measure_id: l.unit_of_measure_id,
-          goods_receipt_line_id: l.id,
-          description: l.description || getProductName(l.product),
-          quantity: l.quantity_e6 / 1000000,
-          unit_cost: (l.purchaseOrderLine?.unit_price_minor || 0) / 100,
+        .filter((line) => line.product?.type !== 'stock')
+        .map((line) => ({
+          product_id: line.product_id,
+          unit_of_measure_id: line.unit_of_measure_id,
+          goods_receipt_line_id: line.id,
+          description: line.description || getProductName(line.product),
+          quantity: line.quantity_e6 / 1000000,
+          unit_cost: getSourceLineUnitCostMinor(line) / 100,
         }));
       setLineItems(items);
     }
@@ -333,12 +374,12 @@ export default function SupplierBillsIndex({
     setLineItems(lineItems.filter((_, i) => i !== index));
   };
 
-  const updateLineItem = (index: number, field: keyof BillLineForm, value: any) => {
+  const updateLineItem = <K extends keyof BillLineForm>(index: number, field: K, value: BillLineForm[K]) => {
     const next = [...lineItems];
     const item = { ...next[index], [field]: value };
 
     if (field === 'product_id') {
-      const prod = eligibleProducts.find((p) => p.id === value);
+      const prod = eligibleProducts.find((p) => p.id === String(value ?? ''));
       if (prod) {
         item.unit_of_measure_id = prod.unit_of_measure_id;
         item.description = getProductName(prod);
@@ -525,7 +566,7 @@ export default function SupplierBillsIndex({
                       <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                         {bill.number || <span className="text-[var(--text-muted)]">{dict.app.pages.purchasingSupplierBills.draft_2}</span>}
                       </td>
-                      <td className={`${tableClasses.td} font-medium`}>{bill.supplier?.name || '-'}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{bill.supplier?.name || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{bill.bill_date}</td>
                       <td className={`${tableClasses.td} font-mono font-semibold`}>
                         {formatMoney(bill.total_minor, bill.currency)}
@@ -569,7 +610,7 @@ export default function SupplierBillsIndex({
                           </button>
                         ) : null}
 
-                        {bill.status === 'approved' && can('purchasing.post') ? (
+                        {bill.status === 'approved' && can('purchasing.post') && can('view_financials') ? (
                           <button
                             type="button"
                             onClick={() => handleAction(bill.id, 'post')}

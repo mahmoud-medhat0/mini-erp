@@ -15,16 +15,16 @@ type TrialBalanceProps = SharedPageProps & {
   };
   periods: { id: string; month: number; fiscal_year?: { year: number } | null }[];
   filters: { period_id?: string; start_date?: string; end_date?: string; include_zero?: boolean };
+  displayCurrency: string;
 };
 
-export default function TrialBalance({ locale, rows = [], totals, periods = [], filters }: TrialBalanceProps) {
+export default function TrialBalance({ locale, rows = [], totals, periods = [], filters, displayCurrency }: TrialBalanceProps) {
   const dict = getDictionary(locale);
-  const accDict = (dict.app as any).accounting || {};
+  const accDict = dict.app.accounting;
   const [periodId, setPeriodId] = useState(filters.period_id ?? '');
-  const displayCurrency = rows[0]?.currency_code || 'EGP';
 
   const periodSelectOptions = [
-    { value: '', label: accDict.allPeriodsCumulative || 'All Periods (Cumulative)' },
+    { value: '', label: accDict.allPeriodsCumulative },
     ...periods.map((p) => ({
       value: p.id,
       label: formatPeriodLabel(p, locale),
@@ -39,18 +39,18 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
 
   return (
     <AppLayout active="accounting.trial_balance">
-      <Head title={accDict.trialBalance || 'Trial Balance'} />
+      <Head title={accDict.trialBalance} />
 
       <PageHeader
-        title={accDict.trialBalance || 'Trial Balance'}
-        description={accDict.trialBalanceDesc || 'Verification of ending debit and credit balances derived strictly from posted ledger entries.'}
+        title={accDict.trialBalance}
+        description={accDict.trialBalanceDesc}
       />
 
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-full sm:w-80 lg:w-[420px]">
             <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-              {accDict.financialPeriod || 'Financial Period'}
+              {accDict.financialPeriod}
             </label>
             <SearchableSelect
               options={periodSelectOptions}
@@ -64,7 +64,7 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
             onClick={applyFilter}
             className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
-            {accDict.generateTrialBalance || 'Generate Trial Balance'}
+            {accDict.generateTrialBalance}
           </button>
         </div>
       </Card>
@@ -77,34 +77,34 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
           </div>
           <div>
             <h4 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-              {totals.is_balanced ? (accDict.tbBalancedTitle || 'Trial Balance Verified & In Balance') : (accDict.tbUnbalancedTitle || 'Trial Balance Out of Balance Warning')}
+              {totals.is_balanced ? accDict.tbBalancedTitle : accDict.tbUnbalancedTitle}
             </h4>
             <p className="m-0 text-xs text-[var(--text-muted)]">
-              {accDict.tbBalancedDesc || 'Total debits equal total credits accounting equation verification.'}
+              {accDict.tbBalancedDesc}
             </p>
           </div>
         </div>
 
         <StatusBadge tone={totals.is_balanced ? 'ok' : 'danger'}>
-          {totals.is_balanced ? (accDict.matched || 'MATCHED') : (accDict.unbalanced || 'UNBALANCED')}
+          {totals.is_balanced ? accDict.matched : accDict.unbalanced}
         </StatusBadge>
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
         <Card className="border-s-4 border-s-blue-500 p-4">
-          <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{accDict.totalDebits || 'Total Debits'}</span>
+          <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{accDict.totalDebits}</span>
           <span className="accounting-amount mt-2 block text-xl font-extrabold text-blue-600 dark:text-blue-400">
             {formatAccountingAmount(totals.debit, displayCurrency)}
           </span>
         </Card>
         <Card className="border-s-4 border-s-purple-500 p-4">
-          <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{accDict.totalCredits || 'Total Credits'}</span>
+          <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{accDict.totalCredits}</span>
           <span className="accounting-amount mt-2 block text-xl font-extrabold text-purple-600 dark:text-purple-400">
             {formatAccountingAmount(totals.credit, displayCurrency)}
           </span>
         </Card>
         <Card className={`border-s-4 p-4 ${totals.is_balanced ? 'border-s-emerald-500' : 'border-s-red-500'}`}>
-          <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{accDict.netMovement || 'Net Movement'}</span>
+          <span className="block text-xs font-bold uppercase text-[var(--text-secondary)]">{accDict.netMovement}</span>
           <span className={`accounting-amount mt-2 block text-xl font-extrabold ${totals.is_balanced ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {formatAccountingAmount(totals.debit - totals.credit, displayCurrency, { zeroAsDash: false })}
           </span>
@@ -113,19 +113,19 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
 
       {rows.length === 0 ? (
         <EmptyState
-          title={accDict.noTrialBalanceRows || dict.app.pages.accountingTrialBalance.noPostedMovementsMatchTheSelected}
-          description={accDict.noTrialBalanceRowsDesc || dict.app.pages.accountingTrialBalance.theTrialBalanceCalculatesCumulativeDebit}
+          title={accDict.noTrialBalanceRows}
+          description={accDict.noTrialBalanceRowsDesc}
         />
       ) : (
         <div className={tableClasses.wrap}>
           <table className={tableClasses.table}>
             <thead>
               <tr>
-                <th className={tableClasses.th}>{accDict.accountCode || 'Code'}</th>
-                <th className={tableClasses.th}>{accDict.accountName || 'Account Name'}</th>
-                <th className={tableClasses.th}>{accDict.accountType || 'Type'}</th>
-                <th className={`${tableClasses.th} text-end`}>{accDict.endingDebit || 'Ending Debit (Minor)'}</th>
-                <th className={`${tableClasses.th} text-end`}>{accDict.endingCredit || 'Ending Credit (Minor)'}</th>
+                <th className={tableClasses.th}>{accDict.accountCode}</th>
+                <th className={tableClasses.th}>{accDict.accountName}</th>
+                <th className={tableClasses.th}>{accDict.accountType}</th>
+                <th className={`${tableClasses.th} text-end`}>{accDict.endingDebit}</th>
+                <th className={`${tableClasses.th} text-end`}>{accDict.endingCredit}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
@@ -153,7 +153,7 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
             </tbody>
             <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
               <tr>
-                <td colSpan={3} className="p-3.5 text-end">{accDict.totalTrialBalance || 'TOTAL TRIAL BALANCE:'}</td>
+                <td colSpan={3} className="p-3.5 text-end">{accDict.totalTrialBalance}</td>
                 <td className="p-3.5 text-end text-blue-600 dark:text-blue-400">
                   <AccountingAmount amountMinor={totals.debit} currency={displayCurrency} tone="debit" />
                 </td>

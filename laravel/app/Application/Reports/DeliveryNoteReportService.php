@@ -13,10 +13,11 @@ class DeliveryNoteReportService
         ?string $status = null,
         ?string $customerId = null,
         ?string $productId = null,
+        ?string $warehouseId = null,
         ?string $search = null
     ): array {
         $query = DeliveryNote::query()
-            ->with(['salesOrder.customer', 'lines.product', 'lines.unitOfMeasure'])
+            ->with(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])
             ->orderBy('delivery_date', 'desc')
             ->orderBy('number', 'desc');
 
@@ -33,6 +34,9 @@ class DeliveryNoteReportService
             $query->whereHas('salesOrder', function ($sq) use ($customerId): void {
                 $sq->where('customer_id', $customerId);
             });
+        }
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
         }
         if ($search) {
             $query->where(function ($q) use ($search): void {
@@ -74,6 +78,9 @@ class DeliveryNoteReportService
                 'sales_order_number' => $dn->salesOrder?->number ?? '—',
                 'customer_name' => $dn->salesOrder?->customer?->name ?? '—',
                 'customer_code' => $dn->salesOrder?->customer?->code ?? '—',
+                'warehouse_id' => $dn->warehouse_id,
+                'warehouse_code' => $dn->warehouse?->code ?? '—',
+                'warehouse_name' => $dn->warehouse?->name ?? null,
                 'delivery_date' => $dn->delivery_date,
                 'status' => $dn->status,
                 'delivered_quantity_e6' => $noteQtyE6,

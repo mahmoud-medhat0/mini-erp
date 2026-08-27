@@ -2,6 +2,7 @@
 
 namespace App\Application\Audit;
 
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -9,6 +10,21 @@ use Illuminate\Support\Facades\DB;
 
 class AuditLogQueryService
 {
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    public function pageData(array $filters): array
+    {
+        return [
+            'logs' => $this->paginate($filters, (int) ($filters['per_page'] ?? 25)),
+            'filters' => $filters,
+            'actions' => $this->getAvailableActions(),
+            'entityTypes' => $this->getAvailableEntityTypes(),
+            'usersList' => $this->usersList(),
+        ];
+    }
+
     /**
      * Query Spatie activity_log table with safe read-only filtering and mapped aliases.
      *
@@ -168,6 +184,17 @@ class AuditLogQueryService
             ->values();
 
         return $subjects->merge($fromProps)->unique()->values();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function usersList(): Collection
+    {
+        return User::query()
+            ->select(['id', 'name', 'email'])
+            ->orderBy('name')
+            ->get();
     }
 
     private function jsonValueExpression(string $key): string

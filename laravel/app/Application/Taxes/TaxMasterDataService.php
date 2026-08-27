@@ -19,7 +19,7 @@ class TaxMasterDataService
 
         if (TaxCode::query()->where('code', $code)->exists()) {
             throw ValidationException::withMessages([
-                'code' => ["Tax code [{$code}] already exists."],
+                'code' => [__('Tax code [:code] already exists.', ['code' => $code])],
             ]);
         }
 
@@ -55,12 +55,12 @@ class TaxMasterDataService
             $newCode = strtoupper(trim($data['code']));
             if ($newCode !== $taxCode->code && TaxCode::query()->where('code', $newCode)->exists()) {
                 throw ValidationException::withMessages([
-                    'code' => ["Tax code [{$newCode}] already exists."],
+                    'code' => [__('Tax code [:code] already exists.', ['code' => $newCode])],
                 ]);
             }
             if ($taxCode->is_system && $newCode !== $taxCode->code) {
                 throw ValidationException::withMessages([
-                    'code' => ['System tax codes cannot have their code changed.'],
+                    'code' => [__('System tax codes cannot have their code changed.')],
                 ]);
             }
             $taxCode->code = $newCode;
@@ -73,7 +73,7 @@ class TaxMasterDataService
         if (isset($data['calculation_mode'])) {
             if (! in_array($data['calculation_mode'], ['exclusive', 'inclusive', 'exempt'], true)) {
                 throw ValidationException::withMessages([
-                    'calculation_mode' => ['Invalid calculation mode.'],
+                    'calculation_mode' => [__('Invalid calculation mode.')],
                 ]);
             }
             $taxCode->calculation_mode = $data['calculation_mode'];
@@ -82,7 +82,7 @@ class TaxMasterDataService
         if (isset($data['recoverability_mode'])) {
             if (! in_array($data['recoverability_mode'], ['full', 'none'], true)) {
                 throw ValidationException::withMessages([
-                    'recoverability_mode' => ['Invalid recoverability mode.'],
+                    'recoverability_mode' => [__('Invalid recoverability mode.')],
                 ]);
             }
             $taxCode->recoverability_mode = $data['recoverability_mode'];
@@ -113,13 +113,13 @@ class TaxMasterDataService
 
         if ($taxCode->is_system) {
             throw ValidationException::withMessages([
-                'tax_code' => ['System tax codes cannot be deleted.'],
+                'tax_code' => [__('System tax codes cannot be deleted.')],
             ]);
         }
 
         if ($taxCode->rates()->exists()) {
             throw ValidationException::withMessages([
-                'tax_code' => ['Cannot delete tax code that has rates configured.'],
+                'tax_code' => [__('Cannot delete tax code that has rates configured.')],
             ]);
         }
 
@@ -144,7 +144,7 @@ class TaxMasterDataService
         $rateBps = (int) $data['rate_bps'];
         if ($rateBps < 0) {
             throw ValidationException::withMessages([
-                'rate_bps' => ['Tax rate basis points must be a non-negative integer.'],
+                'rate_bps' => [__('Tax rate basis points must be a non-negative integer.')],
             ]);
         }
 
@@ -153,7 +153,7 @@ class TaxMasterDataService
 
         if ($to && $to < $from) {
             throw ValidationException::withMessages([
-                'effective_to' => ['Effective to date cannot be before effective from date.'],
+                'effective_to' => [__('Effective to date cannot be before effective from date.')],
             ]);
         }
 
@@ -187,7 +187,7 @@ class TaxMasterDataService
             $rateBps = (int) $data['rate_bps'];
             if ($rateBps < 0) {
                 throw ValidationException::withMessages([
-                    'rate_bps' => ['Tax rate basis points must be a non-negative integer.'],
+                    'rate_bps' => [__('Tax rate basis points must be a non-negative integer.')],
                 ]);
             }
             $taxRate->rate_bps = $rateBps;
@@ -203,7 +203,7 @@ class TaxMasterDataService
 
         if ($taxRate->effective_to && $taxRate->effective_to < $taxRate->effective_from) {
             throw ValidationException::withMessages([
-                'effective_to' => ['Effective to date cannot be before effective from date.'],
+                'effective_to' => [__('Effective to date cannot be before effective from date.')],
             ]);
         }
 

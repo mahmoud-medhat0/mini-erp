@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
+import ReportFilterPanel from '../../Components/ReportFilterPanel';
+import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { getDictionary } from '../../lib/i18n';
+import type { SharedPageProps } from '../../Types';
 
 interface PurchaseOrderReportRow {
     id: string;
@@ -18,7 +22,7 @@ interface PurchaseOrderReportRow {
     lines_count: number;
 }
 
-interface PurchaseOrdersReportProps {
+interface PurchaseOrdersReportProps extends SharedPageProps {
     reportData: {
         rows: PurchaseOrderReportRow[];
         summary: {
@@ -38,9 +42,11 @@ interface PurchaseOrdersReportProps {
     };
     suppliers: Array<{ id: string; code: string; name: string }>;
     products: Array<{ id: string; code: string; name: string }>;
+    currencies: Array<{ code: string }>;
 }
 
-export default function PurchaseOrdersReport({ reportData, filters, suppliers, products }: PurchaseOrdersReportProps) {
+export default function PurchaseOrdersReport({ locale, reportData, filters, suppliers, products, currencies }: PurchaseOrdersReportProps) {
+    const pageDict = getDictionary(locale).app.pages.reports;
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
     const [status, setStatus] = useState(filters.status || '');
@@ -48,6 +54,11 @@ export default function PurchaseOrdersReport({ reportData, filters, suppliers, p
     const [productId, setProductId] = useState(filters.product_id || '');
     const [currency, setCurrency] = useState(filters.currency || '');
     const [search, setSearch] = useState(filters.search || '');
+    const activeFilterCount = [dateFrom, dateTo, status, supplierId, productId, currency, search].filter(Boolean).length;
+    const currencyOptions = [
+        { value: '', label: pageDict.allCurrencies },
+        ...currencies.map((c) => ({ value: c.code, label: c.code })),
+    ];
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,6 +73,17 @@ export default function PurchaseOrdersReport({ reportData, filters, suppliers, p
         }, { preserveState: true });
     };
 
+    const handleReset = () => {
+        setDateFrom('');
+        setDateTo('');
+        setStatus('');
+        setSupplierId('');
+        setProductId('');
+        setCurrency('');
+        setSearch('');
+        router.get('/reports/purchase-orders', {}, { preserveState: true });
+    };
+
     const getStatusTone = (st: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' => {
         if (st === 'confirmed') return 'ok';
         if (st === 'cancelled') return 'danger';
@@ -69,97 +91,122 @@ export default function PurchaseOrdersReport({ reportData, filters, suppliers, p
         return 'muted';
     };
 
-    const formatQty = (e6: number) => (e6 / 1000000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+    const getStatusLabel = (st: string) => {
+        if (st === 'draft') return pageDict.draft;
+        if (st === 'submitted') return pageDict.submitted;
+        if (st === 'confirmed') return pageDict.confirmed;
+        if (st === 'cancelled') return pageDict.cancelled;
+
+        return st;
+    };
+
+    const numberLocale = locale === 'ar' ? 'ar-EG' : 'en-US';
+    const formatQty = (e6: number) => (e6 / 1000000).toLocaleString(numberLocale, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
     return (
         <AppLayout active="reports.purchase-orders">
-            <Head title="Purchase Orders Report / تقرير أوامر الشراء" />
+            <Head title={pageDict.purchaseOrdersHeadTitle} />
 
             <div className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
                 <PageHeader
-                    title="Purchase Orders Register / سجل أوامر الشراء"
-                    description="Read-only operational register of all purchase orders"
+                    title={pageDict.purchaseOrdersTitle}
+                    description={pageDict.purchaseOrdersDescription}
                 />
 
-                <Card>
-                    <form onSubmit={handleFilter} className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <form onSubmit={handleFilter}>
+                    <ReportFilterPanel
+                        activeFilterCount={activeFilterCount}
+                        activeFilterLabel={pageDict.activeFilters}
+                        actions={(
+                            <>
+                                <Button type="button" variant="secondary" onClick={handleReset} disabled={activeFilterCount === 0}>{pageDict.clearFilters}</Button>
+                                <Button type="submit" variant="primary">{pageDict.filter}</Button>
+                            </>
+                        )}
+                    >
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Date From / من تاريخ</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.dateFrom}</label>
                             <DatePicker value={dateFrom} onChange={(v) => setDateFrom(v || '')} />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Date To / إلى تاريخ</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.dateTo}</label>
                             <DatePicker value={dateTo} onChange={(v) => setDateTo(v || '')} />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Status / الحالة</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.status}</label>
                             <select
                                 value={status}
                                 onChange={(e) => setStatus(e.target.value)}
                                 className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             >
-                                <option value="">All Statuses</option>
-                                <option value="draft">Draft</option>
-                                <option value="submitted">Submitted</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="">{pageDict.allStatuses}</option>
+                                <option value="draft">{pageDict.draft}</option>
+                                <option value="submitted">{pageDict.submitted}</option>
+                                <option value="confirmed">{pageDict.confirmed}</option>
+                                <option value="cancelled">{pageDict.cancelled}</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Supplier / المورد</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.supplier}</label>
                             <select
                                 value={supplierId}
                                 onChange={(e) => setSupplierId(e.target.value)}
                                 className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             >
-                                <option value="">All Suppliers</option>
+                                <option value="">{pageDict.allSuppliers}</option>
                                 {suppliers.map((s) => (
                                     <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Product / المنتج</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.product}</label>
                             <select
                                 value={productId}
                                 onChange={(e) => setProductId(e.target.value)}
                                 className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             >
-                                <option value="">All Products</option>
+                                <option value="">{pageDict.allProducts}</option>
                                 {products.map((p) => (
                                     <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
                                 ))}
                             </select>
                         </div>
+                        <SearchableSelect
+                            label={pageDict.currency}
+                            options={currencyOptions}
+                            value={currency}
+                            onChange={(value) => setCurrency(value || '')}
+                            placeholder={pageDict.allCurrencies}
+                        />
                         <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Search / بحث</label>
+                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.search}</label>
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Order #, Supplier..."
+                                placeholder={pageDict.purchaseOrdersSearchPlaceholder}
                                 className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                             />
                         </div>
-                        <div className="md:col-span-2 flex justify-end gap-2">
-                            <Button type="submit" variant="primary">Filter / تصفية</Button>
-                        </div>
-                    </form>
-                </Card>
+                    </ReportFilterPanel>
+                </form>
 
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div className="text-xs font-medium text-slate-500">Total Purchase Orders / إجمالي الأوامر</div>
+                        <div className="text-xs font-medium text-slate-500">{pageDict.totalPurchaseOrders}</div>
                         <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{reportData.summary.total_orders_count}</div>
                     </Card>
                     <Card className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div className="text-xs font-medium text-slate-500">Total Ordered Quantity / إجمالي الكمية المطلوبة</div>
+                        <div className="text-xs font-medium text-slate-500">{pageDict.totalOrderedQuantity}</div>
                         <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{formatQty(reportData.summary.total_quantity_e6)}</div>
                     </Card>
                     <Card className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                        <div className="text-xs font-medium text-slate-500">Total Value / إجمالي القيمة</div>
-                        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{formatMoney(reportData.summary.total_amount_minor, filters.currency || 'EGP')}</div>
+                        <div className="text-xs font-medium text-slate-500">{pageDict.totalValue}</div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                            {filters.currency ? formatMoney(reportData.summary.total_amount_minor, filters.currency) : pageDict.mixedCurrencyAmount}
+                        </div>
                     </Card>
                 </div>
 
@@ -168,20 +215,20 @@ export default function PurchaseOrdersReport({ reportData, filters, suppliers, p
                         <table className={tableClasses.table}>
                             <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                                 <tr>
-                                    <th className={tableClasses.th}>Order # / رقم الأمر</th>
-                                    <th className={tableClasses.th}>Supplier / المورد</th>
-                                    <th className={tableClasses.th}>Date / التاريخ</th>
-                                    <th className={tableClasses.th}>Status / الحالة</th>
-                                    <th className={tableClasses.th}>Currency / العملة</th>
-                                    <th className={tableClasses.th}>Qty / الكمية</th>
-                                    <th className={tableClasses.th}>Total Amount / الإجمالي</th>
+                                    <th className={tableClasses.th}>{pageDict.orderNumber}</th>
+                                    <th className={tableClasses.th}>{pageDict.supplier}</th>
+                                    <th className={tableClasses.th}>{pageDict.date}</th>
+                                    <th className={tableClasses.th}>{pageDict.status}</th>
+                                    <th className={tableClasses.th}>{pageDict.currency}</th>
+                                    <th className={tableClasses.th}>{pageDict.qty}</th>
+                                    <th className={tableClasses.th}>{pageDict.totalAmount}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                                 {reportData.rows.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="p-4 text-center">
-                                            <EmptyState title="No purchase orders found / لا توجد أوامر شراء" />
+                                            <EmptyState title={pageDict.emptyPurchaseOrders} />
                                         </td>
                                     </tr>
                                 ) : (
@@ -190,7 +237,7 @@ export default function PurchaseOrdersReport({ reportData, filters, suppliers, p
                                             <td className={`${tableClasses.td} font-medium`}>{row.order_number}</td>
                                             <td className={tableClasses.td}>{row.supplier_code} - {row.supplier_name}</td>
                                             <td className={tableClasses.td}>{row.order_date}</td>
-                                            <td className={tableClasses.td}><StatusBadge tone={getStatusTone(row.status)}>{row.status}</StatusBadge></td>
+                                            <td className={tableClasses.td}><StatusBadge tone={getStatusTone(row.status)}>{getStatusLabel(row.status)}</StatusBadge></td>
                                             <td className={tableClasses.td}>{row.currency}</td>
                                             <td className={tableClasses.td}>{formatQty(row.ordered_quantity_e6)}</td>
                                             <td className={`${tableClasses.td} font-semibold`}>{formatMoney(row.total_minor, row.currency)}</td>

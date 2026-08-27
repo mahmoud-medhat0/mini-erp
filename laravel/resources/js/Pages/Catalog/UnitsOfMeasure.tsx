@@ -79,7 +79,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
   };
 
   const handleDelete = (uom: UnitOfMeasureRow) => {
-    if (confirm(dict.app.pages.catalogUnitsOfMeasure.areYouSureYouWantTo)) {
+    if (confirm(dict.app.pages.catalogUnitsOfMeasure.confirmDeleteUom.replace('{name}', uom.name || uom.code))) {
       destroy(`/catalog/uoms/${uom.id}`);
     }
   };
@@ -204,7 +204,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                   value={data.code}
                   onChange={(e) => setData('code', e.target.value.toUpperCase())}
                   required
-                  placeholder="e.g. PCS, KG, M"
+                  placeholder={dict.app.pages.catalogUnitsOfMeasure.codePlaceholder}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none uppercase font-mono"
                 />
                 {errors.code ? <p className="mt-1 text-[10px] text-red-500">{errors.code}</p> : null}
@@ -232,7 +232,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                   type="text"
                   value={data.symbol}
                   onChange={(e) => setData('symbol', e.target.value)}
-                  placeholder="e.g. pc, kg, m"
+                  placeholder={dict.app.pages.catalogUnitsOfMeasure.symbolPlaceholder}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
                 />
               </div>

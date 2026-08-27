@@ -702,7 +702,6 @@ class Phase4Slice8InventoryCostingTest extends TestCase
 
         $terms = [
             'company'.'_id',
-            'branch'.'_id',
             'tenant'.'_id',
             'current'.'Company',
             'current'.'Branch',
@@ -714,6 +713,11 @@ class Phase4Slice8InventoryCostingTest extends TestCase
             foreach ($terms as $term) {
                 $this->assertStringNotContainsString($term, $content, "Forbidden tenancy term [{$term}] found in [{$filePath}].");
             }
+        }
+
+        foreach ([app_path('Models/StockBalance.php'), app_path('Models/StockMovementLedger.php')] as $filePath) {
+            $content = file_get_contents($filePath);
+            $this->assertStringNotContainsString('branch'.'_id', $content, "Stock valuation records must remain warehouse-scoped, not branch-scoped, in [{$filePath}].");
         }
     }
 }

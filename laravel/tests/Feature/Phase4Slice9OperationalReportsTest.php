@@ -53,7 +53,7 @@ class Phase4Slice9OperationalReportsTest extends TestCase
         $this->seed(ProductCategorySeeder::class);
 
         $this->adminUser = User::factory()->create();
-        $this->adminUser->givePermissionTo(['reports.view']);
+        $this->adminUser->givePermissionTo(['reports.view', 'view_financials']);
 
         $this->unauthorizedUser = User::factory()->create();
 

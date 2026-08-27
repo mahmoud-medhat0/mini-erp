@@ -12,9 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class ArToGlReconciliationReportService
 {
+    public function __construct(
+        private readonly ReportCurrencyResolver $currencyResolver,
+    ) {}
+
     public function generate(string $asOfDate, ?string $currency = null): array
     {
-        $targetCurrency = $currency ?? 'EGP';
+        $targetCurrency = $this->currencyResolver->resolve($currency);
 
         // 1. Fetch AR control account mapping
         $mapping = AccountingAccountMapping::query()

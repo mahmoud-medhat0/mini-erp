@@ -2,6 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -26,6 +27,7 @@ type GoodsReceiptLineOption = {
 type GoodsReceiptOption = {
   id: string;
   number?: string | null;
+  warehouse_id?: string | null;
   purchaseOrder?: {
     id: string;
     supplier_id?: string;
@@ -33,6 +35,13 @@ type GoodsReceiptOption = {
     supplier?: { id: string; name: string } | null;
   } | null;
   lines: GoodsReceiptLineOption[];
+};
+
+type WarehouseOption = {
+  id: string;
+  code: string;
+  name: { en?: string; ar?: string } | string;
+  is_default?: boolean;
 };
 
 type ReturnLineForm = {
@@ -49,9 +58,11 @@ type PurchaseReturnRow = {
   number?: string | null;
   supplier_id: string;
   goods_receipt_id?: string | null;
+  warehouse_id: string;
   supplier_bill_id?: string | null;
   supplier?: { id: string; name: string } | null;
   goodsReceipt?: { id: string; number?: string | null } | null;
+  warehouse?: WarehouseOption | null;
   return_date: string;
   status: 'draft' | 'submitted' | 'approved' | 'posted' | 'cancelled';
   currency: string;
@@ -76,11 +87,13 @@ type PurchaseReturnsProps = SharedPageProps & {
   };
   activeSuppliers: SupplierOption[];
   confirmedGoodsReceipts: GoodsReceiptOption[];
+  warehouses: WarehouseOption[];
   taxCodes?: Array<{ id: string; code: string; name: Record<string, string> | string; calculation_mode: string }>;
   filters: {
     search?: string;
     status?: string;
     supplier_id?: string;
+    warehouse_id?: string;
   };
 };
 
@@ -91,10 +104,12 @@ export default function PurchaseReturnsIndex({
   purchaseReturns,
   activeSuppliers,
   confirmedGoodsReceipts,
+  warehouses,
   taxCodes = [],
   filters,
 }: PurchaseReturnsProps) {
   const dict = getDictionary(locale);
+  const accDict = dict.app.accounting;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -106,6 +121,7 @@ export default function PurchaseReturnsIndex({
   const { data, setData, post, put, processing, errors, reset } = useForm({
     supplier_id: '',
     goods_receipt_id: '',
+    warehouse_id: warehouses[0]?.id || '',
     return_date: todayStr,
     currency: '',
     reason: '',
@@ -135,6 +151,7 @@ export default function PurchaseReturnsIndex({
   const handleGoodsReceiptSelect = (grId: string) => {
     const gr = confirmedGoodsReceipts.find((g) => g.id === grId);
     setData('goods_receipt_id', grId);
+    setData('warehouse_id', gr?.warehouse_id || warehouses[0]?.id || '');
     if (gr?.purchaseOrder?.currency) {
       setData('currency', gr.purchaseOrder.currency);
     }
@@ -148,7 +165,7 @@ export default function PurchaseReturnsIndex({
           goods_receipt_line_id: l.id,
           product_id: l.product_id,
           description: l.description || getProductName(l.product),
-          uom_name: l.unitOfMeasure?.name || '-',
+          uom_name: l.unitOfMeasure?.name || accDict.notAvailable,
           max_quantity: l.quantity_e6 / 1000000,
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -156,7 +173,7 @@ export default function PurchaseReturnsIndex({
     }
   };
 
-  const updateLineItem = (index: number, field: keyof ReturnLineForm, value: any) => {
+  const updateLineItem = <K extends keyof ReturnLineForm>(index: number, field: K, value: ReturnLineForm[K]) => {
     setLineItems((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
@@ -176,6 +193,7 @@ export default function PurchaseReturnsIndex({
     setData({
       supplier_id: ret.supplier_id,
       goods_receipt_id: ret.goods_receipt_id || '',
+      warehouse_id: ret.warehouse_id || warehouses[0]?.id || '',
       return_date: ret.return_date,
       currency: ret.currency,
       reason: ret.reason || '',
@@ -187,7 +205,7 @@ export default function PurchaseReturnsIndex({
         goods_receipt_line_id: l.goods_receipt_line_id,
         product_id: l.product_id,
         description: l.description || getProductName(l.product),
-        uom_name: l.unitOfMeasure?.name || '-',
+        uom_name: l.unitOfMeasure?.name || accDict.notAvailable,
         max_quantity: l.quantity_e6 / 1000000,
         quantity: l.quantity_e6 / 1000000,
       }))
@@ -322,6 +340,19 @@ export default function PurchaseReturnsIndex({
 
           <div className="flex flex-wrap items-center gap-3">
             <select
+              value={filters.warehouse_id || ''}
+              onChange={(e) => router.get('/purchasing/returns', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
+              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">{dict.app.pages.purchasingPurchaseReturns.allWarehouses}</option>
+              {warehouses.map((warehouse) => (
+                <option key={warehouse.id} value={warehouse.id}>
+                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={filters.status || ''}
               onChange={(e) => router.get('/purchasing/returns', { ...filters, status: e.target.value }, { preserveState: true })}
               className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
@@ -349,6 +380,7 @@ export default function PurchaseReturnsIndex({
                   <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.returnNumber}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.supplier}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.goodsReceipt}</th>
+                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.warehouse}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.returnDate}</th>
                   <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.status}</th>
                   <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingPurchaseReturns.actions}</th>
@@ -360,8 +392,9 @@ export default function PurchaseReturnsIndex({
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {ret.number || dict.app.pages.purchasingPurchaseReturns.draft_2}
                     </td>
-                    <td className={`${tableClasses.td} font-medium`}>{ret.supplier?.name || '-'}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{ret.goodsReceipt?.number || '-'}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{ret.supplier?.name || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono`}>{ret.goodsReceipt?.number || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{ret.return_date}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={getStatusTone(ret.status)}>
@@ -369,7 +402,7 @@ export default function PurchaseReturnsIndex({
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {ret.status === 'draft' && can('purchasing.edit') ? (
+                      {ret.status === 'draft' && can('purchasing.returns') ? (
                         <button
                           type="button"
                           onClick={() => openEditModal(ret)}
@@ -379,7 +412,7 @@ export default function PurchaseReturnsIndex({
                         </button>
                       ) : null}
 
-                      {ret.status === 'draft' && can('purchasing.submit') ? (
+                      {ret.status === 'draft' && can('purchasing.returns') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'submit')}
@@ -389,7 +422,7 @@ export default function PurchaseReturnsIndex({
                         </button>
                       ) : null}
 
-                      {['draft', 'submitted'].includes(ret.status) && can('purchasing.approve') ? (
+                      {['draft', 'submitted'].includes(ret.status) && can('purchasing.returns') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'approve')}
@@ -399,7 +432,7 @@ export default function PurchaseReturnsIndex({
                         </button>
                       ) : null}
 
-                      {ret.status === 'approved' && can('purchasing.post') ? (
+                      {ret.status === 'approved' && can('purchasing.returns') && can('view_financials') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'post')}
@@ -409,7 +442,7 @@ export default function PurchaseReturnsIndex({
                         </button>
                       ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(ret.status) && can('purchasing.cancel') ? (
+                      {['draft', 'submitted', 'approved'].includes(ret.status) && can('purchasing.returns') ? (
                         <button
                           type="button"
                           onClick={() => handleAction(ret.id, 'cancel')}
@@ -435,7 +468,7 @@ export default function PurchaseReturnsIndex({
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.supplier_2} *</label>
                   <select
@@ -487,6 +520,25 @@ export default function PurchaseReturnsIndex({
                 </div>
 
                 <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.warehouse} *</label>
+                  <select
+                    value={data.warehouse_id}
+                    onChange={(e) => setData('warehouse_id', e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">{dict.app.pages.purchasingPurchaseReturns.selectWarehouse}</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
+                        {warehouse.is_default ? ` (${dict.app.pages.purchasingPurchaseReturns.defaultWarehouse})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
+                </div>
+
+                <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.currency}</label>
                   <input
                     type="text"
@@ -513,7 +565,7 @@ export default function PurchaseReturnsIndex({
                           <input
                             type="text"
                             disabled
-                            value={item.description || '-'}
+                            value={item.description}
                             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--text-primary)] font-medium"
                           />
                         </div>

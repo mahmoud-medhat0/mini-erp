@@ -34,15 +34,22 @@ class Phase3Slice1MasterDataTest extends TestCase
         $this->assertFalse(config('permission.teams'));
     }
 
-    public function test_master_data_tables_exist_without_tenant_or_company_or_branch_id(): void
+    public function test_master_data_tables_exist_without_tenant_or_company_scope_and_with_bounded_cash_bank_branch_reference(): void
     {
-        $tables = ['customer', 'supplier', 'cash_account', 'bank_account'];
+        $tables = ['customer', 'supplier'];
 
         foreach ($tables as $table) {
             $this->assertTrue(Schema::hasTable($table), "Table [{$table}] must exist.");
 
             $this->assertFalse(Schema::hasColumn($table, 'company_id'), "Table [{$table}] must NOT contain company_id.");
             $this->assertFalse(Schema::hasColumn($table, 'branch_id'), "Table [{$table}] must NOT contain branch_id.");
+            $this->assertFalse(Schema::hasColumn($table, 'tenant_id'), "Table [{$table}] must NOT contain tenant_id.");
+        }
+
+        foreach (['cash_account', 'bank_account'] as $table) {
+            $this->assertTrue(Schema::hasTable($table), "Table [{$table}] must exist.");
+            $this->assertTrue(Schema::hasColumn($table, 'branch_id'), "Table [{$table}] may carry an optional operational branch reference.");
+            $this->assertFalse(Schema::hasColumn($table, 'company_id'), "Table [{$table}] must NOT contain company_id.");
             $this->assertFalse(Schema::hasColumn($table, 'tenant_id'), "Table [{$table}] must NOT contain tenant_id.");
         }
     }

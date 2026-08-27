@@ -2,6 +2,7 @@
 
 namespace App\Application\Accounting;
 
+use App\Application\Support\CurrencyInput;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Account;
 use App\Models\BankAccount;
@@ -32,20 +33,20 @@ class IncomingChequeService
     {
         $customerId = $data['customer_id'] ?? null;
         $chequeNumber = trim((string) ($data['cheque_number'] ?? ''));
-        $currency = $data['currency'] ?? 'EGP';
+        $currency = CurrencyInput::required($data['currency'] ?? null);
         $amountMinor = $data['amount_minor'] ?? 0;
 
         Customer::query()->findOrFail($customerId);
 
         if ($chequeNumber === '') {
             throw ValidationException::withMessages([
-                'cheque_number' => ['Physical cheque number is required.'],
+                'cheque_number' => [__('Physical cheque number is required.')],
             ]);
         }
 
         if (! is_int($amountMinor) || $amountMinor <= 0) {
             throw ValidationException::withMessages([
-                'amount_minor' => ['Amount must be a positive integer.'],
+                'amount_minor' => [__('Amount must be a positive integer.')],
             ]);
         }
 
@@ -99,7 +100,7 @@ class IncomingChequeService
 
                     if ($cheque->status !== 'draft') {
                         throw ValidationException::withMessages([
-                            'status' => ["Cannot receive cheque from status [{$cheque->status}]. Only draft cheques can be received."],
+                            'status' => [__('Cannot receive cheque from status [:status]. Only draft cheques can be received.', ['status' => $cheque->status])],
                         ]);
                     }
 
@@ -221,20 +222,23 @@ class IncomingChequeService
 
             if (! in_array($cheque->status, ['received', 'deposited'], true)) {
                 throw ValidationException::withMessages([
-                    'status' => ["Cannot deposit cheque from status [{$cheque->status}]. Only received cheques can be deposited."],
+                    'status' => [__('Cannot deposit cheque from status [:status]. Only received cheques can be deposited.', ['status' => $cheque->status])],
                 ]);
             }
 
             $bankAccount = BankAccount::query()->where('id', $bankAccountId)->lockForUpdate()->firstOrFail();
             if (! $bankAccount->is_active) {
                 throw ValidationException::withMessages([
-                    'bank_account_id' => ['Selected deposit bank account is inactive.'],
+                    'bank_account_id' => [__('Selected deposit bank account is inactive.')],
                 ]);
             }
 
             if ($bankAccount->currency !== $cheque->currency) {
                 throw ValidationException::withMessages([
-                    'currency' => ["Deposit bank account currency [{$bankAccount->currency}] does not match cheque currency [{$cheque->currency}]."],
+                    'currency' => [__('Deposit bank account currency [:bank_currency] does not match cheque currency [:cheque_currency].', [
+                        'bank_currency' => $bankAccount->currency,
+                        'cheque_currency' => $cheque->currency,
+                    ])],
                 ]);
             }
 
@@ -285,14 +289,14 @@ class IncomingChequeService
 
                     if (! in_array($cheque->status, ['received', 'deposited'], true)) {
                         throw ValidationException::withMessages([
-                            'status' => ["Cannot clear cheque from status [{$cheque->status}]. Only received or deposited cheques can be cleared."],
+                            'status' => [__('Cannot clear cheque from status [:status]. Only received or deposited cheques can be cleared.', ['status' => $cheque->status])],
                         ]);
                     }
 
                     $targetBankId = $bankAccountId ?? $cheque->deposit_bank_account_id;
                     if (! $targetBankId) {
                         throw ValidationException::withMessages([
-                            'bank_account_id' => ['Bank account must be specified to clear incoming cheque.'],
+                            'bank_account_id' => [__('Bank account must be specified to clear incoming cheque.')],
                         ]);
                     }
 
@@ -301,13 +305,16 @@ class IncomingChequeService
                     $bankAccount = BankAccount::query()->where('id', $targetBankId)->lockForUpdate()->firstOrFail();
                     if (! $bankAccount->is_active) {
                         throw ValidationException::withMessages([
-                            'bank_account_id' => ['Selected bank account is inactive.'],
+                            'bank_account_id' => [__('Selected bank account is inactive.')],
                         ]);
                     }
 
                     if ($bankAccount->currency !== $cheque->currency) {
                         throw ValidationException::withMessages([
-                            'currency' => ["Bank account currency [{$bankAccount->currency}] does not match cheque currency [{$cheque->currency}]."],
+                            'currency' => [__('Bank account currency [:bank_currency] does not match cheque currency [:cheque_currency].', [
+                                'bank_currency' => $bankAccount->currency,
+                                'cheque_currency' => $cheque->currency,
+                            ])],
                         ]);
                     }
 
@@ -317,7 +324,7 @@ class IncomingChequeService
                     $bankGlAcc = Account::query()->where('id', $bankAccount->gl_account_id)->lockForUpdate()->firstOrFail();
                     if (! $bankGlAcc->is_active || $bankGlAcc->currency !== $cheque->currency) {
                         throw ValidationException::withMessages([
-                            'bank_account_id' => ['Bank account GL account is inactive or currency mismatch.'],
+                            'bank_account_id' => [__('Bank account GL account is inactive or currency mismatch.')],
                         ]);
                     }
 
@@ -421,12 +428,12 @@ class IncomingChequeService
                     }
 
                     if ($cheque->status === 'cleared') {
-                        throw new InvalidArgumentException('OWNER DECISION REQUIRED: Post-clear bounce workflow is not implemented in pre-clear cheque lifecycle.');
+                        throw new InvalidArgumentException(__('OWNER DECISION REQUIRED: Post-clear bounce workflow is not implemented in pre-clear cheque lifecycle.'));
                     }
 
                     if (! in_array($cheque->status, ['received', 'deposited'], true)) {
                         throw ValidationException::withMessages([
-                            'status' => ["Cannot bounce cheque from status [{$cheque->status}]. Only received or deposited pre-clear cheques can be bounced."],
+                            'status' => [__('Cannot bounce cheque from status [:status]. Only received or deposited pre-clear cheques can be bounced.', ['status' => $cheque->status])],
                         ]);
                     }
 
@@ -554,12 +561,12 @@ class IncomingChequeService
                     }
 
                     if ($cheque->status === 'cleared') {
-                        throw new InvalidArgumentException('OWNER DECISION REQUIRED: Post-clear return workflow is not implemented in pre-clear cheque lifecycle.');
+                        throw new InvalidArgumentException(__('OWNER DECISION REQUIRED: Post-clear return workflow is not implemented in pre-clear cheque lifecycle.'));
                     }
 
                     if (! in_array($cheque->status, ['received', 'deposited'], true)) {
                         throw ValidationException::withMessages([
-                            'status' => ["Cannot return cheque from status [{$cheque->status}]. Only received or deposited pre-clear cheques can be returned."],
+                            'status' => [__('Cannot return cheque from status [:status]. Only received or deposited pre-clear cheques can be returned.', ['status' => $cheque->status])],
                         ]);
                     }
 
@@ -671,7 +678,7 @@ class IncomingChequeService
 
             if ($cheque->status !== 'draft') {
                 throw ValidationException::withMessages([
-                    'status' => ["Cannot cancel cheque from status [{$cheque->status}]. Only draft cheques can be cancelled."],
+                    'status' => [__('Cannot cancel cheque from status [:status]. Only draft cheques can be cancelled.', ['status' => $cheque->status])],
                 ]);
             }
 
@@ -709,7 +716,7 @@ class IncomingChequeService
 
         if (! $period->isOpen()) {
             throw ValidationException::withMessages([
-                'financial_period_id' => ["Financial period is not open. Current status: [{$period->status}]."],
+                'financial_period_id' => [__('Financial period is not open. Current status: [:status].', ['status' => $period->status])],
             ]);
         }
 
@@ -718,7 +725,11 @@ class IncomingChequeService
 
         if ($eventDate < $startDate || $eventDate > $endDate) {
             throw ValidationException::withMessages([
-                'received_date' => ["Event date [{$eventDate}] is outside period range [{$startDate} - {$endDate}]."],
+                'received_date' => [__('Event date [:date] is outside period range [:start - :end].', [
+                    'date' => $eventDate,
+                    'start' => $startDate,
+                    'end' => $endDate,
+                ])],
             ]);
         }
 
@@ -730,7 +741,7 @@ class IncomingChequeService
         $accountId = $this->mappingService->getAccountId($mappingKey);
         if (! $accountId) {
             throw ValidationException::withMessages([
-                'mapping' => ["Accounting mapping key [{$mappingKey}] is not configured."],
+                'mapping' => [__('Accounting mapping key [:key] is not configured.', ['key' => $mappingKey])],
             ]);
         }
 
@@ -739,25 +750,40 @@ class IncomingChequeService
 
         if (! $account->is_active) {
             throw ValidationException::withMessages([
-                'mapping' => ["Mapped account [{$account->code}] for [{$mappingKey}] is inactive."],
+                'mapping' => [__('Mapped account [:account] for [:key] is inactive.', [
+                    'account' => $account->code,
+                    'key' => $mappingKey,
+                ])],
             ]);
         }
 
         if ($account->currency !== $currency) {
             throw ValidationException::withMessages([
-                'currency' => ["Mapped account [{$account->code}] currency [{$account->currency}] does not match cheque currency [{$currency}]."],
+                'currency' => [__('Mapped account [:account] currency [:account_currency] does not match cheque currency [:cheque_currency].', [
+                    'account' => $account->code,
+                    'account_currency' => $account->currency,
+                    'cheque_currency' => $currency,
+                ])],
             ]);
         }
 
         if ($account->type !== $expectedType) {
             throw ValidationException::withMessages([
-                'mapping' => ["Mapped account [{$account->code}] type [{$account->type}] does not match expected [{$expectedType}]."],
+                'mapping' => [__('Mapped account [:account] type [:account_type] does not match expected [:expected_type].', [
+                    'account' => $account->code,
+                    'account_type' => $account->type,
+                    'expected_type' => $expectedType,
+                ])],
             ]);
         }
 
         if ($account->nature !== $expectedNature) {
             throw ValidationException::withMessages([
-                'mapping' => ["Mapped account [{$account->code}] nature [{$account->nature}] does not match expected [{$expectedNature}]."],
+                'mapping' => [__('Mapped account [:account] nature [:account_nature] does not match expected [:expected_nature].', [
+                    'account' => $account->code,
+                    'account_nature' => $account->nature,
+                    'expected_nature' => $expectedNature,
+                ])],
             ]);
         }
 

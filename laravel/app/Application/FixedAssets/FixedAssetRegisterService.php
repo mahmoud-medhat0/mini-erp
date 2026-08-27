@@ -2,6 +2,7 @@
 
 namespace App\Application\FixedAssets;
 
+use App\Application\Support\CurrencyInput;
 use App\Domain\Audit\AuditLogger;
 use App\Models\Currency;
 use App\Models\FixedAsset;
@@ -26,7 +27,7 @@ class FixedAssetRegisterService
     public function listAssets(array $filters = []): LengthAwarePaginator
     {
         $query = FixedAsset::query()
-            ->with(['category', 'currencyModel'])
+            ->with(['category', 'currencyModel', 'branch', 'location'])
             ->orderBy('asset_number', 'desc');
 
         if (! empty($filters['search'])) {
@@ -45,6 +46,14 @@ class FixedAssetRegisterService
 
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
+        }
+
+        if (! empty($filters['location_id'])) {
+            $query->where('fixed_asset_location_id', $filters['location_id']);
         }
 
         $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 15)));
@@ -76,64 +85,64 @@ class FixedAssetRegisterService
 
         if (! $category->is_active) {
             throw ValidationException::withMessages([
-                'fixed_asset_category_id' => ['Selected asset category is inactive.'],
+                'fixed_asset_category_id' => [__('Selected asset category is inactive.')],
             ]);
         }
 
-        $currencyCode = strtoupper(trim($data['currency'] ?? 'EGP'));
+        $currencyCode = CurrencyInput::required($data['currency'] ?? null);
         /** @var Currency|null $currency */
         $currency = Currency::query()->where('code', $currencyCode)->first();
         if (! $currency) {
             throw ValidationException::withMessages([
-                'currency' => ["Currency [{$currencyCode}] is missing."],
+                'currency' => [__('Currency [:code] is missing.', ['code' => $currencyCode])],
             ]);
         }
 
         $cost = (int) $data['cost_minor'];
         if ($cost <= 0) {
             throw ValidationException::withMessages([
-                'cost_minor' => ['Asset cost must be greater than zero.'],
+                'cost_minor' => [__('Asset cost must be greater than zero.')],
             ]);
         }
 
         $salvage = (int) ($data['salvage_value_minor'] ?? $category->salvage_value_minor);
         if ($salvage < 0) {
             throw ValidationException::withMessages([
-                'salvage_value_minor' => ['Salvage value cannot be negative.'],
+                'salvage_value_minor' => [__('Salvage value cannot be negative.')],
             ]);
         }
 
         if ($salvage > $cost) {
             throw ValidationException::withMessages([
-                'salvage_value_minor' => ['Salvage value cannot exceed historical cost.'],
+                'salvage_value_minor' => [__('Salvage value cannot exceed historical cost.')],
             ]);
         }
 
         $usefulLife = (int) ($data['useful_life_months'] ?? $category->useful_life_months);
         if ($usefulLife <= 0) {
             throw ValidationException::withMessages([
-                'useful_life_months' => ['Useful life must be a positive number of months.'],
+                'useful_life_months' => [__('Useful life must be a positive number of months.')],
             ]);
         }
 
         $openingAccum = (int) ($data['opening_accumulated_depreciation_minor'] ?? 0);
         if ($openingAccum < 0) {
             throw ValidationException::withMessages([
-                'opening_accumulated_depreciation_minor' => ['Opening accumulated depreciation cannot be negative.'],
+                'opening_accumulated_depreciation_minor' => [__('Opening accumulated depreciation cannot be negative.')],
             ]);
         }
 
         $maxDepreciable = $cost - $salvage;
         if ($openingAccum > $maxDepreciable) {
             throw ValidationException::withMessages([
-                'opening_accumulated_depreciation_minor' => ['Opening accumulated depreciation cannot exceed depreciable base (Cost - Salvage).'],
+                'opening_accumulated_depreciation_minor' => [__('Opening accumulated depreciation cannot exceed depreciable base (Cost - Salvage).')],
             ]);
         }
 
         $status = $data['status'] ?? 'draft';
         if ($status !== 'draft') {
             throw ValidationException::withMessages([
-                'status' => ['Fixed assets must be created as draft and activated through capitalization.'],
+                'status' => [__('Fixed assets must be created as draft and activated through capitalization.')],
             ]);
         }
 
@@ -144,7 +153,7 @@ class FixedAssetRegisterService
 
             if (FixedAsset::query()->where('asset_number', $assetNumber)->exists()) {
                 throw ValidationException::withMessages([
-                    'asset_number' => ["Asset number [{$assetNumber}] is already in use."],
+                    'asset_number' => [__('Asset number [:asset_number] is already in use.', ['asset_number' => $assetNumber])],
                 ]);
             }
 
@@ -209,7 +218,7 @@ class FixedAssetRegisterService
 
         if ($asset->status !== 'draft') {
             throw ValidationException::withMessages([
-                'asset' => ['Only draft assets can be edited.'],
+                'asset' => [__('Only draft assets can be edited.')],
             ]);
         }
 
@@ -236,7 +245,7 @@ class FixedAssetRegisterService
         $cost = isset($data['cost_minor']) ? (int) $data['cost_minor'] : $asset->cost_minor;
         if ($cost <= 0) {
             throw ValidationException::withMessages([
-                'cost_minor' => ['Asset cost must be greater than zero.'],
+                'cost_minor' => [__('Asset cost must be greater than zero.')],
             ]);
         }
         $asset->cost_minor = $cost;
@@ -244,12 +253,12 @@ class FixedAssetRegisterService
         $salvage = isset($data['salvage_value_minor']) ? (int) $data['salvage_value_minor'] : $asset->salvage_value_minor;
         if ($salvage < 0) {
             throw ValidationException::withMessages([
-                'salvage_value_minor' => ['Salvage value cannot be negative.'],
+                'salvage_value_minor' => [__('Salvage value cannot be negative.')],
             ]);
         }
         if ($salvage > $cost) {
             throw ValidationException::withMessages([
-                'salvage_value_minor' => ['Salvage value cannot exceed historical cost.'],
+                'salvage_value_minor' => [__('Salvage value cannot exceed historical cost.')],
             ]);
         }
         $asset->salvage_value_minor = $salvage;
@@ -257,7 +266,7 @@ class FixedAssetRegisterService
         $usefulLife = isset($data['useful_life_months']) ? (int) $data['useful_life_months'] : $asset->useful_life_months;
         if ($usefulLife <= 0) {
             throw ValidationException::withMessages([
-                'useful_life_months' => ['Useful life must be a positive number of months.'],
+                'useful_life_months' => [__('Useful life must be a positive number of months.')],
             ]);
         }
         $asset->useful_life_months = $usefulLife;
@@ -265,12 +274,12 @@ class FixedAssetRegisterService
         $openingAccum = isset($data['opening_accumulated_depreciation_minor']) ? (int) $data['opening_accumulated_depreciation_minor'] : $asset->opening_accumulated_depreciation_minor;
         if ($openingAccum < 0) {
             throw ValidationException::withMessages([
-                'opening_accumulated_depreciation_minor' => ['Opening accumulated depreciation cannot be negative.'],
+                'opening_accumulated_depreciation_minor' => [__('Opening accumulated depreciation cannot be negative.')],
             ]);
         }
         if ($openingAccum > ($cost - $salvage)) {
             throw ValidationException::withMessages([
-                'opening_accumulated_depreciation_minor' => ['Opening accumulated depreciation cannot exceed depreciable base (Cost - Salvage).'],
+                'opening_accumulated_depreciation_minor' => [__('Opening accumulated depreciation cannot exceed depreciable base (Cost - Salvage).')],
             ]);
         }
         $asset->opening_accumulated_depreciation_minor = $openingAccum;
@@ -278,7 +287,7 @@ class FixedAssetRegisterService
         if (isset($data['status'])) {
             if ($data['status'] !== 'draft') {
                 throw ValidationException::withMessages([
-                    'status' => ['Fixed assets must be activated through capitalization.'],
+                    'status' => [__('Fixed assets must be activated through capitalization.')],
                 ]);
             }
             $asset->status = $data['status'];
@@ -307,7 +316,13 @@ class FixedAssetRegisterService
 
         if ($asset->status !== 'draft') {
             throw ValidationException::withMessages([
-                'asset' => ['Only draft assets can be deleted.'],
+                'asset' => [__('Only draft assets can be deleted.')],
+            ]);
+        }
+
+        if ($asset->movements()->exists()) {
+            throw ValidationException::withMessages([
+                'asset' => [__('Assets with movement history cannot be deleted.')],
             ]);
         }
 

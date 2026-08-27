@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GoodsReceiptLine extends Model
 {
@@ -48,5 +49,10 @@ class GoodsReceiptLine extends Model
     public function unitOfMeasure(): BelongsTo
     {
         return $this->belongsTo(UnitOfMeasure::class, 'unit_of_measure_id');
+    }
+
+    public function landedCostLines(): HasMany
+    {
+        return $this->hasMany(LandedCostAllocationLine::class, 'goods_receipt_line_id');
     }
 }

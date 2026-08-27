@@ -36,7 +36,7 @@ type RatesProps = SharedPageProps & {
 
 export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: RatesProps) {
   const dict = getDictionary(locale);
-  const taxDict = (dict.app as any).taxes || {};
+  const taxDict = dict.app.taxes;
 
   const [selectedTaxCode, setSelectedTaxCode] = useState(filters.tax_code_id || '');
   const [showModal, setShowModal] = useState(false);
@@ -50,9 +50,9 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
   });
 
   function getTransName(nameObj?: Record<string, string> | string | null): string {
-    if (!nameObj) return '-';
+    if (!nameObj) return taxDict.notAvailable;
     if (typeof nameObj === 'string') return nameObj;
-    return nameObj[locale] || nameObj.en || '-';
+    return nameObj[locale] || nameObj.en || taxDict.notAvailable;
   }
 
   function handleFilter(codeId: string) {
@@ -71,26 +71,26 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
   }
 
   function handleDeleteRate(id: string) {
-    if (confirm(taxDict.confirmDeleteRate || 'Are you sure you want to delete this tax rate?')) {
+    if (confirm(taxDict.confirmDeleteRate)) {
       router.delete(`/taxes/rates/${id}`);
     }
   }
 
   return (
     <AppLayout active="taxes.rates.index">
-      <Head title={taxDict.taxRates || 'Tax Rates'} />
+      <Head title={taxDict.taxRates} />
 
       <div className="space-y-6">
         <PageHeader
-          title={taxDict.taxRates || 'Tax Rates'}
-          description={taxDict.subtitle || 'Configure effective date ranges and integer basis points rates.'}
+          title={taxDict.taxRates}
+          description={taxDict.subtitle}
           actions={
             <div className="flex items-center gap-3">
               <Link
                 href="/taxes/codes"
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
               >
-                {taxDict.backToCodes || 'Back to Tax Codes'}
+                {taxDict.backToCodes}
               </Link>
               <button
                 onClick={() => setShowModal(true)}
@@ -99,7 +99,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span>{taxDict.newTaxRate || 'New Tax Rate'}</span>
+                <span>{taxDict.newTaxRate}</span>
               </button>
             </div>
           }
@@ -114,7 +114,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 onChange={(e) => handleFilter(e.target.value)}
                 className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
               >
-                <option value="">{locale === 'ar' ? 'جميع الأكواد الضريبية' : 'All Tax Codes'}</option>
+                <option value="">{taxDict.allTaxCodes}</option>
                 {taxCodes.map((code) => (
                   <option key={code.id} value={code.id}>
                     {code.code} - {getTransName(code.name)}
@@ -131,20 +131,20 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
             <table className="w-full text-sm text-left rtl:text-right">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 uppercase text-xs">
                 <tr>
-                  <th className="px-4 py-3">{taxDict.code || 'Tax Code'}</th>
-                  <th className="px-4 py-3 text-right">{taxDict.rateBps || 'Rate (BPS)'}</th>
-                  <th className="px-4 py-3 text-right">{taxDict.percentage || 'Percentage'}</th>
-                  <th className="px-4 py-3">{taxDict.effectiveFrom || 'Effective From'}</th>
-                  <th className="px-4 py-3">{taxDict.effectiveTo || 'Effective To'}</th>
-                  <th className="px-4 py-3">{taxDict.status || 'Status'}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left">{taxDict.actions || 'Actions'}</th>
+                  <th className="px-4 py-3">{taxDict.code}</th>
+                  <th className="px-4 py-3 text-right">{taxDict.rateBps}</th>
+                  <th className="px-4 py-3 text-right">{taxDict.percentage}</th>
+                  <th className="px-4 py-3">{taxDict.effectiveFrom}</th>
+                  <th className="px-4 py-3">{taxDict.effectiveTo}</th>
+                  <th className="px-4 py-3">{taxDict.status}</th>
+                  <th className="px-4 py-3 text-right rtl:text-left">{taxDict.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {taxRates.data.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                      {taxDict.emptyRates || 'No effective tax rates found.'}
+                      {taxDict.emptyRates}
                     </td>
                   </tr>
                 ) : (
@@ -154,20 +154,20 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                         {item.taxCode?.code} ({getTransName(item.taxCode?.name)})
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-semibold">
-                        {item.rate_bps} bps
+                        {item.rate_bps} {taxDict.basisPointsSuffix}
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {(item.rate_bps / 100).toFixed(2)}%
                       </td>
                       <td className="px-4 py-3">{item.effective_from}</td>
-                      <td className="px-4 py-3 text-slate-500">{item.effective_to || '—'}</td>
+                      <td className="px-4 py-3 text-slate-500">{item.effective_to || taxDict.notAvailable}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           item.is_active
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                             : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200'
                         }`}>
-                          {item.is_active ? (taxDict.active || 'Active') : (taxDict.inactive || 'Inactive')}
+                          {item.is_active ? taxDict.active : taxDict.inactive}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right rtl:text-left">
@@ -175,7 +175,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                           onClick={() => handleDeleteRate(item.id)}
                           className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline"
                         >
-                          {taxDict.delete || 'Delete'}
+                          {taxDict.delete}
                         </button>
                       </td>
                     </tr>
@@ -192,12 +192,12 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
           <Card className="w-full max-w-md p-6 space-y-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {taxDict.newTaxRate || 'New Tax Rate'}
+              {taxDict.newTaxRate}
             </h3>
             <form onSubmit={handleCreateRate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.code || 'Tax Code'} *
+                  {taxDict.code} *
                 </label>
                 <select
                   value={data.tax_code_id}
@@ -215,7 +215,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.rateBps || 'Rate (BPS - 1400 = 14%)'} *
+                  {taxDict.rateBpsInput} *
                 </label>
                 <input
                   type="number"
@@ -234,7 +234,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {taxDict.effectiveFrom || 'Effective From'} *
+                    {taxDict.effectiveFrom} *
                   </label>
                   <input
                     type="date"
@@ -246,7 +246,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {taxDict.effectiveTo || 'Effective To'}
+                    {taxDict.effectiveTo}
                   </label>
                   <input
                     type="date"
@@ -263,14 +263,14 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                   onClick={() => setShowModal(false)}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition text-sm font-medium"
                 >
-                  {taxDict.cancel || 'Cancel'}
+                  {taxDict.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
                 >
-                  {taxDict.save || 'Save Changes'}
+                  {taxDict.save}
                 </button>
               </div>
             </form>

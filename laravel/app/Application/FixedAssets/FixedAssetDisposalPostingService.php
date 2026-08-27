@@ -350,7 +350,7 @@ class FixedAssetDisposalPostingService
 
             if (! $disposal->journal_entry_id) {
                 throw ValidationException::withMessages([
-                    'disposal' => ['Disposal has no linked journal entry to reverse.'],
+                    'disposal' => [__('Disposal has no linked journal entry to reverse.')],
                 ]);
             }
 
@@ -401,7 +401,7 @@ class FixedAssetDisposalPostingService
     {
         if ($asset->status !== 'active') {
             throw ValidationException::withMessages([
-                'fixed_asset_id' => ["Only active assets can be disposed. Current status: [{$asset->status}]."],
+                'fixed_asset_id' => [__('Only active assets can be disposed. Current status: [:status].', ['status' => $asset->status])],
             ]);
         }
     }
@@ -410,7 +410,7 @@ class FixedAssetDisposalPostingService
     {
         if (! in_array($disposalType, ['sale', 'scrap', 'retirement'], true)) {
             throw ValidationException::withMessages([
-                'disposal_type' => ['Disposal type must be sale, scrap, or retirement.'],
+                'disposal_type' => [__('Disposal type must be sale, scrap, or retirement.')],
             ]);
         }
     }
@@ -419,7 +419,7 @@ class FixedAssetDisposalPostingService
     {
         if ($proceedsMinor < 0) {
             throw ValidationException::withMessages([
-                'proceeds_minor' => ['Proceeds amount cannot be negative.'],
+                'proceeds_minor' => [__('Proceeds amount cannot be negative.')],
             ]);
         }
     }
@@ -436,7 +436,7 @@ class FixedAssetDisposalPostingService
 
         if ($postedAfterDisposal) {
             throw ValidationException::withMessages([
-                'disposal_date' => ['Cannot dispose an asset before already posted depreciation schedule periods. Reverse those depreciation runs first.'],
+                'disposal_date' => [__('Cannot dispose an asset before already posted depreciation schedule periods. Reverse those depreciation runs first.')],
             ]);
         }
 
@@ -447,7 +447,7 @@ class FixedAssetDisposalPostingService
 
         if ($unpostedBeforeDisposal) {
             throw ValidationException::withMessages([
-                'disposal_date' => ['Prior depreciation schedule periods must be posted or resolved before disposal.'],
+                'disposal_date' => [__('Prior depreciation schedule periods must be posted or resolved before disposal.')],
             ]);
         }
     }
