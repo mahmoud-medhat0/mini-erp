@@ -44,6 +44,12 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
   const totalDebit = journal.lines.reduce((s, l) => s + l.debit_minor, 0);
   const totalCredit = journal.lines.reduce((s, l) => s + l.credit_minor, 0);
 
+  const handlePostJournal = () => {
+    if (!confirm(accDict.confirmPostJournal)) return;
+
+    postForm.post(`/accounting/journal/${journal.id}/post`, { preserveScroll: true });
+  };
+
   const getName = (nameObj?: Record<string, string> | string | null) => {
     if (!nameObj) return '';
     if (typeof nameObj === 'string') return nameObj;
@@ -80,8 +86,10 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             {journal.status === 'draft' ? (
               <button
                 type="button"
-                onClick={() => submitForm.post(`/accounting/journal/${journal.id}/submit`)}
+                onClick={() => submitForm.post(`/accounting/journal/${journal.id}/submit`, { preserveScroll: true })}
                 disabled={submitForm.processing}
+                title={accDict.submitForApproval}
+                aria-label={accDict.submitForApproval}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:border-[var(--primary)] transition-colors"
               >
                 {accDict.submitForApproval}
@@ -91,8 +99,10 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             {inArray(journal.status, ['draft', 'submitted']) ? (
               <button
                 type="button"
-                onClick={() => approveForm.post(`/accounting/journal/${journal.id}/approve`)}
+                onClick={() => approveForm.post(`/accounting/journal/${journal.id}/approve`, { preserveScroll: true })}
                 disabled={approveForm.processing}
+                title={accDict.approve}
+                aria-label={accDict.approve}
                 className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
               >
                 {accDict.approve}
@@ -102,8 +112,10 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             {inArray(journal.status, ['draft', 'submitted', 'approved']) ? (
               <button
                 type="button"
-                onClick={() => postForm.post(`/accounting/journal/${journal.id}/post`)}
+                onClick={handlePostJournal}
                 disabled={postForm.processing}
+                title={accDict.confirmPostJournal}
+                aria-label={accDict.confirmPostJournal}
                 className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors"
               >
                 {accDict.postToLedger}
@@ -114,6 +126,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               <button
                 type="button"
                 onClick={() => setShowReverseModal(!showReverseModal)}
+                title={accDict.reverseEntry}
+                aria-label={accDict.reverseEntry}
                 className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors"
               >
                 {accDict.reverseEntry}
@@ -146,6 +160,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               <button
                 type="button"
                 onClick={() => setShowNumberModal(false)}
+                title={dict.app.actions.close}
+                aria-label={dict.app.actions.close}
                 className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -179,6 +195,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               <button
                 type="button"
                 onClick={() => setShowNumberModal(false)}
+                title={dict.app.actions.close}
+                aria-label={dict.app.actions.close}
                 className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
               >
                 {dict.app.actions.close}
@@ -199,7 +217,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              reverseForm.post(`/accounting/journal/${journal.id}/reverse`);
+              reverseForm.post(`/accounting/journal/${journal.id}/reverse`, { preserveScroll: true });
             }}
             className="flex items-center gap-3"
           >
@@ -218,6 +236,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             <button
               type="submit"
               disabled={reverseForm.processing}
+              title={accDict.reverseEntry}
+              aria-label={accDict.reverseEntry}
               className="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 transition-colors"
             >
               {accDict.reverseEntry}
@@ -238,6 +258,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 <button
                   type="button"
                   onClick={() => setShowNumberModal(true)}
+                  title={dict.app.actions.numberDetails}
+                  aria-label={dict.app.actions.numberDetails}
                   className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
                 >
                   <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

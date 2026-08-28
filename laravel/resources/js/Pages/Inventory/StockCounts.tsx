@@ -104,6 +104,9 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
   const pageDict = dict.app.pages.stockCounts;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCountStock = can('inventory.count');
+  const canApproveInventory = can('inventory.approve');
+  const canPostInventory = can('inventory.post') && can('view_financials');
   const defaultCurrency = currencies[0]?.code || '';
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
@@ -233,13 +236,31 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
     router.post(`/inventory/stock-counts/${count.id}/${action}`, {}, { preserveScroll: true });
   }
 
+  const isStockCountActionable = (count: StockCount) => ['draft', 'submitted', 'approved'].includes(count.status);
+
+  const hasAvailableStockCountAction = (count: StockCount) => (
+    count.status === 'draft'
+      ? canCountStock || canApproveInventory
+      : count.status === 'submitted'
+        ? canApproveInventory || canCountStock
+        : count.status === 'approved'
+          ? canPostInventory || canCountStock
+          : false
+  );
+
+  const getStockCountActionState = (count: StockCount) => {
+    if (hasAvailableStockCountAction(count)) return null;
+
+    return isStockCountActionable(count) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="stock-counts.index">
       <Head title={pageDict.headTitle} />
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('inventory.count') ? <Button onClick={openCreate}>{pageDict.createCount}</Button> : null}
+        actions={canCountStock ? <Button onClick={openCreate}>{pageDict.createCount}</Button> : null}
       />
 
       <Card className="mb-5 p-4">
@@ -305,25 +326,40 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
               </tr>
             </thead>
             <tbody>
-              {stockCounts.data.map((count) => (
-                <tr key={count.id}>
-                  <td className={tableClasses.td}>{count.number || pageDict.draftNumber}</td>
-                  <td className={tableClasses.td}>{formatDate(count.count_date)}</td>
-                  <td className={tableClasses.td}>{count.warehouse ? `${count.warehouse.code} - ${getLocalizedName(count.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                  <td className={tableClasses.td}><StatusBadge tone={statusTone(count.status)}>{labelForStatus(count.status)}</StatusBadge></td>
-                  <td className={tableClasses.td}>{count.lines.length}</td>
-                  <td className={tableClasses.td}>{count.lines.filter((line) => Number(line.variance_quantity_e6) !== 0).length}</td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {count.status === 'draft' && can('inventory.count') ? <Button variant="secondary" onClick={() => openEdit(count)}>{pageDict.edit}</Button> : null}
-                      {count.status === 'draft' && can('inventory.count') ? <Button variant="secondary" onClick={() => transition(count, 'submit')}>{pageDict.submit}</Button> : null}
-                      {['draft', 'submitted'].includes(count.status) && can('inventory.approve') ? <Button variant="secondary" onClick={() => transition(count, 'approve')}>{pageDict.approve}</Button> : null}
-                      {count.status === 'approved' && can('inventory.post') && can('view_financials') ? <Button onClick={() => transition(count, 'post')}>{pageDict.post}</Button> : null}
-                      {['draft', 'submitted', 'approved'].includes(count.status) && can('inventory.count') ? <Button variant="danger" onClick={() => transition(count, 'cancel')}>{pageDict.cancelCount}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {stockCounts.data.map((count) => {
+                const actionState = getStockCountActionState(count);
+
+                return (
+                  <tr key={count.id}>
+                    <td className={tableClasses.td}>{count.number || pageDict.draftNumber}</td>
+                    <td className={tableClasses.td}>{formatDate(count.count_date)}</td>
+                    <td className={tableClasses.td}>{count.warehouse ? `${count.warehouse.code} - ${getLocalizedName(count.warehouse.name, locale)}` : accDict.notAvailable}</td>
+                    <td className={tableClasses.td}><StatusBadge tone={statusTone(count.status)}>{labelForStatus(count.status)}</StatusBadge></td>
+                    <td className={tableClasses.td}>{count.lines.length}</td>
+                    <td className={tableClasses.td}>{count.lines.filter((line) => Number(line.variance_quantity_e6) !== 0).length}</td>
+                    <td className={`${tableClasses.td} text-end`}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {count.status === 'draft' && canCountStock ? (
+                          <button type="button" onClick={() => openEdit(count)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+                        ) : null}
+                        {count.status === 'draft' && canCountStock ? (
+                          <button type="button" onClick={() => transition(count, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                        ) : null}
+                        {['draft', 'submitted'].includes(count.status) && canApproveInventory ? (
+                          <button type="button" onClick={() => transition(count, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                        ) : null}
+                        {count.status === 'approved' && canPostInventory ? (
+                          <button type="button" onClick={() => transition(count, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+                        ) : null}
+                        {isStockCountActionable(count) && canCountStock ? (
+                          <button type="button" onClick={() => transition(count, 'cancel')} title={pageDict.cancelCount} aria-label={pageDict.cancelCount} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelCount}</button>
+                        ) : null}
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -78,6 +78,8 @@ function NumberingFormModal({
         <button
           type="button"
           onClick={onClose}
+          title={dict.app.actions.cancel}
+          aria-label={dict.app.actions.cancel}
           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
         >
           <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -206,6 +208,8 @@ function NumberingFormModal({
           <button
             type="button"
             onClick={onClose}
+            title={dict.app.actions.cancel}
+            aria-label={dict.app.actions.cancel}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
           >
             {dict.app.actions.cancel}
@@ -213,6 +217,8 @@ function NumberingFormModal({
           <button
             type="submit"
             disabled={processing}
+            title={sequence ? dict.app.actions.save : dict.app.actions.create}
+            aria-label={sequence ? dict.app.actions.save : dict.app.actions.create}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
           >
             {processing ? (
@@ -260,6 +266,8 @@ function SequenceDetailModal({
           <button
             type="button"
             onClick={onClose}
+            title={dict.app.actions.close}
+            aria-label={dict.app.actions.close}
             className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
           >
             <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -310,6 +318,8 @@ function SequenceDetailModal({
           <button
             type="button"
             onClick={onClose}
+            title={dict.app.actions.close}
+            aria-label={dict.app.actions.close}
             className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
           >
             {dict.app.actions.close}
@@ -340,6 +350,8 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
               setEditingSequenceId(null);
               setShowAddForm(!showAddForm);
             }}
+            title={dict.app.actions.addSequence}
+            aria-label={dict.app.actions.addSequence}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -399,6 +411,8 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                         <button
                           type="button"
                           onClick={() => setViewingSequence(sequence)}
+                          title={`${dict.app.fields.preview}: ${sequence.preview}`}
+                          aria-label={`${dict.app.fields.preview}: ${sequence.preview}`}
                           className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-1 font-mono text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
                         >
                           <svg className="size-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -422,6 +436,8 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                           <button
                             type="button"
                             onClick={() => setViewingSequence(sequence)}
+                            title={dict.app.actions.viewDetails}
+                            aria-label={dict.app.actions.viewDetails}
                             className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all"
                           >
                             <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -436,6 +452,8 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
                               setShowAddForm(false);
                               setEditingSequenceId(isEditing ? null : sequence.id);
                             }}
+                            title={dict.app.actions.edit}
+                            aria-label={dict.app.actions.edit}
                             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
                               isEditing
                                 ? 'border-[var(--primary)] bg-[var(--primary)] text-white'

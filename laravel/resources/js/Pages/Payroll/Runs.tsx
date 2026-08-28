@@ -7,7 +7,7 @@ import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelec
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -45,7 +45,7 @@ type PayrollRun = {
   journal_entry?: { id: string; number?: string | null } | null;
   lines?: RunLine[];
 };
-type PaginatedData<T> = { data: T[]; total: number; links: any[] };
+type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
   runs: PaginatedData<PayrollRun>;
   periods: Period[];
@@ -93,6 +93,13 @@ export default function PayrollRunsIndex({
   const statusLabels = pageDict.statuses as Record<string, string>;
   const runTypeLabels = pageDict.runTypes as Record<string, string>;
   const can = useCan();
+  const canViewPayroll = can('view_payroll');
+  const canCreatePayrollRuns = can('payroll.create') && canViewPayroll;
+  const canRegeneratePayrollRuns = can('payroll.edit') && canViewPayroll;
+  const canSubmitPayrollRuns = can('payroll.submit') && canViewPayroll;
+  const canApprovePayrollRuns = can('payroll.approve') && canViewPayroll;
+  const canPostPayrollRuns = can('payroll.post') && canViewPayroll && can('view_financials');
+  const canCancelPayrollRuns = canRegeneratePayrollRuns;
   const defaultCurrency = currencies[0]?.code || '';
   const [showForm, setShowForm] = useState(false);
   const [selectedRun, setSelectedRun] = useState<PayrollRun | null>(runs.data[0] || null);
@@ -142,13 +149,31 @@ export default function PayrollRunsIndex({
     router.post(url, {}, { preserveScroll: true });
   }
 
+  const isPayrollRunLifecycleActionable = (run: PayrollRun) => ['draft', 'submitted', 'approved'].includes(run.status);
+
+  const hasAvailablePayrollRunLifecycleAction = (run: PayrollRun) => (
+    run.status === 'draft'
+      ? canRegeneratePayrollRuns || canSubmitPayrollRuns || canCancelPayrollRuns
+      : run.status === 'submitted'
+        ? canApprovePayrollRuns || canCancelPayrollRuns
+        : run.status === 'approved'
+          ? canPostPayrollRuns || canCancelPayrollRuns
+          : false
+  );
+
+  const getPayrollRunActionState = (run: PayrollRun) => {
+    if (hasAvailablePayrollRunLifecycleAction(run)) return null;
+
+    return isPayrollRunLifecycleActionable(run) ? dict.app.actions.restricted : null;
+  };
+
   return (
     <AppLayout active="payroll.runs.index">
       <Head title={pageDict.headTitle} />
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('payroll.create') && can('view_payroll') ? <Button onClick={() => setShowForm(true)}>{pageDict.create}</Button> : null}
+        actions={canCreatePayrollRuns ? <Button onClick={() => setShowForm(true)}>{pageDict.create}</Button> : null}
       />
 
       <div className="mb-5 grid gap-4 md:grid-cols-4">
@@ -229,26 +254,41 @@ export default function PayrollRunsIndex({
                 </tr>
               </thead>
               <tbody>
-                {runs.data.map((run) => (
-                  <tr key={run.id} className={selectedRun?.id === run.id ? 'bg-[var(--background)]' : ''}>
-                    <td className={tableClasses.td}>{run.number || run.reference || run.id.slice(0, 8)}</td>
-                    <td className={tableClasses.td}>{run.period ? `${run.period.year}-${String(run.period.month).padStart(2, '0')}` : formatDate(run.payroll_date)}</td>
-                    <td className={tableClasses.td}>{run.branch ? `${run.branch.code} - ${getLocalizedName(run.branch.name, locale)}` : pageDict.allBranches}</td>
-                    <td className={tableClasses.td}><AccountingAmount amountMinor={run.gross_minor} currency={run.currency} /></td>
-                    <td className={tableClasses.td}><AccountingAmount amountMinor={run.net_minor} currency={run.currency} /></td>
-                    <td className={tableClasses.td}><StatusBadge tone={statusTone(run.status)}>{statusLabels[run.status] || run.status}</StatusBadge></td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" onClick={() => setSelectedRun(run)}>{pageDict.details}</Button>
-                        {run.status === 'draft' && can('payroll.edit') && can('view_payroll') ? <Button variant="secondary" onClick={() => action(`/payroll/runs/${run.id}/regenerate`)}>{pageDict.regenerate}</Button> : null}
-                        {run.status === 'draft' && can('payroll.submit') && can('view_payroll') ? <Button onClick={() => action(`/payroll/runs/${run.id}/submit`)}>{shared.submit}</Button> : null}
-                        {run.status === 'submitted' && can('payroll.approve') && can('view_payroll') ? <Button onClick={() => action(`/payroll/runs/${run.id}/approve`)}>{shared.approve}</Button> : null}
-                        {run.status === 'approved' && can('payroll.post') && can('view_payroll') && can('view_financials') ? <Button onClick={() => action(`/payroll/runs/${run.id}/post`)}>{shared.post}</Button> : null}
-                        {['draft', 'submitted', 'approved'].includes(run.status) && can('payroll.edit') && can('view_payroll') ? <Button variant="danger" onClick={() => action(`/payroll/runs/${run.id}/cancel`)}>{shared.cancel}</Button> : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {runs.data.map((run) => {
+                  const actionState = getPayrollRunActionState(run);
+
+                  return (
+                    <tr key={run.id} className={selectedRun?.id === run.id ? 'bg-[var(--background)]' : ''}>
+                      <td className={tableClasses.td}>{run.number || run.reference || run.id.slice(0, 8)}</td>
+                      <td className={tableClasses.td}>{run.period ? `${run.period.year}-${String(run.period.month).padStart(2, '0')}` : formatDate(run.payroll_date)}</td>
+                      <td className={tableClasses.td}>{run.branch ? `${run.branch.code} - ${getLocalizedName(run.branch.name, locale)}` : pageDict.allBranches}</td>
+                      <td className={tableClasses.td}><AccountingAmount amountMinor={run.gross_minor} currency={run.currency} /></td>
+                      <td className={tableClasses.td}><AccountingAmount amountMinor={run.net_minor} currency={run.currency} /></td>
+                      <td className={tableClasses.td}><StatusBadge tone={statusTone(run.status)}>{statusLabels[run.status] || run.status}</StatusBadge></td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <button type="button" onClick={() => setSelectedRun(run)} title={pageDict.details} aria-label={pageDict.details} className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50">{pageDict.details}</button>
+                          {run.status === 'draft' && canRegeneratePayrollRuns ? (
+                            <button type="button" onClick={() => action(`/payroll/runs/${run.id}/regenerate`)} title={pageDict.regenerate} aria-label={pageDict.regenerate} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.regenerate}</button>
+                          ) : null}
+                          {run.status === 'draft' && canSubmitPayrollRuns ? (
+                            <button type="button" onClick={() => action(`/payroll/runs/${run.id}/submit`)} title={shared.submit} aria-label={shared.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{shared.submit}</button>
+                          ) : null}
+                          {run.status === 'submitted' && canApprovePayrollRuns ? (
+                            <button type="button" onClick={() => action(`/payroll/runs/${run.id}/approve`)} title={shared.approve} aria-label={shared.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{shared.approve}</button>
+                          ) : null}
+                          {run.status === 'approved' && canPostPayrollRuns ? (
+                            <button type="button" onClick={() => action(`/payroll/runs/${run.id}/post`)} title={shared.post} aria-label={shared.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{shared.post}</button>
+                          ) : null}
+                          {isPayrollRunLifecycleActionable(run) && canCancelPayrollRuns ? (
+                            <button type="button" onClick={() => action(`/payroll/runs/${run.id}/cancel`)} title={shared.cancel} aria-label={shared.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{shared.cancel}</button>
+                          ) : null}
+                          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

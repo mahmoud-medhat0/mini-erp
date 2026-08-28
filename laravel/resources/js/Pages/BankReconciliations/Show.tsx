@@ -71,6 +71,7 @@ export default function BankReconciliationShow({
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canReconcileBanks = can('banks.reconcile');
 
   const [showAddLineModal, setShowAddLineModal] = useState(false);
   const [selectedLineForMatch, setSelectedLineForMatch] = useState<ReconciliationLine | null>(null);
@@ -98,6 +99,7 @@ export default function BankReconciliationShow({
     }));
 
     addLineForm.post(`/bank-reconciliations/${reconciliation.id}/lines`, {
+      preserveScroll: true,
       onSuccess: () => {
         setShowAddLineModal(false);
         addLineForm.reset();
@@ -107,7 +109,7 @@ export default function BankReconciliationShow({
 
   const handleDeleteLine = (lineId: string) => {
     if (confirm(dict.app.pages.bankReconciliationsShow.areYouSureYouWantTo)) {
-      router.delete(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}`);
+      router.delete(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}`, { preserveScroll: true });
     }
   };
 
@@ -115,6 +117,7 @@ export default function BankReconciliationShow({
     router.post(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}/match`, {
       ledger_entry_id: ledgerEntryId,
     }, {
+      preserveScroll: true,
       onSuccess: () => {
         setSelectedLineForMatch(null);
       },
@@ -122,17 +125,27 @@ export default function BankReconciliationShow({
   };
 
   const handleUnmatch = (lineId: string) => {
-    router.post(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}/unmatch`);
+    router.post(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}/unmatch`, {}, { preserveScroll: true });
   };
 
   const handleFinalize = () => {
     if (confirm(dict.app.pages.bankReconciliationsShow.confirmFinalizeReconciliation)) {
-      router.post(`/bank-reconciliations/${reconciliation.id}/finalize`);
+      router.post(`/bank-reconciliations/${reconciliation.id}/finalize`, {}, { preserveScroll: true });
     }
   };
 
   const currency = reconciliation.bankAccount?.currency;
   const formatReconciliationMoney = (amountMinor: number): string => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
+  const canEditReconciliation = reconciliation.status === 'draft' && canReconcileBanks;
+  const finalizeTitle = summary.is_reconciled
+    ? dict.app.pages.bankReconciliationsShow.finalizeReconciliation
+    : dict.app.pages.bankReconciliationsShow.unbalanced;
+  const headerActionState = reconciliation.status === 'draft' && !canReconcileBanks ? dict.app.actions.restricted : null;
+  const getStatementLineActionState = () => {
+    if (canEditReconciliation) return null;
+
+    return reconciliation.status === 'draft' ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
 
   return (
     <AppLayout active="bank-reconciliations.show">
@@ -142,12 +155,14 @@ export default function BankReconciliationShow({
         title={interpolate(dict.app.pages.bankReconciliationsShow.workspaceTitle, { name: reconciliation.bankAccount?.name || '' })}
         description={interpolate(dict.app.pages.bankReconciliationsShow.periodRange, { from: reconciliation.date_from, to: reconciliation.date_to })}
         actions={
-          <div className="flex items-center gap-2">
-            {reconciliation.status === 'draft' && can('banks.reconcile') ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {canEditReconciliation ? (
               <>
                 <button
                   type="button"
                   onClick={() => setShowAddLineModal(true)}
+                  title={dict.app.pages.bankReconciliationsShow.addStatementLine}
+                  aria-label={dict.app.pages.bankReconciliationsShow.addStatementLine}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
                 >
                   {dict.app.pages.bankReconciliationsShow.addStatementLine}
@@ -156,6 +171,8 @@ export default function BankReconciliationShow({
                   type="button"
                   onClick={handleFinalize}
                   disabled={!summary.is_reconciled}
+                  title={finalizeTitle}
+                  aria-label={finalizeTitle}
                   className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {dict.app.pages.bankReconciliationsShow.finalizeReconciliation}
@@ -164,6 +181,7 @@ export default function BankReconciliationShow({
             ) : reconciliation.status !== 'draft' ? (
               <StatusBadge tone="ok">{dict.app.pages.bankReconciliationsShow.finalized}</StatusBadge>
             ) : null}
+            {headerActionState ? <StatusBadge tone="muted">{headerActionState}</StatusBadge> : null}
           </div>
         }
       />
@@ -224,64 +242,72 @@ export default function BankReconciliationShow({
                 </tr>
               </thead>
               <tbody>
-                {reconciliation.lines.map((line) => (
-                  <tr key={line.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                    <td className={`${tableClasses.td} font-mono text-xs`}>{line.statement_date}</td>
-                    <td className={`${tableClasses.td} font-mono text-xs`}>{line.reference || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{line.description || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono text-xs`}>
-                      {line.debit_minor > 0 ? formatReconciliationMoney(line.debit_minor) : accDict.notAvailable}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono text-xs`}>
-                      {line.credit_minor > 0 ? formatReconciliationMoney(line.credit_minor) : accDict.notAvailable}
-                    </td>
-                    <td className={tableClasses.td}>
-                      {line.matchedLedgerEntry ? (
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-                          <span>
-                            {line.matchedLedgerEntry.journalEntry?.entry_number || line.matchedLedgerEntry.id.substring(0, 8)} ({formatReconciliationMoney(line.matchedLedgerEntry.debit_minor || line.matchedLedgerEntry.credit_minor)})
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-amber-600 italic font-medium">{dict.app.pages.bankReconciliationsShow.unmatched}</span>
-                      )}
-                    </td>
-                    <td className={tableClasses.td}>
-                      {reconciliation.status === 'draft' && can('banks.reconcile') ? (
-                        <div className="flex items-center gap-2">
-                          {line.matchedLedgerEntry ? (
+                {reconciliation.lines.map((line) => {
+                  const actionState = getStatementLineActionState();
+
+                  return (
+                    <tr key={line.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                      <td className={`${tableClasses.td} font-mono text-xs`}>{line.statement_date}</td>
+                      <td className={`${tableClasses.td} font-mono text-xs`}>{line.reference || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{line.description || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-mono text-xs`}>
+                        {line.debit_minor > 0 ? formatReconciliationMoney(line.debit_minor) : accDict.notAvailable}
+                      </td>
+                      <td className={`${tableClasses.td} font-mono text-xs`}>
+                        {line.credit_minor > 0 ? formatReconciliationMoney(line.credit_minor) : accDict.notAvailable}
+                      </td>
+                      <td className={tableClasses.td}>
+                        {line.matchedLedgerEntry ? (
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                            <span>
+                              {line.matchedLedgerEntry.journalEntry?.entry_number || line.matchedLedgerEntry.id.substring(0, 8)} ({formatReconciliationMoney(line.matchedLedgerEntry.debit_minor || line.matchedLedgerEntry.credit_minor)})
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-amber-600 italic font-medium">{dict.app.pages.bankReconciliationsShow.unmatched}</span>
+                        )}
+                      </td>
+                      <td className={tableClasses.td}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {canEditReconciliation && line.matchedLedgerEntry ? (
                             <button
                               type="button"
                               onClick={() => handleUnmatch(line.id)}
-                              className="text-xs font-bold text-amber-600 hover:underline cursor-pointer"
+                              title={dict.app.pages.bankReconciliationsShow.unmatch}
+                              aria-label={dict.app.pages.bankReconciliationsShow.unmatch}
+                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                             >
                               {dict.app.pages.bankReconciliationsShow.unmatch}
                             </button>
-                          ) : (
+                          ) : null}
+                          {canEditReconciliation && !line.matchedLedgerEntry ? (
                             <button
                               type="button"
                               onClick={() => setSelectedLineForMatch(line)}
-                              className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+                              title={dict.app.pages.bankReconciliationsShow.matchGl}
+                              aria-label={dict.app.pages.bankReconciliationsShow.matchGl}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                             >
                               {dict.app.pages.bankReconciliationsShow.matchGl}
                             </button>
-                          )}
-                          {!line.matchedLedgerEntry ? (
+                          ) : null}
+                          {canEditReconciliation && !line.matchedLedgerEntry ? (
                             <button
                               type="button"
                               onClick={() => handleDeleteLine(line.id)}
-                              className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                              title={dict.app.pages.bankReconciliationsShow.delete}
+                              aria-label={dict.app.pages.bankReconciliationsShow.delete}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
                             >
                               {dict.app.pages.bankReconciliationsShow.delete}
                             </button>
                           ) : null}
+                          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
                         </div>
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)] font-mono">{accDict.notAvailable}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -359,6 +385,8 @@ export default function BankReconciliationShow({
                 <button
                   type="button"
                   onClick={() => setShowAddLineModal(false)}
+                  title={dict.app.pages.bankReconciliationsShow.cancel}
+                  aria-label={dict.app.pages.bankReconciliationsShow.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
                 >
                   {dict.app.pages.bankReconciliationsShow.cancel}
@@ -366,6 +394,8 @@ export default function BankReconciliationShow({
                 <button
                   type="submit"
                   disabled={addLineForm.processing}
+                  title={dict.app.pages.bankReconciliationsShow.addLine}
+                  aria-label={dict.app.pages.bankReconciliationsShow.addLine}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {addLineForm.processing ? dict.app.pages.bankReconciliationsShow.adding : dict.app.pages.bankReconciliationsShow.addLine}
@@ -421,6 +451,8 @@ export default function BankReconciliationShow({
                           <button
                             type="button"
                             onClick={() => handleMatch(selectedLineForMatch.id, cand.id)}
+                            title={dict.app.pages.bankReconciliationsShow.match}
+                            aria-label={dict.app.pages.bankReconciliationsShow.match}
                             className="rounded-lg bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer"
                           >
                             {dict.app.pages.bankReconciliationsShow.match}
@@ -437,6 +469,8 @@ export default function BankReconciliationShow({
               <button
                 type="button"
                 onClick={() => setSelectedLineForMatch(null)}
+                title={dict.app.pages.bankReconciliationsShow.close}
+                aria-label={dict.app.pages.bankReconciliationsShow.close}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
               >
                 {dict.app.pages.bankReconciliationsShow.close}

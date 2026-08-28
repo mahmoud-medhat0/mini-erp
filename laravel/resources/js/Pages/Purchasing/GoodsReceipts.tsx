@@ -1,11 +1,12 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -92,7 +93,7 @@ type GoodsReceiptRow = {
 type GoodsReceiptsProps = SharedPageProps & {
   goodsReceipts: {
     data: GoodsReceiptRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   confirmedPurchaseOrders: PurchaseOrderOption[];
   warehouses: WarehouseOption[];
@@ -106,6 +107,7 @@ type GoodsReceiptsProps = SharedPageProps & {
 export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPurchaseOrders, warehouses, filters }: GoodsReceiptsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.purchasingGoodsReceipts;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -123,6 +125,30 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     notes: '',
     lock_version: 1,
   });
+  const warehouseOptions = useMemo(() => warehouses.map((warehouse) => ({
+    value: warehouse.id,
+    label: `${warehouse.code} - ${getLocalizedName(warehouse.name, locale)}`,
+    badge: warehouse.is_default ? pageDict.defaultWarehouse : undefined,
+  })), [warehouses, locale, pageDict.defaultWarehouse]);
+  const warehouseFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allWarehouses },
+    ...warehouseOptions,
+  ], [pageDict.allWarehouses, warehouseOptions]);
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'confirmed', label: pageDict.confirmed },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.confirmed, pageDict.cancelled]);
+  const purchaseOrderOptions = useMemo(() => confirmedPurchaseOrders.map((purchaseOrder) => ({
+    value: purchaseOrder.id,
+    label: purchaseOrder.number || accDict.notAvailable,
+    sublabel: purchaseOrder.supplier?.name || accDict.notAvailable,
+  })), [confirmedPurchaseOrders, accDict.notAvailable]);
+  const canEditGoodsReceipts = can('purchasing.edit');
+  const canConfirmGoodsReceipts = can('purchasing.approve');
+  const canCancelGoodsReceipts = can('purchasing.cancel');
+  const goodsReceiptSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
 
   const handlePurchaseOrderSelect = (purchaseOrderId: string) => {
     setData('purchase_order_id', purchaseOrderId);
@@ -202,10 +228,12 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
 
     if (editingReceipt) {
       router.put(`/purchasing/goods-receipts/${editingReceipt.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/purchasing/goods-receipts', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -217,7 +245,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingGoodsReceipts.cancelThisGoodsReceipt;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/goods-receipts/${receiptId}/${action}`);
+      router.post(`/purchasing/goods-receipts/${receiptId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -247,6 +275,16 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     }
   };
 
+  const hasAvailableGoodsReceiptAction = (receipt: GoodsReceiptRow) => (
+    receipt.status === 'draft' && (canEditGoodsReceipts || canConfirmGoodsReceipts || canCancelGoodsReceipts)
+  );
+
+  const getGoodsReceiptActionState = (receipt: GoodsReceiptRow) => {
+    if (hasAvailableGoodsReceiptAction(receipt)) return null;
+
+    return receipt.status === 'draft' ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="goods-receipts.index">
       <Head title={dict.app.pages.purchasingGoodsReceipts.goodsReceipts} />
@@ -260,6 +298,8 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
               type="button"
               onClick={openCreateModal}
               disabled={confirmedPurchaseOrders.length === 0}
+              title={pageDict.createGoodsReceipt}
+              aria-label={pageDict.createGoodsReceipt}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 disabled:opacity-50 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -281,7 +321,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/goods-receipts', { ...filters, search: val }, { preserveState: true });
+                  router.get('/purchasing/goods-receipts', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -292,29 +332,19 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.warehouse_id || ''}
-              onChange={(e) => router.get('/purchasing/goods-receipts', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.purchasingGoodsReceipts.allWarehouses}</option>
-              {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={warehouseFilterOptions}
+              value={filters.warehouse_id || null}
+              onChange={(value) => router.get('/purchasing/goods-receipts', { ...filters, warehouse_id: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.purchasingGoodsReceipts.warehouse}
+            />
 
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/purchasing/goods-receipts', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.purchasingGoodsReceipts.allStatuses}</option>
-              <option value="draft">{dict.app.pages.purchasingGoodsReceipts.draft}</option>
-              <option value="confirmed">{dict.app.pages.purchasingGoodsReceipts.confirmed}</option>
-              <option value="cancelled">{dict.app.pages.purchasingGoodsReceipts.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/purchasing/goods-receipts', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.purchasingGoodsReceipts.status}
+            />
           </div>
         </div>
 
@@ -338,55 +368,69 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {goodsReceipts.data.map((receipt) => (
-                  <tr key={receipt.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {receipt.number || dict.app.pages.purchasingGoodsReceipts.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>{receipt.purchaseOrder?.number || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{receipt.purchaseOrder?.supplier?.name || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{receipt.warehouse ? `${receipt.warehouse.code} - ${getLocalizedName(receipt.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{receipt.receipt_date}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(receipt.status)}>
-                        {getStatusLabel(receipt.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {receipt.status === 'draft' ? (
-                        <>
-                          {can('purchasing.edit') ? (
+                {goodsReceipts.data.map((receipt) => {
+                  const actionState = getGoodsReceiptActionState(receipt);
+
+                  return (
+                    <tr key={receipt.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {receipt.number || dict.app.pages.purchasingGoodsReceipts.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-mono`}>{receipt.purchaseOrder?.number || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{receipt.purchaseOrder?.supplier?.name || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{receipt.warehouse ? `${receipt.warehouse.code} - ${getLocalizedName(receipt.warehouse.name, locale)}` : accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{receipt.receipt_date}</td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(receipt.status)}>
+                          {getStatusLabel(receipt.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {receipt.status === 'draft' && canEditGoodsReceipts ? (
                             <button
                               type="button"
                               onClick={() => openEditModal(receipt)}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                              title={dict.app.pages.purchasingGoodsReceipts.edit}
+                              aria-label={dict.app.pages.purchasingGoodsReceipts.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                             >
                               {dict.app.pages.purchasingGoodsReceipts.edit}
                             </button>
                           ) : null}
-                          {can('purchasing.approve') ? (
+
+                          {receipt.status === 'draft' && canConfirmGoodsReceipts ? (
                             <button
                               type="button"
                               onClick={() => handleAction(receipt.id, 'confirm')}
-                              className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                              title={dict.app.pages.purchasingGoodsReceipts.confirm}
+                              aria-label={dict.app.pages.purchasingGoodsReceipts.confirm}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
                             >
                               {dict.app.pages.purchasingGoodsReceipts.confirm}
                             </button>
                           ) : null}
-                          {can('purchasing.cancel') ? (
+
+                          {receipt.status === 'draft' && canCancelGoodsReceipts ? (
                             <button
                               type="button"
                               onClick={() => handleAction(receipt.id, 'cancel')}
-                              className="text-xs font-semibold text-red-600 hover:text-red-800"
+                              title={dict.app.pages.purchasingGoodsReceipts.cancel}
+                              aria-label={dict.app.pages.purchasingGoodsReceipts.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
                             >
                               {dict.app.pages.purchasingGoodsReceipts.cancel}
                             </button>
                           ) : null}
-                        </>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -405,61 +449,36 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingGoodsReceipts.confirmedPurchaseOrder} *
-                  </label>
-                  <select
-                    disabled={Boolean(editingReceipt)}
-                    value={data.purchase_order_id}
-                    onChange={(e) => handlePurchaseOrderSelect(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.purchasingGoodsReceipts.selectPurchaseOrder}</option>
-                    {confirmedPurchaseOrders.map((po) => (
-                      <option key={po.id} value={po.id}>
-                        {po.number} - {po.supplier?.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.purchase_order_id ? <p className="mt-1 text-[10px] text-red-500">{errors.purchase_order_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingGoodsReceipts.confirmedPurchaseOrder}
+                  value={data.purchase_order_id || null}
+                  onChange={(value) => handlePurchaseOrderSelect(value || '')}
+                  options={purchaseOrderOptions}
+                  placeholder={dict.app.pages.purchasingGoodsReceipts.selectPurchaseOrder}
+                  disabled={Boolean(editingReceipt)}
+                  isClearable={false}
+                  required
+                  error={errors.purchase_order_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingGoodsReceipts.warehouse} *
-                  </label>
-                  <select
-                    value={data.warehouse_id}
-                    onChange={(e) => setData('warehouse_id', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.purchasingGoodsReceipts.selectWarehouse}</option>
-                    {warehouses.map((warehouse) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
-                        {warehouse.is_default ? ` (${dict.app.pages.purchasingGoodsReceipts.defaultWarehouse})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingGoodsReceipts.warehouse}
+                  value={data.warehouse_id || null}
+                  onChange={(value) => setData('warehouse_id', value || '')}
+                  options={warehouseOptions}
+                  placeholder={dict.app.pages.purchasingGoodsReceipts.selectWarehouse}
+                  isClearable={false}
+                  required
+                  error={errors.warehouse_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingGoodsReceipts.receiptDate_2} *
-                  </label>
-                  <input
-                    type="date"
-                    value={data.receipt_date}
-                    onChange={(e) => setData('receipt_date', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.receipt_date ? <p className="mt-1 text-[10px] text-red-500">{errors.receipt_date}</p> : null}
-                </div>
+                <DatePicker
+                  label={dict.app.pages.purchasingGoodsReceipts.receiptDate_2}
+                  value={data.receipt_date}
+                  onChange={(value) => setData('receipt_date', value || '')}
+                  required
+                  error={errors.receipt_date}
+                />
               </div>
 
               <div>
@@ -550,6 +569,8 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel_2}
+                  aria-label={pageDict.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.purchasingGoodsReceipts.cancel_2}
@@ -557,11 +578,11 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                 <button
                   type="submit"
                   disabled={processing}
+                  title={goodsReceiptSubmitLabel}
+                  aria-label={goodsReceiptSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing
-                    ? dict.app.pages.purchasingGoodsReceipts.saving
-                    : dict.app.pages.purchasingGoodsReceipts.saveDraft}
+                  {goodsReceiptSubmitLabel}
                 </button>
               </div>
             </form>

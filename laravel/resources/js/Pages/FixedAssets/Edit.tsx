@@ -1,6 +1,7 @@
 import { Head, useForm, Link } from '@inertiajs/react';
 import { type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -73,7 +74,7 @@ export default function FixedAssetEdit({ locale, asset }: EditProps) {
       opening_accumulated_depreciation_minor: formData.opening_accumulated_depreciation_minor,
       serial_number: formData.serial_number,
     }));
-    put(`/fixed-assets/${asset.id}`);
+    put(`/fixed-assets/${asset.id}`, { preserveScroll: true });
   }
 
   return (
@@ -123,31 +124,19 @@ export default function FixedAssetEdit({ locale, asset }: EditProps) {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.acquisitionDate}
-                </label>
-                <input
-                  type="date"
-                  value={data.acquisition_date}
-                  onChange={(e) => setData('acquisition_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-              </div>
+              <DatePicker
+                label={appDict.acquisitionDate}
+                value={data.acquisition_date}
+                onChange={(value) => setData('acquisition_date', value || '')}
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.inServiceDate}
-                </label>
-                <input
-                  type="date"
-                  value={data.in_service_date}
-                  onChange={(e) => setData('in_service_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-              </div>
+              <DatePicker
+                label={appDict.inServiceDate}
+                value={data.in_service_date}
+                onChange={(value) => setData('in_service_date', value || '')}
+                required
+              />
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -244,6 +233,8 @@ export default function FixedAssetEdit({ locale, asset }: EditProps) {
                 type="submit"
                 disabled={processing}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                title={appDict.saveChanges}
+                aria-label={appDict.saveChanges}
               >
                 {appDict.saveChanges}
               </button>

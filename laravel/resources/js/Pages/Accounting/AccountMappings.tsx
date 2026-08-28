@@ -45,11 +45,17 @@ type AccountMappingsProps = SharedPageProps & {
   branches: BranchOption[];
 };
 
+type MappingScope = 'global' | 'branch';
+
+function toMappingScope(value: string | null): MappingScope {
+  return value === 'branch' ? 'branch' : 'global';
+}
+
 export default function AccountMappings({ locale, mappingKeys, mappings, accounts, branches }: AccountMappingsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const mappingKeyLabels = accDict.mappingKeys as Record<string, string>;
-  const [scope, setScope] = useState<'global' | 'branch'>('global');
+  const [scope, setScope] = useState<MappingScope>('global');
 
   const form = useForm({
     key: mappingKeys[0] || '',
@@ -65,6 +71,14 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
       sublabel: key,
     })),
     [mappingKeyLabels, mappingKeys],
+  );
+
+  const scopeOptions = useMemo(
+    () => [
+      { value: 'global' as const, label: accDict.globalScope },
+      { value: 'branch' as const, label: accDict.branchScope },
+    ],
+    [accDict.branchScope, accDict.globalScope],
   );
 
   const accountOptions = useMemo(
@@ -96,7 +110,7 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
     });
   }
 
-  function changeScope(nextScope: 'global' | 'branch') {
+  function changeScope(nextScope: MappingScope) {
     setScope(nextScope);
     if (nextScope === 'global') {
       form.setData('branch_id', '');
@@ -158,17 +172,15 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
               error={form.errors.key}
             />
 
-            <label className="space-y-1 text-sm font-medium text-[var(--text-secondary)]">
-              <span>{accDict.mappingScope}</span>
-              <select
-                value={scope}
-                onChange={(event) => changeScope(event.target.value as 'global' | 'branch')}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              >
-                <option value="global">{accDict.globalScope}</option>
-                <option value="branch">{accDict.branchScope}</option>
-              </select>
-            </label>
+            <SearchableSelect<MappingScope>
+              label={accDict.mappingScope}
+              options={scopeOptions}
+              value={scope}
+              onChange={(value) => changeScope(toMappingScope(value))}
+              placeholder={accDict.mappingScope}
+              isClearable={false}
+              isSearchable={false}
+            />
 
             <SearchableSelect
               label={accDict.branch}

@@ -1,6 +1,7 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import { Button, SearchableSelect } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
@@ -88,14 +89,23 @@ export default function PayableSettlements({
   const reverseForm = useForm({
     reason: '',
   });
+  const activeFilterCount = [filters.supplier_id, filters.source_entry_id].filter(Boolean).length;
 
   function handleFilterChange(suppId: string, sourceId: string) {
     setSelectedSupplierId(suppId);
     setSelectedSourceId(sourceId);
-    const params = new URLSearchParams();
-    if (suppId) params.set('supplier_id', suppId);
-    if (sourceId) params.set('source_entry_id', sourceId);
-    window.location.href = `/purchasing/payable-settlements?${params.toString()}`;
+    const params: Record<string, string> = {};
+
+    if (suppId) params.supplier_id = suppId;
+    if (sourceId) params.source_entry_id = sourceId;
+
+    router.get('/purchasing/payable-settlements', params, { preserveScroll: true, preserveState: true });
+  }
+
+  function clearFilters() {
+    setSelectedSupplierId('');
+    setSelectedSourceId('');
+    router.get('/purchasing/payable-settlements', {}, { preserveScroll: true, preserveState: true });
   }
 
   function handleSettleSubmit(e: FormEvent) {
@@ -136,6 +146,14 @@ export default function PayableSettlements({
   }
 
   const fmtMoney = (amount: number, curr: string) => formatMoney(amount, curr);
+  const supplierSelectOptions = suppliers.map((supplier) => ({
+    value: supplier.id,
+    label: `${supplier.code} - ${supplier.name}`,
+  }));
+  const sourceEntrySelectOptions = debitEntries.map((entry) => ({
+    value: entry.id,
+    label: `${entry.supplier?.name || pageDict.supplier} | ${pageDict.dateLabel}: ${entry.entry_date} | ${pageDict.sourceLabel}: ${entry.source_type} | ${pageDict.remainingDebit}: ${fmtMoney(entry.remaining_minor, entry.currency)}`,
+  }));
 
   return (
     <AppLayout active="supplier-adjustment-notes.index">
@@ -153,6 +171,8 @@ export default function PayableSettlements({
           </div>
           <Link
             href="/purchasing/adjustment-notes"
+            title={pageDict.backToAdjustmentNotes}
+            aria-label={pageDict.backToAdjustmentNotes}
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
           >
             {pageDict.backToAdjustmentNotes}
@@ -164,41 +184,31 @@ export default function PayableSettlements({
             {pageDict.stepSelectDebit}
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] gap-4">
             <div>
               <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                 {pageDict.filterSupplier}
               </label>
-              <select
+              <SearchableSelect
+                options={[{ value: '', label: pageDict.allSuppliers }, ...supplierSelectOptions]}
                 value={selectedSupplierId}
-                onChange={(e) => handleFilterChange(e.target.value, '')}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">{pageDict.allSuppliers}</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} - {s.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => handleFilterChange(value || '', '')}
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                 {pageDict.selectDebitEntry}
               </label>
-              <select
+              <SearchableSelect
+                options={[{ value: '', label: pageDict.selectOpenDebitEntry }, ...sourceEntrySelectOptions]}
                 value={selectedSourceId}
-                onChange={(e) => handleFilterChange(selectedSupplierId, e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">{pageDict.selectOpenDebitEntry}</option>
-                {debitEntries.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.supplier?.name} | {pageDict.dateLabel}: {e.entry_date} | {pageDict.sourceLabel}: {e.source_type} | {pageDict.remainingDebit}: {fmtMoney(e.remaining_minor, e.currency)}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => handleFilterChange(selectedSupplierId, value || '')}
+              />
+            </div>
+
+            <div className="self-end">
+              <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{dict.app.accounting.clearFilters}</Button>
             </div>
           </div>
         </div>
@@ -283,6 +293,8 @@ export default function PayableSettlements({
                   <button
                     type="submit"
                     disabled={settleForm.processing}
+                    title={pageDict.confirmSettlement}
+                    aria-label={pageDict.confirmSettlement}
                     className="rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition-all cursor-pointer"
                   >
                     {settleForm.processing ? pageDict.processingSettlement : pageDict.confirmSettlement}
@@ -342,6 +354,8 @@ export default function PayableSettlements({
                           <button
                             type="button"
                             onClick={() => setReversingId(s.id)}
+                            title={pageDict.reverse}
+                            aria-label={pageDict.reverse}
                             className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-600 hover:bg-red-500/20 transition-all cursor-pointer"
                           >
                             {pageDict.reverse}
@@ -385,6 +399,8 @@ export default function PayableSettlements({
                   <button
                     type="button"
                     onClick={() => setReversingId(null)}
+                    title={pageDict.cancel}
+                    aria-label={pageDict.cancel}
                     className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                   >
                     {pageDict.cancel}
@@ -392,6 +408,8 @@ export default function PayableSettlements({
                   <button
                     type="submit"
                     disabled={reverseForm.processing}
+                    title={pageDict.confirmReversal}
+                    aria-label={pageDict.confirmReversal}
                     className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-red-700 disabled:opacity-50"
                   >
                     {reverseForm.processing ? pageDict.reversing : pageDict.confirmReversal}

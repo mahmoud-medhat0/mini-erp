@@ -9,9 +9,9 @@ Current target: Laravel + Inertia.js + React + TypeScript + Tailwind + PostgreSQ
 
 The repository still contains the older Next.js reference app under `app/`, but the active migration target is `laravel/`.
 
-Latest product-hardening update: Phase 15 Slices 1-133 are complete. Slice 133 replaced native rental filter selects with shared `SearchableSelect` controls in Handovers, Returns, and Invoices. `Phase15ProductHardeningTest` passed with 138 tests / 20,734 assertions.
+Latest product-hardening update: Phase 15 Product Hardening is CLOSED. Slices 1-190 are complete. Slice 190 replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` and extended the global Inertia guard to prevent native date inputs, native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination links from returning to Inertia pages. `Phase15ProductHardeningTest` passed with 192 tests / 25,644 assertions.
 
-Latest verified status: Phase 15 Product Hardening Slices 1-133 are complete as of 2026-08-26. Current verified scope covers report/security/permission hardening, controller/service cleanup, dictionary-backed accountant UI text, visible report currency filters, shared operational report filter UX, rental searchable filter controls, expense/payroll and remaining operational filter reset cleanup, explicit currency behavior, backend validation localization through master data, sales/purchasing orders, fulfillment, invoices, bills, returns/adjustments, catalog/master-data, accounting mappings, bank reconciliation, cash/bank books, cheques, landed cost allocation, AR/AP allocation, AR/AP settlement, AR/AP receipt/payment/opening-balance guards, invoice revision, accounting overview page-data cleanup, account category/type page-data cleanup, journal/opening-balance page-data cleanup, remaining accounting master-data page-data cleanup, catalog controller page-data cleanup, expense/prepaid/accrual controller page-data cleanup, fixed-asset location/disposal page-data cleanup, payroll controller page-data cleanup, rentals operational page-data cleanup, inventory/warehouse page-data cleanup, landed-cost/treasury-transfer page-data cleanup, tax controller page-data cleanup, shared report selector options cleanup, settings/audit controller query and persistence cleanup, shared currency input, report export errors, statement CSV exporter cleanup, AR/AP/cheque CSV exporter cleanup, financial-statement/branch CSV exporter cleanup, centralized report CSV stream lifecycle cleanup, shared financial-period report selector options including Trial Balance, localized bank reconciliation missing-reference labels, localized dashboard missing-user label, dictionary-backed app-shell language switcher, bank reconciliation finalization confirmation cleanup, Arabic catalog product select-label cleanup, catalog category/UOM placeholder cleanup, dashboard/customer/supplier/cash/bank/AR-AP opening-balance/AR-AP receipt-payment/cheque/allocation/entry-settlement, Sales/Purchase Order, Delivery/Goods Receipt, Invoice Revision, Accounting Account Mapping, Accounting Overview, Account Category/Type, Journal/Opening Balance, remaining Accounting master-data, Catalog, Expense/Prepaid/Accrual, Fixed Assets, Payroll, Rentals, Inventory/Warehouse, Landed Cost, Treasury Transfer, Tax controller page-data boundary cleanup, report controller selector boundary cleanup, operational report filter UX cleanup, and all-controller direct query cleanup, and preservation of PostingEngine, RBAC, audit, VAT, subledger, stock, and operational branch/warehouse invariants. See `PHASE_15_PRODUCT_HARDENING_REPORT.md`.
+Latest verified status: Phase 15 Product Hardening Slices 1-190 are complete as of 2026-08-28 and the phase is closed. Current verified scope covers report/security/permission hardening, controller/service cleanup, dictionary-backed accountant UI text, visible report currency filters, shared operational report filter UX, shared DatePicker usage for page date fields, typed pagination payloads, posting confirmation/readiness UX, restricted/no-action states, grouped lifecycle actions across sales, purchasing, inventory, rentals, payroll, expenses, prepaid/accrual schedules, fixed-asset master data, fixed-asset depreciation runs, fixed-asset detail actions, landed-cost lifecycle actions, sales-order, purchase-order, customer-credit-note, supplier-adjustment-note, customer-invoice, supplier-bill, sales-return modal actions, delivery-note/goods-receipt/purchase-return actions, core accounting workflow actions, notification actions, tax-rate actions, financial report actions, tax-code actions, stock-balance filters, remaining button accessibility cleanup, login action/security polish, catalog master-data actions, journal-detail financial actions, audit-log actions, cheques, bank reconciliation workspaces, AR/AP opening/receipt/payment workflows, Treasury Transfers, AR/AP allocations, AR/AP settlements, master-data action cells, foundation settings action controls, accounting taxonomy controls, accounting setup controls, user/role security controls, financial statement mapping controls, and fiscal period controls, accessible financial modal actions, backend validation localization, explicit currency behavior, report CSV delegation, page-data boundary cleanup, full Pages native-control/pagination scans, global page-control guards, global button accessibility scans, no-scope scans, controller direct-query cleanup, and preservation of PostingEngine, RBAC, audit, VAT, subledger, stock, and operational branch/warehouse invariants. See `PHASE_15_PRODUCT_HARDENING_REPORT.md` and `PHASE_15_FINAL_VERIFICATION_REPORT.md`.
 
 ## Current Rule
 
@@ -144,10 +144,11 @@ If a relationship is not explicitly supported by owner requirements or a later o
   - rental handovers, returns, inspections, item outcome transitions, contract completion after all items close, attachment registry support, and `/rentals/handovers` plus `/rentals/returns`.
   - rental invoices, deposits, damage/late/other charges, output VAT, AR subledger entries, PostingEngine GL posting, attachment support, and `/rentals/invoices`.
   - rental operations report, readiness checks, CSV export, print UX, and `/reports/rentals`.
-- Phase 15 product hardening Slices 1-133:
+- Phase 15 product hardening Slices 1-190:
   - sensitive report access requires `reports.view` + `view_financials`, selected report controllers include explicit financial visibility checks, sales/purchasing/invoice/bill report pages use dictionary-backed visible text, simple row-based report CSV streaming is centralized in `CsvReportResponse`, and last-active-super-admin checks are centralized in `SuperAdminProtection`.
   - financial posting routes and matching visible post actions require `view_financials` alongside module posting permissions.
   - selected operational reports have a shared filter panel, visible currency filters, active-filter counts, and reset actions.
+  - remaining financial and operational page date fields use the shared RTL-aware `DatePicker`; native browser `type="date"` inputs are now blocked by the global page-control guard.
   - large controller page-data, CSV composition, General Ledger page-data, report selector options, catalog page-data, expense/prepaid/accrual page-data, fixed-asset location/disposal page-data, payroll page-data, rental operational page-data, settings/audit query and persistence work, and settings persistence/listing were extracted into focused application services.
   - General Ledger, VAT Register, VAT Summary, and AR/AP settlement pages have dictionary-backed operational text.
   - Sensitive payroll, expense, prepaid/accrual, and rental operational state-changing actions require confirmation.
@@ -197,7 +198,7 @@ If a relationship is not explicitly supported by owner requirements or a later o
 - Decide whether to add formal browser automation/CI later. No GitHub Actions pipeline is currently connected.
 - Year-end physical retained-earnings close remains an owner decision. Current path keeps soft close/reporting behavior.
 - Phase 14 Rentals foundation is implemented and verified. Future rental quotations, contract amendments/extensions, automated recurring rental invoice generation, deposit refunds, item profitability, and maintenance scheduling require bounded future slices.
-- Phase 15 Product Hardening is active. Next hardening should continue accountant-focused UX consistency and broader dictionary-backed UI regression coverage.
+- Phase 15 Product Hardening is closed for the current product-hardening gate. Future accountant-facing UX work should open a new bounded phase or slice.
 - Projects, Budgeting, Recurring workflows, external filing/collection integrations, and e-invoicing APIs are not part of the implemented scope yet.
 - Payroll future extensions such as payslips, salary payment execution, payroll reports, employee loans/advances, attendance inputs, and statutory payroll tax/social insurance rules require bounded future slices.
 - Multi-company and tenant-like relationships remain `UNDEFINED - DO NOT ASSUME`.
@@ -263,7 +264,54 @@ npm run build
 Latest verified result:
 
 - Last full PHPUnit suite pass remains Slice 57: 720 tests, 717 passed, 3 skipped, 17,923 assertions.
-- Phase 15 product hardening test after Slice 84: 90 tests / 17,583 assertions passed.
+- Phase 15 product hardening test after Slice 190: 192 tests / 25,644 assertions passed.
+- Slice 190 global Inertia page control/navigation/type guard passed with native date-input coverage: 1 test / 1 assertion.
+- Slice 188 global Inertia page button accessible-action guard passed: 1 test / 1 assertion.
+- Full Pages button accessibility scanner passed after Slice 188: `TOTAL_FILES=0`, `TOTAL_MISSING=0`.
+- Slice 187 report/tax-code/stock-balance accessible-action guard passed: 1 test / 258 assertions.
+- Slice 186 core accounting workflow accessible-action guard passed: 1 test / 136 assertions.
+- Slice 185 delivery/goods-receipt/purchase-return accessible-action guard passed: 1 test / 255 assertions.
+- Slice 184 notification/tax-rate accessible-action guard passed: 1 test / 165 assertions.
+- Slice 183 fixed-asset master-data accessible-action guard passed: 1 test / 154 assertions.
+- Slice 182 credit/adjustment note modal accessible-action guard passed: 1 test / 248 assertions.
+- Slice 181 sales/purchase order modal accessible-action guard passed: 1 test / 248 assertions.
+- Slice 180 catalog master-data accessible-action guard passed: 1 test / 391 assertions.
+- Slice 179 login accessible-action/dev-credentials guard passed: 1 test / 103 assertions.
+- Slice 178 sales-return modal accessible-action guard passed: 1 test / 111 assertions.
+- Slice 177 supplier-bill modal accessible-action guard passed: 1 test / 37 assertions.
+- Slice 176 audit-log accessible-action guard passed: 1 test / 20 assertions.
+- Slice 175 journal-detail financial-action guard passed: 1 test / 16 assertions.
+- Slice 174 customer-invoice modal accessible-action guard passed: 1 test / 38 assertions.
+- Slice 173 landed-cost lifecycle accessible-action guard passed: 1 test / 22 assertions.
+- Slice 172 fixed-asset detail financial-action guard passed: 1 test / 31 assertions.
+- Slice 171 financial mapping/fiscal period accessible-action guard passed: 1 test / 40 assertions.
+- Slice 170 user/role security accessible-action guard passed: 1 test / 40 assertions.
+- Slice 169 accounting setup accessible-action guard passed: 1 test / 41 assertions.
+- Slice 168 accounting taxonomy accessible-action guard passed: 1 test / 38 assertions.
+- Slice 167 foundation settings accessible-action guard passed: 1 test / 37 assertions.
+- Slice 166 master-data action accessible-name guard passed: 1 test / 64 assertions.
+- Slice 165 AR/AP settlement accessible-name guard passed: 1 test / 22 assertions.
+- Slice 164 AR/AP allocation accessibility/restricted/scroll guard passed: 1 test / 26 assertions.
+- Slice 163 Treasury Transfer action accessibility/scroll guard passed: 1 test / 29 assertions.
+- Slice 162 AR/AP receipt/payment/opening-balance accessible-name guard passed: 1 test / 48 assertions.
+- Slice 161 cheque/bank-reconciliation modal accessible-name guard passed: 1 test / 38 assertions.
+- Slice 160 cheque/bank-reconciliation action-cell guard passed: 1 test / 89 assertions.
+- Slice 159 expense schedule/depreciation-run action-cell guard passed: 1 test / 84 assertions.
+- Slice 158 inventory/rental/payroll/expense action-cell guard passed: 1 test / 154 assertions.
+- Slice 157 invoice/return action-cell guard passed: 1 test / 128 assertions.
+- Slice 156 sales/purchasing document action-cell guard passed: 1 test / 90 assertions.
+- Slice 155 AR/AP restricted-action guard passed: 1 test / 40 assertions.
+- Slice 154 JournalDetail and OpeningBalances posting-readiness guards passed: 2 tests / 899 assertions.
+- Slice 153 pagination-link typing guard passed: 1 test / 504 assertions.
+- Slice 152 returns/adjustments/landed-cost select-control guard passed: 1 test / 89 assertions.
+- Slice 151 Customer Invoice/Supplier Bill select-control guard passed: 1 test / 32 assertions.
+- Slice 149 Sales/Purchase Order select-control guard passed: 1 test / 26 assertions.
+- Slice 148 Settings attachment entity select-control guard passed: 1 test / 20 assertions.
+- Slice 147 Rental handover/return line select-control guard passed: 1 test / 20 assertions.
+- Slice 146 Fixed Asset workflow select-control guard passed: 1 test / 22 assertions.
+- Slice 142 fixed-asset report filter-control guard passed: 1 test / 33 assertions.
+- Slice 141 operational report filter-control guard passed: 1 test / 84 assertions.
+- Slice 139 financial statement export-link guard passed: 1 test / 21 assertions. Slice 140 AR/AP receipt/payment cash-bank type-control guard passed: 1 test / 12 assertions.
 - Bank/cheque localization guard after Slice 84: 1 test / 358 assertions passed.
 - Phase 3 cheque and bank reconciliation feature suites after Slice 84: 19 tests / 97 assertions passed.
 - Concurrency suite and PostgreSQL cheque/bank-reconciliation stress commands passed after Slice 84.
@@ -278,7 +326,7 @@ Latest verified result:
 - Phase 3 integrity tests: 6 tests / 607 assertions passed.
 - Concurrency suite: 7 tests / 16 assertions passed.
 - PostgreSQL concurrency, accounting, allocation, settlement, cheque, bank reconciliation, stock-transfer, inventory, fixed-asset depreciation/disposal, and Phase 3 integrity stress commands passed after Slice 56.
-- Pint, TypeScript typecheck, and Vite production build passed after Slice 84.
+- Pint, TypeScript typecheck, and Vite production build passed after Slice 188.
 
 ## Documentation Entry Points
 
@@ -305,6 +353,8 @@ Use these first:
 - `PHASE_7_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_6_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_5_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_15_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_15_PRODUCT_HARDENING_REPORT.md`
 - `PHASE_3_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_4_SALES_PURCHASING_OPERATIONS.md`
 - `PHASE_4_SLICE_1_GEMINI_PROMPT.md`

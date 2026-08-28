@@ -145,6 +145,8 @@ function UserFormModal({
         </h3>
         <button
           type="button"
+          title={dict.app.actions.close}
+          aria-label={dict.app.actions.close}
           onClick={onClose}
           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
         >
@@ -239,6 +241,8 @@ function UserFormModal({
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
           <button
             type="button"
+            title={dict.app.actions.cancel}
+            aria-label={dict.app.actions.cancel}
             onClick={onClose}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
           >
@@ -246,6 +250,8 @@ function UserFormModal({
           </button>
           <button
             type="submit"
+            title={user ? dict.app.actions.save : dict.app.actions.create}
+            aria-label={user ? dict.app.actions.save : dict.app.actions.create}
             disabled={processing}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
           >
@@ -308,6 +314,8 @@ function AssignRoleFormModal({
         </h3>
         <button
           type="button"
+          title={dict.app.actions.close}
+          aria-label={dict.app.actions.close}
           onClick={onClose}
           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
         >
@@ -340,6 +348,8 @@ function AssignRoleFormModal({
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
           <button
             type="button"
+            title={dict.app.actions.cancel}
+            aria-label={dict.app.actions.cancel}
             onClick={onClose}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
           >
@@ -347,6 +357,8 @@ function AssignRoleFormModal({
           </button>
           <button
             type="submit"
+            title={dict.app.actions.assign}
+            aria-label={dict.app.actions.assign}
             disabled={processing || users.length === 0 || roles.length === 0}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
           >
@@ -456,6 +468,8 @@ function RoleFormModal({
         </h3>
         <button
           type="button"
+          title={dict.app.actions.close}
+          aria-label={dict.app.actions.close}
           onClick={onClose}
           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
         >
@@ -502,6 +516,8 @@ function RoleFormModal({
               />
               <button
                 type="button"
+                title={data.permissions.length === allPermissions.length ? dict.app.actions.clearAll : dict.app.actions.selectAll}
+                aria-label={data.permissions.length === allPermissions.length ? dict.app.actions.clearAll : dict.app.actions.selectAll}
                 onClick={toggleSelectAll}
                 className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-3.5 py-2 text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors"
               >
@@ -528,6 +544,8 @@ function RoleFormModal({
                   <button
                     key={catKey}
                     type="button"
+                    title={catTitle}
+                    aria-label={catTitle}
                     onClick={() => {
                       setSearchTerm('');
                       setActiveCategory(catKey);
@@ -582,6 +600,8 @@ function RoleFormModal({
 
                   <button
                     type="button"
+                    title={isCurrentGroupAllSelected ? dict.app.actions.deselectModule : dict.app.actions.selectAllInModule}
+                    aria-label={isCurrentGroupAllSelected ? dict.app.actions.deselectModule : dict.app.actions.selectAllInModule}
                     onClick={() => toggleCategoryAll(activeCatPerms)}
                     className="text-xs font-extrabold text-blue-600 dark:text-blue-400 hover:underline"
                   >
@@ -630,6 +650,8 @@ function RoleFormModal({
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
           <button
             type="button"
+            title={dict.app.actions.cancel}
+            aria-label={dict.app.actions.cancel}
             onClick={onClose}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
           >
@@ -637,6 +659,8 @@ function RoleFormModal({
           </button>
           <button
             type="submit"
+            title={role ? dict.app.actions.save : dict.app.actions.create}
+            aria-label={role ? dict.app.actions.save : dict.app.actions.create}
             disabled={processing}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
           >
@@ -684,6 +708,7 @@ function RoleCard({
               onClick={onEdit}
               className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-1.5 text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)] transition-colors"
               title={dict.app.actions.editRole}
+              aria-label={dict.app.actions.editRole}
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -713,6 +738,8 @@ function RoleCard({
           {role.permissions.length > maxInitial ? (
             <button
               type="button"
+              title={expanded ? dict.app.actions.showLess : `+ ${remainingCount} ${dict.app.actions.showMore}`}
+              aria-label={expanded ? dict.app.actions.showLess : `+ ${remainingCount} ${dict.app.actions.showMore}`}
               onClick={() => setExpanded(!expanded)}
               className="inline-flex items-center gap-1 text-[11px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg hover:bg-blue-500/20 transition-colors"
             >
@@ -751,6 +778,7 @@ function RevokeRoleButton({
           type="submit"
           disabled={processing}
           title={dict.app.actions.revoke}
+          aria-label={dict.app.actions.revoke}
           className="rounded p-0.5 text-blue-500 hover:bg-blue-500/20 hover:text-red-500 transition-colors disabled:opacity-50"
         >
           <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -779,6 +807,7 @@ function DeleteRoleButton({ roleId, roleName, dict }: { roleId: number | string;
         type="submit"
         disabled={processing}
         title={dict.app.actions.deleteRole}
+        aria-label={dict.app.actions.deleteRole}
         className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50"
       >
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -821,6 +850,7 @@ function DeleteUserButton({
         type="submit"
         disabled={processing || isSelf}
         title={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
+        aria-label={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
         className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -863,6 +893,8 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
             <div className="flex items-center gap-3">
               <button
                 type="button"
+                title={dict.app.actions.addUser}
+                aria-label={dict.app.actions.addUser}
                 onClick={() => {
                   setEditingUser(null);
                   setShowAssignForm(false);
@@ -878,6 +910,8 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
 
               <button
                 type="button"
+                title={`${dict.app.actions.assign} ${dict.app.fields.roles}`}
+                aria-label={`${dict.app.actions.assign} ${dict.app.fields.roles}`}
                 onClick={() => {
                   setShowAddUserForm(false);
                   setEditingUser(null);
@@ -894,6 +928,8 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
           ) : (
             <button
               type="button"
+              title={dict.app.actions.addRole}
+              aria-label={dict.app.actions.addRole}
               onClick={() => {
                 setEditingRole(null);
                 setShowAddRoleForm(!showAddRoleForm);
@@ -913,6 +949,8 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
       <div className="flex border-b border-[var(--border)] mb-6 gap-2">
         <button
           type="button"
+          title={dict.app.fields.user}
+          aria-label={dict.app.fields.user}
           onClick={() => setActiveTab('users')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
             activeTab === 'users'
@@ -928,6 +966,8 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
 
         <button
           type="button"
+          title={dict.app.fields.roles}
+          aria-label={dict.app.fields.roles}
           onClick={() => setActiveTab('roles')}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
             activeTab === 'roles'
@@ -1025,6 +1065,7 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
+                              aria-label={dict.app.actions.editUser}
                               onClick={() => {
                                 setShowAssignForm(false);
                                 setShowAddUserForm(false);

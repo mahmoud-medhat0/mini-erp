@@ -1,4 +1,4 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
@@ -60,6 +60,8 @@ export default function CustomerReceiptsIndex({
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCreateReceipt = can('customers.receipts');
+  const canPostReceipt = can('customers.receipts') && can('view_financials');
 
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
@@ -92,6 +94,7 @@ export default function CustomerReceiptsIndex({
     }));
 
     post('/customer-receipts', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowModal(false);
         reset();
@@ -101,13 +104,17 @@ export default function CustomerReceiptsIndex({
 
   const handlePost = (id: string) => {
     if (confirm(dict.app.pages.customerReceipts.confirmPostReceipt)) {
-      post(`/customer-receipts/${id}/post`);
+      post(`/customer-receipts/${id}/post`, { preserveScroll: true });
     }
   };
 
   const customerSelectOptions = customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
   const cashSelectOptions = cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
   const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
+  const destinationTypeOptions = [
+    { value: 'cash', label: dict.app.pages.customerReceipts.cashAccount },
+    { value: 'bank', label: dict.app.pages.customerReceipts.bankAccount },
+  ];
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
 
@@ -119,13 +126,15 @@ export default function CustomerReceiptsIndex({
         title={dict.app.pages.customerReceipts.customerReceipts}
         description={dict.app.pages.customerReceipts.recordAndPostCustomerCashBank}
         actions={
-          can('customers.receipts') ? (
+          canCreateReceipt ? (
             <button
               type="button"
               onClick={() => {
                 reset();
                 setShowModal(true);
               }}
+              title={dict.app.pages.customerReceipts.newCustomerReceipt}
+              aria-label={dict.app.pages.customerReceipts.newCustomerReceipt}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.customerReceipts.newCustomerReceipt}
@@ -181,24 +190,32 @@ export default function CustomerReceiptsIndex({
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    {row.status === 'draft' ? (
-                      can('customers.receipts') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handlePost(row.id)}
-                          className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                    <div className="flex flex-wrap items-center gap-2">
+                      {row.status === 'draft' ? (
+                        canPostReceipt ? (
+                          <button
+                            type="button"
+                            onClick={() => handlePost(row.id)}
+                            title={dict.app.pages.customerReceipts.confirmPostReceipt}
+                            aria-label={dict.app.pages.customerReceipts.confirmPostReceipt}
+                            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                          >
+                            {dict.app.pages.customerReceipts.post}
+                          </button>
+                        ) : (
+                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                        )
+                      ) : (
+                        <Link
+                          href={`/receivable-allocations?receipt_id=${row.id}`}
+                          title={dict.app.pages.customerReceipts.allocate}
+                          aria-label={dict.app.pages.customerReceipts.allocate}
+                          className="text-xs font-bold text-[var(--primary)] hover:underline"
                         >
-                          {dict.app.pages.customerReceipts.post}
-                        </button>
-                      ) : null
-                    ) : (
-                      <a
-                        href={`/receivable-allocations?receipt_id=${row.id}`}
-                        className="text-xs font-bold text-[var(--primary)] hover:underline"
-                      >
-                        {dict.app.pages.customerReceipts.allocate}
-                      </a>
-                    )}
+                          {dict.app.pages.customerReceipts.allocate}
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -234,14 +251,12 @@ export default function CustomerReceiptsIndex({
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.customerReceipts.destinationType}
                   </label>
-                  <select
+                  <SearchableSelect
+                    options={destinationTypeOptions}
                     value={destinationType}
-                    onChange={(e) => setDestinationType(toCashBankDestinationType(e.target.value))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-                  >
-                    <option value="cash">{dict.app.pages.customerReceipts.cashAccount}</option>
-                    <option value="bank">{dict.app.pages.customerReceipts.bankAccount}</option>
-                  </select>
+                    onChange={(val) => setDestinationType(toCashBankDestinationType(val || 'cash'))}
+                    isClearable={false}
+                  />
                 </div>
                 <div>
                   {destinationType === 'cash' ? (
@@ -340,6 +355,8 @@ export default function CustomerReceiptsIndex({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={dict.app.pages.customerReceipts.cancel}
+                  aria-label={dict.app.pages.customerReceipts.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.customerReceipts.cancel}
@@ -347,6 +364,8 @@ export default function CustomerReceiptsIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={dict.app.pages.customerReceipts.saveDraft}
+                  aria-label={dict.app.pages.customerReceipts.saveDraft}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.customerReceipts.saving : dict.app.pages.customerReceipts.saveDraft}

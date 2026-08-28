@@ -1,7 +1,7 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -90,6 +90,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
     e.preventDefault();
     if (editingAccount) {
       patch(`/bank-accounts/${editingAccount.id}`, {
+        preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
           reset();
@@ -97,6 +98,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
       });
     } else {
       post('/bank-accounts', {
+        preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
           reset();
@@ -118,17 +120,28 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
     value: b.id,
     label: `${b.code} - ${getLocalizedName(b.name, locale)}`,
   }));
+  const statusOptions = [
+    { value: 'active', label: pageDict.active },
+    { value: 'inactive', label: pageDict.inactive },
+  ];
+  const activeFilterCount = [filters.search, filters.status, filters.branch_id].filter(Boolean).length;
 
   const applyFilters = (next: Record<string, string>) => {
-    const params = new URLSearchParams();
     const search = next.search ?? filters.search ?? '';
+    const status = next.status ?? filters.status ?? '';
     const branchId = next.branch_id ?? filters.branch_id ?? '';
+    const params: Record<string, string> = {};
 
-    if (search) params.set('search', search);
-    if (branchId) params.set('branch_id', branchId);
+    if (search) params.search = search;
+    if (status) params.status = status;
+    if (branchId) params.branch_id = branchId;
 
-    window.location.href = `/bank-accounts${params.toString() ? `?${params.toString()}` : ''}`;
+    router.get('/bank-accounts', params, { preserveScroll: true, preserveState: true });
   };
+
+  function clearFilters() {
+    router.get('/bank-accounts', {}, { preserveScroll: true, preserveState: true });
+  }
 
   return (
     <AppLayout active="bank-accounts.index">
@@ -142,6 +155,8 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.createBankAccount}
+              aria-label={pageDict.createBankAccount}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.bankAccounts.createBankAccount}
@@ -164,16 +179,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
             }}
             className="w-72 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
           />
-          <select
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]}
             value={filters.branch_id || ''}
-            onChange={(e) => applyFilters({ branch_id: e.target.value })}
-            className="w-56 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
-          >
-            <option value="">{pageDict.allBranches}</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>{branch.code} - {getLocalizedName(branch.name, locale)}</option>
-            ))}
-          </select>
+            onChange={(value) => applyFilters({ branch_id: value || '' })}
+            className="w-56"
+            isSearchable
+          />
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
+            value={filters.status || ''}
+            onChange={(value) => applyFilters({ status: value || '' })}
+            className="w-44"
+            isSearchable={false}
+          />
+          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
         </div>
       </Card>
 
@@ -216,15 +236,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    {can('banks.edit') ? (
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(acc)}
-                        className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                      >
-                        {dict.app.pages.bankAccounts.edit}
-                      </button>
-                    ) : null}
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {can('banks.edit') ? (
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(acc)}
+                          title={pageDict.edit}
+                          aria-label={pageDict.edit}
+                          className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+                        >
+                          {dict.app.pages.bankAccounts.edit}
+                        </button>
+                      ) : (
+                        <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -378,6 +404,8 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.bankAccounts.cancel}
@@ -385,6 +413,8 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                 <button
                   type="submit"
                   disabled={processing}
+                  title={pageDict.saveAccount}
+                  aria-label={pageDict.saveAccount}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.bankAccounts.saving : dict.app.pages.bankAccounts.saveAccount}

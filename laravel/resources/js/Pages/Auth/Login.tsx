@@ -18,12 +18,15 @@ export default function Login() {
   const dict = getDictionary(currentLocale);
   const t = dict.auth.login;
   const common = dict.common;
+  const passwordToggleLabel = showPassword ? t.hidePassword : t.showPassword;
+  const devQuickFillEnabled = import.meta.env.DEV;
 
   const { data, setData, post, processing, errors, reset } = useForm<LoginForm>({
     email: '',
     password: '',
     remember: false,
   });
+  const loginSubmitLabel = processing ? t.submitting : t.submitButton;
 
   function handleThemeChange(newTheme: 'light' | 'dark' | 'system') {
     setCurrentTheme(newTheme);
@@ -38,6 +41,7 @@ export default function Login() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     post('/login', {
+      preserveScroll: true,
       onFinish: () => reset('password'),
     });
   }
@@ -140,6 +144,8 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => changeLocale('en')}
+                  title={t.switchToEnglish}
+                  aria-label={t.switchToEnglish}
                   className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                     currentLocale === 'en'
                       ? 'bg-[var(--primary)] text-white shadow-xs'
@@ -151,6 +157,8 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => changeLocale('ar')}
+                  title={t.switchToArabic}
+                  aria-label={t.switchToArabic}
                   className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-all ${
                     currentLocale === 'ar'
                       ? 'bg-[var(--primary)] text-white shadow-xs'
@@ -172,7 +180,8 @@ export default function Login() {
                     key={mode.key}
                     type="button"
                     onClick={() => handleThemeChange(mode.key as 'light' | 'dark' | 'system')}
-                    title={`Switch to ${mode.label} theme`}
+                    title={t.switchTheme.replace(':theme', mode.label)}
+                    aria-label={t.switchTheme.replace(':theme', mode.label)}
                     className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                       currentTheme === mode.key
                         ? 'bg-[var(--primary)] text-white shadow-xs'
@@ -270,6 +279,8 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    title={passwordToggleLabel}
+                    aria-label={passwordToggleLabel}
                     className="absolute inset-y-0 end-0 flex items-center pe-3.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   >
                     {showPassword ? (
@@ -303,6 +314,8 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={processing}
+                title={loginSubmitLabel}
+                aria-label={loginSubmitLabel}
                 className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] py-3 px-4 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-[var(--primary-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {processing ? (
@@ -325,18 +338,22 @@ export default function Login() {
             </form>
 
             {/* Dev Quick Fill Helper */}
-            <div className="mt-8 rounded-xl border border-dashed border-[var(--border)] p-3.5 bg-[var(--surface)]/50 text-xs">
-              <p className="font-semibold text-[var(--text-secondary)]">{t.devQuickFill}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => fillCredentials('admin@mini-erp.local', 'Password123!')}
-                  className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)] hover:border-[var(--primary)] hover:bg-[var(--surface)] transition-colors"
-                >
-                  admin@mini-erp.local
-                </button>
+            {devQuickFillEnabled ? (
+              <div className="mt-8 rounded-xl border border-dashed border-[var(--border)] p-3.5 bg-[var(--surface)]/50 text-xs">
+                <p className="font-semibold text-[var(--text-secondary)]">{t.devQuickFill}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fillCredentials('admin@mini-erp.local', 'Password123!')}
+                    title={t.fillDevAdminCredentials}
+                    aria-label={t.fillDevAdminCredentials}
+                    className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)] hover:border-[var(--primary)] hover:bg-[var(--surface)] transition-colors"
+                  >
+                    admin@mini-erp.local
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Bottom Footer */}

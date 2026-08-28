@@ -1,8 +1,8 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -51,8 +51,14 @@ export default function OutgoingChequesIndex({
 }: OutgoingChequesProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const pageDict = dict.app.pages.outgoingCheques;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCreateCheques = can('cheques.create');
+  const canIssueOutgoingCheques = can('cheques.issue');
+  const canClearOutgoingCheques = can('cheques.clear');
+  const canReturnOutgoingCheques = can('cheques.return');
+  const canCancelOutgoingCheques = can('cheques.cancel');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeActionCheque, setActiveActionCheque] = useState<OutgoingChequeRow | null>(null);
@@ -121,6 +127,29 @@ export default function OutgoingChequesIndex({
   const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
+  const statusOptions = [
+    { value: 'draft', label: pageDict.statuses.draft },
+    { value: 'issued', label: pageDict.statuses.issued },
+    { value: 'cleared', label: pageDict.statuses.cleared },
+    { value: 'returned', label: pageDict.statuses.returned },
+    { value: 'cancelled', label: pageDict.statuses.cancelled },
+  ];
+  const activeFilterCount = [filters.status, filters.supplier_id].filter(Boolean).length;
+
+  const applyFilters = (next: Record<string, string>) => {
+    const status = next.status ?? filters.status ?? '';
+    const supplierId = next.supplier_id ?? filters.supplier_id ?? '';
+    const params: Record<string, string> = {};
+
+    if (status) params.status = status;
+    if (supplierId) params.supplier_id = supplierId;
+
+    router.get('/outgoing-cheques', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/outgoing-cheques', {}, { preserveScroll: true, preserveState: true });
+  }
 
   const statusToneMap: Record<string, 'muted' | 'info' | 'warning' | 'ok' | 'danger'> = {
     draft: 'muted',
@@ -128,6 +157,22 @@ export default function OutgoingChequesIndex({
     cleared: 'ok',
     returned: 'warning',
     cancelled: 'danger',
+  };
+
+  const isOutgoingChequeActionable = (cheque: OutgoingChequeRow) => ['draft', 'issued'].includes(cheque.status);
+
+  const hasAvailableOutgoingChequeAction = (cheque: OutgoingChequeRow) => (
+    cheque.status === 'draft'
+      ? canIssueOutgoingCheques
+      : cheque.status === 'issued'
+        ? canClearOutgoingCheques || canReturnOutgoingCheques || canCancelOutgoingCheques
+        : false
+  );
+
+  const getOutgoingChequeActionState = (cheque: OutgoingChequeRow) => {
+    if (hasAvailableOutgoingChequeAction(cheque)) return null;
+
+    return isOutgoingChequeActionable(cheque) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
   return (
@@ -138,10 +183,12 @@ export default function OutgoingChequesIndex({
         title={dict.app.pages.outgoingCheques.outgoingChequesRegister}
         description={dict.app.pages.outgoingCheques.manageOutgoingChequesLifecycleStateMachine}
         actions={
-          can('cheques.create') ? (
+          canCreateCheques ? (
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
+              title={dict.app.pages.outgoingCheques.addOutgoingCheque}
+              aria-label={dict.app.pages.outgoingCheques.addOutgoingCheque}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.outgoingCheques.addOutgoingCheque}
@@ -152,20 +199,21 @@ export default function OutgoingChequesIndex({
 
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            defaultValue={filters.status || ''}
-            onChange={(e) => {
-              window.location.href = `/outgoing-cheques?status=${e.target.value}`;
-            }}
-            className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-          >
-            <option value="">{dict.app.pages.outgoingCheques.allStatuses}</option>
-            <option value="draft">Draft</option>
-            <option value="issued">Issued</option>
-            <option value="cleared">Cleared</option>
-            <option value="returned">Returned</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
+            value={filters.status || ''}
+            onChange={(value) => applyFilters({ status: value || '' })}
+            className="w-48"
+            isSearchable={false}
+          />
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.supplier }, ...supplierSelectOptions]}
+            value={filters.supplier_id || ''}
+            onChange={(value) => applyFilters({ supplier_id: value || '' })}
+            className="w-72"
+            isSearchable
+          />
+          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
         </div>
       </Card>
 
@@ -189,73 +237,81 @@ export default function OutgoingChequesIndex({
               </tr>
             </thead>
             <tbody>
-              {cheques.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>
-                    {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : accDict.notAvailable}
-                  </td>
-                  <td className={tableClasses.td}>{row.bank_account?.name || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatMoney(row.amount_minor, row.currency)}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
-                      {row.status.toUpperCase()}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-1">
-                      {row.status === 'draft' && can('cheques.issue') ? (
-                        <button
-                          type="button"
-                          onClick={() => openActionModal(row, 'issue')}
-                          className="rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400 px-2 py-1 text-[11px] font-bold hover:bg-blue-600/20 cursor-pointer"
-                        >
-                          {dict.app.pages.outgoingCheques.issue}
-                        </button>
-                      ) : null}
+              {cheques.data.map((row) => {
+                const actionState = getOutgoingChequeActionState(row);
 
-                      {row.status === 'issued' ? (
-                        <>
-                          {can('cheques.clear') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'clear')}
-                              className="rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 text-[11px] font-bold hover:bg-emerald-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.outgoingCheques.clear}
-                            </button>
-                          ) : null}
-                          {can('cheques.return') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'return')}
-                              className="rounded-lg bg-amber-600/10 text-amber-600 dark:text-amber-400 px-2 py-1 text-[11px] font-bold hover:bg-amber-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.outgoingCheques.return}
-                            </button>
-                          ) : null}
-                          {can('cheques.cancel') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'cancel')}
-                              className="rounded-lg bg-red-600/10 text-red-600 dark:text-red-400 px-2 py-1 text-[11px] font-bold hover:bg-red-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.outgoingCheques.cancel}
-                            </button>
-                          ) : null}
-                        </>
-                      ) : null}
+                return (
+                  <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
+                    <td className={`${tableClasses.td} font-semibold`}>
+                      {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : accDict.notAvailable}
+                    </td>
+                    <td className={tableClasses.td}>{row.bank_account?.name || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
+                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
+                      {formatMoney(row.amount_minor, row.currency)}
+                    </td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
+                        {pageDict.statuses[row.status]}
+                      </StatusBadge>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {row.status === 'draft' && canIssueOutgoingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'issue')}
+                            title={pageDict.issue}
+                            aria-label={pageDict.issue}
+                            className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                          >
+                            {pageDict.issue}
+                          </button>
+                        ) : null}
 
-                      {row.status === 'cleared' ? (
-                        <span className="text-[11px] font-mono text-[var(--text-muted)]">{dict.app.pages.outgoingCheques.terminalCleared}</span>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {row.status === 'issued' && canClearOutgoingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'clear')}
+                            title={pageDict.clear}
+                            aria-label={pageDict.clear}
+                            className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                          >
+                            {pageDict.clear}
+                          </button>
+                        ) : null}
+
+                        {row.status === 'issued' && canReturnOutgoingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'return')}
+                            title={pageDict.return}
+                            aria-label={pageDict.return}
+                            className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                          >
+                            {pageDict.return}
+                          </button>
+                        ) : null}
+
+                        {row.status === 'issued' && canCancelOutgoingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'cancel')}
+                            title={pageDict.cancel}
+                            aria-label={pageDict.cancel}
+                            className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                          >
+                            {pageDict.cancel}
+                          </button>
+                        ) : null}
+
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -349,6 +405,8 @@ export default function OutgoingChequesIndex({
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
+                  title={dict.app.pages.outgoingCheques.cancel_2}
+                  aria-label={dict.app.pages.outgoingCheques.cancel_2}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.outgoingCheques.cancel_2}
@@ -356,6 +414,8 @@ export default function OutgoingChequesIndex({
                 <button
                   type="submit"
                   disabled={createForm.processing}
+                  title={dict.app.pages.outgoingCheques.saveCheque}
+                  aria-label={dict.app.pages.outgoingCheques.saveCheque}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {createForm.processing ? dict.app.pages.outgoingCheques.saving : dict.app.pages.outgoingCheques.saveCheque}
@@ -468,6 +528,8 @@ export default function OutgoingChequesIndex({
                     setActiveActionCheque(null);
                     setActionType(null);
                   }}
+                  title={dict.app.pages.outgoingCheques.cancel_3}
+                  aria-label={dict.app.pages.outgoingCheques.cancel_3}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
                 >
                   {dict.app.pages.outgoingCheques.cancel_3}
@@ -475,6 +537,8 @@ export default function OutgoingChequesIndex({
                 <button
                   type="submit"
                   disabled={actionForm.processing}
+                  title={dict.app.pages.outgoingCheques.confirmAction}
+                  aria-label={dict.app.pages.outgoingCheques.confirmAction}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {actionForm.processing ? dict.app.pages.outgoingCheques.processing : dict.app.pages.outgoingCheques.confirmAction}

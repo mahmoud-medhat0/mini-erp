@@ -217,12 +217,13 @@ export default function RentalHandoversIndex({
                           {contractLine?.rentable_item ? `${contractLine.rentable_item.code} - ${namePart(contractLine.rentable_item.name, activeLocale)}` : pageDict.rentableItem}
                         </div>
                         <div className="grid gap-3 md:grid-cols-3">
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">{pageDict.conditionOut}</span>
-                            <select className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]" value={line.condition_out} onChange={(e) => updateLine(index, { condition_out: e.target.value })}>
-                              {conditionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
-                          </label>
+                          <SearchableSelect
+                            label={pageDict.conditionOut}
+                            value={line.condition_out}
+                            onChange={(value) => updateLine(index, { condition_out: value || 'good' })}
+                            options={conditionOptions}
+                            isClearable={false}
+                          />
                           <label className="block">
                             <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">{pageDict.accessoriesOut}</span>
                             <input className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]" value={line.accessories_out} onChange={(e) => updateLine(index, { accessories_out: e.target.value })} />

@@ -1,7 +1,8 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -143,6 +144,7 @@ export default function SupplierBillsIndex({
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.purchasingSupplierBills;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -206,6 +208,48 @@ export default function SupplierBillsIndex({
   const getSourceLineUnitCostMinor = (line: SupplierBillSourceLine): number => {
     return line.purchaseOrderLine?.unit_price_minor ?? line.purchase_order_line?.unit_price_minor ?? line.unit_price_minor ?? 0;
   };
+
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'approved', label: pageDict.approved },
+    { value: 'posted', label: pageDict.posted },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.approved, pageDict.posted, pageDict.cancelled]);
+
+  const supplierOptions = useMemo(() => activeSuppliers.map((supplier) => ({
+    value: supplier.id,
+    label: supplier.name,
+    sublabel: supplier.code,
+  })), [activeSuppliers]);
+
+  const purchaseOrderOptions = useMemo(() => confirmedPurchaseOrders.map((purchaseOrder) => ({
+    value: purchaseOrder.id,
+    label: purchaseOrder.number || purchaseOrder.id,
+    sublabel: `${purchaseOrder.supplier?.name || accDict.notAvailable} - ${purchaseOrder.currency || accDict.notAvailable}`,
+  })), [confirmedPurchaseOrders, accDict.notAvailable]);
+
+  const goodsReceiptOptions = useMemo(() => confirmedGoodsReceipts.map((goodsReceipt) => {
+    const purchaseOrder = getGoodsReceiptPurchaseOrder(goodsReceipt);
+
+    return {
+      value: goodsReceipt.id,
+      label: goodsReceipt.number || goodsReceipt.id,
+      sublabel: `${goodsReceipt.supplier?.name || purchaseOrder?.supplier?.name || accDict.notAvailable} - ${goodsReceipt.currency || purchaseOrder?.currency || accDict.notAvailable}`,
+    };
+  }), [confirmedGoodsReceipts, accDict.notAvailable]);
+
+  const productOptions = useMemo(() => eligibleProducts.map((product) => ({
+    value: product.id,
+    label: `${product.code} - ${getProductName(product)}`,
+    sublabel: product.type,
+  })), [eligibleProducts, isAr]);
+  const canEditSupplierBills = can('purchasing.edit');
+  const canSubmitSupplierBills = can('purchasing.submit');
+  const canApproveSupplierBills = can('purchasing.approve');
+  const canPostSupplierBills = can('purchasing.post') && can('view_financials');
+  const canCancelSupplierBills = can('purchasing.cancel');
 
   const openCreateModal = () => {
     setEditingBill(null);
@@ -410,10 +454,12 @@ export default function SupplierBillsIndex({
 
     if (editingBill) {
       router.put(`/purchasing/bills/${editingBill.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/purchasing/bills', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -427,7 +473,7 @@ export default function SupplierBillsIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierBills.cancelThisBill;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/bills/${billId}/${action}`);
+      router.post(`/purchasing/bills/${billId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -465,12 +511,30 @@ export default function SupplierBillsIndex({
     }
   };
 
+  const isSupplierBillActionable = (bill: SupplierBillRow) => ['draft', 'submitted', 'approved'].includes(bill.status);
+
+  const hasAvailableSupplierBillAction = (bill: SupplierBillRow) => (
+    bill.status === 'draft'
+      ? canEditSupplierBills || canSubmitSupplierBills || canCancelSupplierBills
+      : bill.status === 'submitted'
+        ? canApproveSupplierBills || canCancelSupplierBills
+        : bill.status === 'approved'
+          ? canPostSupplierBills || canCancelSupplierBills
+          : false
+  );
+
+  const getSupplierBillActionState = (bill: SupplierBillRow) => {
+    if (hasAvailableSupplierBillAction(bill)) return null;
+
+    return isSupplierBillActionable(bill) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   const handleSearchFilter = (e: FormEvent) => {
     e.preventDefault();
     router.get(
       '/purchasing/bills',
       { search: searchFilter, status: statusFilter },
-      { preserveState: true, replace: true }
+      { preserveState: true, preserveScroll: true, replace: true }
     );
   };
 
@@ -480,6 +544,7 @@ export default function SupplierBillsIndex({
     const lineTotal = Math.floor((qtyE6 * costMinor) / 1000000);
     return sum + lineTotal;
   }, 0);
+  const supplierBillSubmitLabel = editingBill ? pageDict.saveChanges : pageDict.createBill;
 
   return (
     <AppLayout active="supplier-bills.index">
@@ -494,6 +559,8 @@ export default function SupplierBillsIndex({
               <button
                 type="button"
                 onClick={openCreateModal}
+                title={dict.app.pages.purchasingSupplierBills.createSupplierBill}
+                aria-label={dict.app.pages.purchasingSupplierBills.createSupplierBill}
                 className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -518,21 +585,17 @@ export default function SupplierBillsIndex({
               />
             </div>
             <div className="w-40">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-              >
-                <option value="">{dict.app.pages.purchasingSupplierBills.allStatuses}</option>
-                <option value="draft">{dict.app.pages.purchasingSupplierBills.draft}</option>
-                <option value="submitted">{dict.app.pages.purchasingSupplierBills.submitted}</option>
-                <option value="approved">{dict.app.pages.purchasingSupplierBills.approved}</option>
-                <option value="posted">{dict.app.pages.purchasingSupplierBills.posted}</option>
-                <option value="cancelled">{dict.app.pages.purchasingSupplierBills.cancelled}</option>
-              </select>
+              <SearchableSelect
+                options={statusFilterOptions}
+                value={statusFilter || null}
+                onChange={(value) => setStatusFilter(value || '')}
+                label={dict.app.pages.purchasingSupplierBills.status}
+              />
             </div>
             <button
               type="submit"
+              title={dict.app.pages.purchasingSupplierBills.filter}
+              aria-label={dict.app.pages.purchasingSupplierBills.filter}
               className="rounded-md border border-[var(--border)] px-4 py-1.5 text-sm font-medium hover:bg-[var(--background)]"
             >
               {dict.app.pages.purchasingSupplierBills.filter}
@@ -561,77 +624,94 @@ export default function SupplierBillsIndex({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
-                  {supplierBills.data.map((bill) => (
-                    <tr key={bill.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {bill.number || <span className="text-[var(--text-muted)]">{dict.app.pages.purchasingSupplierBills.draft_2}</span>}
-                      </td>
-                      <td className={`${tableClasses.td} font-medium`}>{bill.supplier?.name || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{bill.bill_date}</td>
-                      <td className={`${tableClasses.td} font-mono font-semibold`}>
-                        {formatMoney(bill.total_minor, bill.currency)}
-                      </td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(bill.status)}>
-                          {getStatusLabel(bill.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                        {bill.status === 'draft' ? (
-                          <>
-                            {can('purchasing.edit') ? (
+                  {supplierBills.data.map((bill) => {
+                    const actionState = getSupplierBillActionState(bill);
+
+                    return (
+                      <tr key={bill.id}>
+                        <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                          {bill.number || <span className="text-[var(--text-muted)]">{dict.app.pages.purchasingSupplierBills.draft_2}</span>}
+                        </td>
+                        <td className={`${tableClasses.td} font-medium`}>{bill.supplier?.name || accDict.notAvailable}</td>
+                        <td className={tableClasses.td}>{bill.bill_date}</td>
+                        <td className={`${tableClasses.td} font-mono font-semibold`}>
+                          {formatMoney(bill.total_minor, bill.currency)}
+                        </td>
+                        <td className={tableClasses.td}>
+                          <StatusBadge tone={getStatusTone(bill.status)}>
+                            {getStatusLabel(bill.status)}
+                          </StatusBadge>
+                        </td>
+                        <td className={`${tableClasses.td} text-end`}>
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {bill.status === 'draft' && canEditSupplierBills ? (
                               <button
                                 type="button"
                                 onClick={() => openEditModal(bill)}
-                                className="text-xs font-semibold text-blue-600 hover:underline"
+                                title={dict.app.pages.purchasingSupplierBills.edit}
+                                aria-label={dict.app.pages.purchasingSupplierBills.edit}
+                                className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                               >
                                 {dict.app.pages.purchasingSupplierBills.edit}
                               </button>
                             ) : null}
-                            {can('purchasing.submit') ? (
+
+                            {bill.status === 'draft' && canSubmitSupplierBills ? (
                               <button
                                 type="button"
                                 onClick={() => handleAction(bill.id, 'submit')}
-                                className="text-xs font-semibold text-indigo-600 hover:underline"
+                                title={dict.app.pages.purchasingSupplierBills.submit}
+                                aria-label={dict.app.pages.purchasingSupplierBills.submit}
+                                className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
                               >
                                 {dict.app.pages.purchasingSupplierBills.submit}
                               </button>
                             ) : null}
-                          </>
-                        ) : null}
 
-                        {bill.status === 'submitted' && can('purchasing.approve') ? (
-                          <button
-                            type="button"
-                            onClick={() => handleAction(bill.id, 'approve')}
-                            className="text-xs font-semibold text-amber-600 hover:underline"
-                          >
-                            {dict.app.pages.purchasingSupplierBills.approve}
-                          </button>
-                        ) : null}
+                            {bill.status === 'submitted' && canApproveSupplierBills ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAction(bill.id, 'approve')}
+                                title={dict.app.pages.purchasingSupplierBills.approve}
+                                aria-label={dict.app.pages.purchasingSupplierBills.approve}
+                                className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                              >
+                                {dict.app.pages.purchasingSupplierBills.approve}
+                              </button>
+                            ) : null}
 
-                        {bill.status === 'approved' && can('purchasing.post') && can('view_financials') ? (
-                          <button
-                            type="button"
-                            onClick={() => handleAction(bill.id, 'post')}
-                            className="text-xs font-semibold text-emerald-600 hover:underline"
-                          >
-                            {dict.app.pages.purchasingSupplierBills.post}
-                          </button>
-                        ) : null}
+                            {bill.status === 'approved' && canPostSupplierBills ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAction(bill.id, 'post')}
+                                title={dict.app.pages.purchasingSupplierBills.post}
+                                aria-label={dict.app.pages.purchasingSupplierBills.post}
+                                className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                              >
+                                {dict.app.pages.purchasingSupplierBills.post}
+                              </button>
+                            ) : null}
 
-                        {bill.status !== 'posted' && bill.status !== 'cancelled' && can('purchasing.cancel') ? (
-                          <button
-                            type="button"
-                            onClick={() => handleAction(bill.id, 'cancel')}
-                            className="text-xs font-semibold text-rose-600 hover:underline"
-                          >
-                            {dict.app.pages.purchasingSupplierBills.cancel}
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
+                            {isSupplierBillActionable(bill) && canCancelSupplierBills ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAction(bill.id, 'cancel')}
+                                title={dict.app.pages.purchasingSupplierBills.cancel}
+                                aria-label={dict.app.pages.purchasingSupplierBills.cancel}
+                                className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                              >
+                                {dict.app.pages.purchasingSupplierBills.cancel}
+                              </button>
+                            ) : null}
+
+                            {actionState ? (
+                              <StatusBadge tone="muted">{actionState}</StatusBadge>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -688,78 +768,54 @@ export default function SupplierBillsIndex({
                 {sourceMode === 'purchase_order' && !editingBill && (
                   <div>
                     <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.selectPurchaseOrder}</label>
-                    <select
-                      value={data.purchase_order_id}
-                      onChange={(e) => handlePurchaseOrderSelect(e.target.value)}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-                    >
-                      <option value="">{dict.app.pages.purchasingSupplierBills.selectPo}</option>
-                      {confirmedPurchaseOrders.map((po) => (
-                        <option key={po.id} value={po.id}>
-                          {po.number} ({po.supplier?.name}) - {po.currency}
-                        </option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={purchaseOrderOptions}
+                      value={data.purchase_order_id || null}
+                      onChange={(value) => handlePurchaseOrderSelect(value || '')}
+                      placeholder={dict.app.pages.purchasingSupplierBills.selectPo}
+                      isClearable={false}
+                    />
                   </div>
                 )}
 
                 {sourceMode === 'goods_receipt' && !editingBill && (
                   <div>
                     <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.selectGoodsReceipt}</label>
-                    <select
-                      value={data.goods_receipt_id}
-                      onChange={(e) => handleGoodsReceiptSelect(e.target.value)}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-                    >
-                      <option value="">{dict.app.pages.purchasingSupplierBills.selectGr}</option>
-                      {confirmedGoodsReceipts.map((gr) => (
-                        <option key={gr.id} value={gr.id}>
-                          {gr.number} ({gr.supplier?.name})
-                        </option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      options={goodsReceiptOptions}
+                      value={data.goods_receipt_id || null}
+                      onChange={(value) => handleGoodsReceiptSelect(value || '')}
+                      placeholder={dict.app.pages.purchasingSupplierBills.selectGr}
+                      isClearable={false}
+                    />
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.supplier_2}</label>
-                    <select
-                      disabled={!!editingBill || sourceMode !== 'manual'}
-                      value={data.supplier_id}
-                      onChange={(e) => setData('supplier_id', e.target.value)}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-                    >
-                      {activeSuppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.code})
-                        </option>
-                      ))}
-                    </select>
-                    {errors.supplier_id && <p className="text-xs text-rose-600 mt-1">{errors.supplier_id}</p>}
-                  </div>
+                  <SearchableSelect
+                    label={dict.app.pages.purchasingSupplierBills.supplier_2}
+                    disabled={!!editingBill || sourceMode !== 'manual'}
+                    value={data.supplier_id || null}
+                    onChange={(value) => setData('supplier_id', value || '')}
+                    options={supplierOptions}
+                    isClearable={false}
+                    required
+                    error={errors.supplier_id}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.billDate_2}</label>
-                    <input
-                      type="date"
-                      value={data.bill_date}
-                      onChange={(e) => setData('bill_date', e.target.value)}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-                    />
-                    {errors.bill_date && <p className="text-xs text-rose-600 mt-1">{errors.bill_date}</p>}
-                  </div>
+                  <DatePicker
+                    label={dict.app.pages.purchasingSupplierBills.billDate_2}
+                    value={data.bill_date}
+                    onChange={(value) => setData('bill_date', value || '')}
+                    error={errors.bill_date}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{dict.app.pages.purchasingSupplierBills.dueDate}</label>
-                    <input
-                      type="date"
-                      value={data.due_date}
-                      onChange={(e) => setData('due_date', e.target.value)}
-                      className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-                    />
-                    {errors.due_date && <p className="text-xs text-rose-600 mt-1">{errors.due_date}</p>}
-                  </div>
+                  <DatePicker
+                    label={dict.app.pages.purchasingSupplierBills.dueDate}
+                    value={data.due_date}
+                    onChange={(value) => setData('due_date', value || '')}
+                    error={errors.due_date}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -802,6 +858,8 @@ export default function SupplierBillsIndex({
                       <button
                         type="button"
                         onClick={addLine}
+                        title={dict.app.pages.purchasingSupplierBills.addLine}
+                        aria-label={dict.app.pages.purchasingSupplierBills.addLine}
                         className="text-xs font-semibold text-blue-600 hover:underline"
                       >
                         {dict.app.pages.purchasingSupplierBills.addLine}
@@ -830,18 +888,14 @@ export default function SupplierBillsIndex({
                           return (
                             <tr key={idx} className="border-b border-[var(--border)] last:border-0">
                               <td className="p-2">
-                                <select
+                                <SearchableSelect
                                   disabled={sourceMode !== 'manual'}
-                                  value={item.product_id}
-                                  onChange={(e) => updateLineItem(idx, 'product_id', e.target.value)}
-                                  className="w-full rounded border border-[var(--border)] bg-[var(--background)] p-1 text-xs"
-                                >
-                                  {eligibleProducts.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.code} - {getProductName(p)}
-                                    </option>
-                                  ))}
-                                </select>
+                                  value={item.product_id || null}
+                                  onChange={(value) => updateLineItem(idx, 'product_id', value || '')}
+                                  options={productOptions}
+                                  isClearable={false}
+                                  required
+                                />
                               </td>
                               <td className="p-2">
                                 <input
@@ -880,6 +934,8 @@ export default function SupplierBillsIndex({
                                   <button
                                     type="button"
                                     onClick={() => removeLine(idx)}
+                                    title={`${dict.app.pages.purchasingSupplierBills.removeLine} ${idx + 1}`}
+                                    aria-label={`${dict.app.pages.purchasingSupplierBills.removeLine} ${idx + 1}`}
                                     className="text-rose-600 hover:underline font-bold"
                                   >
                                     ×
@@ -904,6 +960,8 @@ export default function SupplierBillsIndex({
                     <button
                       type="button"
                       onClick={closeModal}
+                      title={dict.app.pages.purchasingSupplierBills.cancel_2}
+                      aria-label={dict.app.pages.purchasingSupplierBills.cancel_2}
                       className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--background)]"
                     >
                       {dict.app.pages.purchasingSupplierBills.cancel_2}
@@ -911,6 +969,8 @@ export default function SupplierBillsIndex({
                     <button
                       type="submit"
                       disabled={processing}
+                      title={supplierBillSubmitLabel}
+                      aria-label={supplierBillSubmitLabel}
                       className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50"
                     >
                       {editingBill

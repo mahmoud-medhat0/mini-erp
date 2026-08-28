@@ -34,7 +34,7 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
   function applyFilter() {
     router.get('/accounting/trial-balance', {
       period_id: periodId || undefined,
-    });
+    }, { preserveScroll: true });
   }
 
   return (
@@ -62,6 +62,8 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
           <button
             type="button"
             onClick={applyFilter}
+            title={accDict.generateTrialBalance}
+            aria-label={accDict.generateTrialBalance}
             className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
             {accDict.generateTrialBalance}

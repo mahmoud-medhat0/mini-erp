@@ -1,11 +1,12 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -77,7 +78,7 @@ type SalesOrderRow = {
 type SalesOrdersProps = SharedPageProps & {
   salesOrders: {
     data: SalesOrderRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   customers: CustomerOption[];
   currencies: CurrencyOption[];
@@ -92,6 +93,7 @@ type SalesOrdersProps = SharedPageProps & {
 export default function SalesOrdersIndex({ locale, salesOrders, customers, currencies, products, filters }: SalesOrdersProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.salesSalesOrders;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -119,6 +121,33 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
     notes: '',
     lock_version: 1,
   });
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'confirmed', label: pageDict.confirmed },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.confirmed, pageDict.cancelled]);
+  const customerOptions = useMemo(() => customers.map((customer) => ({
+    value: customer.id,
+    label: customer.name,
+    sublabel: customer.code,
+  })), [customers]);
+  const currencyOptions = useMemo(() => currencies.map((currency) => ({
+    value: currency.code,
+    label: `${currency.code} - ${currency.name}`,
+    sublabel: currency.symbol,
+  })), [currencies]);
+  const productOptions = useMemo(() => products.map((product) => ({
+    value: product.id,
+    label: product.name,
+    sublabel: product.code,
+  })), [products]);
+  const canEditSalesOrders = can('sales.edit');
+  const canSubmitSalesOrders = can('sales.submit');
+  const canConfirmSalesOrders = can('sales.approve');
+  const canCancelSalesOrders = can('sales.cancel');
+  const salesOrderSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
 
   const openCreateModal = () => {
     reset();
@@ -230,10 +259,12 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
     if (editingOrder) {
       router.put(`/sales/orders/${editingOrder.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/sales/orders', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -246,7 +277,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
     if (action === 'cancel') confirmMsg = dict.app.pages.salesSalesOrders.cancelThisSalesOrder;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/orders/${orderId}/${action}`);
+      router.post(`/sales/orders/${orderId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -280,6 +311,22 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
     }
   };
 
+  const isSalesOrderActionable = (order: SalesOrderRow) => order.status === 'draft' || order.status === 'submitted';
+
+  const hasAvailableSalesOrderAction = (order: SalesOrderRow) => (
+    order.status === 'draft'
+      ? canEditSalesOrders || canSubmitSalesOrders || canConfirmSalesOrders || canCancelSalesOrders
+      : order.status === 'submitted'
+        ? canConfirmSalesOrders || canCancelSalesOrders
+        : false
+  );
+
+  const getSalesOrderActionState = (order: SalesOrderRow) => {
+    if (hasAvailableSalesOrderAction(order)) return null;
+
+    return isSalesOrderActionable(order) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   const calculatePreviewSubtotal = () => {
     return lineItems.reduce((acc, item) => {
       const q = Number(item.quantity) || 0;
@@ -300,6 +347,8 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.createSalesOrder}
+              aria-label={pageDict.createSalesOrder}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -321,7 +370,7 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/orders', { ...filters, search: val }, { preserveState: true });
+                  router.get('/sales/orders', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -332,17 +381,12 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/sales/orders', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.salesSalesOrders.allStatuses}</option>
-              <option value="draft">{dict.app.pages.salesSalesOrders.draft}</option>
-              <option value="submitted">{dict.app.pages.salesSalesOrders.submitted}</option>
-              <option value="confirmed">{dict.app.pages.salesSalesOrders.confirmed}</option>
-              <option value="cancelled">{dict.app.pages.salesSalesOrders.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/sales/orders', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.salesSalesOrders.status}
+            />
           </div>
         </div>
 
@@ -365,70 +409,82 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {salesOrders.data.map((order) => (
-                  <tr key={order.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {order.number || dict.app.pages.salesSalesOrders.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{order.customer?.name || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{order.order_date}</td>
-                    <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
-                      {formatMoney(order.total_minor, order.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(order.status)}>
-                        {getStatusLabel(order.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {order.status === 'draft' ? (
-                        <>
-                          {can('sales.edit') ? (
+                {salesOrders.data.map((order) => {
+                  const actionState = getSalesOrderActionState(order);
+
+                  return (
+                    <tr key={order.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {order.number || dict.app.pages.salesSalesOrders.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-medium`}>{order.customer?.name || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{order.order_date}</td>
+                      <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
+                        {formatMoney(order.total_minor, order.currency)}
+                      </td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(order.status)}>
+                          {getStatusLabel(order.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {order.status === 'draft' && canEditSalesOrders ? (
                             <button
                               type="button"
                               onClick={() => openEditModal(order)}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                              title={dict.app.pages.salesSalesOrders.edit}
+                              aria-label={dict.app.pages.salesSalesOrders.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                             >
                               {dict.app.pages.salesSalesOrders.edit}
                             </button>
                           ) : null}
-                          {can('sales.submit') ? (
+
+                          {order.status === 'draft' && canSubmitSalesOrders ? (
                             <button
                               type="button"
                               onClick={() => handleAction(order.id, 'submit')}
-                              className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                              title={dict.app.pages.salesSalesOrders.submit}
+                              aria-label={dict.app.pages.salesSalesOrders.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-violet-200 px-2.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50 dark:border-violet-900/60 dark:text-violet-300 dark:hover:bg-violet-950/40"
                             >
                               {dict.app.pages.salesSalesOrders.submit}
                             </button>
                           ) : null}
-                        </>
-                      ) : null}
 
-                      {order.status === 'draft' || order.status === 'submitted' ? (
-                        <>
-                          {can('sales.approve') ? (
+                          {isSalesOrderActionable(order) && canConfirmSalesOrders ? (
                             <button
                               type="button"
                               onClick={() => handleAction(order.id, 'confirm')}
-                              className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                              title={dict.app.pages.salesSalesOrders.confirm}
+                              aria-label={dict.app.pages.salesSalesOrders.confirm}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
                             >
                               {dict.app.pages.salesSalesOrders.confirm}
                             </button>
                           ) : null}
-                          {can('sales.cancel') ? (
+
+                          {isSalesOrderActionable(order) && canCancelSalesOrders ? (
                             <button
                               type="button"
                               onClick={() => handleAction(order.id, 'cancel')}
-                              className="text-xs font-semibold text-red-600 hover:text-red-800"
+                              title={dict.app.pages.salesSalesOrders.cancel}
+                              aria-label={dict.app.pages.salesSalesOrders.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
                             >
                               {dict.app.pages.salesSalesOrders.cancel}
                             </button>
                           ) : null}
-                        </>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -447,71 +503,41 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.salesSalesOrders.customer_2} *
-                  </label>
-                  <select
-                    value={data.customer_id}
-                    onChange={(e) => setData('customer_id', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.salesSalesOrders.selectCustomer}</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.customer_id ? <p className="mt-1 text-[10px] text-red-500">{errors.customer_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesSalesOrders.customer_2}
+                  value={data.customer_id || null}
+                  onChange={(value) => setData('customer_id', value || '')}
+                  options={customerOptions}
+                  placeholder={dict.app.pages.salesSalesOrders.selectCustomer}
+                  isClearable={false}
+                  required
+                  error={errors.customer_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.salesSalesOrders.orderDate} *
-                  </label>
-                  <input
-                    type="date"
-                    value={data.order_date}
-                    onChange={(e) => setData('order_date', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.order_date ? <p className="mt-1 text-[10px] text-red-500">{errors.order_date}</p> : null}
-                </div>
+                <DatePicker
+                  label={dict.app.pages.salesSalesOrders.orderDate}
+                  value={data.order_date}
+                  onChange={(value) => setData('order_date', value || '')}
+                  required
+                  error={errors.order_date}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.salesSalesOrders.currency} *
-                  </label>
-                  <select
-                    value={data.currency}
-                    onChange={(e) => setData('currency', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    {currencies.map((curr) => (
-                      <option key={curr.code} value={curr.code}>
-                        {curr.code} - {curr.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesSalesOrders.currency}
+                  value={data.currency || null}
+                  onChange={(value) => setData('currency', value || '')}
+                  options={currencyOptions}
+                  isClearable={false}
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.salesSalesOrders.expectedDeliveryDate}
-                  </label>
-                  <input
-                    type="date"
-                    value={data.expected_delivery_date}
-                    onChange={(e) => setData('expected_delivery_date', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
+                <DatePicker
+                  label={dict.app.pages.salesSalesOrders.expectedDeliveryDate}
+                  value={data.expected_delivery_date}
+                  onChange={(value) => setData('expected_delivery_date', value || '')}
+                />
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
@@ -536,6 +562,8 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                   <button
                     type="button"
                     onClick={addLineItem}
+                    title={pageDict.addLine}
+                    aria-label={pageDict.addLine}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800"
                   >
                     <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -553,21 +581,14 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                     return (
                       <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-xl border border-[var(--border)] bg-[var(--background)]/50">
                         <div className="flex-1 w-full sm:w-auto">
-                          <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {dict.app.pages.salesSalesOrders.productService}
-                          </label>
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => handleProductChange(idx, e.target.value)}
+                          <SearchableSelect
+                            label={dict.app.pages.salesSalesOrders.productService}
+                            value={item.product_id || null}
+                            onChange={(value) => handleProductChange(idx, value || '')}
+                            options={productOptions}
+                            isClearable={false}
                             required
-                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-                          >
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} ({p.code})
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </div>
 
                         <div className="w-full sm:w-24">
@@ -639,6 +660,8 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                           <button
                             type="button"
                             onClick={() => removeLineItem(idx)}
+                            title={pageDict.removeLine}
+                            aria-label={pageDict.removeLine}
                             className="mt-4 sm:mt-0 p-1.5 text-red-500 hover:text-red-700 transition-colors"
                           >
                             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -679,6 +702,8 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel_2}
+                  aria-label={pageDict.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.salesSalesOrders.cancel_2}
@@ -686,11 +711,11 @@ export default function SalesOrdersIndex({ locale, salesOrders, customers, curre
                 <button
                   type="submit"
                   disabled={processing}
+                  title={salesOrderSubmitLabel}
+                  aria-label={salesOrderSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing
-                    ? dict.app.pages.salesSalesOrders.saving
-                    : dict.app.pages.salesSalesOrders.saveDraft}
+                  {salesOrderSubmitLabel}
                 </button>
               </div>
             </form>

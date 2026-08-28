@@ -75,7 +75,7 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!isBalanced) return;
-    post('/accounting/journal');
+    post('/accounting/journal', { preserveScroll: true });
   }
 
   const periodSelectOptions = periods.map((p) => ({
@@ -109,6 +109,8 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
         actions={
           <Link
             href="/accounting/journal"
+            title={accDict.journal}
+            aria-label={accDict.journal}
             className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all no-underline shadow-xs cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -265,6 +267,8 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
             <button
               type="button"
               onClick={addLine}
+              title={accDict.addLine}
+              aria-label={accDict.addLine}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] active:scale-95 transition-all cursor-pointer"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -340,6 +344,8 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                     type="button"
                     onClick={() => removeLine(idx)}
                     disabled={data.lines.length <= 2}
+                    title={`${accDict.removeLine} ${idx + 1}`}
+                    aria-label={`${accDict.removeLine} ${idx + 1}`}
                     className="p-2 rounded-lg text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-500 disabled:opacity-30 transition-all cursor-pointer"
                   >
                     <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -361,6 +367,8 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
             <button
               type="submit"
               disabled={processing || !isBalanced || periods.length === 0 || currencies.length === 0 || !data.currency}
+              title={accDict.saveDraftJournal}
+              aria-label={accDict.saveDraftJournal}
               className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3 text-xs font-bold text-white shadow-lg shadow-blue-500/25 disabled:opacity-40 active:scale-95 transition-all cursor-pointer"
             >
               {accDict.saveDraftJournal}

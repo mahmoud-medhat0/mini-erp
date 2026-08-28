@@ -1,4 +1,4 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
@@ -45,6 +45,8 @@ export default function CustomerOpeningBalancesIndex({
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCreateOpeningBalance = can('customers.opening_balances');
+  const canPostOpeningBalance = can('customers.opening_balances') && can('view_financials');
 
   const [showModal, setShowModal] = useState(false);
 
@@ -73,6 +75,7 @@ export default function CustomerOpeningBalancesIndex({
     }));
 
     post('/customer-opening-balances', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowModal(false);
         reset();
@@ -82,7 +85,7 @@ export default function CustomerOpeningBalancesIndex({
 
   const handlePost = (id: string) => {
     if (confirm(dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance)) {
-      post(`/customer-opening-balances/${id}/post`);
+      post(`/customer-opening-balances/${id}/post`, { preserveScroll: true });
     }
   };
 
@@ -109,13 +112,15 @@ export default function CustomerOpeningBalancesIndex({
         title={dict.app.pages.customerOpeningBalances.customerOpeningBalances}
         description={dict.app.pages.customerOpeningBalances.recordAndPostOpeningAccountsReceivable}
         actions={
-          can('customers.opening_balances') ? (
+          canCreateOpeningBalance ? (
             <button
               type="button"
               onClick={() => {
                 reset();
                 setShowModal(true);
               }}
+              title={dict.app.pages.customerOpeningBalances.newOpeningBalance}
+              aria-label={dict.app.pages.customerOpeningBalances.newOpeningBalance}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.customerOpeningBalances.newOpeningBalance}
@@ -161,19 +166,25 @@ export default function CustomerOpeningBalancesIndex({
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    {row.status === 'draft' ? (
-                      can('customers.opening_balances') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handlePost(row.id)}
-                          className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                        >
-                          {dict.app.pages.customerOpeningBalances.post}
-                        </button>
-                      ) : null
-                    ) : (
-                      <span className="text-xs text-[var(--text-muted)] font-mono">{dict.app.pages.customerOpeningBalances.immutable}</span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {row.status === 'draft' ? (
+                        canPostOpeningBalance ? (
+                          <button
+                            type="button"
+                            onClick={() => handlePost(row.id)}
+                            title={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
+                            aria-label={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
+                            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                          >
+                            {dict.app.pages.customerOpeningBalances.post}
+                          </button>
+                        ) : (
+                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                        )
+                      ) : (
+                        <span className="text-xs text-[var(--text-muted)] font-mono">{dict.app.pages.customerOpeningBalances.immutable}</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -272,6 +283,8 @@ export default function CustomerOpeningBalancesIndex({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={dict.app.pages.customerOpeningBalances.cancel}
+                  aria-label={dict.app.pages.customerOpeningBalances.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.customerOpeningBalances.cancel}
@@ -279,6 +292,8 @@ export default function CustomerOpeningBalancesIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={dict.app.pages.customerOpeningBalances.saveDraft}
+                  aria-label={dict.app.pages.customerOpeningBalances.saveDraft}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.customerOpeningBalances.saving : dict.app.pages.customerOpeningBalances.saveDraft}

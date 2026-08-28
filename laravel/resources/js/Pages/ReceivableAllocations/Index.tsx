@@ -1,7 +1,7 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -65,17 +65,35 @@ export default function ReceivableAllocationsIndex({
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canManageReceivableAllocations = can('customers.allocations');
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
 
   const { post, transform, processing } = useForm({});
 
+  const activeFilterCount = [filters.customer_id, filters.receipt_id].filter(Boolean).length;
+
+  const applyFilters = (next: Record<string, string>) => {
+    const customerId = next.customer_id ?? filters.customer_id ?? '';
+    const receiptId = next.receipt_id ?? filters.receipt_id ?? '';
+    const params: Record<string, string> = {};
+
+    if (customerId) params.customer_id = customerId;
+    if (receiptId) params.receipt_id = receiptId;
+
+    router.get('/receivable-allocations', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/receivable-allocations', {}, { preserveScroll: true, preserveState: true });
+  }
+
+  const handleCustomerSelect = (customerId: string | null) => {
+    applyFilters({ customer_id: customerId || '', receipt_id: '' });
+  };
+
   const handleReceiptSelect = (receiptId: string | null) => {
-    if (receiptId) {
-      window.location.href = `/receivable-allocations?receipt_id=${receiptId}`;
-    } else {
-      window.location.href = '/receivable-allocations';
-    }
+    applyFilters({ receipt_id: receiptId || '' });
   };
 
   const handleAmountChange = (entryId: string, val: string) => {
@@ -110,6 +128,7 @@ export default function ReceivableAllocationsIndex({
     }));
 
     post('/receivable-allocations', {
+      preserveScroll: true,
       onSuccess: () => {
         setAllocationAmounts({});
       },
@@ -118,13 +137,17 @@ export default function ReceivableAllocationsIndex({
 
   const handleReverse = (id: string) => {
     if (confirm(dict.app.pages.receivableAllocations.areYouSureYouWantTo)) {
-      post(`/receivable-allocations/${id}/reverse`);
+      post(`/receivable-allocations/${id}/reverse`, { preserveScroll: true });
     }
   };
 
   const receiptSelectOptions = receipts.map((r) => ({
     value: r.id,
     label: `${r.number} - ${r.customer?.name || accDict.notAvailable} (${dict.app.pages.receivableAllocations.unappliedAmount} ${formatMoney(r.unapplied_minor, r.currency)})`,
+  }));
+  const customerSelectOptions = customers.map((c) => ({
+    value: c.id,
+    label: `${c.code} - ${c.name}`,
   }));
 
   return (
@@ -146,6 +169,17 @@ export default function ReceivableAllocationsIndex({
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                {dict.app.pages.receivableAllocations.filterCustomer}
+              </label>
+              <SearchableSelect
+                options={[{ value: '', label: dict.app.pages.receivableAllocations.allCustomers }, ...customerSelectOptions]}
+                value={filters.customer_id || ''}
+                onChange={(val) => handleCustomerSelect(val)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                 {dict.app.pages.receivableAllocations.receiptNumber}
               </label>
               <SearchableSelect
@@ -155,6 +189,8 @@ export default function ReceivableAllocationsIndex({
                 placeholder={dict.app.pages.receivableAllocations.selectReceipt}
               />
             </div>
+
+            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
 
             {selectedReceipt ? (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 space-y-2 text-xs">
@@ -230,15 +266,19 @@ export default function ReceivableAllocationsIndex({
               </div>
 
               <div className="flex justify-end">
-                {can('customers.allocations') ? (
+                {canManageReceivableAllocations ? (
                   <button
                     type="submit"
                     disabled={processing}
+                    title={dict.app.pages.receivableAllocations.executeAllocation}
+                    aria-label={dict.app.pages.receivableAllocations.executeAllocation}
                     className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                   >
                     {processing ? dict.app.pages.receivableAllocations.processing : dict.app.pages.receivableAllocations.executeAllocation}
                   </button>
-                ) : null}
+                ) : (
+                  <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                )}
               </div>
             </form>
           )}
@@ -277,15 +317,21 @@ export default function ReceivableAllocationsIndex({
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{new Date(row.created_at).toLocaleString()}</td>
                   <td className={tableClasses.td}>
-                    {can('customers.allocations') ? (
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    {canManageReceivableAllocations ? (
                       <button
                         type="button"
                         onClick={() => handleReverse(row.id)}
-                        className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                        title={dict.app.pages.receivableAllocations.reverse}
+                        aria-label={dict.app.pages.receivableAllocations.reverse}
+                        className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
                       >
                         {dict.app.pages.receivableAllocations.reverse}
                       </button>
-                    ) : null}
+                    ) : (
+                      <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                    )}
+                    </div>
                   </td>
                 </tr>
               ))}

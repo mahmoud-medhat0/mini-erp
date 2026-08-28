@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
@@ -129,6 +129,57 @@ export default function FinancialStatementMappings({
 
     return labels[value] ?? value;
   };
+
+  const statementTypeOptions = useMemo(
+    () => statementTypes.map((opt) => ({
+      value: toStatementType(opt.value),
+      label: statementTypeLabel(opt.value),
+      sublabel: opt.value,
+    })),
+    [statementTypes, statementTypeLabel],
+  );
+
+  const sectionSelectOptions = useMemo(
+    () => sectionOptions.map((opt) => ({
+      value: opt.value,
+      label: sectionLabel(opt.value),
+      sublabel: opt.value,
+    })),
+    [sectionOptions, sectionLabel],
+  );
+
+  const normalBalanceOptions = useMemo(
+    () => normalBalances.map((opt) => ({
+      value: toNormalBalance(opt.value),
+      label: normalBalanceLabel(opt.value),
+      sublabel: opt.value,
+    })),
+    [normalBalances, normalBalanceLabel],
+  );
+
+  const cashFlowActivityOptions = useMemo(
+    () => [
+      { value: '', label: accDict.cashFlowActivityUnclassified },
+      ...cashFlowActivities.map((opt) => ({
+        value: opt.value,
+        label: cashFlowActivityLabel(opt.value),
+        sublabel: opt.value,
+      })),
+    ],
+    [accDict.cashFlowActivityUnclassified, cashFlowActivities, cashFlowActivityLabel],
+  );
+
+  const accountCashFlowActivityOptions = useMemo(
+    () => [
+      { value: '', label: accDict.cashFlowActivityInherited },
+      ...cashFlowActivities.map((opt) => ({
+        value: opt.value,
+        label: cashFlowActivityLabel(opt.value),
+        sublabel: opt.value,
+      })),
+    ],
+    [accDict.cashFlowActivityInherited, cashFlowActivities, cashFlowActivityLabel],
+  );
 
   const [activeTab, setActiveTab] = useState<'all' | 'balance_sheet' | 'income_statement'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -274,6 +325,8 @@ export default function FinancialStatementMappings({
               <button
                 type="button"
                 onClick={openCreateModal}
+                title={accDict.addStatementLine}
+                aria-label={accDict.addStatementLine}
                 className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-600"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -291,6 +344,8 @@ export default function FinancialStatementMappings({
             <button
               type="button"
               onClick={() => setActiveTab('all')}
+              title={accDict.allStatementTypes}
+              aria-label={accDict.allStatementTypes}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                 activeTab === 'all'
                   ? 'bg-[var(--primary)] text-white'
@@ -302,6 +357,8 @@ export default function FinancialStatementMappings({
             <button
               type="button"
               onClick={() => setActiveTab('balance_sheet')}
+              title={accDict.balanceSheet}
+              aria-label={accDict.balanceSheet}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                 activeTab === 'balance_sheet'
                   ? 'bg-[var(--primary)] text-white'
@@ -313,6 +370,8 @@ export default function FinancialStatementMappings({
             <button
               type="button"
               onClick={() => setActiveTab('income_statement')}
+              title={accDict.incomeStatement}
+              aria-label={accDict.incomeStatement}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                 activeTab === 'income_statement'
                   ? 'bg-[var(--primary)] text-white'
@@ -372,6 +431,8 @@ export default function FinancialStatementMappings({
                   <button
                     type="submit"
                     disabled={!selectedUnmappedAccount || !targetLineForAccount}
+                    title={accDict.assignAccount}
+                    aria-label={accDict.assignAccount}
                     className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-50"
                   >
                     {accDict.assignAccount}
@@ -442,7 +503,8 @@ export default function FinancialStatementMappings({
                           type="button"
                           onClick={() => openEditModal(line)}
                           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]"
-                          title={actionsDict.edit}
+                          title={`${actionsDict.edit} ${line.code}`}
+                          aria-label={`${actionsDict.edit} ${line.code}`}
                         >
                           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 012.828 0L19.586 7.586a2 2 0 010 2.828L11.828 18.172l-3.536.707.707-3.536L16.586 3.586z" />
@@ -453,7 +515,8 @@ export default function FinancialStatementMappings({
                             type="button"
                             onClick={() => handleDeleteLine(line)}
                             className="rounded-lg p-1 text-red-500 hover:bg-red-500/10"
-                            title={actionsDict.delete}
+                            title={`${actionsDict.delete} ${line.code}`}
+                            aria-label={`${actionsDict.delete} ${line.code}`}
                           >
                             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -495,18 +558,14 @@ export default function FinancialStatementMappings({
                             </td>
                             <td className={tableClasses.td}>
                               {canManage ? (
-                                <select
+                                <SearchableSelect
                                   value={acc.cash_flow_activity ?? ''}
-                                  onChange={(e) => handleAccountCashFlowActivity(acc.id, e.target.value)}
-                                  className="min-w-[150px] rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-[11px] text-[var(--text-primary)]"
-                                >
-                                  <option value="">{accDict.cashFlowActivityInherited}</option>
-                                  {cashFlowActivities.map((opt) => (
-                                    <option key={opt.value} value={opt.value}>
-                                      {cashFlowActivityLabel(opt.value)}
-                                    </option>
-                                  ))}
-                                </select>
+                                  options={accountCashFlowActivityOptions}
+                                  onChange={(value) => handleAccountCashFlowActivity(acc.id, value ?? '')}
+                                  placeholder={accDict.cashFlowActivityInherited}
+                                  isSearchable={false}
+                                  className="min-w-[180px]"
+                                />
                               ) : (
                                 <span>{cashFlowActivityLabel(acc.cash_flow_activity ?? line.cash_flow_activity)}</span>
                               )}
@@ -516,6 +575,8 @@ export default function FinancialStatementMappings({
                                 <button
                                   type="button"
                                   onClick={() => handleAssignAccount(acc.id, null)}
+                                  title={`${accDict.unassign} ${acc.code}`}
+                                  aria-label={`${accDict.unassign} ${acc.code}`}
                                   className="text-xs font-semibold text-red-500 hover:underline cursor-pointer"
                                 >
                                   {accDict.unassign}
@@ -549,6 +610,8 @@ export default function FinancialStatementMappings({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
+                  title={actionsDict.close}
+                  aria-label={actionsDict.close}
                   className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 >
                   <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -576,77 +639,55 @@ export default function FinancialStatementMappings({
                     ) : null}
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                      {accDict.statementType} *
-                    </label>
-                    <select
-                      disabled={editingLine?.is_system}
-                      value={lineForm.data.statement_type}
-                      onChange={(e) => lineForm.setData('statement_type', toStatementType(e.target.value))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] disabled:opacity-50"
-                    >
-                      {statementTypes.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {statementTypeLabel(opt.value)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SearchableSelect<StatementType>
+                    label={accDict.statementType}
+                    disabled={editingLine?.is_system}
+                    value={lineForm.data.statement_type}
+                    options={statementTypeOptions}
+                    onChange={(value) => lineForm.setData('statement_type', toStatementType(value ?? ''))}
+                    placeholder={accDict.statementType}
+                    isClearable={false}
+                    isSearchable={false}
+                    required
+                    error={lineForm.errors.statement_type}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                      {accDict.sectionCode} *
-                    </label>
-                    <select
-                      value={lineForm.data.section_code}
-                      onChange={(e) => lineForm.setData('section_code', e.target.value)}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                    >
-                      {sectionOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {sectionLabel(opt.value)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SearchableSelect
+                    label={accDict.sectionCode}
+                    value={lineForm.data.section_code}
+                    options={sectionSelectOptions}
+                    onChange={(value) => lineForm.setData('section_code', value ?? '')}
+                    placeholder={accDict.sectionCode}
+                    isClearable={false}
+                    required
+                    error={lineForm.errors.section_code}
+                  />
 
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                      {accDict.normalBalance} *
-                    </label>
-                    <select
-                      value={lineForm.data.normal_balance}
-                      onChange={(e) => lineForm.setData('normal_balance', toNormalBalance(e.target.value))}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                    >
-                      {normalBalances.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {normalBalanceLabel(opt.value)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SearchableSelect<NormalBalance>
+                    label={accDict.normalBalance}
+                    value={lineForm.data.normal_balance}
+                    options={normalBalanceOptions}
+                    onChange={(value) => lineForm.setData('normal_balance', toNormalBalance(value ?? ''))}
+                    placeholder={accDict.normalBalance}
+                    isClearable={false}
+                    isSearchable={false}
+                    required
+                    error={lineForm.errors.normal_balance}
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {accDict.cashFlowActivity}
-                  </label>
-                  <select
+                  <SearchableSelect
+                    label={accDict.cashFlowActivity}
                     value={lineForm.data.cash_flow_activity}
-                    onChange={(e) => lineForm.setData('cash_flow_activity', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                  >
-                    <option value="">{accDict.cashFlowActivityUnclassified}</option>
-                    {cashFlowActivities.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {cashFlowActivityLabel(opt.value)}
-                      </option>
-                    ))}
-                  </select>
+                    options={cashFlowActivityOptions}
+                    onChange={(value) => lineForm.setData('cash_flow_activity', value ?? '')}
+                    placeholder={accDict.cashFlowActivityUnclassified}
+                    isSearchable={false}
+                    error={lineForm.errors.cash_flow_activity}
+                  />
                   <p className="mt-1 text-[11px] text-[var(--text-muted)]">
                     {accDict.cashFlowActivityLineHelp}
                   </p>
@@ -695,6 +736,8 @@ export default function FinancialStatementMappings({
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
+                    title={actionsDict.cancel}
+                    aria-label={actionsDict.cancel}
                     className="rounded-xl bg-[var(--surface-subtle)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                   >
                     {actionsDict.cancel}
@@ -702,6 +745,8 @@ export default function FinancialStatementMappings({
                   <button
                     type="submit"
                     disabled={lineForm.processing}
+                    title={actionsDict.save}
+                    aria-label={actionsDict.save}
                     className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-600 disabled:opacity-50"
                   >
                     {actionsDict.save}

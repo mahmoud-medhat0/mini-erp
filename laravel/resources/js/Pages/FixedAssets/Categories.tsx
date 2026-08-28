@@ -42,6 +42,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
     salvage_value_minor: 0,
     is_active: true,
   });
+  const categorySubmitLabel = processing ? appDict.saving : appDict.save;
 
   function openCreateModal() {
     setEditingCategory(null);
@@ -75,6 +76,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
 
     if (editingCategory) {
       put(`/fixed-asset-categories/${editingCategory.id}`, {
+        preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
           reset();
@@ -82,6 +84,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
       });
     } else {
       post('/fixed-asset-categories', {
+        preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
           reset();
@@ -92,7 +95,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
 
   function handleDelete(id: string) {
     if (confirm(appDict.confirmDeleteAssetCategory)) {
-      router.delete(`/fixed-asset-categories/${id}`);
+      router.delete(`/fixed-asset-categories/${id}`, { preserveScroll: true });
     }
   }
 
@@ -116,6 +119,8 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
               <button
                 type="button"
                 onClick={openCreateModal}
+                title={appDict.createAssetCategory}
+                aria-label={appDict.createAssetCategory}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
               >
                 {appDict.createAssetCategory}
@@ -163,6 +168,8 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                             <button
                               type="button"
                               onClick={() => openEditModal(cat)}
+                              title={appDict.editAssetCategory}
+                              aria-label={appDict.editAssetCategory}
                               className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
                             >
                               {appDict.editAssetCategory}
@@ -172,6 +179,8 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                             <button
                               type="button"
                               onClick={() => handleDelete(cat.id)}
+                              title={appDict.delete}
+                              aria-label={appDict.delete}
                               className="text-xs font-medium text-rose-600 hover:text-rose-900"
                             >
                               {appDict.delete}
@@ -281,6 +290,8 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={appDict.back}
+                  aria-label={appDict.back}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
                 >
                   {appDict.back}
@@ -288,9 +299,11 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                 <button
                   type="submit"
                   disabled={processing}
+                  title={categorySubmitLabel}
+                  aria-label={categorySubmitLabel}
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {appDict.save}
+                  {categorySubmitLabel}
                 </button>
               </div>
             </form>

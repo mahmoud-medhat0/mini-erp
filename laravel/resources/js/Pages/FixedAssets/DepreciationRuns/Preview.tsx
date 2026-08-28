@@ -53,7 +53,7 @@ export default function DepreciationRunPreview({
 
   function handlePostRun(e: FormEvent) {
     e.preventDefault();
-    post('/fixed-assets-depreciation-runs');
+    post('/fixed-assets-depreciation-runs', { preserveScroll: true });
   }
 
   function formatName(name?: { en: string; ar: string } | string | null): string {
@@ -88,6 +88,8 @@ export default function DepreciationRunPreview({
                     type="submit"
                     disabled={processing}
                     className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                    title={appDict.postDepreciationRun}
+                    aria-label={appDict.postDepreciationRun}
                   >
                     {appDict.postDepreciationRun}
                   </button>

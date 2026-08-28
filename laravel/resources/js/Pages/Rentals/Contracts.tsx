@@ -7,7 +7,7 @@ import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelec
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Customer = { id: string; code: string; name: TranslatedName };
@@ -71,7 +71,7 @@ type EditableLine = {
   notes: string;
 };
 type Props = SharedPageProps & {
-  contracts: { data: Contract[]; total: number; links?: any[] };
+  contracts: { data: Contract[]; total: number; links?: PaginationLink[] };
   customers: Customer[];
   branches: Branch[];
   rentableItems: RentableItem[];
@@ -127,6 +127,12 @@ export default function RentalContractsIndex({
   const activeLocale = locale === 'ar' ? 'ar' : 'en';
   const pageDict = dict.app.pages.rentalContracts;
   const can = useCan();
+  const canCreateRentalContracts = can('rentals.create');
+  const canEditRentalContracts = can('rentals.edit');
+  const canSubmitRentalContracts = can('rentals.submit');
+  const canApproveRentalContracts = can('rentals.approve');
+  const canActivateRentalContracts = can('rentals.deliver');
+  const canCancelRentalContracts = can('rentals.cancel');
   const defaultCurrency = currencies[0]?.code || '';
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
@@ -303,13 +309,31 @@ export default function RentalContractsIndex({
     router.post(`/rentals/contracts/${contract.id}/${action}`, {}, { preserveScroll: true });
   }
 
+  const isRentalContractActionable = (contract: Contract) => ['draft', 'submitted', 'approved'].includes(contract.status);
+
+  const hasAvailableRentalContractAction = (contract: Contract) => (
+    contract.status === 'draft'
+      ? canEditRentalContracts || canSubmitRentalContracts || canCancelRentalContracts
+      : contract.status === 'submitted'
+        ? canApproveRentalContracts || canCancelRentalContracts
+        : contract.status === 'approved'
+          ? canActivateRentalContracts || canCancelRentalContracts
+          : false
+  );
+
+  const getRentalContractActionState = (contract: Contract) => {
+    if (hasAvailableRentalContractAction(contract)) return null;
+
+    return isRentalContractActionable(contract) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="rentals.contracts.index">
       <Head title={pageDict.headTitle} />
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('rentals.create') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
+        actions={canCreateRentalContracts ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
 
       <Card className="mb-5 p-4">
@@ -422,48 +446,63 @@ export default function RentalContractsIndex({
               </tr>
             </thead>
             <tbody>
-              {contracts.data.map((contract) => (
-                <tr key={contract.id}>
-                  <td className={tableClasses.td}>
-                    <div className="font-mono text-sm font-bold">{contract.number || pageDict.notNumbered}</div>
-                    {contract.reference ? <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.reference}</div> : null}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="font-semibold">{contract.customer ? `${contract.customer.code} - ${namePart(contract.customer.name, activeLocale)}` : pageDict.noCustomer}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.branch ? `${contract.branch.code} - ${namePart(contract.branch.name, activeLocale)}` : pageDict.noBranch}</div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="font-semibold">{formatDate(contract.start_date)} - {formatDate(contract.expected_end_date)}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{pageDict.contractDate}: {formatDate(contract.contract_date)}</div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={statusTone(contract.status)}>{pageDict.statuses[contract.status as keyof typeof pageDict.statuses] || contract.status}</StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="space-y-1 text-xs">
-                      {(contract.lines || []).map((line) => (
-                        <div key={line.id}>{line.rentable_item ? `${line.rentable_item.code} - ${namePart(line.rentable_item.name, activeLocale)}` : line.rentable_item_id}</div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="grid gap-1 text-xs">
-                      <span>{pageDict.rent}: <AccountingAmount amountMinor={contract.estimated_rent_minor} currency={contract.currency} /></span>
-                      <span>{pageDict.deposit}: <AccountingAmount amountMinor={contract.deposit_minor} currency={contract.currency} /></span>
-                      <span>{pageDict.total}: <AccountingAmount amountMinor={contract.total_estimated_minor} currency={contract.currency} /></span>
-                    </div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {can('rentals.edit') && contract.status === 'draft' ? <Button variant="secondary" onClick={() => openEdit(contract)}>{pageDict.edit}</Button> : null}
-                      {can('rentals.submit') && contract.status === 'draft' ? <Button variant="secondary" onClick={() => runAction(contract, 'submit')}>{pageDict.submit}</Button> : null}
-                      {can('rentals.approve') && contract.status === 'submitted' ? <Button variant="secondary" onClick={() => runAction(contract, 'approve')}>{pageDict.approve}</Button> : null}
-                      {can('rentals.deliver') && contract.status === 'approved' ? <Button variant="secondary" onClick={() => runAction(contract, 'activate')}>{pageDict.activate}</Button> : null}
-                      {can('rentals.cancel') && ['draft', 'submitted', 'approved'].includes(contract.status) ? <Button variant="danger" onClick={() => runAction(contract, 'cancel')}>{pageDict.cancelContract}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {contracts.data.map((contract) => {
+                const actionState = getRentalContractActionState(contract);
+
+                return (
+                  <tr key={contract.id}>
+                    <td className={tableClasses.td}>
+                      <div className="font-mono text-sm font-bold">{contract.number || pageDict.notNumbered}</div>
+                      {contract.reference ? <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.reference}</div> : null}
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="font-semibold">{contract.customer ? `${contract.customer.code} - ${namePart(contract.customer.name, activeLocale)}` : pageDict.noCustomer}</div>
+                      <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.branch ? `${contract.branch.code} - ${namePart(contract.branch.name, activeLocale)}` : pageDict.noBranch}</div>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="font-semibold">{formatDate(contract.start_date)} - {formatDate(contract.expected_end_date)}</div>
+                      <div className="mt-1 text-xs text-[var(--text-muted)]">{pageDict.contractDate}: {formatDate(contract.contract_date)}</div>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={statusTone(contract.status)}>{pageDict.statuses[contract.status as keyof typeof pageDict.statuses] || contract.status}</StatusBadge>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="space-y-1 text-xs">
+                        {(contract.lines || []).map((line) => (
+                          <div key={line.id}>{line.rentable_item ? `${line.rentable_item.code} - ${namePart(line.rentable_item.name, activeLocale)}` : line.rentable_item_id}</div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="grid gap-1 text-xs">
+                        <span>{pageDict.rent}: <AccountingAmount amountMinor={contract.estimated_rent_minor} currency={contract.currency} /></span>
+                        <span>{pageDict.deposit}: <AccountingAmount amountMinor={contract.deposit_minor} currency={contract.currency} /></span>
+                        <span>{pageDict.total}: <AccountingAmount amountMinor={contract.total_estimated_minor} currency={contract.currency} /></span>
+                      </div>
+                    </td>
+                    <td className={`${tableClasses.td} text-end`}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {canEditRentalContracts && contract.status === 'draft' ? (
+                          <button type="button" onClick={() => openEdit(contract)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+                        ) : null}
+                        {canSubmitRentalContracts && contract.status === 'draft' ? (
+                          <button type="button" onClick={() => runAction(contract, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                        ) : null}
+                        {canApproveRentalContracts && contract.status === 'submitted' ? (
+                          <button type="button" onClick={() => runAction(contract, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                        ) : null}
+                        {canActivateRentalContracts && contract.status === 'approved' ? (
+                          <button type="button" onClick={() => runAction(contract, 'activate')} title={pageDict.activate} aria-label={pageDict.activate} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.activate}</button>
+                        ) : null}
+                        {canCancelRentalContracts && isRentalContractActionable(contract) ? (
+                          <button type="button" onClick={() => runAction(contract, 'cancel')} title={pageDict.cancelContract} aria-label={pageDict.cancelContract} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelContract}</button>
+                        ) : null}
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

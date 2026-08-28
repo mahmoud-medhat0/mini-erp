@@ -1,4 +1,4 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
@@ -60,6 +60,8 @@ export default function SupplierPaymentsIndex({
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCreatePayment = can('suppliers.payments');
+  const canPostPayment = can('suppliers.payments') && can('view_financials');
 
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
@@ -92,6 +94,7 @@ export default function SupplierPaymentsIndex({
     }));
 
     post('/supplier-payments', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowModal(false);
         reset();
@@ -101,13 +104,17 @@ export default function SupplierPaymentsIndex({
 
   const handlePost = (id: string) => {
     if (confirm(dict.app.pages.supplierPayments.confirmPostPayment)) {
-      post(`/supplier-payments/${id}/post`);
+      post(`/supplier-payments/${id}/post`, { preserveScroll: true });
     }
   };
 
   const supplierSelectOptions = suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` }));
   const cashSelectOptions = cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
   const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
+  const sourceTypeOptions = [
+    { value: 'cash', label: dict.app.pages.supplierPayments.cashAccount },
+    { value: 'bank', label: dict.app.pages.supplierPayments.bankAccount },
+  ];
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
 
@@ -119,13 +126,15 @@ export default function SupplierPaymentsIndex({
         title={dict.app.pages.supplierPayments.supplierPayments}
         description={dict.app.pages.supplierPayments.recordAndPostSupplierCashBank}
         actions={
-          can('suppliers.payments') ? (
+          canCreatePayment ? (
             <button
               type="button"
               onClick={() => {
                 reset();
                 setShowModal(true);
               }}
+              title={dict.app.pages.supplierPayments.newSupplierPayment}
+              aria-label={dict.app.pages.supplierPayments.newSupplierPayment}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.supplierPayments.newSupplierPayment}
@@ -181,24 +190,32 @@ export default function SupplierPaymentsIndex({
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    {row.status === 'draft' ? (
-                      can('suppliers.payments') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handlePost(row.id)}
-                          className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                    <div className="flex flex-wrap items-center gap-2">
+                      {row.status === 'draft' ? (
+                        canPostPayment ? (
+                          <button
+                            type="button"
+                            onClick={() => handlePost(row.id)}
+                            title={dict.app.pages.supplierPayments.confirmPostPayment}
+                            aria-label={dict.app.pages.supplierPayments.confirmPostPayment}
+                            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+                          >
+                            {dict.app.pages.supplierPayments.post}
+                          </button>
+                        ) : (
+                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                        )
+                      ) : (
+                        <Link
+                          href={`/payable-allocations?payment_id=${row.id}`}
+                          title={dict.app.pages.supplierPayments.allocate}
+                          aria-label={dict.app.pages.supplierPayments.allocate}
+                          className="text-xs font-bold text-[var(--primary)] hover:underline"
                         >
-                          {dict.app.pages.supplierPayments.post}
-                        </button>
-                      ) : null
-                    ) : (
-                      <a
-                        href={`/payable-allocations?payment_id=${row.id}`}
-                        className="text-xs font-bold text-[var(--primary)] hover:underline"
-                      >
-                        {dict.app.pages.supplierPayments.allocate}
-                      </a>
-                    )}
+                          {dict.app.pages.supplierPayments.allocate}
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -234,14 +251,12 @@ export default function SupplierPaymentsIndex({
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.supplierPayments.sourceType}
                   </label>
-                  <select
+                  <SearchableSelect
+                    options={sourceTypeOptions}
                     value={destinationType}
-                    onChange={(e) => setDestinationType(toCashBankDestinationType(e.target.value))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-                  >
-                    <option value="cash">{dict.app.pages.supplierPayments.cashAccount}</option>
-                    <option value="bank">{dict.app.pages.supplierPayments.bankAccount}</option>
-                  </select>
+                    onChange={(val) => setDestinationType(toCashBankDestinationType(val || 'cash'))}
+                    isClearable={false}
+                  />
                 </div>
                 <div>
                   {destinationType === 'cash' ? (
@@ -340,6 +355,8 @@ export default function SupplierPaymentsIndex({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={dict.app.pages.supplierPayments.cancel}
+                  aria-label={dict.app.pages.supplierPayments.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.supplierPayments.cancel}
@@ -347,6 +364,8 @@ export default function SupplierPaymentsIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={dict.app.pages.supplierPayments.saveDraft}
+                  aria-label={dict.app.pages.supplierPayments.saveDraft}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.supplierPayments.saving : dict.app.pages.supplierPayments.saveDraft}

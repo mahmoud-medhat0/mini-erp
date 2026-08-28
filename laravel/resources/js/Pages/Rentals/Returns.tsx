@@ -246,18 +246,20 @@ export default function RentalReturnsIndex({
                           {contractLine?.rentable_item ? `${contractLine.rentable_item.code} - ${namePart(contractLine.rentable_item.name, activeLocale)}` : pageDict.rentableItem}
                         </div>
                         <div className="grid gap-3 md:grid-cols-3">
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">{pageDict.conditionIn}</span>
-                            <select className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]" value={line.condition_in} onChange={(e) => updateLine(index, { condition_in: e.target.value })}>
-                              {conditionOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">{pageDict.outcome}</span>
-                            <select className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]" value={line.outcome} onChange={(e) => updateLine(index, { outcome: e.target.value })}>
-                              {outcomeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select>
-                          </label>
+                          <SearchableSelect
+                            label={pageDict.conditionIn}
+                            value={line.condition_in}
+                            onChange={(value) => updateLine(index, { condition_in: value || 'good' })}
+                            options={conditionOptions}
+                            isClearable={false}
+                          />
+                          <SearchableSelect
+                            label={pageDict.outcome}
+                            value={line.outcome}
+                            onChange={(value) => updateLine(index, { outcome: value || 'returned' })}
+                            options={outcomeOptions}
+                            isClearable={false}
+                          />
                           <label className="block">
                             <span className="mb-1 block text-xs font-bold text-[var(--text-secondary)]">{pageDict.estimatedDamageCharge}</span>
                             <input className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]" value={line.estimated_damage_charge} onChange={(e) => updateLine(index, { estimated_damage_charge: e.target.value })} />

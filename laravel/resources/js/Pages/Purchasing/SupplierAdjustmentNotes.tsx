@@ -1,11 +1,12 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -62,7 +63,7 @@ type AdjustmentNoteRow = {
 type SupplierAdjustmentNotesProps = SharedPageProps & {
   supplierAdjustmentNotes: {
     data: AdjustmentNoteRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   activeSuppliers: SupplierOption[];
   postedSupplierBills: PostedBillOption[];
@@ -87,6 +88,7 @@ export default function SupplierAdjustmentNotesIndex({
 }: SupplierAdjustmentNotesProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.purchasingSupplierAdjustmentNotes;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -113,10 +115,55 @@ export default function SupplierAdjustmentNotesIndex({
 
   const selectedBill = postedSupplierBills.find((bill) => bill.id === data.supplier_bill_id);
 
+  const filteredBillOptions = useMemo(() => postedSupplierBills
+    .filter((bill) => !data.supplier_id || bill.supplier_id === data.supplier_id)
+    .map((bill) => ({
+      value: bill.id,
+      label: bill.number || pageDict.draft_2,
+      sublabel: bill.currency,
+    })), [postedSupplierBills, data.supplier_id, pageDict.draft_2]);
+
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'approved', label: pageDict.approved },
+    { value: 'posted', label: pageDict.posted },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.approved, pageDict.posted, pageDict.cancelled]);
+
+  const supplierOptions = useMemo(() => activeSuppliers.map((supplier) => ({
+    value: supplier.id,
+    label: supplier.name,
+    sublabel: supplier.code,
+  })), [activeSuppliers]);
+
+  const directionOptions = useMemo(() => [
+    { value: 'decrease_payable', label: pageDict.decreasePayable },
+    { value: 'increase_payable', label: pageDict.increasePayable },
+  ], [pageDict.decreasePayable, pageDict.increasePayable]);
+
+  const taxModeOptions = useMemo(() => [
+    { value: 'none', label: pageDict.taxNone },
+    { value: 'manual_rate', label: pageDict.manualRate },
+    { value: 'manual_amount', label: pageDict.manualAmount },
+  ], [pageDict.taxNone, pageDict.manualRate, pageDict.manualAmount]);
+  const canManageSupplierAdjustmentNotes = can('purchasing.adjustment_notes');
+  const canPostSupplierAdjustmentNotes = canManageSupplierAdjustmentNotes && can('view_financials');
+  const supplierAdjustmentNoteSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
+
   const handleSupplierSelect = (supplierId: string) => {
     setData('supplier_id', supplierId);
     setData('supplier_bill_id', '');
     setData('purchase_return_id', '');
+  };
+
+  const handleSupplierBillSelect = (billId: string) => {
+    setData('supplier_bill_id', billId);
+    const bill = postedSupplierBills.find((item) => item.id === billId);
+    if (bill?.currency) {
+      setData('currency', bill.currency);
+    }
   };
 
   const addLine = () => {
@@ -206,10 +253,12 @@ export default function SupplierAdjustmentNotesIndex({
 
     if (editingNote) {
       router.put(`/purchasing/adjustment-notes/${editingNote.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/purchasing/adjustment-notes', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -223,7 +272,7 @@ export default function SupplierAdjustmentNotesIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierAdjustmentNotes.cancelThisAdjustmentNote;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`);
+      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -261,6 +310,34 @@ export default function SupplierAdjustmentNotesIndex({
     }
   };
 
+  const canSettleSupplierAdjustmentNote = (note: AdjustmentNoteRow) => (
+    note.status === 'posted'
+      && note.direction === 'decrease_payable'
+      && Boolean(note.payable_entry_id)
+      && canManageSupplierAdjustmentNotes
+  );
+
+  const isSupplierAdjustmentNoteActionable = (note: AdjustmentNoteRow) => (
+    ['draft', 'submitted', 'approved'].includes(note.status)
+      || (note.status === 'posted' && note.direction === 'decrease_payable' && Boolean(note.payable_entry_id))
+  );
+
+  const hasAvailableSupplierAdjustmentNoteAction = (note: AdjustmentNoteRow) => (
+    note.status === 'draft'
+      ? canManageSupplierAdjustmentNotes
+      : note.status === 'submitted'
+        ? canManageSupplierAdjustmentNotes
+        : note.status === 'approved'
+          ? canManageSupplierAdjustmentNotes || canPostSupplierAdjustmentNotes
+          : canSettleSupplierAdjustmentNote(note)
+  );
+
+  const getSupplierAdjustmentNoteActionState = (note: AdjustmentNoteRow) => {
+    if (hasAvailableSupplierAdjustmentNoteAction(note)) return null;
+
+    return isSupplierAdjustmentNoteActionable(note) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   const getDirectionLabel = (direction: string) =>
     direction === 'increase_payable' ? dict.app.pages.purchasingSupplierAdjustmentNotes.increasePayable : dict.app.pages.purchasingSupplierAdjustmentNotes.decreasePayable;
 
@@ -276,6 +353,8 @@ export default function SupplierAdjustmentNotesIndex({
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.createAdjustmentNote}
+              aria-label={pageDict.createAdjustmentNote}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -303,7 +382,7 @@ export default function SupplierAdjustmentNotesIndex({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/adjustment-notes', { ...filters, search: val }, { preserveState: true });
+                  router.get('/purchasing/adjustment-notes', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -314,18 +393,12 @@ export default function SupplierAdjustmentNotesIndex({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/purchasing/adjustment-notes', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.purchasingSupplierAdjustmentNotes.allStatuses}</option>
-              <option value="draft">{dict.app.pages.purchasingSupplierAdjustmentNotes.draft}</option>
-              <option value="submitted">{dict.app.pages.purchasingSupplierAdjustmentNotes.submitted}</option>
-              <option value="approved">{dict.app.pages.purchasingSupplierAdjustmentNotes.approved}</option>
-              <option value="posted">{dict.app.pages.purchasingSupplierAdjustmentNotes.posted}</option>
-              <option value="cancelled">{dict.app.pages.purchasingSupplierAdjustmentNotes.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/purchasing/adjustment-notes', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.purchasingSupplierAdjustmentNotes.status}
+            />
           </div>
         </div>
 
@@ -351,8 +424,11 @@ export default function SupplierAdjustmentNotesIndex({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {supplierAdjustmentNotes.data.map((note) => (
-                  <tr key={note.id}>
+                {supplierAdjustmentNotes.data.map((note) => {
+                  const actionState = getSupplierAdjustmentNoteActionState(note);
+
+                  return (
+                    <tr key={note.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                       {note.number || dict.app.pages.purchasingSupplierAdjustmentNotes.draft_2}
                     </td>
@@ -371,68 +447,87 @@ export default function SupplierAdjustmentNotesIndex({
                         {getStatusLabel(note.status)}
                       </StatusBadge>
                     </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {note.status === 'draft' && can('purchasing.adjustment_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(note)}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          {dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
-                        </button>
-                      ) : null}
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {note.status === 'draft' && canManageSupplierAdjustmentNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(note)}
+                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
+                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                            >
+                              {dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
+                            </button>
+                          ) : null}
 
-                      {note.status === 'draft' && can('purchasing.adjustment_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note.id, 'submit')}
-                          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        >
-                          {dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
-                        </button>
-                      ) : null}
+                          {note.status === 'draft' && canManageSupplierAdjustmentNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note.id, 'submit')}
+                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
+                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                            >
+                              {dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted'].includes(note.status) && can('purchasing.adjustment_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note.id, 'approve')}
-                          className="text-xs font-semibold text-amber-600 hover:text-amber-800"
-                        >
-                          {dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
-                        </button>
-                      ) : null}
+                          {['draft', 'submitted'].includes(note.status) && canManageSupplierAdjustmentNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note.id, 'approve')}
+                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
+                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
+                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                            >
+                              {dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
+                            </button>
+                          ) : null}
 
-                      {note.status === 'approved' && can('purchasing.adjustment_notes') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note.id, 'post')}
-                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                        >
-                          {dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
-                        </button>
-                      ) : null}
+                          {note.status === 'approved' && canPostSupplierAdjustmentNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note.id, 'post')}
+                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
+                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                            >
+                              {dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
+                            </button>
+                          ) : null}
 
-                      {note.status === 'posted' && note.direction === 'decrease_payable' && note.payable_entry_id && can('purchasing.adjustment_notes') ? (
-                        <Link
-                          href={`/purchasing/payable-settlements?supplier_id=${note.supplier_id}&source_entry_id=${note.payable_entry_id}`}
-                          className="text-xs font-bold text-purple-600 hover:text-purple-800"
-                        >
-                          {dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
-                        </Link>
-                      ) : null}
+                          {canSettleSupplierAdjustmentNote(note) ? (
+                            <Link
+                              href={`/purchasing/payable-settlements?supplier_id=${note.supplier_id}&source_entry_id=${note.payable_entry_id}`}
+                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
+                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
+                              className="inline-flex h-8 items-center rounded-md border border-purple-200 px-2.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
+                            >
+                              {dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
+                            </Link>
+                          ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(note.status) && can('purchasing.adjustment_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note.id, 'cancel')}
-                          className="text-xs font-semibold text-red-600 hover:text-red-800"
-                        >
-                          {dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          {['draft', 'submitted', 'approved'].includes(note.status) && canManageSupplierAdjustmentNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note.id, 'cancel')}
+                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
+                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                            >
+                              {dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
+                            </button>
+                          ) : null}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -448,56 +543,38 @@ export default function SupplierAdjustmentNotesIndex({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.supplier_2} *</label>
-                  <select
-                    disabled={Boolean(editingNote)}
-                    value={data.supplier_id}
-                    onChange={(e) => handleSupplierSelect(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.purchasingSupplierAdjustmentNotes.selectSupplier}</option>
-                    {activeSuppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.supplier_id ? <p className="mt-1 text-[10px] text-red-500">{errors.supplier_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingSupplierAdjustmentNotes.supplier_2}
+                  disabled={Boolean(editingNote)}
+                  value={data.supplier_id || null}
+                  onChange={(value) => handleSupplierSelect(value || '')}
+                  options={supplierOptions}
+                  placeholder={dict.app.pages.purchasingSupplierAdjustmentNotes.selectSupplier}
+                  isClearable={false}
+                  required
+                  error={errors.supplier_id}
+                />
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.linkedPostedBill}</label>
-                  <select
+                  <SearchableSelect
                     disabled={Boolean(editingNote)}
-                    value={data.supplier_bill_id}
-                    onChange={(e) => setData('supplier_bill_id', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.purchasingSupplierAdjustmentNotes.none}</option>
-                    {postedSupplierBills
-                      .filter((bill) => !data.supplier_id || bill.supplier_id === data.supplier_id)
-                      .map((bill) => (
-                        <option key={bill.id} value={bill.id}>
-                          {bill.number || dict.app.pages.purchasingSupplierAdjustmentNotes.draft_2} - {bill.currency}
-                        </option>
-                      ))}
-                  </select>
+                    value={data.supplier_bill_id || null}
+                    onChange={(value) => handleSupplierBillSelect(value || '')}
+                    options={filteredBillOptions}
+                    placeholder={dict.app.pages.purchasingSupplierAdjustmentNotes.none}
+                    isClearable
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.adjustmentDate_2} *</label>
-                    <input
-                      type="date"
-                      value={data.adjustment_date}
-                      onChange={(e) => setData('adjustment_date', e.target.value)}
-                      required
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                    />
-                    {errors.adjustment_date ? <p className="mt-1 text-[10px] text-red-500">{errors.adjustment_date}</p> : null}
-                  </div>
+                  <DatePicker
+                    label={dict.app.pages.purchasingSupplierAdjustmentNotes.adjustmentDate_2}
+                    value={data.adjustment_date}
+                    onChange={(value) => setData('adjustment_date', value || '')}
+                    required
+                    error={errors.adjustment_date}
+                  />
 
                   <div>
                     <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.currency} *</label>
@@ -516,15 +593,13 @@ export default function SupplierAdjustmentNotesIndex({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.direction} *</label>
-                    <select
-                      value={data.direction}
-                      onChange={(e) => setData('direction', e.target.value)}
+                    <SearchableSelect
+                      value={data.direction || null}
+                      onChange={(value) => setData('direction', value || 'decrease_payable')}
+                      options={directionOptions}
+                      isClearable={false}
                       required
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="decrease_payable">{dict.app.pages.purchasingSupplierAdjustmentNotes.decreasePayable}</option>
-                      <option value="increase_payable">{dict.app.pages.purchasingSupplierAdjustmentNotes.increasePayable}</option>
-                    </select>
+                    />
                   </div>
 
                   <div>
@@ -542,18 +617,14 @@ export default function SupplierAdjustmentNotesIndex({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.taxMode}</label>
-                  <select
-                    value={data.tax_mode}
-                    onChange={(e) => setData('tax_mode', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="none">{dict.app.pages.purchasingSupplierAdjustmentNotes.taxNone}</option>
-                    <option value="manual_rate">{dict.app.pages.purchasingSupplierAdjustmentNotes.manualRate}</option>
-                    <option value="manual_amount">{dict.app.pages.purchasingSupplierAdjustmentNotes.manualAmount}</option>
-                  </select>
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingSupplierAdjustmentNotes.taxMode}
+                  value={data.tax_mode || null}
+                  onChange={(value) => setData('tax_mode', value || 'none')}
+                  options={taxModeOptions}
+                  isClearable={false}
+                  required
+                />
 
                 {data.tax_mode === 'manual_rate' ? (
                   <div>
@@ -588,7 +659,13 @@ export default function SupplierAdjustmentNotesIndex({
               <div className="pt-4 border-t border-[var(--border)]">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">{dict.app.pages.purchasingSupplierAdjustmentNotes.adjustmentLines}</h4>
-                  <button type="button" onClick={addLine} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                  <button
+                    type="button"
+                    onClick={addLine}
+                    title={pageDict.addLine}
+                    aria-label={pageDict.addLine}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                  >
                     + {dict.app.pages.purchasingSupplierAdjustmentNotes.addLine}
                   </button>
                 </div>
@@ -646,6 +723,8 @@ export default function SupplierAdjustmentNotesIndex({
                         <button
                           type="button"
                           onClick={() => removeLine(idx)}
+                          title={pageDict.removeLine}
+                          aria-label={pageDict.removeLine}
                           className="text-red-500 hover:text-red-700 text-xs font-bold pb-2"
                         >
                           ✕
@@ -680,6 +759,8 @@ export default function SupplierAdjustmentNotesIndex({
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel_2}
+                  aria-label={pageDict.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.purchasingSupplierAdjustmentNotes.cancel_2}
@@ -687,9 +768,11 @@ export default function SupplierAdjustmentNotesIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={supplierAdjustmentNoteSubmitLabel}
+                  aria-label={supplierAdjustmentNoteSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing ? dict.app.pages.purchasingSupplierAdjustmentNotes.saving : dict.app.pages.purchasingSupplierAdjustmentNotes.saveDraft}
+                  {supplierAdjustmentNoteSubmitLabel}
                 </button>
               </div>
             </form>

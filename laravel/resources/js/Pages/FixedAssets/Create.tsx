@@ -1,7 +1,8 @@
 import { Head, useForm, Link } from '@inertiajs/react';
-import { type FormEvent } from 'react';
+import { useMemo, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -71,7 +72,7 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
       opening_accumulated_depreciation_minor: formData.opening_accumulated_depreciation_minor,
       serial_number: formData.serial_number,
     }));
-    post('/fixed-assets');
+    post('/fixed-assets', { preserveScroll: true });
   }
 
   function formatCatName(name: { en: string; ar: string } | string): string {
@@ -80,6 +81,24 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
     }
     return String(name);
   }
+
+  const categoryOptions = useMemo(
+    () => categories.map((cat) => ({
+      value: cat.id,
+      label: `${formatCatName(cat.name)} (${cat.code})`,
+      sublabel: `${appDict.usefulLifeMonths}: ${cat.useful_life_months}`,
+    })),
+    [appDict.usefulLifeMonths, categories, locale],
+  );
+
+  const currencyOptions = useMemo(
+    () => currencies.map((curr) => ({
+      value: curr.code,
+      label: `${curr.code} - ${curr.name}`,
+      sublabel: curr.symbol,
+    })),
+    [currencies],
+  );
 
   return (
     <AppLayout active="fixed-assets.index">
@@ -120,18 +139,15 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {appDict.assetCategory}
                 </label>
-                <select
+                <SearchableSelect
                   value={data.fixed_asset_category_id}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  options={categoryOptions}
+                  onChange={(value) => handleCategoryChange(value || '')}
+                  placeholder={appDict.assetCategory}
+                  className="mt-1"
                   required
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {formatCatName(cat.name)} ({cat.code})
-                    </option>
-                  ))}
-                </select>
+                  error={errors.fixed_asset_category_id}
+                />
                 {errors.fixed_asset_category_id && <p className="mt-1 text-xs text-rose-600">{errors.fixed_asset_category_id}</p>}
               </div>
 
@@ -161,31 +177,19 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.acquisitionDate}
-                </label>
-                <input
-                  type="date"
-                  value={data.acquisition_date}
-                  onChange={(e) => setData('acquisition_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-              </div>
+              <DatePicker
+                label={appDict.acquisitionDate}
+                value={data.acquisition_date}
+                onChange={(value) => setData('acquisition_date', value || '')}
+                required
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.inServiceDate}
-                </label>
-                <input
-                  type="date"
-                  value={data.in_service_date}
-                  onChange={(e) => setData('in_service_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-              </div>
+              <DatePicker
+                label={appDict.inServiceDate}
+                value={data.in_service_date}
+                onChange={(value) => setData('in_service_date', value || '')}
+                required
+              />
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -250,17 +254,15 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {appDict.currency}
                 </label>
-                <select
+                <SearchableSelect
                   value={data.currency}
-                  onChange={(e) => setData('currency', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                >
-                  {currencies.map((curr) => (
-                    <option key={curr.code} value={curr.code}>
-                      {curr.code} - {curr.name}
-                    </option>
-                  ))}
-                </select>
+                  options={currencyOptions}
+                  onChange={(value) => setData('currency', value || '')}
+                  placeholder={appDict.currency}
+                  className="mt-1"
+                  isClearable={false}
+                  error={errors.currency}
+                />
               </div>
 
               <div>
@@ -299,6 +301,8 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
                 type="submit"
                 disabled={processing}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                title={appDict.saveAsset}
+                aria-label={appDict.saveAsset}
               >
                 {appDict.saveAsset}
               </button>

@@ -1,7 +1,8 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -137,6 +138,7 @@ export default function CustomerInvoicesIndex({
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.salesCustomerInvoices;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -169,6 +171,48 @@ export default function CustomerInvoicesIndex({
   const getDeliveryNoteSalesOrder = (deliveryNote: ConfirmedDeliveryNote): ConfirmedSalesOrder | null => {
     return deliveryNote.salesOrder ?? deliveryNote.sales_order ?? null;
   };
+
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'approved', label: pageDict.approved },
+    { value: 'posted', label: pageDict.posted },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.approved, pageDict.posted, pageDict.cancelled]);
+
+  const customerOptions = useMemo(() => activeCustomers.map((customer) => ({
+    value: customer.id,
+    label: customer.name,
+    sublabel: customer.code,
+  })), [activeCustomers]);
+
+  const salesOrderOptions = useMemo(() => confirmedSalesOrders.map((salesOrder) => ({
+    value: salesOrder.id,
+    label: salesOrder.number || salesOrder.id,
+    sublabel: `${salesOrder.customer?.name || accDict.notAvailable} - ${salesOrder.currency || accDict.notAvailable}`,
+  })), [confirmedSalesOrders, accDict.notAvailable]);
+
+  const deliveryNoteOptions = useMemo(() => confirmedDeliveryNotes.map((deliveryNote) => {
+    const salesOrder = getDeliveryNoteSalesOrder(deliveryNote);
+
+    return {
+      value: deliveryNote.id,
+      label: deliveryNote.number || deliveryNote.id,
+      sublabel: salesOrder?.customer?.name || accDict.notAvailable,
+    };
+  }), [confirmedDeliveryNotes, accDict.notAvailable]);
+
+  const productOptions = useMemo(() => eligibleProducts.map((product) => ({
+    value: product.id,
+    label: `${product.code} - ${getProductName(product)}`,
+    sublabel: product.type,
+  })), [eligibleProducts, isAr]);
+  const canEditCustomerInvoices = can('sales.edit');
+  const canSubmitCustomerInvoices = can('sales.submit');
+  const canApproveCustomerInvoices = can('sales.approve');
+  const canPostCustomerInvoices = can('sales.post') && can('view_financials');
+  const canCancelCustomerInvoices = can('sales.cancel');
 
   const handleSourceModeChange = (mode: 'manual' | 'sales_order' | 'delivery_note') => {
     setSourceMode(mode);
@@ -238,6 +282,22 @@ export default function CustomerInvoicesIndex({
 
   const removeLine = (index: number) => {
     setLineItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateLineProduct = (index: number, productId: string) => {
+    const prod = eligibleProducts.find((p) => p.id === productId);
+
+    setLineItems((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        product_id: productId,
+        unit_of_measure_id: prod?.unit_of_measure_id || next[index].unit_of_measure_id,
+        description: prod ? getProductName(prod) : next[index].description,
+      };
+
+      return next;
+    });
   };
 
   const openCreateModal = () => {
@@ -318,10 +378,12 @@ export default function CustomerInvoicesIndex({
 
     if (editingInvoice) {
       router.put(`/sales/invoices/${editingInvoice.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/sales/invoices', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -335,7 +397,7 @@ export default function CustomerInvoicesIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerInvoices.cancelThisInvoice;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/invoices/${invId}/${action}`);
+      router.post(`/sales/invoices/${invId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -373,6 +435,24 @@ export default function CustomerInvoicesIndex({
     }
   };
 
+  const isCustomerInvoiceActionable = (inv: CustomerInvoiceRow) => ['draft', 'submitted', 'approved'].includes(inv.status);
+
+  const hasAvailableCustomerInvoiceAction = (inv: CustomerInvoiceRow) => (
+    inv.status === 'draft'
+      ? canEditCustomerInvoices || canSubmitCustomerInvoices || canApproveCustomerInvoices || canCancelCustomerInvoices
+      : inv.status === 'submitted'
+        ? canApproveCustomerInvoices || canCancelCustomerInvoices
+        : inv.status === 'approved'
+          ? canPostCustomerInvoices || canCancelCustomerInvoices
+          : false
+  );
+
+  const getCustomerInvoiceActionState = (inv: CustomerInvoiceRow) => {
+    if (hasAvailableCustomerInvoiceAction(inv)) return null;
+
+    return isCustomerInvoiceActionable(inv) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   const previewTotalMinor = lineItems.reduce((acc, item) => {
     const qtyE6 = Math.round(Number(item.quantity || 0) * 1000000);
     const priceMinor = Math.round(Number(item.unit_price || 0) * 100);
@@ -391,6 +471,8 @@ export default function CustomerInvoicesIndex({
             <button
               type="button"
               onClick={openCreateModal}
+              title={dict.app.pages.salesCustomerInvoices.createCustomerInvoice}
+              aria-label={dict.app.pages.salesCustomerInvoices.createCustomerInvoice}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -412,7 +494,7 @@ export default function CustomerInvoicesIndex({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/invoices', { ...filters, search: val }, { preserveState: true });
+                  router.get('/sales/invoices', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -423,18 +505,12 @@ export default function CustomerInvoicesIndex({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/sales/invoices', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.salesCustomerInvoices.allStatuses}</option>
-              <option value="draft">{dict.app.pages.salesCustomerInvoices.draft}</option>
-              <option value="submitted">{dict.app.pages.salesCustomerInvoices.submitted}</option>
-              <option value="approved">{dict.app.pages.salesCustomerInvoices.approved}</option>
-              <option value="posted">{dict.app.pages.salesCustomerInvoices.posted}</option>
-              <option value="cancelled">{dict.app.pages.salesCustomerInvoices.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/sales/invoices', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.salesCustomerInvoices.status}
+            />
           </div>
         </div>
 
@@ -457,77 +533,94 @@ export default function CustomerInvoicesIndex({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {customerInvoices.data.map((inv) => (
-                  <tr key={inv.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {inv.number || dict.app.pages.salesCustomerInvoices.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{inv.customer?.name || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{inv.invoice_date}</td>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      {formatMoney(inv.total_minor, inv.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(inv.status)}>
-                        {getStatusLabel(inv.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {inv.status === 'draft' ? (
-                        <>
-                          {can('sales.edit') ? (
+                {customerInvoices.data.map((inv) => {
+                  const actionState = getCustomerInvoiceActionState(inv);
+
+                  return (
+                    <tr key={inv.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {inv.number || dict.app.pages.salesCustomerInvoices.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-medium`}>{inv.customer?.name || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{inv.invoice_date}</td>
+                      <td className={`${tableClasses.td} font-mono font-semibold`}>
+                        {formatMoney(inv.total_minor, inv.currency)}
+                      </td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(inv.status)}>
+                          {getStatusLabel(inv.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {inv.status === 'draft' && canEditCustomerInvoices ? (
                             <button
                               type="button"
                               onClick={() => openEditModal(inv)}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                              title={dict.app.pages.salesCustomerInvoices.edit}
+                              aria-label={dict.app.pages.salesCustomerInvoices.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                             >
                               {dict.app.pages.salesCustomerInvoices.edit}
                             </button>
                           ) : null}
-                          {can('sales.submit') ? (
+
+                          {inv.status === 'draft' && canSubmitCustomerInvoices ? (
                             <button
                               type="button"
                               onClick={() => handleAction(inv.id, 'submit')}
-                              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                              title={dict.app.pages.salesCustomerInvoices.submit}
+                              aria-label={dict.app.pages.salesCustomerInvoices.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
                             >
                               {dict.app.pages.salesCustomerInvoices.submit}
                             </button>
                           ) : null}
-                        </>
-                      ) : null}
 
-                      {['draft', 'submitted'].includes(inv.status) && can('sales.approve') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(inv.id, 'approve')}
-                          className="text-xs font-semibold text-amber-600 hover:text-amber-800"
-                        >
-                          {dict.app.pages.salesCustomerInvoices.approve}
-                        </button>
-                      ) : null}
+                          {['draft', 'submitted'].includes(inv.status) && canApproveCustomerInvoices ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(inv.id, 'approve')}
+                              title={dict.app.pages.salesCustomerInvoices.approve}
+                              aria-label={dict.app.pages.salesCustomerInvoices.approve}
+                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                            >
+                              {dict.app.pages.salesCustomerInvoices.approve}
+                            </button>
+                          ) : null}
 
-                      {inv.status === 'approved' && can('sales.post') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(inv.id, 'post')}
-                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                        >
-                          {dict.app.pages.salesCustomerInvoices.postToArGl}
-                        </button>
-                      ) : null}
+                          {inv.status === 'approved' && canPostCustomerInvoices ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(inv.id, 'post')}
+                              title={dict.app.pages.salesCustomerInvoices.postToArGl}
+                              aria-label={dict.app.pages.salesCustomerInvoices.postToArGl}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                            >
+                              {dict.app.pages.salesCustomerInvoices.postToArGl}
+                            </button>
+                          ) : null}
 
-                      {inv.status !== 'posted' && inv.status !== 'cancelled' && can('sales.cancel') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(inv.id, 'cancel')}
-                          className="text-xs font-semibold text-red-600 hover:text-red-800"
-                        >
-                          {dict.app.pages.salesCustomerInvoices.cancel}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          {isCustomerInvoiceActionable(inv) && canCancelCustomerInvoices ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(inv.id, 'cancel')}
+                              title={dict.app.pages.salesCustomerInvoices.cancel}
+                              aria-label={dict.app.pages.salesCustomerInvoices.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                            >
+                              {dict.app.pages.salesCustomerInvoices.cancel}
+                            </button>
+                          ) : null}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -551,6 +644,8 @@ export default function CustomerInvoicesIndex({
                   <button
                     type="button"
                     onClick={() => handleSourceModeChange('manual')}
+                    title={dict.app.pages.salesCustomerInvoices.manualService}
+                    aria-label={dict.app.pages.salesCustomerInvoices.manualService}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       sourceMode === 'manual' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -560,6 +655,8 @@ export default function CustomerInvoicesIndex({
                   <button
                     type="button"
                     onClick={() => handleSourceModeChange('sales_order')}
+                    title={dict.app.pages.salesCustomerInvoices.fromSalesOrder}
+                    aria-label={dict.app.pages.salesCustomerInvoices.fromSalesOrder}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       sourceMode === 'sales_order' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -569,6 +666,8 @@ export default function CustomerInvoicesIndex({
                   <button
                     type="button"
                     onClick={() => handleSourceModeChange('delivery_note')}
+                    title={dict.app.pages.salesCustomerInvoices.fromDeliveryNote}
+                    aria-label={dict.app.pages.salesCustomerInvoices.fromDeliveryNote}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       sourceMode === 'delivery_note' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -584,18 +683,13 @@ export default function CustomerInvoicesIndex({
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                     {dict.app.pages.salesCustomerInvoices.selectConfirmedSalesOrder}
                   </label>
-                  <select
-                    value={data.sales_order_id}
-                    onChange={(e) => handleSalesOrderSelect(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.salesCustomerInvoices.selectSalesOrder}</option>
-                    {confirmedSalesOrders.map((so) => (
-                      <option key={so.id} value={so.id}>
-                        {so.number} - {so.customer?.name} ({so.currency})
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={salesOrderOptions}
+                    value={data.sales_order_id || null}
+                    onChange={(value) => handleSalesOrderSelect(value || '')}
+                    placeholder={dict.app.pages.salesCustomerInvoices.selectSalesOrder}
+                    isClearable={false}
+                  />
                 </div>
               ) : null}
 
@@ -604,56 +698,36 @@ export default function CustomerInvoicesIndex({
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                     {dict.app.pages.salesCustomerInvoices.selectConfirmedDeliveryNote}
                   </label>
-                  <select
-                    value={data.delivery_note_id}
-                    onChange={(e) => handleDeliveryNoteSelect(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.salesCustomerInvoices.selectDeliveryNote}</option>
-                    {confirmedDeliveryNotes.map((dn) => (
-                      <option key={dn.id} value={dn.id}>
-                        {dn.number} - {getDeliveryNoteSalesOrder(dn)?.customer?.name}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchableSelect
+                    options={deliveryNoteOptions}
+                    value={data.delivery_note_id || null}
+                    onChange={(value) => handleDeliveryNoteSelect(value || '')}
+                    placeholder={dict.app.pages.salesCustomerInvoices.selectDeliveryNote}
+                    isClearable={false}
+                  />
                 </div>
               ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.salesCustomerInvoices.customer_2} *
-                  </label>
-                  <select
-                    disabled={Boolean(editingInvoice) || sourceMode !== 'manual'}
-                    value={data.customer_id}
-                    onChange={(e) => setData('customer_id', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.salesCustomerInvoices.selectCustomer}</option>
-                    {activeCustomers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.customer_id ? <p className="mt-1 text-[10px] text-red-500">{errors.customer_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesCustomerInvoices.customer_2}
+                  disabled={Boolean(editingInvoice) || sourceMode !== 'manual'}
+                  value={data.customer_id || null}
+                  onChange={(value) => setData('customer_id', value || '')}
+                  options={customerOptions}
+                  placeholder={dict.app.pages.salesCustomerInvoices.selectCustomer}
+                  isClearable={false}
+                  required
+                  error={errors.customer_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.salesCustomerInvoices.invoiceDate_2} *
-                  </label>
-                  <input
-                    type="date"
-                    value={data.invoice_date}
-                    onChange={(e) => setData('invoice_date', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.invoice_date ? <p className="mt-1 text-[10px] text-red-500">{errors.invoice_date}</p> : null}
-                </div>
+                <DatePicker
+                  label={dict.app.pages.salesCustomerInvoices.invoiceDate_2}
+                  value={data.invoice_date}
+                  onChange={(value) => setData('invoice_date', value || '')}
+                  required
+                  error={errors.invoice_date}
+                />
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
@@ -680,6 +754,8 @@ export default function CustomerInvoicesIndex({
                     <button
                       type="button"
                       onClick={addManualLine}
+                      title={dict.app.pages.salesCustomerInvoices.addLine}
+                      aria-label={dict.app.pages.salesCustomerInvoices.addLine}
                       className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                     >
                       + {dict.app.pages.salesCustomerInvoices.addLine}
@@ -694,31 +770,14 @@ export default function CustomerInvoicesIndex({
                         <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
                           {dict.app.pages.salesCustomerInvoices.productService}
                         </label>
-                        <select
+                        <SearchableSelect
                           disabled={sourceMode !== 'manual'}
-                          value={item.product_id}
-                          onChange={(e) => {
-                            const pId = e.target.value;
-                            const prod = eligibleProducts.find((p) => p.id === pId);
-                            setLineItems((prev) => {
-                              const next = [...prev];
-                              next[idx] = {
-                                ...next[idx],
-                                product_id: pId,
-                                unit_of_measure_id: prod?.unit_of_measure_id || next[idx].unit_of_measure_id,
-                                description: prod ? getProductName(prod) : next[idx].description,
-                              };
-                              return next;
-                            });
-                          }}
-                          className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                        >
-                          {eligibleProducts.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.code} - {getProductName(p)} ({p.type})
-                            </option>
-                          ))}
-                        </select>
+                          value={item.product_id || null}
+                          onChange={(value) => updateLineProduct(idx, value || '')}
+                          options={productOptions}
+                          isClearable={false}
+                          required
+                        />
                       </div>
 
                       <div className="w-full sm:w-28">
@@ -769,6 +828,8 @@ export default function CustomerInvoicesIndex({
                         <button
                           type="button"
                           onClick={() => removeLine(idx)}
+                          title={`${dict.app.pages.salesCustomerInvoices.removeLine} ${idx + 1}`}
+                          aria-label={`${dict.app.pages.salesCustomerInvoices.removeLine} ${idx + 1}`}
                           className="mt-4 sm:mt-0 text-red-500 hover:text-red-700 text-xs font-bold"
                         >
                           ✕
@@ -806,6 +867,8 @@ export default function CustomerInvoicesIndex({
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={dict.app.pages.salesCustomerInvoices.cancel_2}
+                  aria-label={dict.app.pages.salesCustomerInvoices.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.salesCustomerInvoices.cancel_2}
@@ -813,6 +876,8 @@ export default function CustomerInvoicesIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}
+                  aria-label={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {processing

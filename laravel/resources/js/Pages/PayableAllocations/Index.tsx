@@ -1,7 +1,7 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -65,17 +65,35 @@ export default function PayableAllocationsIndex({
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canManagePayableAllocations = can('suppliers.allocations');
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
 
   const { post, transform, processing } = useForm({});
 
+  const activeFilterCount = [filters.supplier_id, filters.payment_id].filter(Boolean).length;
+
+  const applyFilters = (next: Record<string, string>) => {
+    const supplierId = next.supplier_id ?? filters.supplier_id ?? '';
+    const paymentId = next.payment_id ?? filters.payment_id ?? '';
+    const params: Record<string, string> = {};
+
+    if (supplierId) params.supplier_id = supplierId;
+    if (paymentId) params.payment_id = paymentId;
+
+    router.get('/payable-allocations', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/payable-allocations', {}, { preserveScroll: true, preserveState: true });
+  }
+
+  const handleSupplierSelect = (supplierId: string | null) => {
+    applyFilters({ supplier_id: supplierId || '', payment_id: '' });
+  };
+
   const handlePaymentSelect = (paymentId: string | null) => {
-    if (paymentId) {
-      window.location.href = `/payable-allocations?payment_id=${paymentId}`;
-    } else {
-      window.location.href = '/payable-allocations';
-    }
+    applyFilters({ payment_id: paymentId || '' });
   };
 
   const handleAmountChange = (entryId: string, val: string) => {
@@ -110,6 +128,7 @@ export default function PayableAllocationsIndex({
     }));
 
     post('/payable-allocations', {
+      preserveScroll: true,
       onSuccess: () => {
         setAllocationAmounts({});
       },
@@ -118,13 +137,17 @@ export default function PayableAllocationsIndex({
 
   const handleReverse = (id: string) => {
     if (confirm(dict.app.pages.payableAllocations.areYouSureYouWantTo)) {
-      post(`/payable-allocations/${id}/reverse`);
+      post(`/payable-allocations/${id}/reverse`, { preserveScroll: true });
     }
   };
 
   const paymentSelectOptions = payments.map((p) => ({
     value: p.id,
     label: `${p.number} - ${p.supplier?.name || accDict.notAvailable} (${dict.app.pages.payableAllocations.unappliedAmount} ${formatMoney(p.unapplied_minor, p.currency)})`,
+  }));
+  const supplierSelectOptions = suppliers.map((s) => ({
+    value: s.id,
+    label: `${s.code} - ${s.name}`,
   }));
 
   return (
@@ -146,6 +169,17 @@ export default function PayableAllocationsIndex({
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                {dict.app.pages.payableAllocations.filterSupplier}
+              </label>
+              <SearchableSelect
+                options={[{ value: '', label: dict.app.pages.payableAllocations.allSuppliers }, ...supplierSelectOptions]}
+                value={filters.supplier_id || ''}
+                onChange={(val) => handleSupplierSelect(val)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                 {dict.app.pages.payableAllocations.paymentNumber}
               </label>
               <SearchableSelect
@@ -155,6 +189,8 @@ export default function PayableAllocationsIndex({
                 placeholder={dict.app.pages.payableAllocations.selectPayment}
               />
             </div>
+
+            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
 
             {selectedPayment ? (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-4 space-y-2 text-xs">
@@ -230,15 +266,19 @@ export default function PayableAllocationsIndex({
               </div>
 
               <div className="flex justify-end">
-                {can('suppliers.allocations') ? (
+                {canManagePayableAllocations ? (
                   <button
                     type="submit"
                     disabled={processing}
+                    title={dict.app.pages.payableAllocations.executeAllocation}
+                    aria-label={dict.app.pages.payableAllocations.executeAllocation}
                     className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                   >
                     {processing ? dict.app.pages.payableAllocations.processing : dict.app.pages.payableAllocations.executeAllocation}
                   </button>
-                ) : null}
+                ) : (
+                  <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                )}
               </div>
             </form>
           )}
@@ -277,15 +317,21 @@ export default function PayableAllocationsIndex({
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{new Date(row.created_at).toLocaleString()}</td>
                   <td className={tableClasses.td}>
-                    {can('suppliers.allocations') ? (
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                    {canManagePayableAllocations ? (
                       <button
                         type="button"
                         onClick={() => handleReverse(row.id)}
-                        className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                        title={dict.app.pages.payableAllocations.reverse}
+                        aria-label={dict.app.pages.payableAllocations.reverse}
+                        className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
                       >
                         {dict.app.pages.payableAllocations.reverse}
                       </button>
-                    ) : null}
+                    ) : (
+                      <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                    )}
+                    </div>
                   </td>
                 </tr>
               ))}

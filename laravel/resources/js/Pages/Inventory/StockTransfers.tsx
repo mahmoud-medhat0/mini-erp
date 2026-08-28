@@ -148,6 +148,10 @@ export default function StockTransfersIndex({
   const pageDict = dict.app.pages.stockTransfers;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canTransferStock = can('inventory.transfer');
+  const canApproveInventory = can('inventory.approve');
+  const canIssueInventory = can('inventory.post');
+  const canReceiveInventory = can('inventory.receive');
 
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
@@ -348,6 +352,28 @@ export default function StockTransfersIndex({
     });
   }
 
+  const isStockTransferActionable = (transfer: StockTransfer) => (
+    ['draft', 'submitted', 'approved', 'issued', 'partially_received'].includes(transfer.status)
+  );
+
+  const hasAvailableStockTransferAction = (transfer: StockTransfer) => (
+    transfer.status === 'draft'
+      ? canTransferStock || canApproveInventory
+      : transfer.status === 'submitted'
+        ? canApproveInventory || canTransferStock
+        : transfer.status === 'approved'
+          ? canIssueInventory || canTransferStock
+          : ['issued', 'partially_received'].includes(transfer.status)
+            ? canReceiveInventory
+            : false
+  );
+
+  const getStockTransferActionState = (transfer: StockTransfer) => {
+    if (hasAvailableStockTransferAction(transfer)) return null;
+
+    return isStockTransferActionable(transfer) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="stock-transfers.index">
       <Head title={pageDict.headTitle} />
@@ -356,7 +382,7 @@ export default function StockTransfersIndex({
         title={pageDict.title}
         description={pageDict.description}
         actions={
-          can('inventory.transfer') ? (
+          canTransferStock ? (
             <Button onClick={openCreateTransfer}>
               <svg className="me-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -576,69 +602,74 @@ export default function StockTransfersIndex({
                 </tr>
               </thead>
               <tbody>
-                {transfers.data.map((transfer) => (
-                  <tr key={transfer.id} className="hover:bg-[var(--background)]">
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-40 flex-col gap-1">
-                        <span className="font-mono text-xs font-extrabold">{transfer.number || pageDict.draftNumber}</span>
-                        {transfer.reference ? <span className="text-xs text-[var(--text-secondary)]">{transfer.reference}</span> : null}
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>{formatDate(transfer.transfer_date)}</td>
-                    <td className={tableClasses.td}>
-                      <span className="font-mono text-xs font-bold">{transfer.source_warehouse?.code}</span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="font-mono text-xs font-bold">{transfer.destination_warehouse?.code}</span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(transfer.status)}>{statusLabel(transfer.status)}</StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {transfer.lines.length === 0 ? (
-                        <span className="text-xs text-[var(--text-muted)]">{pageDict.noLines}</span>
-                      ) : (
-                        <div className="flex min-w-72 flex-col gap-1">
-                          {transfer.lines.map((line) => (
-                            <div key={line.id} className="flex items-center justify-between gap-3 text-xs">
-                              <span className="font-semibold text-[var(--text-primary)]">
-                                {line.product?.code} - {getLocalizedName(line.product?.name, locale)}
-                              </span>
-                              <span className="font-mono text-[var(--text-secondary)]">
-                                {formatQuantityE6(line.quantity_e6)} {line.unit_of_measure?.code}
-                              </span>
-                            </div>
-                          ))}
+                {transfers.data.map((transfer) => {
+                  const actionState = getStockTransferActionState(transfer);
+
+                  return (
+                    <tr key={transfer.id} className="hover:bg-[var(--background)]">
+                      <td className={tableClasses.td}>
+                        <div className="flex min-w-40 flex-col gap-1">
+                          <span className="font-mono text-xs font-extrabold">{transfer.number || pageDict.draftNumber}</span>
+                          {transfer.reference ? <span className="text-xs text-[var(--text-secondary)]">{transfer.reference}</span> : null}
                         </div>
-                      )}
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {can('inventory.transfer') && transfer.status === 'draft' ? (
-                          <Button variant="secondary" onClick={() => openEditTransfer(transfer)}>{pageDict.editTransfer}</Button>
-                        ) : null}
-                        {can('inventory.transfer') && transfer.status === 'draft' ? (
-                          <Button onClick={() => postAction(transfer, 'submit', pageDict.confirmSubmit)}>{pageDict.submit}</Button>
-                        ) : null}
-                        {can('inventory.approve') && ['draft', 'submitted'].includes(transfer.status) ? (
-                          <Button onClick={() => postAction(transfer, 'approve', pageDict.confirmApprove)}>{pageDict.approve}</Button>
-                        ) : null}
-                        {can('inventory.post') && transfer.status === 'approved' ? (
-                          <Button onClick={() => postAction(transfer, 'issue', pageDict.confirmIssue)}>{pageDict.issue}</Button>
-                        ) : null}
-                        {can('inventory.receive') && ['issued', 'partially_received'].includes(transfer.status) ? (
-                          <Button variant="secondary" onClick={() => openReceivePanel(transfer)}>{pageDict.receive}</Button>
-                        ) : null}
-                        {can('inventory.receive') && ['issued', 'partially_received'].includes(transfer.status) ? (
-                          <Button onClick={() => receiveRemaining(transfer)}>{pageDict.receiveRemaining}</Button>
-                        ) : null}
-                        {can('inventory.transfer') && ['draft', 'submitted', 'approved'].includes(transfer.status) ? (
-                          <Button variant="danger" onClick={() => postAction(transfer, 'cancel', pageDict.confirmCancel)}>{pageDict.cancelTransfer}</Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className={tableClasses.td}>{formatDate(transfer.transfer_date)}</td>
+                      <td className={tableClasses.td}>
+                        <span className="font-mono text-xs font-bold">{transfer.source_warehouse?.code || accDict.notAvailable}</span>
+                      </td>
+                      <td className={tableClasses.td}>
+                        <span className="font-mono text-xs font-bold">{transfer.destination_warehouse?.code || accDict.notAvailable}</span>
+                      </td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={statusTone(transfer.status)}>{statusLabel(transfer.status)}</StatusBadge>
+                      </td>
+                      <td className={tableClasses.td}>
+                        {transfer.lines.length === 0 ? (
+                          <span className="text-xs text-[var(--text-muted)]">{pageDict.noLines}</span>
+                        ) : (
+                          <div className="flex min-w-72 flex-col gap-1">
+                            {transfer.lines.map((line) => (
+                              <div key={line.id} className="flex items-center justify-between gap-3 text-xs">
+                                <span className="font-semibold text-[var(--text-primary)]">
+                                  {line.product?.code} - {getLocalizedName(line.product?.name, locale)}
+                                </span>
+                                <span className="font-mono text-[var(--text-secondary)]">
+                                  {formatQuantityE6(line.quantity_e6)} {line.unit_of_measure?.code || accDict.notAvailable}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {canTransferStock && transfer.status === 'draft' ? (
+                            <button type="button" onClick={() => openEditTransfer(transfer)} title={pageDict.editTransfer} aria-label={pageDict.editTransfer} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.editTransfer}</button>
+                          ) : null}
+                          {canTransferStock && transfer.status === 'draft' ? (
+                            <button type="button" onClick={() => postAction(transfer, 'submit', pageDict.confirmSubmit)} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                          ) : null}
+                          {canApproveInventory && ['draft', 'submitted'].includes(transfer.status) ? (
+                            <button type="button" onClick={() => postAction(transfer, 'approve', pageDict.confirmApprove)} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                          ) : null}
+                          {canIssueInventory && transfer.status === 'approved' ? (
+                            <button type="button" onClick={() => postAction(transfer, 'issue', pageDict.confirmIssue)} title={pageDict.issue} aria-label={pageDict.issue} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.issue}</button>
+                          ) : null}
+                          {canReceiveInventory && ['issued', 'partially_received'].includes(transfer.status) ? (
+                            <button type="button" onClick={() => openReceivePanel(transfer)} title={pageDict.receive} aria-label={pageDict.receive} className="inline-flex h-8 items-center rounded-md border border-cyan-200 px-2.5 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-50 dark:border-cyan-900/60 dark:text-cyan-300 dark:hover:bg-cyan-950/40">{pageDict.receive}</button>
+                          ) : null}
+                          {canReceiveInventory && ['issued', 'partially_received'].includes(transfer.status) ? (
+                            <button type="button" onClick={() => receiveRemaining(transfer)} title={pageDict.receiveRemaining} aria-label={pageDict.receiveRemaining} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.receiveRemaining}</button>
+                          ) : null}
+                          {canTransferStock && ['draft', 'submitted', 'approved'].includes(transfer.status) ? (
+                            <button type="button" onClick={() => postAction(transfer, 'cancel', pageDict.confirmCancel)} title={pageDict.cancelTransfer} aria-label={pageDict.cancelTransfer} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelTransfer}</button>
+                          ) : null}
+                          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

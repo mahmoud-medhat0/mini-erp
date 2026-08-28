@@ -1,10 +1,10 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type ProductCategoryRow = {
   id: string;
@@ -19,7 +19,7 @@ type ProductCategoryRow = {
 type CategoriesProps = SharedPageProps & {
   categories: {
     data: ProductCategoryRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   filters: {
     search?: string;
@@ -41,6 +41,9 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
     is_active: true,
     lock_version: 1,
   });
+  const categorySubmitLabel = processing
+    ? dict.app.pages.catalogProductCategories.saving
+    : dict.app.pages.catalogProductCategories.save;
 
   const openCreateModal = () => {
     reset();
@@ -70,10 +73,12 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
     e.preventDefault();
     if (editingCategory) {
       put(`/catalog/categories/${editingCategory.id}`, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       post('/catalog/categories', {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -81,7 +86,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
 
   const handleDelete = (category: ProductCategoryRow) => {
     if (confirm(dict.app.pages.catalogProductCategories.confirmDeleteCategory.replace('{name}', category.name || category.code))) {
-      destroy(`/catalog/categories/${category.id}`);
+      destroy(`/catalog/categories/${category.id}`, { preserveScroll: true });
     }
   };
 
@@ -97,6 +102,8 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
             <button
               type="button"
               onClick={openCreateModal}
+              title={dict.app.pages.catalogProductCategories.addCategory}
+              aria-label={dict.app.pages.catalogProductCategories.addCategory}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -118,7 +125,7 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/catalog/categories', { search: val }, { preserveState: true });
+                  router.get('/catalog/categories', { search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -162,6 +169,8 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                         <button
                           type="button"
                           onClick={() => openEditModal(cat)}
+                          title={dict.app.pages.catalogProductCategories.edit}
+                          aria-label={dict.app.pages.catalogProductCategories.edit}
                           className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                         >
                           {dict.app.pages.catalogProductCategories.edit}
@@ -171,6 +180,8 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                         <button
                           type="button"
                           onClick={() => handleDelete(cat)}
+                          title={dict.app.pages.catalogProductCategories.delete}
+                          aria-label={dict.app.pages.catalogProductCategories.delete}
                           className="text-xs font-semibold text-red-600 hover:text-red-800"
                         >
                           {dict.app.pages.catalogProductCategories.delete}
@@ -254,6 +265,8 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={dict.app.pages.catalogProductCategories.cancel}
+                  aria-label={dict.app.pages.catalogProductCategories.cancel}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.catalogProductCategories.cancel}
@@ -261,11 +274,11 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                 <button
                   type="submit"
                   disabled={processing}
+                  title={categorySubmitLabel}
+                  aria-label={categorySubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing
-                    ? dict.app.pages.catalogProductCategories.saving
-                    : dict.app.pages.catalogProductCategories.save}
+                  {categorySubmitLabel}
                 </button>
               </div>
             </form>

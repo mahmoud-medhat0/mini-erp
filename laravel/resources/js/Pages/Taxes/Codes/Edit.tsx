@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
+import SearchableSelect from '../../../Components/SearchableSelect';
 import { Card, PageHeader } from '../../../Components/Primitives';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -20,13 +21,26 @@ type EditProps = SharedPageProps & {
   taxCode: TaxCode;
 };
 
+type CalculationMode = TaxCode['calculation_mode'];
+type RecoverabilityMode = TaxCode['recoverability_mode'];
+type TaxCodeForm = {
+  code: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  calculation_mode: CalculationMode;
+  recoverability_mode: RecoverabilityMode;
+  is_active: boolean;
+};
+
 export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
   const dict = getDictionary(locale);
   const taxDict = dict.app.taxes;
 
   const nameObj = typeof taxCode.name === 'object' ? taxCode.name : { en: taxCode.name, ar: taxCode.name };
 
-  const { data, setData, put, processing, errors } = useForm({
+  const { data, setData, put, processing, errors } = useForm<TaxCodeForm>({
     code: taxCode.code,
     name: {
       en: nameObj.en || '',
@@ -39,8 +53,18 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    put(`/taxes/codes/${taxCode.id}`);
+    put(`/taxes/codes/${taxCode.id}`, { preserveScroll: true });
   }
+
+  const calculationModeOptions: Array<{ value: CalculationMode; label: string }> = [
+    { value: 'exclusive', label: taxDict.exclusive },
+    { value: 'inclusive', label: taxDict.inclusive },
+    { value: 'exempt', label: taxDict.exempt },
+  ];
+  const recoverabilityModeOptions: Array<{ value: RecoverabilityMode; label: string }> = [
+    { value: 'full', label: taxDict.full },
+    { value: 'none', label: taxDict.none },
+  ];
 
   return (
     <AppLayout active="taxes.codes.index">
@@ -105,34 +129,21 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.calculationMode}
-                </label>
-                <select
-                  value={data.calculation_mode}
-                  onChange={(e) => setData('calculation_mode', e.target.value as TaxCode['calculation_mode'])}
-                  className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-                >
-                  <option value="exclusive">{taxDict.exclusive}</option>
-                  <option value="inclusive">{taxDict.inclusive}</option>
-                  <option value="exempt">{taxDict.exempt}</option>
-                </select>
-              </div>
+              <SearchableSelect<CalculationMode>
+                label={taxDict.calculationMode}
+                options={calculationModeOptions}
+                value={data.calculation_mode}
+                onChange={(value) => setData('calculation_mode', value || 'exclusive')}
+                isClearable={false}
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {taxDict.recoverabilityMode}
-                </label>
-                <select
-                  value={data.recoverability_mode}
-                  onChange={(e) => setData('recoverability_mode', e.target.value as TaxCode['recoverability_mode'])}
-                  className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-                >
-                  <option value="full">{taxDict.full}</option>
-                  <option value="none">{taxDict.none}</option>
-                </select>
-              </div>
+              <SearchableSelect<RecoverabilityMode>
+                label={taxDict.recoverabilityMode}
+                options={recoverabilityModeOptions}
+                value={data.recoverability_mode}
+                onChange={(value) => setData('recoverability_mode', value || 'full')}
+                isClearable={false}
+              />
             </div>
 
             <div className="flex items-center gap-2 pt-2">
@@ -159,6 +170,8 @@ export default function TaxCodeEdit({ locale, taxCode }: EditProps) {
                 type="submit"
                 disabled={processing}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
+                title={taxDict.save}
+                aria-label={taxDict.save}
               >
                 {taxDict.save}
               </button>

@@ -95,7 +95,7 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
 
   function handleReverse() {
     if (confirm(appDict.confirmReverse)) {
-      router.post(`/fixed-assets-disposals/${disposal.id}/reverse`);
+      router.post(`/fixed-assets-disposals/${disposal.id}/reverse`, {}, { preserveScroll: true });
     }
   }
 
@@ -119,8 +119,11 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
               </Link>
               {disposal.status === 'posted' && (
                 <button
+                  type="button"
                   onClick={handleReverse}
                   className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition text-sm font-medium"
+                  title={appDict.reverseDisposal}
+                  aria-label={appDict.reverseDisposal}
                 >
                   {appDict.reverseDisposal}
                 </button>

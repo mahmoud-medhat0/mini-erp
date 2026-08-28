@@ -1,10 +1,10 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type UnitOfMeasureOption = {
   id: string;
@@ -42,7 +42,7 @@ type ProductStatus = ProductRow['status'];
 type ProductsProps = SharedPageProps & {
   products: {
     data: ProductRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   uoms: UnitOfMeasureOption[];
   categories: ProductCategoryOption[];
@@ -69,6 +69,7 @@ function toProductStatus(value: string): ProductStatus {
 export default function ProductsIndex({ locale, products, uoms, categories, filters }: ProductsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.catalogProducts;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -86,6 +87,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
     is_purchase_enabled: true,
     lock_version: 1,
   });
+  const productSubmitLabel = processing ? pageDict.saving : pageDict.save;
 
   const openCreateModal = () => {
     reset();
@@ -132,18 +134,20 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
     e.preventDefault();
     if (editingProduct) {
       put(`/catalog/products/${editingProduct.id}`, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       post('/catalog/products', {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
   };
 
   const handleDelete = (product: ProductRow) => {
-    if (confirm(dict.app.pages.catalogProducts.confirmDeleteProduct.replace('{name}', product.name || product.code))) {
-      destroy(`/catalog/products/${product.id}`);
+    if (confirm(pageDict.confirmDeleteProduct.replace('{name}', product.name || product.code))) {
+      destroy(`/catalog/products/${product.id}`, { preserveScroll: true });
     }
   };
 
@@ -163,34 +167,98 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'stock':
-        return dict.app.pages.catalogProducts.stock;
+        return pageDict.stock;
       case 'service':
-        return dict.app.pages.catalogProducts.service;
+        return pageDict.service;
       case 'non_stock':
-        return dict.app.pages.catalogProducts.nonStock;
+        return pageDict.nonStock;
       default:
         return type;
     }
   };
 
+  const typeOptions = useMemo(
+    () => [
+      { value: 'stock' as const, label: pageDict.stock_2 },
+      { value: 'service' as const, label: pageDict.service_2 },
+      { value: 'non_stock' as const, label: pageDict.nonStock_2 },
+    ],
+    [pageDict.nonStock_2, pageDict.service_2, pageDict.stock_2],
+  );
+
+  const typeFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allTypes },
+      { value: 'stock', label: pageDict.stock },
+      { value: 'service', label: pageDict.service },
+      { value: 'non_stock', label: pageDict.nonStock },
+    ],
+    [pageDict.allTypes, pageDict.nonStock, pageDict.service, pageDict.stock],
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: 'active' as const, label: pageDict.active_2 },
+      { value: 'inactive' as const, label: pageDict.inactive_2 },
+    ],
+    [pageDict.active_2, pageDict.inactive_2],
+  );
+
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allStatuses },
+      { value: 'active', label: pageDict.active },
+      { value: 'inactive', label: pageDict.inactive },
+    ],
+    [pageDict.active, pageDict.allStatuses, pageDict.inactive],
+  );
+
+  const uomOptions = useMemo(
+    () => uoms.map((uom) => ({
+      value: uom.id,
+      label: `${uom.name} (${uom.code})`,
+      sublabel: uom.symbol,
+    })),
+    [uoms],
+  );
+
+  const categoryOptions = useMemo(
+    () => categories.map((category) => ({
+      value: category.id,
+      label: `${category.name} (${category.code})`,
+      sublabel: category.code,
+    })),
+    [categories],
+  );
+
+  const categoryFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allCategories },
+      ...categoryOptions,
+    ],
+    [categoryOptions, pageDict.allCategories],
+  );
+
   return (
     <AppLayout active="products.index">
-      <Head title={dict.app.pages.catalogProducts.productsServices} />
+      <Head title={pageDict.productsServices} />
 
       <PageHeader
-        title={dict.app.pages.catalogProducts.productServiceCatalog}
-        description={dict.app.pages.catalogProducts.manageMasterCatalogForProductsAnd}
+        title={pageDict.productServiceCatalog}
+        description={pageDict.manageMasterCatalogForProductsAnd}
         actions={
           can('products.create') ? (
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.addProduct}
+              aria-label={pageDict.addProduct}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              <span>{dict.app.pages.catalogProducts.addProduct}</span>
+              <span>{pageDict.addProduct}</span>
             </button>
           ) : null
         }
@@ -201,12 +269,12 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder={dict.app.pages.catalogProducts.searchCodeSkuOrName}
+              placeholder={pageDict.searchCodeSkuOrName}
               defaultValue={filters.search || ''}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/catalog/products', { ...filters, search: val }, { preserveState: true });
+                  router.get('/catalog/products', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -217,46 +285,51 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
+            <SearchableSelect
               value={filters.type || ''}
-              onChange={(e) => router.get('/catalog/products', { ...filters, type: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.catalogProducts.allTypes}</option>
-              <option value="stock">{dict.app.pages.catalogProducts.stock}</option>
-              <option value="service">{dict.app.pages.catalogProducts.service}</option>
-              <option value="non_stock">{dict.app.pages.catalogProducts.nonStock}</option>
-            </select>
+              options={typeFilterOptions}
+              onChange={(value) => router.get('/catalog/products', { ...filters, type: value || '' }, { preserveState: true, preserveScroll: true })}
+              placeholder={pageDict.allTypes}
+              isSearchable={false}
+              className="min-w-[150px]"
+            />
 
-            <select
+            <SearchableSelect
               value={filters.status || ''}
-              onChange={(e) => router.get('/catalog/products', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.catalogProducts.allStatuses}</option>
-              <option value="active">{dict.app.pages.catalogProducts.active}</option>
-              <option value="inactive">{dict.app.pages.catalogProducts.inactive}</option>
-            </select>
+              options={statusFilterOptions}
+              onChange={(value) => router.get('/catalog/products', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              placeholder={pageDict.allStatuses}
+              isSearchable={false}
+              className="min-w-[150px]"
+            />
+
+            <SearchableSelect
+              value={filters.product_category_id || ''}
+              options={categoryFilterOptions}
+              onChange={(value) => router.get('/catalog/products', { ...filters, product_category_id: value || '' }, { preserveState: true, preserveScroll: true })}
+              placeholder={pageDict.allCategories}
+              className="min-w-[210px]"
+            />
           </div>
         </div>
 
         {products.data.length === 0 ? (
           <EmptyState
-            title={dict.app.pages.catalogProducts.noProductsOrServicesFound}
-            description={dict.app.pages.catalogProducts.getStartedByAddingYourFirst}
+            title={pageDict.noProductsOrServicesFound}
+            description={pageDict.getStartedByAddingYourFirst}
           />
         ) : (
           <div className={tableClasses.wrap}>
             <table className={tableClasses.table}>
               <thead>
                 <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.catalogProducts.codeSku}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.catalogProducts.name}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.catalogProducts.type}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.catalogProducts.uom}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.catalogProducts.category}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.catalogProducts.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.catalogProducts.actions}</th>
+                  <th className={tableClasses.th}>{pageDict.codeSku}</th>
+                  <th className={tableClasses.th}>{pageDict.name}</th>
+                  <th className={tableClasses.th}>{pageDict.type}</th>
+                  <th className={tableClasses.th}>{pageDict.uom}</th>
+                  <th className={tableClasses.th}>{pageDict.category}</th>
+                  <th className={tableClasses.th}>{pageDict.status}</th>
+                  <th className={`${tableClasses.th} text-end`}>{pageDict.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -273,7 +346,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                     <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{prod.category?.name || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={prod.status === 'active' ? 'ok' : 'muted'}>
-                        {prod.status === 'active' ? dict.app.pages.catalogProducts.active_3 : dict.app.pages.catalogProducts.inactive_3}
+                        {prod.status === 'active' ? pageDict.active_3 : pageDict.inactive_3}
                       </StatusBadge>
                     </td>
                     <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
@@ -281,18 +354,22 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                         <button
                           type="button"
                           onClick={() => openEditModal(prod)}
+                          title={pageDict.edit}
+                          aria-label={pageDict.edit}
                           className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                         >
-                          {dict.app.pages.catalogProducts.edit}
+                          {pageDict.edit}
                         </button>
                       ) : null}
                       {can('products.delete') ? (
                         <button
                           type="button"
                           onClick={() => handleDelete(prod)}
+                          title={pageDict.delete}
+                          aria-label={pageDict.delete}
                           className="text-xs font-semibold text-red-600 hover:text-red-800"
                         >
-                          {dict.app.pages.catalogProducts.delete}
+                          {pageDict.delete}
                         </button>
                       ) : null}
                     </td>
@@ -310,22 +387,22 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
           <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
             <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
               {editingProduct
-                ? dict.app.pages.catalogProducts.editProductService
-                : dict.app.pages.catalogProducts.createProductService}
+                ? pageDict.editProductService
+                : pageDict.createProductService}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.catalogProducts.codeSku_2} *
+                    {pageDict.codeSku_2} *
                   </label>
                   <input
                     type="text"
                     value={data.code}
                     onChange={(e) => setData('code', e.target.value.toUpperCase())}
                     required
-                    placeholder="e.g. PRD-0001"
+                    placeholder={pageDict.codePlaceholder}
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none uppercase font-mono"
                   />
                   {errors.code ? <p className="mt-1 text-[10px] text-red-500">{errors.code}</p> : null}
@@ -333,23 +410,23 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.catalogProducts.type_2} *
+                    {pageDict.type_2} *
                   </label>
-                  <select
+                  <SearchableSelect<ProductType>
                     value={data.type}
-                    onChange={(e) => setData('type', toProductType(e.target.value))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="stock">{dict.app.pages.catalogProducts.stock_2}</option>
-                    <option value="service">{dict.app.pages.catalogProducts.service_2}</option>
-                    <option value="non_stock">{dict.app.pages.catalogProducts.nonStock_2}</option>
-                  </select>
+                    options={typeOptions}
+                    onChange={(value) => setData('type', toProductType(value || 'stock'))}
+                    placeholder={pageDict.type_2}
+                    isClearable={false}
+                    isSearchable={false}
+                    error={errors.type}
+                  />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {dict.app.pages.catalogProducts.name_2} *
+                  {pageDict.name_2} *
                 </label>
                 <input
                   type="text"
@@ -364,46 +441,36 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.catalogProducts.unitOfMeasure} *
+                    {pageDict.unitOfMeasure} *
                   </label>
-                  <select
+                  <SearchableSelect
                     value={data.unit_of_measure_id}
-                    onChange={(e) => setData('unit_of_measure_id', e.target.value)}
+                    options={uomOptions}
+                    onChange={(value) => setData('unit_of_measure_id', value || '')}
+                    placeholder={pageDict.selectUom}
                     required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.catalogProducts.selectUom}</option>
-                    {uoms.map((uom) => (
-                      <option key={uom.id} value={uom.id}>
-                        {uom.name} ({uom.code})
-                      </option>
-                    ))}
-                  </select>
+                    error={errors.unit_of_measure_id}
+                  />
                   {errors.unit_of_measure_id ? <p className="mt-1 text-[10px] text-red-500">{errors.unit_of_measure_id}</p> : null}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.catalogProducts.category_2}
+                    {pageDict.category_2}
                   </label>
-                  <select
+                  <SearchableSelect
                     value={data.product_category_id}
-                    onChange={(e) => setData('product_category_id', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.catalogProducts.none}</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name} ({cat.code})
-                      </option>
-                    ))}
-                  </select>
+                    options={[{ value: '', label: pageDict.none }, ...categoryOptions]}
+                    onChange={(value) => setData('product_category_id', value || '')}
+                    placeholder={pageDict.none}
+                    error={errors.product_category_id}
+                  />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {dict.app.pages.catalogProducts.description}
+                  {pageDict.description}
                 </label>
                 <textarea
                   rows={2}
@@ -423,7 +490,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                     className="rounded border-[var(--border)] text-blue-600 focus:ring-blue-500"
                   />
                   <label htmlFor="is_sales_enabled" className="text-xs font-medium text-[var(--text-primary)]">
-                    {dict.app.pages.catalogProducts.salesEnabled}
+                    {pageDict.salesEnabled}
                   </label>
                 </div>
 
@@ -436,41 +503,44 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                     className="rounded border-[var(--border)] text-blue-600 focus:ring-blue-500"
                   />
                   <label htmlFor="is_purchase_enabled" className="text-xs font-medium text-[var(--text-primary)]">
-                    {dict.app.pages.catalogProducts.purchaseEnabled}
+                    {pageDict.purchaseEnabled}
                   </label>
                 </div>
               </div>
 
               <div className="pt-2">
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                  {dict.app.pages.catalogProducts.status_2}
+                  {pageDict.status_2}
                 </label>
-                <select
+                <SearchableSelect<ProductStatus>
                   value={data.status}
-                  onChange={(e) => setData('status', toProductStatus(e.target.value))}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="active">{dict.app.pages.catalogProducts.active_2}</option>
-                  <option value="inactive">{dict.app.pages.catalogProducts.inactive_2}</option>
-                </select>
+                  options={statusOptions}
+                  onChange={(value) => setData('status', toProductStatus(value || 'active'))}
+                  placeholder={pageDict.status_2}
+                  isClearable={false}
+                  isSearchable={false}
+                  error={errors.status}
+                />
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
-                  {dict.app.pages.catalogProducts.cancel}
+                  {pageDict.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={processing}
+                  title={productSubmitLabel}
+                  aria-label={productSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing
-                    ? dict.app.pages.catalogProducts.saving
-                    : dict.app.pages.catalogProducts.save}
+                  {productSubmitLabel}
                 </button>
               </div>
             </form>

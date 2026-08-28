@@ -1,11 +1,12 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -74,7 +75,7 @@ type CreditNoteRow = {
 type CustomerCreditNotesProps = SharedPageProps & {
   customerCreditNotes: {
     data: CreditNoteRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   activeCustomers: CustomerOption[];
   postedCustomerInvoices: PostedInvoiceOption[];
@@ -98,6 +99,7 @@ export default function CustomerCreditNotesIndex({
 }: CustomerCreditNotesProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.salesCustomerCreditNotes;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -122,6 +124,51 @@ export default function CustomerCreditNotesIndex({
 
   const selectedInvoice = postedCustomerInvoices.find((inv) => inv.id === data.customer_invoice_id);
 
+  const filteredInvoiceOptions = useMemo(() => postedCustomerInvoices
+    .filter((invoice) => !data.customer_id || invoice.customer_id === data.customer_id)
+    .map((invoice) => ({
+      value: invoice.id,
+      label: invoice.number || pageDict.draft_2,
+      sublabel: invoice.currency,
+    })), [postedCustomerInvoices, data.customer_id, pageDict.draft_2]);
+
+  const filteredSalesReturnOptions = useMemo(() => postedSalesReturns
+    .filter((salesReturn) => !data.customer_id || salesReturn.customer_id === data.customer_id)
+    .map((salesReturn) => ({
+      value: salesReturn.id,
+      label: salesReturn.number || pageDict.draft_2,
+    })), [postedSalesReturns, data.customer_id, pageDict.draft_2]);
+
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'approved', label: pageDict.approved },
+    { value: 'posted', label: pageDict.posted },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.approved, pageDict.posted, pageDict.cancelled]);
+
+  const customerOptions = useMemo(() => activeCustomers.map((customer) => ({
+    value: customer.id,
+    label: customer.name,
+    sublabel: customer.code,
+  })), [activeCustomers]);
+
+  const taxModeOptions = useMemo(() => [
+    { value: 'none', label: pageDict.taxNone },
+    { value: 'manual_rate', label: pageDict.manualRate },
+    { value: 'manual_amount', label: pageDict.manualAmount },
+  ], [pageDict.taxNone, pageDict.manualRate, pageDict.manualAmount]);
+
+  const invoiceLineOptions = useMemo(() => (selectedInvoice?.lines || []).map((line) => ({
+    value: line.id,
+    label: (line.description || '').slice(0, 40) || line.id,
+    sublabel: String((line.quantity_e6 || 0) / 1000000),
+  })), [selectedInvoice]);
+  const canManageCustomerCreditNotes = can('sales.credit_notes');
+  const canPostCustomerCreditNotes = canManageCustomerCreditNotes && can('view_financials');
+  const customerCreditNoteSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
+
   const getProductName = (prod?: { code: string; name: { en?: string; ar?: string } | string } | null): string => {
     if (!prod) return '';
     if (typeof prod.name === 'string') return prod.name;
@@ -132,6 +179,14 @@ export default function CustomerCreditNotesIndex({
     setData('customer_id', customerId);
     setData('customer_invoice_id', '');
     setData('sales_return_id', '');
+  };
+
+  const handleInvoiceSelect = (invoiceId: string) => {
+    setData('customer_invoice_id', invoiceId);
+    const invoice = postedCustomerInvoices.find((item) => item.id === invoiceId);
+    if (invoice?.currency) {
+      setData('currency', invoice.currency);
+    }
   };
 
   const addLine = () => {
@@ -228,10 +283,12 @@ export default function CustomerCreditNotesIndex({
 
     if (editingNote) {
       router.put(`/sales/credit-notes/${editingNote.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/sales/credit-notes', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -245,7 +302,7 @@ export default function CustomerCreditNotesIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerCreditNotes.cancelThisCreditNote;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/credit-notes/${note.id}/${action}`);
+      router.post(`/sales/credit-notes/${note.id}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -283,6 +340,30 @@ export default function CustomerCreditNotesIndex({
     }
   };
 
+  const canSettleCustomerCreditNote = (note: CreditNoteRow) => (
+    note.status === 'posted' && Boolean(note.receivable_entry_id) && canManageCustomerCreditNotes
+  );
+
+  const isCustomerCreditNoteActionable = (note: CreditNoteRow) => (
+    ['draft', 'submitted', 'approved'].includes(note.status) || (note.status === 'posted' && Boolean(note.receivable_entry_id))
+  );
+
+  const hasAvailableCustomerCreditNoteAction = (note: CreditNoteRow) => (
+    note.status === 'draft'
+      ? canManageCustomerCreditNotes
+      : note.status === 'submitted'
+        ? canManageCustomerCreditNotes
+        : note.status === 'approved'
+          ? canManageCustomerCreditNotes || canPostCustomerCreditNotes
+          : canSettleCustomerCreditNote(note)
+  );
+
+  const getCustomerCreditNoteActionState = (note: CreditNoteRow) => {
+    if (hasAvailableCustomerCreditNoteAction(note)) return null;
+
+    return isCustomerCreditNoteActionable(note) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="customer-credit-notes.index">
       <Head title={dict.app.pages.salesCustomerCreditNotes.customerCreditNotes} />
@@ -295,6 +376,8 @@ export default function CustomerCreditNotesIndex({
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.createCustomerCreditNote}
+              aria-label={pageDict.createCustomerCreditNote}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -322,7 +405,7 @@ export default function CustomerCreditNotesIndex({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/credit-notes', { ...filters, search: val }, { preserveState: true });
+                  router.get('/sales/credit-notes', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -333,18 +416,12 @@ export default function CustomerCreditNotesIndex({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/sales/credit-notes', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.salesCustomerCreditNotes.allStatuses}</option>
-              <option value="draft">{dict.app.pages.salesCustomerCreditNotes.draft}</option>
-              <option value="submitted">{dict.app.pages.salesCustomerCreditNotes.submitted}</option>
-              <option value="approved">{dict.app.pages.salesCustomerCreditNotes.approved}</option>
-              <option value="posted">{dict.app.pages.salesCustomerCreditNotes.posted}</option>
-              <option value="cancelled">{dict.app.pages.salesCustomerCreditNotes.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/sales/credit-notes', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.salesCustomerCreditNotes.status}
+            />
           </div>
         </div>
 
@@ -369,85 +446,107 @@ export default function CustomerCreditNotesIndex({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {customerCreditNotes.data.map((note) => (
-                  <tr key={note.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {note.number || dict.app.pages.salesCustomerCreditNotes.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{note.customer?.name || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.customerInvoice?.number || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.salesReturn?.number || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{note.credit_date}</td>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      {formatMoney(note.total_minor, note.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(note.status)}>
-                        {getStatusLabel(note.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {note.status === 'draft' && can('sales.credit_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(note)}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          {dict.app.pages.salesCustomerCreditNotes.edit}
-                        </button>
-                      ) : null}
+                {customerCreditNotes.data.map((note) => {
+                  const actionState = getCustomerCreditNoteActionState(note);
 
-                      {note.status === 'draft' && can('sales.credit_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note, 'submit')}
-                          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        >
-                          {dict.app.pages.salesCustomerCreditNotes.submit}
-                        </button>
-                      ) : null}
+                  return (
+                    <tr key={note.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {note.number || dict.app.pages.salesCustomerCreditNotes.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-medium`}>{note.customer?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-mono`}>{note.customerInvoice?.number || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-mono`}>{note.salesReturn?.number || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{note.credit_date}</td>
+                      <td className={`${tableClasses.td} font-mono font-semibold`}>
+                        {formatMoney(note.total_minor, note.currency)}
+                      </td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(note.status)}>
+                          {getStatusLabel(note.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {note.status === 'draft' && canManageCustomerCreditNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(note)}
+                              title={dict.app.pages.salesCustomerCreditNotes.edit}
+                              aria-label={dict.app.pages.salesCustomerCreditNotes.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                            >
+                              {dict.app.pages.salesCustomerCreditNotes.edit}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted'].includes(note.status) && can('sales.credit_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note, 'approve')}
-                          className="text-xs font-semibold text-amber-600 hover:text-amber-800"
-                        >
-                          {dict.app.pages.salesCustomerCreditNotes.approve}
-                        </button>
-                      ) : null}
+                          {note.status === 'draft' && canManageCustomerCreditNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note, 'submit')}
+                              title={dict.app.pages.salesCustomerCreditNotes.submit}
+                              aria-label={dict.app.pages.salesCustomerCreditNotes.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                            >
+                              {dict.app.pages.salesCustomerCreditNotes.submit}
+                            </button>
+                          ) : null}
 
-                      {note.status === 'approved' && can('sales.credit_notes') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note, 'post')}
-                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                        >
-                          {dict.app.pages.salesCustomerCreditNotes.postToArGl}
-                        </button>
-                      ) : null}
+                          {['draft', 'submitted'].includes(note.status) && canManageCustomerCreditNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note, 'approve')}
+                              title={dict.app.pages.salesCustomerCreditNotes.approve}
+                              aria-label={dict.app.pages.salesCustomerCreditNotes.approve}
+                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                            >
+                              {dict.app.pages.salesCustomerCreditNotes.approve}
+                            </button>
+                          ) : null}
 
-                      {note.status === 'posted' && note.receivable_entry_id && can('sales.credit_notes') ? (
-                        <Link
-                          href={`/sales/receivable-settlements?customer_id=${note.customer_id}&source_entry_id=${note.receivable_entry_id}`}
-                          className="text-xs font-bold text-purple-600 hover:text-purple-800"
-                        >
-                          {dict.app.pages.salesCustomerCreditNotes.settle}
-                        </Link>
-                      ) : null}
+                          {note.status === 'approved' && canPostCustomerCreditNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note, 'post')}
+                              title={dict.app.pages.salesCustomerCreditNotes.postToArGl}
+                              aria-label={dict.app.pages.salesCustomerCreditNotes.postToArGl}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                            >
+                              {dict.app.pages.salesCustomerCreditNotes.postToArGl}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(note.status) && can('sales.credit_notes') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(note, 'cancel')}
-                          className="text-xs font-semibold text-red-600 hover:text-red-800"
-                        >
-                          {dict.app.pages.salesCustomerCreditNotes.cancel}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          {canSettleCustomerCreditNote(note) ? (
+                            <Link
+                              href={`/sales/receivable-settlements?customer_id=${note.customer_id}&source_entry_id=${note.receivable_entry_id}`}
+                              title={dict.app.pages.salesCustomerCreditNotes.settle}
+                              aria-label={dict.app.pages.salesCustomerCreditNotes.settle}
+                              className="inline-flex h-8 items-center rounded-md border border-purple-200 px-2.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
+                            >
+                              {dict.app.pages.salesCustomerCreditNotes.settle}
+                            </Link>
+                          ) : null}
+
+                          {['draft', 'submitted', 'approved'].includes(note.status) && canManageCustomerCreditNotes ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(note, 'cancel')}
+                              title={dict.app.pages.salesCustomerCreditNotes.cancel}
+                              aria-label={dict.app.pages.salesCustomerCreditNotes.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                            >
+                              {dict.app.pages.salesCustomerCreditNotes.cancel}
+                            </button>
+                          ) : null}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -463,75 +562,50 @@ export default function CustomerCreditNotesIndex({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesCustomerCreditNotes.customer_2} *</label>
-                  <select
-                    disabled={Boolean(editingNote)}
-                    value={data.customer_id}
-                    onChange={(e) => handleCustomerSelect(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.salesCustomerCreditNotes.selectCustomer}</option>
-                    {activeCustomers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.customer_id ? <p className="mt-1 text-[10px] text-red-500">{errors.customer_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesCustomerCreditNotes.customer_2}
+                  disabled={Boolean(editingNote)}
+                  value={data.customer_id || null}
+                  onChange={(value) => handleCustomerSelect(value || '')}
+                  options={customerOptions}
+                  placeholder={dict.app.pages.salesCustomerCreditNotes.selectCustomer}
+                  isClearable={false}
+                  required
+                  error={errors.customer_id}
+                />
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesCustomerCreditNotes.linkedPostedInvoice}</label>
-                  <select
+                  <SearchableSelect
                     disabled={Boolean(editingNote)}
-                    value={data.customer_invoice_id}
-                    onChange={(e) => setData('customer_invoice_id', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.salesCustomerCreditNotes.none}</option>
-                    {postedCustomerInvoices
-                      .filter((inv) => !data.customer_id || inv.customer_id === data.customer_id)
-                      .map((inv) => (
-                        <option key={inv.id} value={inv.id}>
-                          {inv.number || dict.app.pages.salesCustomerCreditNotes.draft_2} - {inv.currency}
-                        </option>
-                      ))}
-                  </select>
+                    value={data.customer_invoice_id || null}
+                    onChange={(value) => handleInvoiceSelect(value || '')}
+                    options={filteredInvoiceOptions}
+                    placeholder={dict.app.pages.salesCustomerCreditNotes.none}
+                    isClearable
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesCustomerCreditNotes.linkedSalesReturn}</label>
-                  <select
+                  <SearchableSelect
                     disabled={Boolean(editingNote)}
-                    value={data.sales_return_id}
-                    onChange={(e) => setData('sales_return_id', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.salesCustomerCreditNotes.none}</option>
-                    {postedSalesReturns
-                      .filter((ret) => !data.customer_id || ret.customer_id === data.customer_id)
-                      .map((ret) => (
-                        <option key={ret.id} value={ret.id}>
-                          {ret.number || dict.app.pages.salesCustomerCreditNotes.draft_2}
-                        </option>
-                      ))}
-                  </select>
+                    value={data.sales_return_id || null}
+                    onChange={(value) => setData('sales_return_id', value || '')}
+                    options={filteredSalesReturnOptions}
+                    placeholder={dict.app.pages.salesCustomerCreditNotes.none}
+                    isClearable
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesCustomerCreditNotes.creditDate_2} *</label>
-                    <input
-                      type="date"
-                      value={data.credit_date}
-                      onChange={(e) => setData('credit_date', e.target.value)}
-                      required
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                    />
-                    {errors.credit_date ? <p className="mt-1 text-[10px] text-red-500">{errors.credit_date}</p> : null}
-                  </div>
+                  <DatePicker
+                    label={dict.app.pages.salesCustomerCreditNotes.creditDate_2}
+                    value={data.credit_date}
+                    onChange={(value) => setData('credit_date', value || '')}
+                    required
+                    error={errors.credit_date}
+                  />
 
                   <div>
                     <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesCustomerCreditNotes.currency} *</label>
@@ -549,18 +623,14 @@ export default function CustomerCreditNotesIndex({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesCustomerCreditNotes.taxMode}</label>
-                  <select
-                    value={data.tax_mode}
-                    onChange={(e) => setData('tax_mode', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="none">{dict.app.pages.salesCustomerCreditNotes.taxNone}</option>
-                    <option value="manual_rate">{dict.app.pages.salesCustomerCreditNotes.manualRate}</option>
-                    <option value="manual_amount">{dict.app.pages.salesCustomerCreditNotes.manualAmount}</option>
-                  </select>
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesCustomerCreditNotes.taxMode}
+                  value={data.tax_mode || null}
+                  onChange={(value) => setData('tax_mode', value || 'none')}
+                  options={taxModeOptions}
+                  isClearable={false}
+                  required
+                />
 
                 {data.tax_mode === 'manual_rate' ? (
                   <div>
@@ -595,7 +665,13 @@ export default function CustomerCreditNotesIndex({
               <div className="pt-4 border-t border-[var(--border)]">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">{dict.app.pages.salesCustomerCreditNotes.creditNoteLines}</h4>
-                  <button type="button" onClick={addLine} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                  <button
+                    type="button"
+                    onClick={addLine}
+                    title={pageDict.addLine}
+                    aria-label={pageDict.addLine}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                  >
                     + {dict.app.pages.salesCustomerCreditNotes.addLine}
                   </button>
                 </div>
@@ -606,18 +682,13 @@ export default function CustomerCreditNotesIndex({
                       {selectedInvoice ? (
                         <div className="w-full lg:w-56">
                           <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">{dict.app.pages.salesCustomerCreditNotes.invoiceLine}</label>
-                          <select
-                            value={item.customer_invoice_line_id || ''}
-                            onChange={(e) => updateLineItem(idx, 'customer_invoice_line_id', e.target.value || null)}
-                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-                          >
-                            <option value="">{dict.app.pages.salesCustomerCreditNotes.selectInvoiceLine}</option>
-                            {selectedInvoice.lines.map((l) => (
-                              <option key={l.id} value={l.id}>
-                                {(l.description || '').slice(0, 40)} ({(l.quantity_e6 || 0) / 1000000})
-                              </option>
-                            ))}
-                          </select>
+                          <SearchableSelect
+                            value={item.customer_invoice_line_id || null}
+                            onChange={(value) => updateLineItem(idx, 'customer_invoice_line_id', value)}
+                            options={invoiceLineOptions}
+                            placeholder={dict.app.pages.salesCustomerCreditNotes.selectInvoiceLine}
+                            isClearable
+                          />
                         </div>
                       ) : null}
 
@@ -671,6 +742,8 @@ export default function CustomerCreditNotesIndex({
                         <button
                           type="button"
                           onClick={() => removeLine(idx)}
+                          title={pageDict.removeLine}
+                          aria-label={pageDict.removeLine}
                           className="text-red-500 hover:text-red-700 text-xs font-bold pb-2"
                         >
                           ✕
@@ -705,6 +778,8 @@ export default function CustomerCreditNotesIndex({
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel_2}
+                  aria-label={pageDict.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.salesCustomerCreditNotes.cancel_2}
@@ -712,9 +787,11 @@ export default function CustomerCreditNotesIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={customerCreditNoteSubmitLabel}
+                  aria-label={customerCreditNoteSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing ? dict.app.pages.salesCustomerCreditNotes.saving : dict.app.pages.salesCustomerCreditNotes.saveDraft}
+                  {customerCreditNoteSubmitLabel}
                 </button>
               </div>
             </form>

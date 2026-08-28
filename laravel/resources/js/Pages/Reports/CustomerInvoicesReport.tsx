@@ -63,6 +63,22 @@ export default function CustomerInvoicesReport({ locale, reportData, filters, cu
         { value: '', label: pageDict.allCurrencies },
         ...currencies.map((c) => ({ value: c.code, label: c.code })),
     ];
+    const statusOptions = [
+        { value: '', label: pageDict.allStatuses },
+        { value: 'draft', label: pageDict.draft },
+        { value: 'submitted', label: pageDict.submitted },
+        { value: 'approved', label: pageDict.approved },
+        { value: 'posted', label: pageDict.posted },
+        { value: 'cancelled', label: pageDict.cancelled },
+    ];
+    const customerOptions = [
+        { value: '', label: pageDict.allCustomers },
+        ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
+    ];
+    const productOptions = [
+        { value: '', label: pageDict.allProducts },
+        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${p.name}` })),
+    ];
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -134,47 +150,27 @@ export default function CustomerInvoicesReport({ locale, reportData, filters, cu
                             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.dateTo}</label>
                             <DatePicker value={dateTo} onChange={(v) => setDateTo(v || '')} />
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.status}</label>
-                            <select
-                                value={status}
-                                onChange={(e) => setStatus(e.target.value)}
-                                className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                            >
-                                <option value="">{pageDict.allStatuses}</option>
-                                <option value="draft">{pageDict.draft}</option>
-                                <option value="submitted">{pageDict.submitted}</option>
-                                <option value="approved">{pageDict.approved}</option>
-                                <option value="posted">{pageDict.posted}</option>
-                                <option value="cancelled">{pageDict.cancelled}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.customer}</label>
-                            <select
-                                value={customerId}
-                                onChange={(e) => setCustomerId(e.target.value)}
-                                className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                            >
-                                <option value="">{pageDict.allCustomers}</option>
-                                {customers.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{pageDict.product}</label>
-                            <select
-                                value={productId}
-                                onChange={(e) => setProductId(e.target.value)}
-                                className="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                            >
-                                <option value="">{pageDict.allProducts}</option>
-                                {products.map((p) => (
-                                    <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <SearchableSelect
+                            label={pageDict.status}
+                            options={statusOptions}
+                            value={status}
+                            onChange={(value) => setStatus(value || '')}
+                            placeholder={pageDict.allStatuses}
+                        />
+                        <SearchableSelect
+                            label={pageDict.customer}
+                            options={customerOptions}
+                            value={customerId}
+                            onChange={(value) => setCustomerId(value || '')}
+                            placeholder={pageDict.allCustomers}
+                        />
+                        <SearchableSelect
+                            label={pageDict.product}
+                            options={productOptions}
+                            value={productId}
+                            onChange={(value) => setProductId(value || '')}
+                            placeholder={pageDict.allProducts}
+                        />
                         <SearchableSelect
                             label={pageDict.currency}
                             options={currencyOptions}

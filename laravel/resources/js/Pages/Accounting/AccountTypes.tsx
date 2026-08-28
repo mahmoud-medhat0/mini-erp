@@ -82,6 +82,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
     e.preventDefault();
     if (editingType) {
       form.patch(`/accounting/account-types/${editingType.id}`, {
+        preserveScroll: true,
         onSuccess: () => {
           setShowAddModal(false);
           setEditingType(null);
@@ -89,6 +90,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
       });
     } else {
       form.post('/accounting/account-types', {
+        preserveScroll: true,
         onSuccess: () => {
           setShowAddModal(false);
           form.reset();
@@ -102,7 +104,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
     if ((at.groups_count ?? 0) > 0 || (at.accounts_count ?? 0) > 0) return;
     const accountTypeName = getLocalizedName(at.name, locale) || at.code;
     if (confirm(dict.app.pages.accountingAccountTypes.confirmDeleteAccountType.replace('{name}', accountTypeName))) {
-      router.delete(`/accounting/account-types/${at.id}`);
+      router.delete(`/accounting/account-types/${at.id}`, { preserveScroll: true });
     }
   }
 
@@ -156,6 +158,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
           <button
             type="button"
             onClick={openCreateModal}
+            title={accDict.addAccountType || pageDict.addAccountType}
+            aria-label={accDict.addAccountType || pageDict.addAccountType}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -176,6 +180,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
             <button
               type="button"
               onClick={() => setShowAddModal(false)}
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -288,6 +294,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
                 {actionsDict.cancel}
@@ -295,6 +303,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
               <button
                 type="submit"
                 disabled={form.processing}
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {actionsDict.save}
@@ -323,6 +333,11 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
           <tbody className="divide-y divide-[var(--border)]">
             {accountTypes.map((at) => {
               const isDeletable = !at.is_system && (at.groups_count ?? 0) === 0 && (at.accounts_count ?? 0) === 0;
+              const deleteActionLabel = at.is_system
+                ? (accDict.systemCannotDelete || pageDict.systemAccountTypesCannotBeDeleted)
+                : !isDeletable
+                ? pageDict.cannotDeleteAccountTypeInUse
+                : actionsDict.delete;
 
               return (
                 <tr key={at.id} className="hover:bg-[var(--background)]/50 transition-colors">
@@ -366,6 +381,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       onClick={() => setSelectedTypeGroupsDetails(at)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 active:scale-95 border border-indigo-500/20"
                       title={pageDict.viewAccountGroupsDetails}
+                      aria-label={pageDict.viewAccountGroupsDetails}
                     >
                       <span>{at.groups_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -380,6 +396,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       onClick={() => setSelectedTypeAccountsDetails(at)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 border border-emerald-500/20"
                       title={pageDict.viewAccountsDetails}
+                      aria-label={pageDict.viewAccountsDetails}
                     >
                       <span>{at.accounts_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -398,6 +415,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                       <button
                         type="button"
                         onClick={() => openEditModal(at)}
+                        title={actionsDict.edit}
+                        aria-label={actionsDict.edit}
                         className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
                       >
                         {actionsDict.edit}
@@ -411,13 +430,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                             ? 'border-red-500/30 bg-red-500/10 text-red-600 hover:bg-red-500/20 cursor-pointer'
                             : 'border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)] cursor-not-allowed opacity-50'
                         }`}
-                        title={
-                          at.is_system
-                            ? (accDict.systemCannotDelete || pageDict.systemAccountTypesCannotBeDeleted)
-                            : !isDeletable
-                            ? pageDict.cannotDeleteAccountTypeInUse
-                            : undefined
-                        }
+                        title={deleteActionLabel}
+                        aria-label={deleteActionLabel}
                       >
                         {actionsDict.delete}
                       </button>
@@ -451,6 +465,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
               <button
                 type="button"
                 onClick={() => setSelectedTypeGroupsDetails(null)}
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -517,6 +533,8 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
               <button
                 type="button"
                 onClick={() => setSelectedTypeAccountsDetails(null)}
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

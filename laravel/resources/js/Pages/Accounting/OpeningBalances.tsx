@@ -65,6 +65,11 @@ export default function OpeningBalances({
   const totalCredit = Object.values(balancesState).reduce((sum, b) => sum + (b?.credit_minor || 0), 0);
   const difference = Math.abs(totalDebit - totalCredit);
   const isBalanced = totalDebit === totalCredit && totalDebit > 0;
+  const postingReadinessMessage = isAlreadyPosted
+    ? accDict.openingPostBlockedPosted
+    : isBalanced
+    ? accDict.openingPostReady
+    : accDict.openingPostBlockedUnbalanced;
 
   function submitDraft(e: FormEvent) {
     e.preventDefault();
@@ -77,12 +82,14 @@ export default function OpeningBalances({
     }));
 
     saveForm.setData('balances', payload);
-    saveForm.post('/accounting/opening-balances');
+    saveForm.post('/accounting/opening-balances', { preserveScroll: true });
   }
 
   function submitPost() {
     if (!isBalanced || isAlreadyPosted) return;
-    postForm.post('/accounting/opening-balances/post');
+    if (!confirm(accDict.confirmPostOpeningJournal)) return;
+
+    postForm.post('/accounting/opening-balances/post', { preserveScroll: true });
   }
 
   const fiscalYearOptions = fiscalYears.map((fy) => ({
@@ -102,6 +109,8 @@ export default function OpeningBalances({
             type="button"
             onClick={submitPost}
             disabled={!isBalanced || isAlreadyPosted || postForm.processing}
+            title={postingReadinessMessage}
+            aria-label={postingReadinessMessage}
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-all cursor-pointer disabled:opacity-40"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -142,7 +151,7 @@ export default function OpeningBalances({
                 value={activeYearId}
                 onChange={(val) => {
                   if (val) {
-                    router.get('/accounting/opening-balances', { fiscal_year_id: val }, { preserveState: false });
+                    router.get('/accounting/opening-balances', { fiscal_year_id: val }, { preserveState: false, preserveScroll: true });
                   }
                 }}
                 isClearable={false}
@@ -251,6 +260,8 @@ export default function OpeningBalances({
             <button
               type="submit"
               disabled={saveForm.processing || isAlreadyPosted}
+              title={accDict.saveDraft}
+              aria-label={accDict.saveDraft}
               className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-40 transition-colors cursor-pointer"
             >
               {accDict.saveDraft}

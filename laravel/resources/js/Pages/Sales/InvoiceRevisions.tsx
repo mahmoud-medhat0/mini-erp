@@ -3,7 +3,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type RevisionRow = {
   id: string;
@@ -30,7 +30,7 @@ type RevisionRow = {
 type InvoiceRevisionsProps = SharedPageProps & {
   customerInvoiceRevisions: {
     data: RevisionRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   filters: {
     search?: string;

@@ -5,6 +5,7 @@ import { Button, Card, EmptyState, PageHeader, SearchableSelect, tableClasses } 
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
+import type { PaginationLink } from '../../Types';
 
 type CategoryOption = {
   id: string;
@@ -37,7 +38,7 @@ type AssetRow = {
 type IndexProps = SharedPageProps & {
   assets: {
     data: AssetRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   categories: CategoryOption[];
   branches: Array<{ id: string; code: string; name: Record<string, string> | string }>;

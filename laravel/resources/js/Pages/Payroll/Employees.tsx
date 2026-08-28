@@ -7,7 +7,7 @@ import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelec
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -38,7 +38,7 @@ type Employee = {
   branch?: Branch | null;
   component_assignments?: Assignment[];
 };
-type PaginatedData<T> = { data: T[]; total: number; links: any[] };
+type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
   employees: PaginatedData<Employee>;
   branches: Branch[];

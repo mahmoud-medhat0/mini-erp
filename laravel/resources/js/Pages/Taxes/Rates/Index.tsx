@@ -1,6 +1,8 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
+import DatePicker from '../../../Components/DatePicker';
+import SearchableSelect from '../../../Components/SearchableSelect';
 import { Card, PageHeader } from '../../../Components/Primitives';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -57,12 +59,13 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
 
   function handleFilter(codeId: string) {
     setSelectedTaxCode(codeId);
-    router.get('/taxes/rates', { tax_code_id: codeId }, { preserveState: true, replace: true });
+    router.get('/taxes/rates', { tax_code_id: codeId }, { preserveState: true, preserveScroll: true, replace: true });
   }
 
   function handleCreateRate(e: FormEvent) {
     e.preventDefault();
     post('/taxes/rates', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowModal(false);
         reset();
@@ -72,9 +75,15 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
 
   function handleDeleteRate(id: string) {
     if (confirm(taxDict.confirmDeleteRate)) {
-      router.delete(`/taxes/rates/${id}`);
+      router.delete(`/taxes/rates/${id}`, { preserveScroll: true });
     }
   }
+
+  const taxCodeOptions = taxCodes.map((code) => ({ value: code.id, label: `${code.code} - ${getTransName(code.name)}` }));
+  const taxCodeFilterOptions = [
+    { value: '', label: taxDict.allTaxCodes },
+    ...taxCodeOptions,
+  ];
 
   return (
     <AppLayout active="taxes.rates.index">
@@ -88,12 +97,17 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
             <div className="flex items-center gap-3">
               <Link
                 href="/taxes/codes"
+                title={taxDict.backToCodes}
+                aria-label={taxDict.backToCodes}
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
               >
                 {taxDict.backToCodes}
               </Link>
               <button
+                type="button"
                 onClick={() => setShowModal(true)}
+                title={taxDict.newTaxRate}
+                aria-label={taxDict.newTaxRate}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,18 +123,12 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
         <Card className="p-4">
           <div className="flex items-center gap-4">
             <div className="w-64">
-              <select
+              <SearchableSelect
+                options={taxCodeFilterOptions}
                 value={selectedTaxCode}
-                onChange={(e) => handleFilter(e.target.value)}
-                className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-              >
-                <option value="">{taxDict.allTaxCodes}</option>
-                {taxCodes.map((code) => (
-                  <option key={code.id} value={code.id}>
-                    {code.code} - {getTransName(code.name)}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => handleFilter(value || '')}
+                placeholder={taxDict.allTaxCodes}
+              />
             </div>
           </div>
         </Card>
@@ -172,7 +180,10 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                       </td>
                       <td className="px-4 py-3 text-right rtl:text-left">
                         <button
+                          type="button"
                           onClick={() => handleDeleteRate(item.id)}
+                          title={taxDict.delete}
+                          aria-label={taxDict.delete}
                           className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline"
                         >
                           {taxDict.delete}
@@ -199,18 +210,13 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   {taxDict.code} *
                 </label>
-                <select
+                <SearchableSelect
+                  options={taxCodeOptions}
                   value={data.tax_code_id}
-                  onChange={(e) => setData('tax_code_id', e.target.value)}
-                  className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
+                  onChange={(value) => setData('tax_code_id', value || '')}
+                  isClearable={false}
                   required
-                >
-                  {taxCodes.map((code) => (
-                    <option key={code.id} value={code.id}>
-                      {code.code} - {getTransName(code.name)}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -232,35 +238,25 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {taxDict.effectiveFrom} *
-                  </label>
-                  <input
-                    type="date"
-                    value={data.effective_from}
-                    onChange={(e) => setData('effective_from', e.target.value)}
-                    className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    {taxDict.effectiveTo}
-                  </label>
-                  <input
-                    type="date"
-                    value={data.effective_to}
-                    onChange={(e) => setData('effective_to', e.target.value)}
-                    className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-                  />
-                </div>
+                <DatePicker
+                  label={taxDict.effectiveFrom}
+                  value={data.effective_from}
+                  onChange={(value) => setData('effective_from', value || '')}
+                  required
+                />
+                <DatePicker
+                  label={taxDict.effectiveTo}
+                  value={data.effective_to}
+                  onChange={(value) => setData('effective_to', value || '')}
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={taxDict.cancel}
+                  aria-label={taxDict.cancel}
                   className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition text-sm font-medium"
                 >
                   {taxDict.cancel}
@@ -268,6 +264,8 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 <button
                   type="submit"
                   disabled={processing}
+                  title={taxDict.save}
+                  aria-label={taxDict.save}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
                 >
                   {taxDict.save}

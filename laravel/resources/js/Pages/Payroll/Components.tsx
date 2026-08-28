@@ -6,7 +6,7 @@ import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, ta
 import { formatAccountingAmount, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, AccountOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Component = {
@@ -27,7 +27,7 @@ type Component = {
   expense_account?: AccountOption | null;
   liability_account?: AccountOption | null;
 };
-type PaginatedData<T> = { data: T[]; total: number; links: any[] };
+type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
   components: PaginatedData<Component>;
   expenseAccounts: AccountOption[];

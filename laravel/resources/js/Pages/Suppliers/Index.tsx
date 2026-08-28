@@ -1,10 +1,10 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierRow = {
   id: string;
@@ -24,7 +24,7 @@ type SupplierStatus = SupplierRow['status'];
 type SuppliersProps = SharedPageProps & {
   suppliers: {
     data: SupplierRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   filters: {
     search?: string;
@@ -39,6 +39,7 @@ function toSupplierStatus(value: string): SupplierStatus {
 export default function SuppliersIndex({ locale, suppliers, filters }: SuppliersProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.suppliers;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -80,6 +81,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
     e.preventDefault();
     if (editingSupplier) {
       patch(`/suppliers/${editingSupplier.id}`, {
+        preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
           reset();
@@ -87,6 +89,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
       });
     } else {
       post('/suppliers', {
+        preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
           reset();
@@ -94,6 +97,27 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
       });
     }
   };
+
+  const statusOptions = [
+    { value: 'active', label: pageDict.active },
+    { value: 'inactive', label: pageDict.inactive },
+  ];
+  const activeFilterCount = [filters.search, filters.status].filter(Boolean).length;
+
+  const applyFilters = (next: Record<string, string>) => {
+    const search = next.search ?? filters.search ?? '';
+    const status = next.status ?? filters.status ?? '';
+    const params: Record<string, string> = {};
+
+    if (search) params.search = search;
+    if (status) params.status = status;
+
+    router.get('/suppliers', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/suppliers', {}, { preserveScroll: true, preserveState: true });
+  }
 
   return (
     <AppLayout active="suppliers.index">
@@ -107,6 +131,8 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.createSupplier}
+              aria-label={pageDict.createSupplier}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.suppliers.createSupplier}
@@ -124,11 +150,19 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 const target = e.target as HTMLInputElement;
-                window.location.href = `/suppliers?search=${encodeURIComponent(target.value)}`;
+                applyFilters({ search: target.value });
               }
             }}
             className="w-72 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
           />
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
+            value={filters.status || ''}
+            onChange={(value) => applyFilters({ status: value || '' })}
+            className="w-44"
+            isSearchable={false}
+          />
+          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
         </div>
       </Card>
 
@@ -165,15 +199,21 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    {can('suppliers.edit') ? (
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(supplier)}
-                        className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                      >
-                        {dict.app.pages.suppliers.edit}
-                      </button>
-                    ) : null}
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {can('suppliers.edit') ? (
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(supplier)}
+                          title={pageDict.edit}
+                          aria-label={pageDict.edit}
+                          className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+                        >
+                          {dict.app.pages.suppliers.edit}
+                        </button>
+                      ) : (
+                        <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -209,14 +249,14 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.suppliers.status_2} *
                   </label>
-                  <select
+                  <SearchableSelect
+                    options={statusOptions}
                     value={data.status}
-                    onChange={(e) => setData('status', toSupplierStatus(e.target.value))}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-                  >
-                    <option value="active">{dict.app.pages.suppliers.active}</option>
-                    <option value="inactive">{dict.app.pages.suppliers.inactive}</option>
-                  </select>
+                    onChange={(value) => setData('status', toSupplierStatus(value || 'active'))}
+                    isClearable={false}
+                    isSearchable={false}
+                    required
+                  />
                 </div>
               </div>
 
@@ -287,6 +327,8 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.suppliers.cancel}
@@ -294,6 +336,8 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
                 <button
                   type="submit"
                   disabled={processing}
+                  title={pageDict.saveSupplier}
+                  aria-label={pageDict.saveSupplier}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.suppliers.saving : dict.app.pages.suppliers.saveSupplier}

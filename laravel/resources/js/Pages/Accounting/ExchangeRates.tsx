@@ -4,12 +4,12 @@ import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
-import type { CurrencyRow, FxRateRow, SharedPageProps } from '../../Types';
+import type { PaginationLink, CurrencyRow, FxRateRow, SharedPageProps } from '../../Types';
 
 type ExchangeRatesProps = SharedPageProps & {
   rates: {
     data: FxRateRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   currencies?: CurrencyRow[];
   baseCurrency?: string | null;
@@ -38,6 +38,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
   function submit(e: FormEvent) {
     e.preventDefault();
     form.post('/accounting/fx-rates', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowModal(false);
         form.reset();
@@ -75,6 +76,8 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
         actions={
           <button
             type="button"
+            title={accDict.setFxRate}
+            aria-label={accDict.setFxRate}
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all"
           >
@@ -146,6 +149,8 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
             </h3>
             <button
               type="button"
+              title={actionsDict.close}
+              aria-label={actionsDict.close}
               onClick={() => setShowModal(false)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
@@ -205,6 +210,8 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
             <div className="sm:col-span-3 flex justify-end gap-3 mt-2">
               <button
                 type="button"
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 onClick={() => setShowModal(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
@@ -212,6 +219,8 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
               </button>
               <button
                 type="submit"
+                title={accDict.saveFxRate}
+                aria-label={accDict.saveFxRate}
                 disabled={form.processing || currencyOptions.length === 0}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >

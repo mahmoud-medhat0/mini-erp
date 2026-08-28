@@ -525,6 +525,8 @@ export default function WarehousesIndex({
                               type="button"
                               onClick={() => openEditLocation(location)}
                               className="rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-1 text-xs font-bold text-[var(--text-primary)] hover:border-[var(--primary)]"
+                              title={pageDict.editLocation}
+                              aria-label={pageDict.editLocation}
                             >
                               {location.code} - {getLocalizedName(location.name, locale)}
                             </button>

@@ -5,6 +5,349 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Changed - Phase 15 Product Hardening Slices 1-190 (2026-08-28)
+
+- Closed Phase 15 Product Hardening for the current product-hardening gate.
+- Replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` across financial reports, sales, purchasing, landed-cost, fixed-asset, and tax-rate workflows.
+- Extended the global Inertia page control/navigation/type regression guard to block native `type="date"` inputs in addition to native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination link types.
+- Verified the Slice 190 guard, `Phase15ProductHardeningTest`, full Pages native-control scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-189 (2026-08-28)
+
+- Added a global Phase 15 regression guard preventing native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination link types from returning to Inertia pages.
+- Converted the previously manual Pages native-control/navigation/type scan into permanent PHPUnit coverage.
+- Verified the global page control/navigation/type guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, global button scanner, Pint, and controller direct-query scan.
+
+### Changed - Phase 15 Product Hardening Slices 1-188 (2026-08-28)
+
+- Closed the remaining Inertia page button accessibility gaps across Expenses Categories, Fixed Asset create/edit/depreciation/disposal flows, Warehouses location chips, Sales Invoice Revision print action, and Tax Code create/edit forms.
+- Added scroll-safe state-changing submissions to fixed-asset create/edit/depreciation/reverse flows and tax-code create/edit forms where they were still missing.
+- Added a global Phase 15 regression guard requiring every `resources/js/Pages/**/*.tsx` `<button>` to expose `title` or `aria-label`.
+- Verified the standalone Pages button scanner reports `TOTAL_FILES=0` and `TOTAL_MISSING=0`; `Phase15ProductHardeningTest`, Pint, TypeScript typecheck, Vite build, native-select/pagination scan, no-scope scan, and controller direct-query scan passed.
+
+### Changed - Phase 15 Product Hardening Slices 1-187 (2026-08-28)
+
+- Added dictionary-backed accessible names to Balance Sheet, Income Statement, Cash Flow, fixed-asset reports, Tax Codes, and Stock Balances actions.
+- Preserved scroll-safe report filters, tax-code search/delete, and stock-balance filtering.
+- Verified report/tax-code/stock-balance accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-186 (2026-08-28)
+
+- Added dictionary-backed accessible names to Journal Form, General Journal, Trial Balance, and Opening Balances actions.
+- Preserved scroll-safe journal draft, opening-balance save/post, fiscal-year switch, and trial-balance generation submissions.
+- Added the missing `accounting.removeLine` dictionary key in EN/AR.
+- Verified core accounting workflow accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-185 (2026-08-28)
+
+- Added dictionary-backed accessible names to Delivery Notes, Goods Receipts, and Purchase Returns create, cancel, and save modal actions.
+- Preserved scroll-safe search/status/warehouse filtering, create/update, and lifecycle submissions across the three operational pages.
+- Verified delivery/goods-receipt/purchase-return accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-184 (2026-08-28)
+
+- Added dictionary-backed accessible names to Notifications read/filter actions and Tax Rates back, create, delete, cancel, and save actions.
+- Preserved scroll-safe notification read/read-all submissions and tax-rate filter/create/delete submissions.
+- Verified notification/tax-rate accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-183 (2026-08-28)
+
+- Added dictionary-backed accessible names to Fixed Asset Categories and Fixed Asset Locations create, edit, delete, cancel/back, and save actions.
+- Preserved scroll-safe create/update/delete submissions across fixed-asset master-data pages.
+- Verified fixed-asset master-data accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-182 (2026-08-28)
+
+- Added dictionary-backed accessible names to Customer Credit Notes and Supplier Adjustment Notes create, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe search/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions across both note workspaces.
+- Added Customer Credit Notes and Supplier Adjustment Notes `removeLine` dictionary entries.
+- Verified credit/adjustment note modal accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-181 (2026-08-28)
+
+- Added dictionary-backed accessible names to Sales Orders and Purchase Orders create, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe search/status filtering, create/update, and lifecycle submit/confirm/cancel submissions across the two order workspaces.
+- Added Sales Orders and Purchase Orders `removeLine` dictionary entries.
+- Verified sales/purchase order modal accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-180 (2026-08-28)
+
+- Added dictionary-backed accessible names to Catalog Product Categories, Products/Services, and Units of Measure create, edit, delete, cancel, and save actions.
+- Preserved scroll-safe search, create, update, and delete submissions across the three catalog master-data pages.
+- Moved the Products code placeholder to EN/AR locale dictionaries.
+- Verified catalog master-data accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-179 (2026-08-28)
+
+- Added dictionary-backed accessible names to Login language, theme, password visibility, submit, and development quick-fill actions.
+- Replaced hardcoded theme action title text with EN/AR dictionary-backed text.
+- Hid the development credential quick-fill helper behind the Vite development flag so it is absent from production builds.
+- Verified login accessible-action/dev-credentials guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-178 (2026-08-28)
+
+- Added dictionary-backed accessible names to Sales Return create, source-mode, load-lines, cancel, and save actions.
+- Preserved scroll-safe Sales Return search/warehouse/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions.
+- Verified sales-return modal accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-177 (2026-08-28)
+
+- Added dictionary-backed accessible names to Supplier Bill create, filter, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe Supplier Bill filtering, create/update, and lifecycle submit/approve/post/cancel submissions.
+- Verified supplier-bill modal accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-176 (2026-08-28)
+
+- Added dictionary-backed accessible names to Audit Log reset, filter, entity/request detail, payload, pagination, and modal-close actions.
+- Preserved scroll-safe Audit Log filter, reset, previous-page, and next-page navigation.
+- Verified audit-log accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-175 (2026-08-28)
+
+- Added dictionary-backed accessible names to Journal Detail submit, approve, post, reverse, number-details, and modal-close actions.
+- Preserved scroll-safe journal submit/approve/post/reverse submissions.
+- Verified journal-detail financial-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-174 (2026-08-28)
+
+- Added dictionary-backed accessible names to Customer Invoice create, source-mode, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe Customer Invoice search/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions.
+- Verified customer-invoice modal accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-173 (2026-08-28)
+
+- Added dictionary-backed accessible names to Landed Cost create/close form, cancel, save draft/save changes, filter, edit, submit, approve, post, and cancel lifecycle actions.
+- Preserved scroll-safe landed-cost create/update, lifecycle submit/approve/post/cancel, and filter submissions.
+- Verified landed-cost lifecycle accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-172 (2026-08-28)
+
+- Added dictionary-backed accessible names to Fixed Asset detail back, edit, generate/regenerate depreciation schedule, capitalize, dispose, move, reverse capitalization, delete, modal cancel, record movement, and post disposal actions.
+- Preserved scroll-safe fixed-asset delete, capitalization, reverse-capitalization, schedule-generation, movement, and disposal submissions.
+- Verified fixed-asset detail financial-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-171 (2026-08-28)
+
+- Added dictionary-backed accessible names to Financial Statement Mapping add, tab, assign, edit, delete, unassign, modal close, cancel, and save actions.
+- Added dictionary-backed accessible names to Fiscal Periods create fiscal year, cancel, generate periods, close modal, close period, and reopen period actions.
+- Preserved scroll-safe fiscal-year generation and close/reopen period submissions, then verified the Slice 171 guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-170 (2026-08-28)
+
+- Added dictionary-backed accessible names to Users/Roles security administration user, role, permission, revoke, delete, tab, modal, cancel, save, create, and assign actions.
+- Preserved scroll-safe user/role create/update/delete, assignment, and revoke submissions.
+- Verified user/role security accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-169 (2026-08-28)
+
+- Added dictionary-backed accessible names to Chart of Accounts, Currencies, and FX Rates create, edit, delete, linked-detail, cancel, save, and close controls.
+- Preserved scroll on accounting setup create/update/delete submissions so accountants keep table context after setup maintenance.
+- Verified accounting setup accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-168 (2026-08-28)
+
+- Added dictionary-backed accessible names to Account Categories and Account Types create, edit, detail, delete, cancel, save, and close actions.
+- Preserved scroll on accounting taxonomy create/update/delete flows and kept delete block reasons visible for blocked taxonomy records.
+- Verified accounting taxonomy accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-167 (2026-08-28)
+
+- Added dictionary-backed accessible names to Company, Branches, and Numbering settings close, cancel, save, add, attachment, detail, edit, and delete actions.
+- Preserved scroll on branch deletion so settings operators keep table context after destructive actions.
+- Verified foundation settings accessible-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-166 (2026-08-28)
+
+- Added dictionary-backed accessible names to Customer, Supplier, Cash Account, and Bank Account create, edit, cancel, and save actions.
+- Added visible restricted badges for master-data row actions when the current user lacks edit permission.
+- Preserved scroll on master-data create/update submissions and verified the master-data action accessible-name guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-165 (2026-08-28)
+
+- Added dictionary-backed accessible names to Receivable Settlement and Payable Settlement back links, settlement confirm actions, reverse actions, and reversal modal actions.
+- Preserved existing AR/AP settlement routes and scroll-safe settlement/reversal submissions.
+- Verified AR/AP settlement accessible-name guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-164 (2026-08-28)
+
+- Added accessible execute/reverse action names to Receivable Allocations and Payable Allocations.
+- Added visible restricted badges and scroll-safe allocation create/reverse actions so AR/AP allocation workspaces keep context after financial actions.
+- Verified AR/AP allocation accessibility/restricted/scroll guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-163 (2026-08-28)
+
+- Grouped Treasury Transfer row actions with permission-aware controls, restricted/no-action badges, and stable dictionary-backed accessible names.
+- Added `preserveScroll` to Treasury Transfer create/update/post/cancel flows so accountants keep table context after internal fund-transfer actions.
+- Verified Treasury Transfer action accessibility/scroll guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-162 (2026-08-28)
+
+- Added dictionary-backed `title` and `aria-label` values to AR/AP opening balance, customer receipt, and supplier payment create/post/allocate/save/cancel actions.
+- Added scroll-safe Inertia state-changing actions for AR/AP opening balance, receipt, and payment creation/posting so accountants keep table context after workflow actions.
+- Verified AR/AP receipt/payment/opening-balance accessible-name guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-161 (2026-08-28)
+
+- Added dictionary-backed `title` and `aria-label` values to cheque and bank reconciliation modal/primary buttons.
+- Preserved existing financial dialog flows while improving keyboard and assistive-technology clarity for create, confirm, add-line, match, and close actions.
+- Verified cheque/bank-reconciliation modal accessible-name guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-160 (2026-08-28)
+
+- Grouped dense lifecycle action cells in Incoming Cheques, Outgoing Cheques, and Bank Reconciliation workspaces.
+- Added explicit permission predicates, dictionary-backed restricted/no-action states, compact action controls, and scroll-safe reconciliation add/match/unmatch/delete/finalize actions.
+- Verified cheque/bank-reconciliation action-cell guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-159 (2026-08-28)
+
+- Grouped dense lifecycle action cells in Prepaid Schedules, Accrual Schedules, and Fixed Asset Depreciation Runs.
+- Added explicit permission predicates, dictionary-backed restricted/no-action states, compact action controls, and preserved `view_financials` guards for schedule recognition/accrual posting.
+- Verified expense schedule/depreciation-run action-cell guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-158 (2026-08-28)
+
+- Grouped dense lifecycle action cells in Stock Counts, Stock Adjustments, Stock Transfers, Rental Contracts, Rental Invoices, Payroll Runs, and Expenses.
+- Added explicit permission predicates, dictionary-backed restricted/no-action states, compact action controls, and preserved financial-posting guards for accountant-facing operational tables.
+- Verified inventory/rental/payroll/expense action-cell guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-157 (2026-08-28)
+
+- Grouped dense lifecycle action cells in Customer Invoices, Supplier Bills, Sales Returns, Customer Credit Notes, Purchase Returns, and Supplier Adjustment Notes.
+- Added dictionary-backed restricted/no-action states and compact action controls, including styled settlement links for posted adjustment documents.
+- Verified invoice/return action-cell guard, financial post-action permission guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-156 (2026-08-28)
+
+- Grouped dense lifecycle action cells in Sales Orders, Purchase Orders, Delivery Notes, and Goods Receipts with compact action buttons.
+- Added dictionary-backed restricted states for permission-blocked actionable rows and no-action states for terminal rows.
+- Verified sales/purchasing document action-cell guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-155 (2026-08-28)
+
+- Replaced blank AR/AP posting action cells with dictionary-backed restricted status badges on Customer/Supplier Opening Balances and Customer Receipt/Supplier Payment pages.
+- Replaced Customer Receipt and Supplier Payment allocation anchors with Inertia `Link` navigation and added confirmation-title text to row-level post actions.
+- Verified restricted-action guard, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-154 (2026-08-28)
+
+- Added dictionary-backed pre-posting confirmations for Journal Detail ledger posting and Opening Balances ledger posting.
+- Added Opening Balances readiness messaging through translated `title` and `aria-label` values for ready, unbalanced, and already-posted states.
+- Verified JournalDetail and OpeningBalances guards, `Phase15ProductHardeningTest`, full Pages native-select/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-153 (2026-08-28)
+
+- Replaced remaining loose paginated Inertia page `links` payload types with shared `PaginationLink[]` across catalog, sales, purchasing, expenses, payroll, rentals, fixed assets, accounting, master data, and treasury pages.
+- Preserved all route payloads and business behavior; this was a TypeScript contract cleanup only.
+- Verified pagination-link typing guard, `Phase15ProductHardeningTest`, full Pages native-select scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-152 (2026-08-28)
+
+- Replaced remaining Sales/Purchasing returns, adjustment-note, and landed-cost native controls with shared `SearchableSelect` controls.
+- Filled linked invoice/bill currency on credit-note and supplier-adjustment source selection while preserving source-document, status, posting, and query behavior.
+- Verified returns/adjustments/landed-cost select-control guard, returns/credit-note and landed-cost suites, `Phase15ProductHardeningTest`, full Pages native-select scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-151 (2026-08-28)
+
+- Replaced Customer Invoices and Supplier Bills status filters plus source-document, customer/supplier, and line product selectors with shared `SearchableSelect` controls.
+- Preserved invoice/bill payloads, source-document copy behavior, product-to-UOM defaulting, status actions, permissions, and query parameter names.
+- Verified Customer Invoice/Supplier Bill select-control guard, customer invoice/supplier bill/VAT suites, `Phase15ProductHardeningTest`, controller direct-query scan, native-select inventory scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-150 (2026-08-28)
+
+- Replaced Delivery Notes and Goods Receipts warehouse/status filters plus source-document and warehouse modal selectors with shared `SearchableSelect` controls.
+- Preserved fulfillment payloads, source-document locking during edit, warehouse selection, status actions, permissions, and query parameter names.
+- Verified Delivery/Goods Receipt select-control guard, fulfillment/inventory costing suites, `Phase15ProductHardeningTest`, controller direct-query scan, native-select inventory scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-149 (2026-08-28)
+
+- Replaced Sales Orders and Purchase Orders status filters plus customer/supplier, currency, and product modal selectors with shared `SearchableSelect` controls.
+- Preserved existing order creation/editing payloads, product-to-UOM defaulting, status actions, permissions, and query parameter names.
+- Verified Sales/Purchase Order select-control guard, Sales/Purchase Order suites, `Phase15ProductHardeningTest`, controller direct-query scan, native-select inventory scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-148 (2026-08-28)
+
+- Replaced Settings Company and Branch attachment entity native selects with shared `SearchableSelect` controls.
+- Kept attachment entity selection non-clearable so attachment panels always target an explicit selected record.
+- Verified Settings attachment selector guard, Settings/MigratedPages suites, `Phase15ProductHardeningTest`, controller direct-query scan, native-select inventory scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-147 (2026-08-28)
+
+- Replaced Rental handover line condition-out and Rental return line condition-in/outcome native selects with shared `SearchableSelect` controls.
+- Kept rental fulfillment line choices non-clearable so operational condition and inspection outcome values remain explicit.
+- Verified Rental line select-control guard, rental foundation/billing suites, `Phase15ProductHardeningTest`, controller direct-query scan, native-select inventory scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-146 (2026-08-26)
+
+- Replaced Fixed Asset create category/currency, disposal type, and depreciation-run period native selects with shared `SearchableSelect` controls.
+- Preserved fixed-asset creation, capitalization, disposal, depreciation posting, permissions, and PostingEngine behavior.
+- Verified Fixed Asset workflow select-control guard, fixed-asset register/depreciation/disposal suites, `Phase15ProductHardeningTest`, controller direct-query scan, page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-145 (2026-08-26)
+
+- Replaced Product Catalog type/status filters and create/edit modal type/UOM/category/status controls with shared `SearchableSelect` controls.
+- Exposed the existing backend-supported product category filter with EN/AR `allCategories` labels.
+- Verified Product Catalog select-control guard, Arabic modal label guard, `Phase4Slice1CatalogTest`, `Phase15ProductHardeningTest`, controller direct-query scan, page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-144 (2026-08-26)
+
+- Replaced Accounting Account Mapping scope control and Financial Statement Mapping statement-line, section, normal-balance, and cash-flow activity controls with shared `SearchableSelect` controls.
+- Preserved operational branch override behavior, statement mapping lifecycle, cash-flow classification behavior, route permissions, and delete confirmations.
+- Verified accounting mapping select-control guard, `Phase5Slice1FinancialStatementMappingTest`, `Phase10BranchSpecificGlMappingTest`, `Phase15ProductHardeningTest`, controller direct-query scan, page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-143 (2026-08-26)
+
+- Replaced Tax Rates tax-code selectors and Tax Code calculation/recoverability selectors with shared `SearchableSelect` controls.
+- Added explicit Tax Code form TypeScript types to keep select values narrowed without event-value casts.
+- Verified tax master select-control guard, `Phase7Slice2TaxFoundationTest`, `Phase15ProductHardeningTest`, controller direct-query scan, page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-142 (2026-08-26)
+
+- Replaced Fixed Asset Register, Net Book Value, Depreciation Schedule, Depreciation Run, and Disposal report status/type native filters with shared `SearchableSelect` controls.
+- Preserved fixed-asset report services, route query names, export links, print actions, and financial visibility permissions.
+- Verified fixed-asset report filter guard, `Phase6Slice7FixedAssetReportsTest`, `Phase15ProductHardeningTest`, controller direct-query scan, page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-141 (2026-08-26)
+
+- Replaced native status/customer/supplier/product filter selects in Sales Orders, Purchase Orders, Customer Invoices, and Supplier Bills reports with shared `SearchableSelect` controls.
+- Preserved existing report routes, query parameters, visible currency filtering, active-filter counts, guarded resets, and export behavior.
+- Verified operational report filter guard, `Phase4Slice9OperationalReportsTest`, `Phase15ProductHardeningTest`, controller direct-query scan, page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-140 (2026-08-26)
+
+- Replaced Balance Sheet, Income Statement, and Cash Flow CSV export redirects with native export links.
+- Replaced Customer Receipt and Supplier Payment native cash/bank type selects with shared `SearchableSelect` controls.
+- Verified focused financial statement and AR/AP receipt/payment UX guards, `Phase15ProductHardeningTest`, controller direct-query scan, global page redirect scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-138 (2026-08-26)
+
+- Replaced Treasury Transfers full-page search reloads with Inertia `router.get(...)` filter updates.
+- Added status filtering, guarded clear-filter actions, and shared `SearchableSelect` controls for source/destination cash-bank type fields.
+- Added regression coverage for Treasury Transfers filter and endpoint-type UX.
+
+### Changed - Phase 15 Product Hardening Slices 1-137 (2026-08-26)
+
+- Replaced AR/AP allocation receipt/payment selection redirects with Inertia `router.get(...)` filter updates.
+- Added customer/supplier searchable filters to allocation workspaces and converted manual AR/AP settlement selectors to shared `SearchableSelect` controls.
+- Added guarded clear-filter actions, EN/AR allocation filter labels, and regression coverage for AR/AP allocation and settlement filter UX.
+
+### Changed - Phase 15 Product Hardening Slices 1-136 (2026-08-26)
+
+- Replaced customer/supplier full-page search reloads with Inertia `router.get(...)` filter updates that preserve state and scroll.
+- Added backend-supported status filters and converted create/edit modal status controls to shared `SearchableSelect` components.
+- Added guarded clear-filter actions, EN/AR all-status labels, and regression coverage for customer/supplier master-data filter UX.
+
+### Changed - Phase 15 Product Hardening Slices 1-135 (2026-08-26)
+
+- Replaced native cash/bank/cheque register filter selects with shared `SearchableSelect` controls in Cash Accounts, Bank Accounts, Incoming Cheques, Outgoing Cheques, and Bank Reconciliations.
+- Replaced full-page filter reloads with Inertia `router.get(...)` calls preserving state and scroll, added guarded clear actions, and localized cheque status option/badge labels.
+- Verified targeted cash/bank/cheque filter-control guard, Phase 3 focused suites, locale JSON validation, Phase15ProductHardeningTest, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
+### Changed - Phase 15 Product Hardening Slices 1-134 (2026-08-26)
+
+- Replaced native fixed-asset filter selects with shared `SearchableSelect` controls in Fixed Asset Register, Locations, and Disposals.
+- Added active-filter counts and disabled no-op clear-filter actions in the touched fixed asset pages.
+- Verified targeted fixed-asset filter-control guard, focused fixed asset suites, locale JSON validation, Phase15ProductHardeningTest, controller direct-query scan, Pint, TypeScript typecheck, and Vite build.
+
 ### Changed - Phase 15 Product Hardening Slices 1-133 (2026-08-26)
 
 - Replaced native rental status/type filter selects with shared `SearchableSelect` controls in Handovers, Returns, and Invoices.

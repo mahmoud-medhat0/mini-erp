@@ -2,11 +2,11 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type BranchRef = { id: string; code: string; name: Record<string, string> | string };
 type EndpointAccount = {
@@ -45,7 +45,7 @@ type FiscalYearOption = { id: string; year: number; status: string };
 type PeriodOption = { id: string; fiscal_year_id: string; month: number; start_date: string; end_date: string; status: string };
 
 type TreasuryTransferProps = SharedPageProps & {
-  transfers: { data: TreasuryTransferRow[]; links: unknown[] };
+  transfers: { data: TreasuryTransferRow[]; links: PaginationLink[] };
   cashAccounts: EndpointAccount[];
   bankAccounts: EndpointAccount[];
   fiscalYears: FiscalYearOption[];
@@ -61,12 +61,16 @@ export default function TreasuryTransfersIndex({
   bankAccounts = [],
   fiscalYears = [],
   financialPeriods = [],
+  statuses = [],
   filters,
 }: TreasuryTransferProps) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.treasuryTransfers;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCreateTreasuryTransfers = can('cash.create') || can('banks.create');
+  const canEditTreasuryTransfers = can('cash.edit') || can('banks.edit');
+  const canPostTreasuryTransfers = (can('cash.post') || can('banks.post')) && can('view_financials');
   const [showModal, setShowModal] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<TreasuryTransferRow | null>(null);
 
@@ -128,12 +132,49 @@ export default function TreasuryTransfersIndex({
   const periodOptions = financialPeriods
     .filter((period) => !data.fiscal_year_id || period.fiscal_year_id === data.fiscal_year_id)
     .map((period) => ({ value: period.id, label: `${period.start_date} - ${period.end_date}` }));
+  const endpointTypeOptions = [
+    { value: 'cash', label: pageDict.cash },
+    { value: 'bank', label: pageDict.bank },
+  ];
+  const statusOptions = (statuses.length > 0 ? statuses : ['draft', 'posted', 'cancelled']).map((status) => ({
+    value: status,
+    label: statusLabel(status),
+  }));
+  const activeFilterCount = [filters.search, filters.status].filter(Boolean).length;
+  const isTreasuryTransferActionable = (row: TreasuryTransferRow) => row.status === 'draft';
+  const hasAvailableTreasuryTransferAction = (row: TreasuryTransferRow) => isTreasuryTransferActionable(row) && (canEditTreasuryTransfers || canPostTreasuryTransfers);
+  const getTreasuryTransferActionState = (row: TreasuryTransferRow) => {
+    if (isTreasuryTransferActionable(row) && !hasAvailableTreasuryTransferAction(row)) {
+      return dict.app.actions.restricted;
+    }
+
+    if (!isTreasuryTransferActionable(row)) {
+      return dict.app.actions.noActions;
+    }
+
+    return null;
+  };
 
   const formatMoney = (minor: number, currency: string) => (minor / 100).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }) + ` ${currency}`;
   const formatTreasuryMoney = (minor: number, currency?: string | null) => (currency ? formatMoney(minor, currency) : accDict.notAvailable);
+
+  const applyFilters = (next: Record<string, string>) => {
+    const search = next.search ?? filters.search ?? '';
+    const status = next.status ?? filters.status ?? '';
+    const params: Record<string, string> = {};
+
+    if (search) params.search = search;
+    if (status) params.status = status;
+
+    router.get('/treasury-transfers', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/treasury-transfers', {}, { preserveScroll: true, preserveState: true });
+  }
 
   const openCreateModal = () => {
     setEditingTransfer(null);
@@ -178,6 +219,7 @@ export default function TreasuryTransfersIndex({
     }));
 
     const options = {
+      preserveScroll: true,
       onSuccess: () => {
         setShowModal(false);
         reset();
@@ -193,13 +235,13 @@ export default function TreasuryTransfersIndex({
 
   const handlePost = (id: string) => {
     if (window.confirm(pageDict.confirmPost)) {
-      router.post(`/treasury-transfers/${id}/post`);
+      router.post(`/treasury-transfers/${id}/post`, {}, { preserveScroll: true });
     }
   };
 
   const handleCancel = (id: string) => {
     if (window.confirm(pageDict.confirmCancel)) {
-      router.post(`/treasury-transfers/${id}/cancel`);
+      router.post(`/treasury-transfers/${id}/cancel`, {}, { preserveScroll: true });
     }
   };
 
@@ -210,28 +252,36 @@ export default function TreasuryTransfersIndex({
       <PageHeader
         title={pageDict.treasuryTransfers}
         description={pageDict.description}
-        actions={can('cash.create') || can('banks.create') ? (
-          <button type="button" onClick={openCreateModal} className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer">
+        actions={canCreateTreasuryTransfers ? (
+          <button type="button" onClick={openCreateModal} title={pageDict.newTransfer} aria-label={pageDict.newTransfer} className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer">
             {pageDict.newTransfer}
           </button>
         ) : null}
       />
 
       <Card className="p-4 mb-6">
-        <input
-          type="text"
-          placeholder={pageDict.searchPlaceholder}
-          defaultValue={filters.search || ''}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              const target = e.target as HTMLInputElement;
-              const params = new URLSearchParams();
-              if (target.value) params.set('search', target.value);
-              window.location.href = `/treasury-transfers${params.toString() ? `?${params.toString()}` : ''}`;
-            }
-          }}
-          className="w-80 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            placeholder={pageDict.searchPlaceholder}
+            defaultValue={filters.search || ''}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const target = e.target as HTMLInputElement;
+                applyFilters({ search: target.value });
+              }
+            }}
+            className="w-80 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
+          />
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
+            value={filters.status || ''}
+            onChange={(value) => applyFilters({ status: value || '' })}
+            className="w-44"
+            isSearchable={false}
+          />
+          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
+        </div>
       </Card>
 
       {transfers.data.length === 0 ? (
@@ -259,22 +309,27 @@ export default function TreasuryTransfersIndex({
                   <td className={tableClasses.td}>{endpointLabel(rowEndpoint(row, 'destination'))}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{formatTreasuryMoney(row.amount_minor, row.currency)}</td>
                   <td className={tableClasses.td}><StatusBadge tone={statusTone(row.status)}>{statusLabel(row.status)}</StatusBadge></td>
-                  <td className={`${tableClasses.td} space-x-2`}>
-                    {row.status === 'draft' && (can('cash.edit') || can('banks.edit')) ? (
-                      <button type="button" onClick={() => openEditModal(row)} className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer">
-                        {pageDict.editTransfer}
-                      </button>
-                    ) : null}
-                    {row.status === 'draft' && (can('cash.post') || can('banks.post')) && can('view_financials') ? (
-                      <button type="button" onClick={() => handlePost(row.id)} className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer">
-                        {pageDict.post}
-                      </button>
-                    ) : null}
-                    {row.status === 'draft' && (can('cash.edit') || can('banks.edit')) ? (
-                      <button type="button" onClick={() => handleCancel(row.id)} className="text-xs font-bold text-red-600 hover:underline cursor-pointer">
-                        {pageDict.cancelTransfer}
-                      </button>
-                    ) : null}
+                  <td className={tableClasses.td}>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {row.status === 'draft' && canEditTreasuryTransfers ? (
+                        <button type="button" onClick={() => openEditModal(row)} title={pageDict.editTransfer} aria-label={pageDict.editTransfer} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
+                          {pageDict.editTransfer}
+                        </button>
+                      ) : null}
+                      {row.status === 'draft' && canPostTreasuryTransfers ? (
+                        <button type="button" onClick={() => handlePost(row.id)} title={pageDict.confirmPost} aria-label={pageDict.confirmPost} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">
+                          {pageDict.post}
+                        </button>
+                      ) : null}
+                      {row.status === 'draft' && canEditTreasuryTransfers ? (
+                        <button type="button" onClick={() => handleCancel(row.id)} title={pageDict.confirmCancel} aria-label={pageDict.confirmCancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">
+                          {pageDict.cancelTransfer}
+                        </button>
+                      ) : null}
+                      {getTreasuryTransferActionState(row) ? (
+                        <StatusBadge tone="muted">{getTreasuryTransferActionState(row)}</StatusBadge>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -312,14 +367,16 @@ export default function TreasuryTransfersIndex({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.sourceType}</label>
-                  <select
+                  <SearchableSelect
+                    options={endpointTypeOptions}
                     value={data.source_type}
-                    onChange={(e) => setData({ ...data, source_type: e.target.value as 'cash' | 'bank', source_cash_account_id: '', source_bank_account_id: '' })}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                  >
-                    <option value="cash">{pageDict.cash}</option>
-                    <option value="bank">{pageDict.bank}</option>
-                  </select>
+                    onChange={(value) => {
+                      const sourceType = value === 'bank' ? 'bank' : 'cash';
+                      setData({ ...data, source_type: sourceType, source_cash_account_id: '', source_bank_account_id: '' });
+                    }}
+                    isClearable={false}
+                    isSearchable={false}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.sourceAccount}</label>
@@ -336,14 +393,16 @@ export default function TreasuryTransfersIndex({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.destinationType}</label>
-                  <select
+                  <SearchableSelect
+                    options={endpointTypeOptions}
                     value={data.destination_type}
-                    onChange={(e) => setData({ ...data, destination_type: e.target.value as 'cash' | 'bank', destination_cash_account_id: '', destination_bank_account_id: '' })}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]"
-                  >
-                    <option value="cash">{pageDict.cash}</option>
-                    <option value="bank">{pageDict.bank}</option>
-                  </select>
+                    onChange={(value) => {
+                      const destinationType = value === 'cash' ? 'cash' : 'bank';
+                      setData({ ...data, destination_type: destinationType, destination_cash_account_id: '', destination_bank_account_id: '' });
+                    }}
+                    isClearable={false}
+                    isSearchable={false}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.destinationAccount}</label>
@@ -380,10 +439,10 @@ export default function TreasuryTransfersIndex({
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button type="button" onClick={() => setShowModal(false)} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer">
+                <button type="button" onClick={() => setShowModal(false)} title={pageDict.cancelTransfer} aria-label={pageDict.cancelTransfer} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer">
                   {pageDict.cancelTransfer}
                 </button>
-                <button type="submit" disabled={processing} className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50">
+                <button type="submit" disabled={processing} title={pageDict.saveTransfer} aria-label={pageDict.saveTransfer} className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50">
                   {processing ? pageDict.saving : pageDict.saveTransfer}
                 </button>
               </div>

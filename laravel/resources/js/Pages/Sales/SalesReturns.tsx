@@ -1,11 +1,12 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -114,7 +115,7 @@ type SalesReturnRow = {
 type SalesReturnsProps = SharedPageProps & {
   salesReturns: {
     data: SalesReturnRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   activeCustomers: CustomerOption[];
   confirmedDeliveryNotes: DeliveryNoteOption[];
@@ -150,6 +151,7 @@ export default function SalesReturnsIndex({
 }: SalesReturnsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.salesSalesReturns;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -184,6 +186,60 @@ export default function SalesReturnsIndex({
   const selectedDn = customerDeliveryNotes.find((dn) => dn.id === data.delivery_note_id);
 
   const customerInvoices = postedCustomerInvoices.filter((inv) => inv.customer_id === data.customer_id);
+
+  const warehouseOptions = useMemo(() => warehouses.map((warehouse) => ({
+    value: warehouse.id,
+    label: `${warehouse.code} - ${getLocalizedName(warehouse.name, locale)}`,
+    badge: warehouse.is_default ? pageDict.defaultWarehouse : undefined,
+  })), [warehouses, locale, pageDict.defaultWarehouse]);
+
+  const warehouseFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allWarehouses },
+    ...warehouseOptions,
+  ], [warehouseOptions, pageDict.allWarehouses]);
+
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'approved', label: pageDict.approved },
+    { value: 'posted', label: pageDict.posted },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.approved, pageDict.posted, pageDict.cancelled]);
+
+  const customerOptions = useMemo(() => activeCustomers.map((customer) => ({
+    value: customer.id,
+    label: customer.name,
+    sublabel: customer.code,
+  })), [activeCustomers]);
+
+  const deliveryNoteOptions = useMemo(() => customerDeliveryNotes.map((deliveryNote) => ({
+    value: deliveryNote.id,
+    label: deliveryNote.number || pageDict.draft_2,
+    sublabel: deliveryNote.salesOrder?.customer?.name || accDict.notAvailable,
+  })), [customerDeliveryNotes, pageDict.draft_2, accDict.notAvailable]);
+
+  const postedInvoiceOptions = useMemo(() => customerInvoices.map((invoice) => ({
+    value: invoice.id,
+    label: invoice.number || pageDict.draft_2,
+    sublabel: invoice.currency,
+  })), [customerInvoices, pageDict.draft_2]);
+
+  const deliveryNoteLineOptions = useMemo(() => (selectedDn?.lines || []).map((line) => ({
+    value: line.id,
+    label: getProductName(line.product),
+    sublabel: formatQuantity(line.quantity_e6),
+  })), [selectedDn, locale]);
+
+  const dispositionOptions = useMemo(() => [
+    { value: 'restock_original_cost', label: pageDict.restockOriginalCost },
+    { value: 'restock_manual_value', label: pageDict.restockManualValue },
+    { value: 'scrap_no_restock', label: pageDict.scrapNoRestock },
+  ], [pageDict.restockOriginalCost, pageDict.restockManualValue, pageDict.scrapNoRestock]);
+  const canManageSalesReturns = can('sales.returns');
+  const canPostSalesReturns = canManageSalesReturns && can('view_financials');
+  const salesReturnLoadLinesLabel = fetchingLines ? pageDict.loading : pageDict.loadLines;
+  const salesReturnSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
 
   const resetLines = () => setLineItems([]);
 
@@ -335,10 +391,12 @@ export default function SalesReturnsIndex({
 
     if (editingReturn) {
       router.put(`/sales/returns/${editingReturn.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/sales/returns', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -352,7 +410,7 @@ export default function SalesReturnsIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.salesSalesReturns.cancelThisSalesReturn;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/returns/${retId}/${action}`);
+      router.post(`/sales/returns/${retId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -390,17 +448,22 @@ export default function SalesReturnsIndex({
     }
   };
 
-  const getDispositionLabel = (disposition: string) => {
-    switch (disposition) {
-      case 'restock_original_cost':
-        return dict.app.pages.salesSalesReturns.restockOriginalCost;
-      case 'restock_manual_value':
-        return dict.app.pages.salesSalesReturns.restockManualValue;
-      case 'scrap_no_restock':
-        return dict.app.pages.salesSalesReturns.scrapNoRestock;
-      default:
-        return disposition;
-    }
+  const isSalesReturnActionable = (ret: SalesReturnRow) => ['draft', 'submitted', 'approved'].includes(ret.status);
+
+  const hasAvailableSalesReturnAction = (ret: SalesReturnRow) => (
+    ret.status === 'draft'
+      ? canManageSalesReturns
+      : ret.status === 'submitted'
+        ? canManageSalesReturns
+        : ret.status === 'approved'
+          ? canManageSalesReturns || canPostSalesReturns
+          : false
+  );
+
+  const getSalesReturnActionState = (ret: SalesReturnRow) => {
+    if (hasAvailableSalesReturnAction(ret)) return null;
+
+    return isSalesReturnActionable(ret) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
   return (
@@ -415,6 +478,8 @@ export default function SalesReturnsIndex({
             <button
               type="button"
               onClick={openCreateModal}
+              title={dict.app.pages.salesSalesReturns.createSalesReturn}
+              aria-label={dict.app.pages.salesSalesReturns.createSalesReturn}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -436,7 +501,7 @@ export default function SalesReturnsIndex({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/returns', { ...filters, search: val }, { preserveState: true });
+                  router.get('/sales/returns', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -447,31 +512,19 @@ export default function SalesReturnsIndex({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.warehouse_id || ''}
-              onChange={(e) => router.get('/sales/returns', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.salesSalesReturns.allWarehouses}</option>
-              {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={warehouseFilterOptions}
+              value={filters.warehouse_id || null}
+              onChange={(value) => router.get('/sales/returns', { ...filters, warehouse_id: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.salesSalesReturns.warehouse}
+            />
 
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/sales/returns', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.salesSalesReturns.allStatuses}</option>
-              <option value="draft">{dict.app.pages.salesSalesReturns.draft}</option>
-              <option value="submitted">{dict.app.pages.salesSalesReturns.submitted}</option>
-              <option value="approved">{dict.app.pages.salesSalesReturns.approved}</option>
-              <option value="posted">{dict.app.pages.salesSalesReturns.posted}</option>
-              <option value="cancelled">{dict.app.pages.salesSalesReturns.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/sales/returns', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.salesSalesReturns.status}
+            />
           </div>
         </div>
 
@@ -496,74 +549,94 @@ export default function SalesReturnsIndex({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {salesReturns.data.map((ret) => (
-                  <tr key={ret.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {ret.number || dict.app.pages.salesSalesReturns.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{ret.customer?.name || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{ret.deliveryNote?.number || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{ret.customerInvoice?.number || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{ret.return_date}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(ret.status)}>
-                        {getStatusLabel(ret.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {ret.status === 'draft' && can('sales.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(ret)}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          {dict.app.pages.salesSalesReturns.edit}
-                        </button>
-                      ) : null}
+                {salesReturns.data.map((ret) => {
+                  const actionState = getSalesReturnActionState(ret);
 
-                      {ret.status === 'draft' && can('sales.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'submit')}
-                          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        >
-                          {dict.app.pages.salesSalesReturns.submit}
-                        </button>
-                      ) : null}
+                  return (
+                    <tr key={ret.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {ret.number || dict.app.pages.salesSalesReturns.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-medium`}>{ret.customer?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-mono`}>{ret.deliveryNote?.number || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-mono`}>{ret.customerInvoice?.number || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{ret.return_date}</td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(ret.status)}>
+                          {getStatusLabel(ret.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {ret.status === 'draft' && canManageSalesReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(ret)}
+                              title={dict.app.pages.salesSalesReturns.edit}
+                              aria-label={dict.app.pages.salesSalesReturns.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                            >
+                              {dict.app.pages.salesSalesReturns.edit}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted'].includes(ret.status) && can('sales.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'approve')}
-                          className="text-xs font-semibold text-amber-600 hover:text-amber-800"
-                        >
-                          {dict.app.pages.salesSalesReturns.approve}
-                        </button>
-                      ) : null}
+                          {ret.status === 'draft' && canManageSalesReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'submit')}
+                              title={dict.app.pages.salesSalesReturns.submit}
+                              aria-label={dict.app.pages.salesSalesReturns.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                            >
+                              {dict.app.pages.salesSalesReturns.submit}
+                            </button>
+                          ) : null}
 
-                      {ret.status === 'approved' && can('sales.returns') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'post')}
-                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                        >
-                          {dict.app.pages.salesSalesReturns.post}
-                        </button>
-                      ) : null}
+                          {['draft', 'submitted'].includes(ret.status) && canManageSalesReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'approve')}
+                              title={dict.app.pages.salesSalesReturns.approve}
+                              aria-label={dict.app.pages.salesSalesReturns.approve}
+                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                            >
+                              {dict.app.pages.salesSalesReturns.approve}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(ret.status) && can('sales.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'cancel')}
-                          className="text-xs font-semibold text-red-600 hover:text-red-800"
-                        >
-                          {dict.app.pages.salesSalesReturns.cancel}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          {ret.status === 'approved' && canPostSalesReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'post')}
+                              title={dict.app.pages.salesSalesReturns.post}
+                              aria-label={dict.app.pages.salesSalesReturns.post}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                            >
+                              {dict.app.pages.salesSalesReturns.post}
+                            </button>
+                          ) : null}
+
+                          {isSalesReturnActionable(ret) && canManageSalesReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'cancel')}
+                              title={dict.app.pages.salesSalesReturns.cancel}
+                              aria-label={dict.app.pages.salesSalesReturns.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                            >
+                              {dict.app.pages.salesSalesReturns.cancel}
+                            </button>
+                          ) : null}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -583,6 +656,8 @@ export default function SalesReturnsIndex({
                   <button
                     type="button"
                     onClick={() => handleSourceModeChange('delivery_note')}
+                    title={dict.app.pages.salesSalesReturns.fromDeliveryNote}
+                    aria-label={dict.app.pages.salesSalesReturns.fromDeliveryNote}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       sourceMode === 'delivery_note' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -592,6 +667,8 @@ export default function SalesReturnsIndex({
                   <button
                     type="button"
                     onClick={() => handleSourceModeChange('invoice')}
+                    title={dict.app.pages.salesSalesReturns.createFromInvoice}
+                    aria-label={dict.app.pages.salesSalesReturns.createFromInvoice}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                       sourceMode === 'invoice' ? 'bg-blue-600 text-white shadow-xs' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
@@ -602,103 +679,74 @@ export default function SalesReturnsIndex({
               ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.customer_2} *</label>
-                  <select
-                    disabled={Boolean(editingReturn)}
-                    value={data.customer_id}
-                    onChange={(e) => handleCustomerSelect(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.salesSalesReturns.selectCustomer}</option>
-                    {activeCustomers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.customer_id ? <p className="mt-1 text-[10px] text-red-500">{errors.customer_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesSalesReturns.customer_2}
+                  disabled={Boolean(editingReturn)}
+                  value={data.customer_id || null}
+                  onChange={(value) => handleCustomerSelect(value || '')}
+                  options={customerOptions}
+                  placeholder={dict.app.pages.salesSalesReturns.selectCustomer}
+                  isClearable={false}
+                  required
+                  error={errors.customer_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.warehouse} *</label>
-                  <select
-                    value={data.warehouse_id}
-                    onChange={(e) => setData('warehouse_id', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.salesSalesReturns.selectWarehouse}</option>
-                    {warehouses.map((warehouse) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
-                        {warehouse.is_default ? ` (${dict.app.pages.salesSalesReturns.defaultWarehouse})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesSalesReturns.warehouse}
+                  value={data.warehouse_id || null}
+                  onChange={(value) => setData('warehouse_id', value || '')}
+                  options={warehouseOptions}
+                  placeholder={dict.app.pages.salesSalesReturns.selectWarehouse}
+                  isClearable={false}
+                  required
+                  error={errors.warehouse_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.confirmedDeliveryNote} *</label>
-                  <select
-                    disabled={Boolean(editingReturn)}
-                    value={data.delivery_note_id}
-                    onChange={(e) => {
-                      handleDeliveryNoteSelect(e.target.value);
-                      if (sourceMode === 'invoice') setLineItems([]);
-                    }}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.salesSalesReturns.selectDeliveryNote}</option>
-                    {customerDeliveryNotes.map((dn) => (
-                      <option key={dn.id} value={dn.id}>
-                        {dn.number || dict.app.pages.salesSalesReturns.draft_2} - {dn.salesOrder?.customer?.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.delivery_note_id ? <p className="mt-1 text-[10px] text-red-500">{errors.delivery_note_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.salesSalesReturns.confirmedDeliveryNote}
+                  disabled={Boolean(editingReturn)}
+                  value={data.delivery_note_id || null}
+                  onChange={(value) => {
+                    handleDeliveryNoteSelect(value || '');
+                    if (sourceMode === 'invoice') setLineItems([]);
+                  }}
+                  options={deliveryNoteOptions}
+                  placeholder={dict.app.pages.salesSalesReturns.selectDeliveryNote}
+                  isClearable={false}
+                  required
+                  error={errors.delivery_note_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.returnDate_2} *</label>
-                  <input
-                    type="date"
-                    value={data.return_date}
-                    onChange={(e) => setData('return_date', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.return_date ? <p className="mt-1 text-[10px] text-red-500">{errors.return_date}</p> : null}
-                </div>
+                <DatePicker
+                  label={dict.app.pages.salesSalesReturns.returnDate_2}
+                  value={data.return_date}
+                  onChange={(value) => setData('return_date', value || '')}
+                  required
+                  error={errors.return_date}
+                />
               </div>
 
               {sourceMode === 'invoice' && !editingReturn ? (
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.salesSalesReturns.postedInvoice}</label>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={data.customer_invoice_id}
-                      onChange={(e) => setData('customer_invoice_id', e.target.value)}
+                    <SearchableSelect
+                      value={data.customer_invoice_id || null}
+                      onChange={(value) => setData('customer_invoice_id', value || '')}
                       disabled={!data.customer_id}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                    >
-                      <option value="">{dict.app.pages.salesSalesReturns.selectPostedInvoice}</option>
-                      {customerInvoices.map((inv) => (
-                        <option key={inv.id} value={inv.id}>
-                          {inv.number || dict.app.pages.salesSalesReturns.draft_2} - {inv.currency}
-                        </option>
-                      ))}
-                    </select>
+                      options={postedInvoiceOptions}
+                      placeholder={dict.app.pages.salesSalesReturns.selectPostedInvoice}
+                      isClearable={false}
+                    />
                     <button
                       type="button"
                       onClick={fetchReturnableLines}
                       disabled={!data.customer_invoice_id || !data.delivery_note_id || fetchingLines}
+                      title={salesReturnLoadLinesLabel}
+                      aria-label={salesReturnLoadLinesLabel}
                       className="shrink-0 rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-[var(--background)] disabled:opacity-50"
                     >
-                      {fetchingLines ? dict.app.pages.salesSalesReturns.loading : dict.app.pages.salesSalesReturns.loadLines}
+                      {salesReturnLoadLinesLabel}
                     </button>
                   </div>
                 </div>
@@ -735,19 +783,14 @@ export default function SalesReturnsIndex({
                           {sourceMode === 'invoice' ? (
                             <div className="w-full sm:w-56">
                               <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">{dict.app.pages.salesSalesReturns.dnLine} *</label>
-                              <select
-                                value={item.delivery_note_line_id}
-                                onChange={(e) => updateLineItem(idx, 'delivery_note_line_id', e.target.value)}
+                              <SearchableSelect
+                                value={item.delivery_note_line_id || null}
+                                onChange={(value) => updateLineItem(idx, 'delivery_note_line_id', value || '')}
+                                options={deliveryNoteLineOptions}
+                                placeholder={dict.app.pages.salesSalesReturns.selectDnLine}
+                                isClearable={false}
                                 required={Number(item.quantity) > 0}
-                                className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-                              >
-                                <option value="">{dict.app.pages.salesSalesReturns.selectDnLine}</option>
-                                {(selectedDn?.lines || []).map((l) => (
-                                  <option key={l.id} value={l.id}>
-                                    {getProductName(l.product)} ({formatQuantity(l.quantity_e6)})
-                                  </option>
-                                ))}
-                              </select>
+                              />
                             </div>
                           ) : null}
 
@@ -768,16 +811,14 @@ export default function SalesReturnsIndex({
                           </div>
 
                           <div className="w-full sm:w-44">
-                            <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">{dict.app.pages.salesSalesReturns.disposition}</label>
-                            <select
+                            <SearchableSelect
+                              label={dict.app.pages.salesSalesReturns.disposition}
                               value={item.disposition}
-                              onChange={(e) => updateLineItem(idx, 'disposition', toDisposition(e.target.value))}
-                              className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-                            >
-                              <option value="restock_original_cost">{getDispositionLabel('restock_original_cost')}</option>
-                              <option value="restock_manual_value">{getDispositionLabel('restock_manual_value')}</option>
-                              <option value="scrap_no_restock">{getDispositionLabel('scrap_no_restock')}</option>
-                            </select>
+                              onChange={(value) => updateLineItem(idx, 'disposition', toDisposition(value || ''))}
+                              options={dispositionOptions}
+                              isClearable={false}
+                              required
+                            />
                           </div>
 
                           {item.disposition === 'restock_manual_value' ? (
@@ -826,6 +867,8 @@ export default function SalesReturnsIndex({
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={dict.app.pages.salesSalesReturns.cancel_2}
+                  aria-label={dict.app.pages.salesSalesReturns.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.salesSalesReturns.cancel_2}
@@ -833,9 +876,11 @@ export default function SalesReturnsIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={salesReturnSubmitLabel}
+                  aria-label={salesReturnSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing ? dict.app.pages.salesSalesReturns.saving : dict.app.pages.salesSalesReturns.saveDraft}
+                  {salesReturnSubmitLabel}
                 </button>
               </div>
             </form>

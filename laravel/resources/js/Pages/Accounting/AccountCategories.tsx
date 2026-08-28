@@ -61,6 +61,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
     e.preventDefault();
     if (editingCategory) {
       form.patch(`/accounting/account-categories/${editingCategory.id}`, {
+        preserveScroll: true,
         onSuccess: () => {
           setShowAddModal(false);
           setEditingCategory(null);
@@ -68,6 +69,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
       });
     } else {
       form.post('/accounting/account-categories', {
+        preserveScroll: true,
         onSuccess: () => {
           setShowAddModal(false);
           form.reset();
@@ -81,7 +83,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
     if ((cat.account_types_count ?? 0) > 0) return;
     const categoryName = getLocalizedName(cat.name, locale) || cat.code;
     if (confirm(dict.app.pages.accountingAccountCategories.confirmDeleteAccountCategory.replace('{name}', categoryName))) {
-      router.delete(`/accounting/account-categories/${cat.id}`);
+      router.delete(`/accounting/account-categories/${cat.id}`, { preserveScroll: true });
     }
   }
 
@@ -114,6 +116,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
           <button
             type="button"
             onClick={openCreateModal}
+            title={accDict.addAccountCategory || pageDict.addAccountCategory}
+            aria-label={accDict.addAccountCategory || pageDict.addAccountCategory}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -136,6 +140,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
             <button
               type="button"
               onClick={() => setShowAddModal(false)}
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -243,6 +249,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
                 {actionsDict.cancel}
@@ -250,6 +258,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
               <button
                 type="submit"
                 disabled={form.processing}
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {actionsDict.save}
@@ -278,6 +288,11 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
           <tbody className="divide-y divide-[var(--border)]">
             {accountCategories.map((cat) => {
               const isDeletable = !cat.is_system && (cat.account_types_count ?? 0) === 0;
+              const deleteActionLabel = cat.is_system
+                ? (accDict.systemCannotDelete || pageDict.systemAccountCategoriesCannotBeDeleted)
+                : !isDeletable
+                ? (accDict.inUseCategoryCannotDelete || pageDict.cannotDeleteAccountCategoryInUse)
+                : actionsDict.delete;
 
               return (
                 <tr key={cat.id} className="hover:bg-[var(--background)]/50 transition-colors">
@@ -323,6 +338,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                       onClick={() => setSelectedCategoryDetails(cat)}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 active:scale-95 border border-indigo-500/20"
                       title={pageDict.viewAccountTypesDetails}
+                      aria-label={pageDict.viewAccountTypesDetails}
                     >
                       <span>{cat.account_types_count ?? 0}</span>
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -341,6 +357,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                       <button
                         type="button"
                         onClick={() => openEditModal(cat)}
+                        title={actionsDict.edit}
+                        aria-label={actionsDict.edit}
                         className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
                       >
                         {actionsDict.edit}
@@ -354,13 +372,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                             ? 'border-red-500/30 bg-red-500/10 text-red-600 hover:bg-red-500/20 cursor-pointer'
                             : 'border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)] cursor-not-allowed opacity-50'
                         }`}
-                        title={
-                          cat.is_system
-                            ? (accDict.systemCannotDelete || pageDict.systemAccountCategoriesCannotBeDeleted)
-                            : !isDeletable
-                            ? (accDict.inUseCategoryCannotDelete || pageDict.cannotDeleteAccountCategoryInUse)
-                            : undefined
-                        }
+                        title={deleteActionLabel}
+                        aria-label={deleteActionLabel}
                       >
                         {actionsDict.delete}
                       </button>
@@ -394,6 +407,8 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
               <button
                 type="button"
                 onClick={() => setSelectedCategoryDetails(null)}
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -67,6 +67,7 @@ function MarkReadButton({ id, label }: { id: string; label: string }) {
         type="submit"
         disabled={processing}
         title={label}
+        aria-label={label}
         className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs font-bold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
       >
         <svg className="size-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -91,6 +92,8 @@ function MarkAllReadButton({ label }: { label: string }) {
       <button
         type="submit"
         disabled={processing}
+        title={label}
+        aria-label={label}
         className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
       >
         {processing ? (
@@ -142,6 +145,8 @@ export default function Notifications({ items, locale }: NotificationsProps) {
         <button
           type="button"
           onClick={() => setFilter('all')}
+          title={dict.app.notifications.all}
+          aria-label={dict.app.notifications.all}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
             filter === 'all'
               ? 'border-[var(--primary)] text-[var(--primary)]'
@@ -157,6 +162,8 @@ export default function Notifications({ items, locale }: NotificationsProps) {
         <button
           type="button"
           onClick={() => setFilter('unread')}
+          title={dict.app.notifications.unread}
+          aria-label={dict.app.notifications.unread}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
             filter === 'unread'
               ? 'border-[var(--primary)] text-[var(--primary)]'
@@ -178,6 +185,8 @@ export default function Notifications({ items, locale }: NotificationsProps) {
         <button
           type="button"
           onClick={() => setFilter('read')}
+          title={dict.app.notifications.read}
+          aria-label={dict.app.notifications.read}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
             filter === 'read'
               ? 'border-[var(--primary)] text-[var(--primary)]'
@@ -220,7 +229,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
                         <span className="font-bold text-sm text-[var(--text-primary)]">{formattedType}</span>
 
                         {!item.read ? (
-                          <span className="size-2 rounded-full bg-blue-500 animate-pulse" title="Unread" />
+                          <span className="size-2 rounded-full bg-blue-500 animate-pulse" title={dict.app.notifications.unread} />
                         ) : null}
 
                         <span className="font-mono text-xs text-[var(--text-muted)] bg-[var(--background)] border border-[var(--border)] px-2 py-0.5 rounded-md truncate max-w-xs">

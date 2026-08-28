@@ -76,6 +76,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
   function submitYear(e: FormEvent) {
     e.preventDefault();
     yearForm.post('/accounting/periods/fiscal-years', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowAddYear(false);
       },
@@ -117,6 +118,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
     const endpoint = `/accounting/periods/${activeModalPeriod.id}/${modalMode}`;
 
     actionForm.post(endpoint, {
+      preserveScroll: true,
       onSuccess: () => {
         setActiveModalPeriod(null);
         setModalMode(null);
@@ -183,6 +185,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
           <button
             type="button"
             onClick={() => setShowAddYear(!showAddYear)}
+            title={tx('createFiscalYear')}
+            aria-label={tx('createFiscalYear')}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -202,6 +206,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
             <button
               type="button"
               onClick={() => setShowAddYear(false)}
+              title={ax('cancel')}
+              aria-label={ax('cancel')}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
               <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -247,6 +253,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
               <button
                 type="button"
                 onClick={() => setShowAddYear(false)}
+                title={ax('cancel')}
+                aria-label={ax('cancel')}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
                 {ax('cancel')}
@@ -254,6 +262,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
               <button
                 type="submit"
                 disabled={yearForm.processing}
+                title={tx('generate12Periods')}
+                aria-label={tx('generate12Periods')}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
                 {tx('generate12Periods')}
@@ -285,6 +295,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                   setActiveModalPeriod(null);
                   setModalMode(null);
                 }}
+                title={ax('close')}
+                aria-label={ax('close')}
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -349,6 +361,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                     setActiveModalPeriod(null);
                     setModalMode(null);
                   }}
+                  title={ax('cancel')}
+                  aria-label={ax('cancel')}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)]"
                 >
                   {ax('cancel')}
@@ -356,6 +370,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                 <button
                   type="submit"
                   disabled={actionForm.processing || (modalMode === 'close' && readiness !== null && !readiness.can_close)}
+                  title={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
+                  aria-label={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
                   className={`rounded-xl px-5 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50 ${
                     modalMode === 'close' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
                   }`}
@@ -446,6 +462,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                             <button
                               type="button"
                               onClick={() => openReopenModal(p)}
+                              title={`${tx('reopenPeriod')} - ${tx('month')} ${p.month}`}
+                              aria-label={`${tx('reopenPeriod')} - ${tx('month')} ${p.month}`}
                               className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
                             >
                               <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -459,6 +477,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                             <button
                               type="button"
                               onClick={() => openCloseModal(p)}
+                              title={`${tx('closePeriod')} - ${tx('month')} ${p.month}`}
+                              aria-label={`${tx('closePeriod')} - ${tx('month')} ${p.month}`}
                               className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline cursor-pointer transition-colors"
                             >
                               <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

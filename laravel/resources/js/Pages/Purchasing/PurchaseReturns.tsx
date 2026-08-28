@@ -1,11 +1,12 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -83,7 +84,7 @@ type PurchaseReturnRow = {
 type PurchaseReturnsProps = SharedPageProps & {
   purchaseReturns: {
     data: PurchaseReturnRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   activeSuppliers: SupplierOption[];
   confirmedGoodsReceipts: GoodsReceiptOption[];
@@ -110,6 +111,7 @@ export default function PurchaseReturnsIndex({
 }: PurchaseReturnsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.purchasingPurchaseReturns;
   const can = useCan();
   
   const [showModal, setShowModal] = useState(false);
@@ -140,6 +142,41 @@ export default function PurchaseReturnsIndex({
   );
 
   const selectedGr = confirmedGoodsReceipts.find((gr) => gr.id === data.goods_receipt_id);
+
+  const warehouseOptions = useMemo(() => warehouses.map((warehouse) => ({
+    value: warehouse.id,
+    label: `${warehouse.code} - ${getLocalizedName(warehouse.name, locale)}`,
+    badge: warehouse.is_default ? pageDict.defaultWarehouse : undefined,
+  })), [warehouses, locale, pageDict.defaultWarehouse]);
+
+  const warehouseFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allWarehouses },
+    ...warehouseOptions,
+  ], [warehouseOptions, pageDict.allWarehouses]);
+
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'approved', label: pageDict.approved },
+    { value: 'posted', label: pageDict.posted },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.approved, pageDict.posted, pageDict.cancelled]);
+
+  const supplierOptions = useMemo(() => activeSuppliers.map((supplier) => ({
+    value: supplier.id,
+    label: supplier.name,
+    sublabel: supplier.code,
+  })), [activeSuppliers]);
+
+  const goodsReceiptOptions = useMemo(() => supplierGoodsReceipts.map((goodsReceipt) => ({
+    value: goodsReceipt.id,
+    label: goodsReceipt.number || pageDict.draft_2,
+    sublabel: goodsReceipt.purchaseOrder?.supplier?.name || accDict.notAvailable,
+  })), [supplierGoodsReceipts, pageDict.draft_2, accDict.notAvailable]);
+  const canManagePurchaseReturns = can('purchasing.returns');
+  const canPostPurchaseReturns = canManagePurchaseReturns && can('view_financials');
+  const purchaseReturnSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
 
   const handleSupplierSelect = (supplierId: string) => {
     setData('supplier_id', supplierId);
@@ -240,10 +277,12 @@ export default function PurchaseReturnsIndex({
 
     if (editingReturn) {
       router.put(`/purchasing/returns/${editingReturn.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/purchasing/returns', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -257,7 +296,7 @@ export default function PurchaseReturnsIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingPurchaseReturns.cancelThisPurchaseReturn;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/returns/${retId}/${action}`);
+      router.post(`/purchasing/returns/${retId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -295,6 +334,24 @@ export default function PurchaseReturnsIndex({
     }
   };
 
+  const isPurchaseReturnActionable = (ret: PurchaseReturnRow) => ['draft', 'submitted', 'approved'].includes(ret.status);
+
+  const hasAvailablePurchaseReturnAction = (ret: PurchaseReturnRow) => (
+    ret.status === 'draft'
+      ? canManagePurchaseReturns
+      : ret.status === 'submitted'
+        ? canManagePurchaseReturns
+        : ret.status === 'approved'
+          ? canManagePurchaseReturns || canPostPurchaseReturns
+          : false
+  );
+
+  const getPurchaseReturnActionState = (ret: PurchaseReturnRow) => {
+    if (hasAvailablePurchaseReturnAction(ret)) return null;
+
+    return isPurchaseReturnActionable(ret) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="purchase-returns.index">
       <Head title={dict.app.pages.purchasingPurchaseReturns.purchaseReturns} />
@@ -307,6 +364,8 @@ export default function PurchaseReturnsIndex({
             <button
               type="button"
               onClick={openCreateModal}
+              title={pageDict.createPurchaseReturn}
+              aria-label={pageDict.createPurchaseReturn}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -328,7 +387,7 @@ export default function PurchaseReturnsIndex({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/returns', { ...filters, search: val }, { preserveState: true });
+                  router.get('/purchasing/returns', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -339,31 +398,19 @@ export default function PurchaseReturnsIndex({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.warehouse_id || ''}
-              onChange={(e) => router.get('/purchasing/returns', { ...filters, warehouse_id: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.purchasingPurchaseReturns.allWarehouses}</option>
-              {warehouses.map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={warehouseFilterOptions}
+              value={filters.warehouse_id || null}
+              onChange={(value) => router.get('/purchasing/returns', { ...filters, warehouse_id: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.purchasingPurchaseReturns.warehouse}
+            />
 
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/purchasing/returns', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.purchasingPurchaseReturns.allStatuses}</option>
-              <option value="draft">{dict.app.pages.purchasingPurchaseReturns.draft}</option>
-              <option value="submitted">{dict.app.pages.purchasingPurchaseReturns.submitted}</option>
-              <option value="approved">{dict.app.pages.purchasingPurchaseReturns.approved}</option>
-              <option value="posted">{dict.app.pages.purchasingPurchaseReturns.posted}</option>
-              <option value="cancelled">{dict.app.pages.purchasingPurchaseReturns.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/purchasing/returns', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.purchasingPurchaseReturns.status}
+            />
           </div>
         </div>
 
@@ -387,73 +434,93 @@ export default function PurchaseReturnsIndex({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {purchaseReturns.data.map((ret) => (
-                  <tr key={ret.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {ret.number || dict.app.pages.purchasingPurchaseReturns.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{ret.supplier?.name || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{ret.goodsReceipt?.number || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{ret.return_date}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(ret.status)}>
-                        {getStatusLabel(ret.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {ret.status === 'draft' && can('purchasing.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(ret)}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          {dict.app.pages.purchasingPurchaseReturns.edit}
-                        </button>
-                      ) : null}
+                {purchaseReturns.data.map((ret) => {
+                  const actionState = getPurchaseReturnActionState(ret);
 
-                      {ret.status === 'draft' && can('purchasing.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'submit')}
-                          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-                        >
-                          {dict.app.pages.purchasingPurchaseReturns.submit}
-                        </button>
-                      ) : null}
+                  return (
+                    <tr key={ret.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {ret.number || dict.app.pages.purchasingPurchaseReturns.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-medium`}>{ret.supplier?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-mono`}>{ret.goodsReceipt?.number || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{ret.return_date}</td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(ret.status)}>
+                          {getStatusLabel(ret.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {ret.status === 'draft' && canManagePurchaseReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(ret)}
+                              title={dict.app.pages.purchasingPurchaseReturns.edit}
+                              aria-label={dict.app.pages.purchasingPurchaseReturns.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                            >
+                              {dict.app.pages.purchasingPurchaseReturns.edit}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted'].includes(ret.status) && can('purchasing.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'approve')}
-                          className="text-xs font-semibold text-amber-600 hover:text-amber-800"
-                        >
-                          {dict.app.pages.purchasingPurchaseReturns.approve}
-                        </button>
-                      ) : null}
+                          {ret.status === 'draft' && canManagePurchaseReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'submit')}
+                              title={dict.app.pages.purchasingPurchaseReturns.submit}
+                              aria-label={dict.app.pages.purchasingPurchaseReturns.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
+                            >
+                              {dict.app.pages.purchasingPurchaseReturns.submit}
+                            </button>
+                          ) : null}
 
-                      {ret.status === 'approved' && can('purchasing.returns') && can('view_financials') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'post')}
-                          className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
-                        >
-                          {dict.app.pages.purchasingPurchaseReturns.post}
-                        </button>
-                      ) : null}
+                          {['draft', 'submitted'].includes(ret.status) && canManagePurchaseReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'approve')}
+                              title={dict.app.pages.purchasingPurchaseReturns.approve}
+                              aria-label={dict.app.pages.purchasingPurchaseReturns.approve}
+                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                            >
+                              {dict.app.pages.purchasingPurchaseReturns.approve}
+                            </button>
+                          ) : null}
 
-                      {['draft', 'submitted', 'approved'].includes(ret.status) && can('purchasing.returns') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleAction(ret.id, 'cancel')}
-                          className="text-xs font-semibold text-red-600 hover:text-red-800"
-                        >
-                          {dict.app.pages.purchasingPurchaseReturns.cancel}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          {ret.status === 'approved' && canPostPurchaseReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'post')}
+                              title={dict.app.pages.purchasingPurchaseReturns.post}
+                              aria-label={dict.app.pages.purchasingPurchaseReturns.post}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                            >
+                              {dict.app.pages.purchasingPurchaseReturns.post}
+                            </button>
+                          ) : null}
+
+                          {isPurchaseReturnActionable(ret) && canManagePurchaseReturns ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAction(ret.id, 'cancel')}
+                              title={dict.app.pages.purchasingPurchaseReturns.cancel}
+                              aria-label={dict.app.pages.purchasingPurchaseReturns.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                            >
+                              {dict.app.pages.purchasingPurchaseReturns.cancel}
+                            </button>
+                          ) : null}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -469,74 +536,48 @@ export default function PurchaseReturnsIndex({
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.supplier_2} *</label>
-                  <select
-                    disabled={Boolean(editingReturn)}
-                    value={data.supplier_id}
-                    onChange={(e) => handleSupplierSelect(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.purchasingPurchaseReturns.selectSupplier}</option>
-                    {activeSuppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.supplier_id ? <p className="mt-1 text-[10px] text-red-500">{errors.supplier_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingPurchaseReturns.supplier_2}
+                  disabled={Boolean(editingReturn)}
+                  value={data.supplier_id || null}
+                  onChange={(value) => handleSupplierSelect(value || '')}
+                  options={supplierOptions}
+                  placeholder={dict.app.pages.purchasingPurchaseReturns.selectSupplier}
+                  isClearable={false}
+                  required
+                  error={errors.supplier_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.confirmedGoodsReceipt} *</label>
-                  <select
-                    disabled={Boolean(editingReturn)}
-                    value={data.goods_receipt_id}
-                    onChange={(e) => handleGoodsReceiptSelect(e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  >
-                    <option value="">{dict.app.pages.purchasingPurchaseReturns.selectGoodsReceipt}</option>
-                    {supplierGoodsReceipts.map((gr) => (
-                      <option key={gr.id} value={gr.id}>
-                        {gr.number || dict.app.pages.purchasingPurchaseReturns.draft_2} - {gr.purchaseOrder?.supplier?.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.goods_receipt_id ? <p className="mt-1 text-[10px] text-red-500">{errors.goods_receipt_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingPurchaseReturns.confirmedGoodsReceipt}
+                  disabled={Boolean(editingReturn)}
+                  value={data.goods_receipt_id || null}
+                  onChange={(value) => handleGoodsReceiptSelect(value || '')}
+                  options={goodsReceiptOptions}
+                  placeholder={dict.app.pages.purchasingPurchaseReturns.selectGoodsReceipt}
+                  isClearable={false}
+                  required
+                  error={errors.goods_receipt_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.returnDate_2} *</label>
-                  <input
-                    type="date"
-                    value={data.return_date}
-                    onChange={(e) => setData('return_date', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.return_date ? <p className="mt-1 text-[10px] text-red-500">{errors.return_date}</p> : null}
-                </div>
+                <DatePicker
+                  label={dict.app.pages.purchasingPurchaseReturns.returnDate_2}
+                  value={data.return_date}
+                  onChange={(value) => setData('return_date', value || '')}
+                  required
+                  error={errors.return_date}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.warehouse} *</label>
-                  <select
-                    value={data.warehouse_id}
-                    onChange={(e) => setData('warehouse_id', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.purchasingPurchaseReturns.selectWarehouse}</option>
-                    {warehouses.map((warehouse) => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.code} - {getLocalizedName(warehouse.name, locale)}
-                        {warehouse.is_default ? ` (${dict.app.pages.purchasingPurchaseReturns.defaultWarehouse})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.warehouse_id ? <p className="mt-1 text-[10px] text-red-500">{errors.warehouse_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingPurchaseReturns.warehouse}
+                  value={data.warehouse_id || null}
+                  onChange={(value) => setData('warehouse_id', value || '')}
+                  options={warehouseOptions}
+                  placeholder={dict.app.pages.purchasingPurchaseReturns.selectWarehouse}
+                  isClearable={false}
+                  required
+                  error={errors.warehouse_id}
+                />
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingPurchaseReturns.currency}</label>
@@ -616,6 +657,8 @@ export default function PurchaseReturnsIndex({
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel_2}
+                  aria-label={pageDict.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.purchasingPurchaseReturns.cancel_2}
@@ -623,9 +666,11 @@ export default function PurchaseReturnsIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={purchaseReturnSubmitLabel}
+                  aria-label={purchaseReturnSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing ? dict.app.pages.purchasingPurchaseReturns.saving : dict.app.pages.purchasingPurchaseReturns.saveDraft}
+                  {purchaseReturnSubmitLabel}
                 </button>
               </div>
             </form>

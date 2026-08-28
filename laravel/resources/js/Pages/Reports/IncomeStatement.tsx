@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -113,7 +114,7 @@ export default function IncomeStatement({ locale, report, periods = [], filters 
         to_date: toDate,
         period_id: selectedPeriodId || undefined,
       },
-      { preserveState: true }
+      { preserveState: true, preserveScroll: true }
     );
   }
 
@@ -127,18 +128,19 @@ export default function IncomeStatement({ locale, report, periods = [], filters 
     }
   }
 
-  function handleExportCsv() {
-    const params = new URLSearchParams();
-    if (fromDate) params.append('from_date', fromDate);
-    if (toDate) params.append('to_date', toDate);
-    if (selectedPeriodId) params.append('period_id', selectedPeriodId);
-    window.location.href = `/reports/income-statement/export?${params.toString()}`;
-  }
-
   function handlePrint() {
     window.print();
   }
 
+  const exportUrl = (() => {
+    const params = new URLSearchParams();
+    if (fromDate) params.append('from_date', fromDate);
+    if (toDate) params.append('to_date', toDate);
+    if (selectedPeriodId) params.append('period_id', selectedPeriodId);
+    const query = params.toString();
+
+    return `/reports/income-statement/export${query ? `?${query}` : ''}`;
+  })();
   const { sections, summary } = report;
 
   return (
@@ -156,6 +158,8 @@ export default function IncomeStatement({ locale, report, periods = [], filters 
                   <button
                     type="button"
                     onClick={handlePrint}
+                    title={actionsDict.printReport}
+                    aria-label={actionsDict.printReport}
                     className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
                   >
                     <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -165,16 +169,17 @@ export default function IncomeStatement({ locale, report, periods = [], filters 
                   </button>
                 ) : null}
                 {canExport ? (
-                  <button
-                    type="button"
-                    onClick={handleExportCsv}
+                  <a
+                    href={exportUrl}
+                    title={actionsDict.exportCsv}
+                    aria-label={actionsDict.exportCsv}
                     className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
                   >
                     <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     {actionsDict.exportCsv}
-                  </button>
+                  </a>
                 ) : null}
               </div>
             ) : null
@@ -201,38 +206,28 @@ export default function IncomeStatement({ locale, report, periods = [], filters 
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                {accDict.fromDate}
-              </label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => {
-                  setFromDate(e.target.value);
-                  setSelectedPeriodId('');
-                }}
-                className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] font-mono"
-              />
-            </div>
+            <DatePicker
+              label={accDict.fromDate}
+              value={fromDate}
+              onChange={(value) => {
+                setFromDate(value || '');
+                setSelectedPeriodId('');
+              }}
+            />
 
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                {accDict.toDate}
-              </label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => {
-                  setToDate(e.target.value);
-                  setSelectedPeriodId('');
-                }}
-                className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] font-mono"
-              />
-            </div>
+            <DatePicker
+              label={accDict.toDate}
+              value={toDate}
+              onChange={(value) => {
+                setToDate(value || '');
+                setSelectedPeriodId('');
+              }}
+            />
 
             <button
               type="submit"
+              title={accDict.applyFilter}
+              aria-label={accDict.applyFilter}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-600"
             >
               {accDict.applyFilter}

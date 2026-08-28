@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -146,13 +147,16 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
 
   function handleDelete() {
     if (confirm(appDict.confirmDeleteDraftAsset)) {
-      router.delete(`/fixed-assets/${asset.id}`);
+      router.delete(`/fixed-assets/${asset.id}`, {
+        preserveScroll: true,
+      });
     }
   }
 
   function handleCapitalize(e: FormEvent) {
     e.preventDefault();
     post(`/fixed-assets/${asset.id}/capitalize`, {
+      preserveScroll: true,
       onSuccess: () => {
         setShowCapitalizeModal(false);
         reset();
@@ -162,13 +166,16 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
 
   function handleReverseCapitalization() {
     if (confirm(appDict.confirmReverseCapitalization)) {
-      router.post(`/fixed-assets/${asset.id}/reverse-capitalization`);
+      router.post(`/fixed-assets/${asset.id}/reverse-capitalization`, {}, {
+        preserveScroll: true,
+      });
     }
   }
 
   function handleGenerateSchedule() {
     setGeneratingSchedule(true);
     router.post(`/fixed-assets/${asset.id}/generate-schedule`, {}, {
+      preserveScroll: true,
       onFinish: () => setGeneratingSchedule(false),
     });
   }
@@ -176,6 +183,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
   function handleMoveAsset(e: FormEvent) {
     e.preventDefault();
     moveForm.post(`/fixed-assets/${asset.id}/movements`, {
+      preserveScroll: true,
       onSuccess: () => setShowMoveModal(false),
     });
   }
@@ -192,6 +200,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
   function handlePostDisposal(e: FormEvent) {
     e.preventDefault();
     disposeForm.post(`/fixed-assets/${asset.id}/disposals`, {
+      preserveScroll: true,
       onSuccess: () => setShowDisposeModal(false),
     });
   }
@@ -245,6 +254,11 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
     label: `${location.code} - ${getLocalizedName(location.name, locale)}`,
     sublabel: location.branch ? `${location.branch.code} - ${getLocalizedName(location.branch.name, locale)}` : undefined,
   }));
+  const disposalTypeOptions = [
+    { value: 'scrap', label: disposalDict.scrap },
+    { value: 'sale', label: disposalDict.sale },
+    { value: 'retirement', label: disposalDict.retirement },
+  ];
 
   function formatBranch(branch?: BranchOption | null): string {
     return branch ? `${branch.code} - ${getLocalizedName(branch.name, locale)}` : appDict.notAssigned;
@@ -266,6 +280,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
             <div className="flex items-center space-x-2 rtl:space-x-reverse">
               <Link
                 href="/fixed-assets"
+                title={appDict.back}
+                aria-label={appDict.back}
                 className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
               >
                 {appDict.back}
@@ -275,6 +291,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                   type="button"
                   onClick={handleGenerateSchedule}
                   disabled={generatingSchedule}
+                  title={schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
+                  aria-label={schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
                   className="px-3 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 disabled:opacity-50"
                 >
                   {schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
@@ -283,6 +301,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
               {can.edit && asset.status === 'draft' && (
                 <Link
                   href={`/fixed-assets/${asset.id}/edit`}
+                  title={appDict.editFixedAsset}
+                  aria-label={appDict.editFixedAsset}
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
                 >
                   {appDict.editFixedAsset}
@@ -292,6 +312,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={() => setShowCapitalizeModal(true)}
+                  title={appDict.capitalizeAsset}
+                  aria-label={appDict.capitalizeAsset}
                   className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700"
                 >
                   {appDict.capitalizeAsset}
@@ -301,6 +323,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={() => setShowDisposeModal(true)}
+                  title={disposalDict.disposeAsset}
+                  aria-label={disposalDict.disposeAsset}
                   className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700"
                 >
                   {disposalDict.disposeAsset}
@@ -310,6 +334,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={() => setShowMoveModal(true)}
+                  title={appDict.moveAsset}
+                  aria-label={appDict.moveAsset}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 >
                   {appDict.moveAsset}
@@ -319,6 +345,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={handleReverseCapitalization}
+                  title={appDict.reverseCapitalization}
+                  aria-label={appDict.reverseCapitalization}
                   className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700"
                 >
                   {appDict.reverseCapitalization}
@@ -328,6 +356,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={handleDelete}
+                  title={`${appDict.delete} ${asset.asset_number}`}
+                  aria-label={`${appDict.delete} ${asset.asset_number}`}
                   className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700"
                 >
                   {appDict.delete}
@@ -495,6 +525,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                   type="button"
                   onClick={handleGenerateSchedule}
                   disabled={generatingSchedule}
+                  title={schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
+                  aria-label={schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
                   className="px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 dark:border-indigo-800 disabled:opacity-50"
                 >
                   {schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}
@@ -556,6 +588,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
               <button
                 type="button"
                 onClick={() => setShowMoveModal(true)}
+                title={appDict.moveAsset}
+                aria-label={appDict.moveAsset}
                 className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
               >
                 {appDict.moveAsset}
@@ -644,24 +678,20 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.capitalizationDate}
-                </label>
-                <input
-                  type="date"
-                  value={data.capitalization_date}
-                  onChange={(e) => setData('capitalization_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-                {errors.capitalization_date && <p className="mt-1 text-xs text-rose-600">{errors.capitalization_date}</p>}
-              </div>
+              <DatePicker
+                label={appDict.capitalizationDate}
+                value={data.capitalization_date}
+                onChange={(value) => setData('capitalization_date', value || '')}
+                required
+                error={errors.capitalization_date}
+              />
 
               <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCapitalizeModal(false)}
+                  title={appDict.cancel}
+                  aria-label={appDict.cancel}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
                 >
                   {appDict.cancel}
@@ -669,6 +699,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="submit"
                   disabled={processing}
+                  title={appDict.capitalizeAsset}
+                  aria-label={appDict.capitalizeAsset}
                   className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {appDict.capitalizeAsset}
@@ -686,19 +718,13 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
             </h3>
 
             <form onSubmit={handleMoveAsset} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {appDict.movementDate}
-                </label>
-                <input
-                  type="date"
-                  value={moveForm.data.movement_date}
-                  onChange={(e) => moveForm.setData('movement_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-                {moveForm.errors.movement_date && <p className="mt-1 text-xs text-rose-600">{moveForm.errors.movement_date}</p>}
-              </div>
+              <DatePicker
+                label={appDict.movementDate}
+                value={moveForm.data.movement_date}
+                onChange={(value) => moveForm.setData('movement_date', value || '')}
+                required
+                error={moveForm.errors.movement_date}
+              />
 
               <SearchableSelect
                 label={appDict.destinationBranch}
@@ -748,6 +774,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={() => setShowMoveModal(false)}
+                  title={appDict.cancel}
+                  aria-label={appDict.cancel}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
                 >
                   {appDict.cancel}
@@ -755,6 +783,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="submit"
                   disabled={moveForm.processing}
+                  title={appDict.recordMovement}
+                  aria-label={appDict.recordMovement}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {appDict.recordMovement}
@@ -777,36 +807,29 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {disposalDict.disposalType}
                 </label>
-                <select
+                <SearchableSelect
                   value={disposeForm.data.disposal_type}
-                  onChange={(e) => disposeForm.setData('disposal_type', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  options={disposalTypeOptions}
+                  onChange={(value) => disposeForm.setData('disposal_type', value || 'scrap')}
+                  placeholder={disposalDict.disposalType}
+                  className="mt-1"
                   required
-                >
-                  <option value="scrap">{disposalDict.scrap}</option>
-                  <option value="sale">{disposalDict.sale}</option>
-                  <option value="retirement">{disposalDict.retirement}</option>
-                </select>
+                  isClearable={false}
+                  isSearchable={false}
+                  error={disposeForm.errors.disposal_type}
+                />
                 {disposeForm.errors.disposal_type && (
                   <p className="mt-1 text-xs text-rose-600">{disposeForm.errors.disposal_type}</p>
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {disposalDict.disposalDate}
-                </label>
-                <input
-                  type="date"
-                  value={disposeForm.data.disposal_date}
-                  onChange={(e) => disposeForm.setData('disposal_date', e.target.value)}
-                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-                  required
-                />
-                {disposeForm.errors.disposal_date && (
-                  <p className="mt-1 text-xs text-rose-600">{disposeForm.errors.disposal_date}</p>
-                )}
-              </div>
+              <DatePicker
+                label={disposalDict.disposalDate}
+                value={disposeForm.data.disposal_date}
+                onChange={(value) => disposeForm.setData('disposal_date', value || '')}
+                required
+                error={disposeForm.errors.disposal_date}
+              />
 
               {disposeForm.data.disposal_type === 'sale' && (
                 <div>
@@ -835,6 +858,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="button"
                   onClick={() => setShowDisposeModal(false)}
+                  title={disposalDict.cancel}
+                  aria-label={disposalDict.cancel}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
                 >
                   {disposalDict.cancel}
@@ -842,6 +867,8 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 <button
                   type="submit"
                   disabled={disposeForm.processing}
+                  title={disposalDict.postDisposal}
+                  aria-label={disposalDict.postDisposal}
                   className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50"
                 >
                   {disposalDict.postDisposal}

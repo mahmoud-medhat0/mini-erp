@@ -85,6 +85,7 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
   ];
   const activeFilterCount = [search, branchId, status].filter(Boolean).length;
   const formErrors = form.errors as Record<string, string | undefined>;
+  const locationSubmitLabel = form.processing ? appDict.saving : appDict.save;
 
   function applyFilters() {
     router.get('/fixed-asset-locations', { search, branch_id: branchId, status }, { preserveState: true, preserveScroll: true });
@@ -161,6 +162,8 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
               <button
                 type="button"
                 onClick={openCreateForm}
+                title={appDict.createAssetLocation}
+                aria-label={appDict.createAssetLocation}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
               >
                 {appDict.createAssetLocation}
@@ -219,6 +222,8 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
                             <button
                               type="button"
                               onClick={() => openEditForm(location)}
+                              title={appDict.edit}
+                              aria-label={appDict.edit}
                               className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
                             >
                               {appDict.edit}
@@ -228,6 +233,8 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
                             <button
                               type="button"
                               onClick={() => deleteLocation(location)}
+                              title={appDict.delete}
+                              aria-label={appDict.delete}
                               className="text-xs font-medium text-rose-600 hover:text-rose-900"
                             >
                               {appDict.delete}
@@ -316,6 +323,8 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
+                  title={appDict.cancel}
+                  aria-label={appDict.cancel}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
                 >
                   {appDict.cancel}
@@ -323,9 +332,11 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
                 <button
                   type="submit"
                   disabled={form.processing}
+                  title={locationSubmitLabel}
+                  aria-label={locationSubmitLabel}
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
-                  {appDict.save}
+                  {locationSubmitLabel}
                 </button>
               </div>
             </form>

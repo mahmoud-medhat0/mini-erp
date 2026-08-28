@@ -55,6 +55,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
   function submitGroup(e: FormEvent) {
     e.preventDefault();
     groupForm.post('/accounting/coa/groups', {
+      preserveScroll: true,
       onSuccess: () => {
         groupForm.reset();
         setShowAddGroup(false);
@@ -65,6 +66,7 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
   function submitAccount(e: FormEvent) {
     e.preventDefault();
     accountForm.post('/accounting/coa/accounts', {
+      preserveScroll: true,
       onSuccess: () => {
         accountForm.reset();
         setShowAddAccount(false);
@@ -118,6 +120,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
           <div className="flex items-center gap-3">
             <button
               type="button"
+              title={accDict.addGroup}
+              aria-label={accDict.addGroup}
               onClick={() => {
                 setShowAddAccount(false);
                 setShowAddGroup(!showAddGroup);
@@ -132,6 +136,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
 
             <button
               type="button"
+              title={accDict.addAccount}
+              aria-label={accDict.addAccount}
               onClick={() => {
                 setShowAddGroup(false);
                 setShowAddAccount(!showAddAccount);
@@ -154,6 +160,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
             <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addGroup}</h3>
             <button
               type="button"
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
               onClick={() => setShowAddGroup(false)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
@@ -212,6 +220,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
             <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-3 pt-2">
               <button
                 type="button"
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 onClick={() => setShowAddGroup(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
@@ -219,6 +229,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
               </button>
               <button
                 type="submit"
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
                 disabled={groupForm.processing}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
@@ -236,6 +248,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
             <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">{accDict.addAccount}</h3>
             <button
               type="button"
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
               onClick={() => setShowAddAccount(false)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
@@ -339,6 +353,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
             <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-3 pt-2">
               <button
                 type="button"
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 onClick={() => setShowAddAccount(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
@@ -346,6 +362,8 @@ export default function ChartOfAccounts({ locale, groups = [], accounts = [], ac
               </button>
               <button
                 type="submit"
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
                 disabled={accountForm.processing || !accountForm.data.currency || currencyOptions.length === 0}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >

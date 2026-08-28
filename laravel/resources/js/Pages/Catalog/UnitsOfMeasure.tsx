@@ -1,10 +1,10 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type UnitOfMeasureRow = {
   id: string;
@@ -19,7 +19,7 @@ type UnitOfMeasureRow = {
 type UomsProps = SharedPageProps & {
   uoms: {
     data: UnitOfMeasureRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   filters: {
     search?: string;
@@ -40,6 +40,9 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
     is_active: true,
     lock_version: 1,
   });
+  const uomSubmitLabel = processing
+    ? dict.app.pages.catalogUnitsOfMeasure.saving
+    : dict.app.pages.catalogUnitsOfMeasure.save;
 
   const openCreateModal = () => {
     reset();
@@ -69,10 +72,12 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
     e.preventDefault();
     if (editingUom) {
       put(`/catalog/uoms/${editingUom.id}`, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       post('/catalog/uoms', {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -80,7 +85,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
 
   const handleDelete = (uom: UnitOfMeasureRow) => {
     if (confirm(dict.app.pages.catalogUnitsOfMeasure.confirmDeleteUom.replace('{name}', uom.name || uom.code))) {
-      destroy(`/catalog/uoms/${uom.id}`);
+      destroy(`/catalog/uoms/${uom.id}`, { preserveScroll: true });
     }
   };
 
@@ -96,6 +101,8 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
             <button
               type="button"
               onClick={openCreateModal}
+              title={dict.app.pages.catalogUnitsOfMeasure.addUnitOfMeasure}
+              aria-label={dict.app.pages.catalogUnitsOfMeasure.addUnitOfMeasure}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -117,7 +124,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/catalog/uoms', { search: val }, { preserveState: true });
+                  router.get('/catalog/uoms', { search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -161,6 +168,8 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                         <button
                           type="button"
                           onClick={() => openEditModal(uom)}
+                          title={dict.app.pages.catalogUnitsOfMeasure.edit}
+                          aria-label={dict.app.pages.catalogUnitsOfMeasure.edit}
                           className="text-xs font-semibold text-blue-600 hover:text-blue-800"
                         >
                           {dict.app.pages.catalogUnitsOfMeasure.edit}
@@ -170,6 +179,8 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                         <button
                           type="button"
                           onClick={() => handleDelete(uom)}
+                          title={dict.app.pages.catalogUnitsOfMeasure.delete}
+                          aria-label={dict.app.pages.catalogUnitsOfMeasure.delete}
                           className="text-xs font-semibold text-red-600 hover:text-red-800"
                         >
                           {dict.app.pages.catalogUnitsOfMeasure.delete}
@@ -254,6 +265,8 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={dict.app.pages.catalogUnitsOfMeasure.cancel}
+                  aria-label={dict.app.pages.catalogUnitsOfMeasure.cancel}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.catalogUnitsOfMeasure.cancel}
@@ -261,11 +274,11 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                 <button
                   type="submit"
                   disabled={processing}
+                  title={uomSubmitLabel}
+                  aria-label={uomSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing
-                    ? dict.app.pages.catalogUnitsOfMeasure.saving
-                    : dict.app.pages.catalogUnitsOfMeasure.save}
+                  {uomSubmitLabel}
                 </button>
               </div>
             </form>

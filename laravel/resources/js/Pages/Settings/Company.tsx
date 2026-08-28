@@ -1,5 +1,5 @@
 ﻿import { Head, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
@@ -58,6 +58,8 @@ function CompanyFormModal({
         <button
           type="button"
           onClick={onClose}
+          title={dict.app.actions.cancel}
+          aria-label={dict.app.actions.cancel}
           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
         >
           <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -119,6 +121,8 @@ function CompanyFormModal({
           <button
             type="button"
             onClick={onClose}
+            title={dict.app.actions.cancel}
+            aria-label={dict.app.actions.cancel}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
           >
             {dict.app.actions.cancel}
@@ -126,6 +130,8 @@ function CompanyFormModal({
           <button
             type="submit"
             disabled={processing}
+            title={company ? dict.app.actions.save : dict.app.actions.create}
+            aria-label={company ? dict.app.actions.save : dict.app.actions.create}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
           >
             {processing ? (
@@ -148,6 +154,14 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companies[0]?.id ?? '');
+  const companyAttachmentOptions = useMemo(() => companies.map((company) => ({
+    value: company.id,
+    label: `${company.name} (${company.baseCurrency})`,
+  })), [companies]);
+
+  function selectAttachmentCompany(value: string | null) {
+    setSelectedCompanyId(value || companies[0]?.id || '');
+  }
 
   return (
     <AppLayout active="settings.company">
@@ -163,6 +177,8 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
               setEditingCompanyId(null);
               setShowAddForm(!showAddForm);
             }}
+            title={dict.app.actions.addCompany}
+            aria-label={dict.app.actions.addCompany}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -229,6 +245,8 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                           <button
                             type="button"
                             onClick={() => setSelectedCompanyId(company.id)}
+                            title={dict.app.pages.settingsCompany.attachments}
+                            aria-label={dict.app.pages.settingsCompany.attachments}
                             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                               isSelectedForAttachments
                                 ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
@@ -246,6 +264,8 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                               setShowAddForm(false);
                               setEditingCompanyId(isEditing ? null : company.id);
                             }}
+                            title={dict.app.actions.edit}
+                            aria-label={dict.app.actions.edit}
                             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                               isEditing
                                 ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
@@ -283,20 +303,15 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
             <div className="mt-6 space-y-3">
               {companies.length > 1 ? (
                 <div className="flex items-center justify-between bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
-                  <label className="text-xs font-bold text-[var(--text-primary)]">
-                    {dict.app.pages.settingsCompany.selectCompanyForAttachments}
-                  </label>
-                  <select
-                    value={selectedCompanyId}
-                    onChange={(e) => setSelectedCompanyId(e.target.value)}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
-                  >
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.baseCurrency})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full max-w-sm">
+                    <SearchableSelect
+                      label={dict.app.pages.settingsCompany.selectCompanyForAttachments}
+                      value={selectedCompanyId}
+                      onChange={selectAttachmentCompany}
+                      options={companyAttachmentOptions}
+                      isClearable={false}
+                    />
+                  </div>
                 </div>
               ) : null}
               <AttachmentPanel

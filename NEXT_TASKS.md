@@ -5,9 +5,9 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 15 Product Hardening is IN PROGRESS. Slices 1-134 are COMPLETE. Slice 134 replaced native fixed-asset filter selects with shared `SearchableSelect` controls and guarded clear actions in Fixed Asset Register, Locations, and Disposals. Deployment remains parked until owner/operator cutover decisions are needed.
+Current status: Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Slice 190 replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` and extended the global Inertia guard to prevent native date inputs, native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination links from returning to Inertia pages. Deployment remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 15 Slices 1-134 are COMPLETE. Slice 134 passed the fixed-asset filter-control guard, focused fixed asset suites, `Phase15ProductHardeningTest` with 139 tests / 20794 assertions, Pint, TypeScript typecheck, Vite build, locale JSON validation, and the global controller direct-query scan.
+Latest update: Phase 15 Slices 1-190 are COMPLETE and the phase is closed. Slice 190 introduced native date-input coverage into the global page control/navigation/type regression guard and converted remaining page date fields to the shared `DatePicker`. `Phase15ProductHardeningTest` passed with 192 tests / 25644 assertions; Slice 188 keeps the standalone Pages button scanner at `TOTAL_FILES=0` and `TOTAL_MISSING=0`; Pint, full Pages native-control/pagination scan, no-scope scan, controller direct-query scan, TypeScript typecheck, and Vite build passed.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -17,13 +17,14 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - Phase 9 is also complete. It is an operational cutover documentation track, not a new ERP business module.
 - Deployment process is parked until the owner/operator is ready for staging/production decisions.
 - Next product track:
-  - Continue Phase 15 Product Hardening with accountant-focused UX tightening, permission regression coverage, and dictionary-backed UI polish.
+  - Phase 15 Product Hardening is closed. Open a new bounded phase/slice for the next product capability or UX initiative.
   - Keep all future GL posting inside the existing PostingEngine and existing tax/subledger services.
   - Use `PRODUCT_EXTENSIBILITY_ROADMAP.md`, `PHASE_14_RENTALS.md`, `PHASE_14_RENTALS_POLICY_DECISION.md`, `PHASE_14_RENTAL_BILLING_REPORT.md`, `PHASE_14_RENTALS_FOUNDATION_REPORT.md`, `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`, `PHASE_12_PREPAID_ACCRUED_EXPENSES_REPORT.md`, `PHASE_11_EXPENSE_MANAGEMENT_REPORT.md`, `PHASE_10_BRANCH_WAREHOUSE_OPERATIONS.md`, and `PHASE_10_FINAL_REPORT.md` as the product capability source of truth.
 
-## Active Phase 15 Product Hardening
+## Closed Phase 15 Product Hardening
 
-- `PHASE_15_PRODUCT_HARDENING_REPORT.md`: Slices 1-134 product hardening report.
+- `PHASE_15_PRODUCT_HARDENING_REPORT.md`: Slices 1-190 product hardening close-out report.
+- `PHASE_15_FINAL_VERIFICATION_REPORT.md`: final Phase 15 verification and close-out summary.
 - Completed Slice 1 implementation:
   - `/reports` requires `reports.view` + `view_financials`.
   - Sales order, purchase order, customer invoice, and supplier bill report controllers now perform explicit `view_financials` checks.
@@ -874,8 +875,412 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
   - Verified targeted fixed-asset filter-control guard: 1 test, 60 assertions.
   - Verified `Phase15ProductHardeningTest`: 139 tests, 20794 assertions.
   - Verified focused fixed asset suites plus locale JSON validation, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
-- Next Slice 135 target:
-  - Continue accountant-facing UI flow simplification and remaining clean-code scans.
+- Completed Slice 135 implementation:
+  - Replaced native cash/bank/cheque register filter selects with shared `SearchableSelect` controls in Cash Accounts, Bank Accounts, Incoming Cheques, Outgoing Cheques, and Bank Reconciliations.
+  - Replaced full-page `window.location.href` filtering with Inertia `router.get(...)` preserving state and scroll.
+  - Added backend-supported status, customer, supplier, and bank-account filters where the page-data services already supported them.
+  - Localized incoming/outgoing cheque status option labels and status badges.
+  - Verified targeted cash/bank/cheque filter-control guard: 1 test, 349 assertions.
+  - Verified `Phase15ProductHardeningTest`: 140 tests, 21143 assertions.
+  - Verified Phase 3 master-data, cheque, bank reconciliation, and UI focused suites plus locale JSON validation, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 136 implementation:
+  - Replaced customer/supplier full-page search reloads with Inertia `router.get(...)` preserving state and scroll.
+  - Added backend-supported customer/supplier status filters using shared `SearchableSelect` controls.
+  - Replaced create/edit modal native status selects with shared `SearchableSelect` controls.
+  - Added active-filter counts, disabled no-op clear-filter buttons, and EN/AR all-status labels.
+  - Verified targeted customer/supplier master-data filter-control guard: 1 test, 62 assertions.
+  - Verified `Phase15ProductHardeningTest`: 141 tests, 21205 assertions.
+  - Verified Phase 3 master-data and UI focused suites plus locale JSON validation, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 137 implementation:
+  - Replaced AR/AP allocation receipt/payment selection redirects with Inertia `router.get(...)` preserving state and scroll.
+  - Added customer/supplier searchable filters to AR/AP allocation workspaces.
+  - Replaced manual AR/AP settlement customer/supplier and source-entry native selects with shared `SearchableSelect` controls.
+  - Added active-filter counts, disabled no-op clear-filter buttons, and EN/AR allocation filter labels.
+  - Verified targeted AR/AP allocation and settlement filter-control guard: 1 test, 156 assertions.
+  - Verified `Phase15ProductHardeningTest`: 142 tests, 21361 assertions.
+  - Verified allocation, settlement, and Phase 3 UI focused suites plus locale JSON validation, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 138 implementation:
+  - Replaced Treasury Transfers full-page search reload with Inertia `router.get(...)` preserving state and scroll.
+  - Added backend-provided status filtering and guarded clear actions to Treasury Transfers.
+  - Replaced source/destination cash-bank type native selects with shared `SearchableSelect` controls.
+  - Verified targeted Treasury Transfers filter/type-control guard: 1 test, 69 assertions.
+  - Verified `Phase10TreasuryTransferTest`: 4 tests, 34 assertions.
+  - Verified `Phase15ProductHardeningTest`: 143 tests, 21430 assertions.
+  - Verified locale JSON validation, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 139 implementation:
+  - Replaced Balance Sheet, Income Statement, and Cash Flow CSV export redirects with native export links.
+  - Verified targeted financial statement export-link guard: 1 test, 21 assertions.
+  - Verified `Phase5Slice2FinancialStatementsTest`: 8 tests, 54 assertions.
+  - Verified `Phase5Slice3CashFlowStatementTest`: 9 tests, 46 assertions.
+  - Verified `Phase15ProductHardeningTest`: 144 tests, 21451 assertions.
+- Completed Slice 140 implementation:
+  - Replaced Customer Receipt and Supplier Payment native cash-bank type selects with shared `SearchableSelect` controls.
+  - Verified targeted AR/AP receipt/payment type-control guard: 1 test, 12 assertions.
+  - Verified `Phase3Slice3ReceiptPaymentTest`: 14 tests, 71 assertions, 2 skipped.
+  - Verified `Phase15ProductHardeningTest`: 145 tests, 21463 assertions.
+  - Verified global page redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 141 implementation:
+  - Replaced Sales Orders, Purchase Orders, Customer Invoices, and Supplier Bills report status/customer/supplier/product native filter selects with shared `SearchableSelect` controls.
+  - Verified operational report filter guard: 1 test, 84 assertions.
+  - Verified `Phase4Slice9OperationalReportsTest`: 7 tests, 85 assertions.
+  - Verified `Phase15ProductHardeningTest`: 145 tests, 21479 assertions.
+  - Verified targeted report select/redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 142 implementation:
+  - Replaced Fixed Asset Register, Net Book Value, Depreciation Schedule, Depreciation Run, and Disposal report status/type native filters with shared `SearchableSelect` controls.
+  - Verified fixed-asset report filter-control guard: 1 test, 33 assertions.
+  - Verified `Phase6Slice7FixedAssetReportsTest`: 6 tests, 151 assertions.
+  - Verified `Phase15ProductHardeningTest`: 146 tests, 21512 assertions.
+  - Verified targeted fixed-asset report select/redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 143 implementation:
+  - Replaced Tax Rates tax-code filter/create controls and Tax Code calculation/recoverability controls with shared `SearchableSelect`.
+  - Added typed Tax Code form values to avoid event-value casts.
+  - Verified tax master select-control guard: 1 test, 15 assertions.
+  - Verified `Phase7Slice2TaxFoundationTest`: 7 tests, 38 assertions.
+  - Verified `Phase15ProductHardeningTest`: 147 tests, 21527 assertions.
+  - Verified targeted tax select/cast/redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 144 implementation:
+  - Replaced Accounting Account Mapping scope control with a typed `SearchableSelect<MappingScope>`.
+  - Replaced Financial Statement Mapping statement type, section, normal balance, and cash-flow activity controls with shared `SearchableSelect` controls.
+  - Verified accounting mapping select-control guard: 1 test, 19 assertions.
+  - Verified `Phase5Slice1FinancialStatementMappingTest`: 9 tests, 30 assertions.
+  - Verified `Phase10BranchSpecificGlMappingTest`: 4 tests, 27 assertions.
+  - Verified `Phase15ProductHardeningTest`: 148 tests, 21546 assertions.
+  - Verified targeted mapping select/cast/redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 145 implementation:
+  - Replaced Product Catalog type/status filters and type/UOM/category/status modal controls with shared `SearchableSelect`.
+  - Exposed the existing product category filter with dictionary-backed `allCategories` labels.
+  - Verified Product Catalog select-control guard: 1 test, 38 assertions.
+  - Verified Arabic modal label guard: 1 test, 15 assertions.
+  - Verified `Phase4Slice1CatalogTest`: 12 tests, 66 assertions.
+  - Verified `Phase15ProductHardeningTest`: 149 tests, 21584 assertions.
+  - Verified targeted product select/cast/redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 146 implementation:
+  - Replaced Fixed Asset create category/currency, disposal type, and depreciation-run period controls with shared `SearchableSelect`.
+  - Preserved fixed-asset creation, capitalization, disposal, depreciation run posting, permissions, and PostingEngine behavior.
+  - Verified Fixed Asset workflow select-control guard: 1 test, 22 assertions.
+  - Verified `Phase6Slice2FixedAssetRegisterTest`: 9 tests, 71 assertions.
+  - Verified `Phase6Slice5DepreciationRunTest`: 10 tests, 44 assertions.
+  - Verified `Phase6Slice6FixedAssetDisposalTest`: 15 tests, 60 assertions.
+  - Verified `Phase15ProductHardeningTest`: 150 tests, 21606 assertions.
+  - Verified targeted Fixed Asset workflow select/cast/redirect scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 147 implementation:
+  - Replaced Rental handover line condition-out and Rental return line condition-in/outcome native selects with shared `SearchableSelect` controls.
+  - Kept line choices non-clearable so fulfillment and inspection rows always submit explicit operational states.
+  - Preserved rental handover, return, inspection, damage-charge, contract status, item status, and rental billing behavior.
+  - Verified Rental handover/return line select-control guard: 1 test, 20 assertions.
+  - Verified `Phase14RentalsFoundationTest`: 16 tests, 159 assertions.
+  - Verified `Phase14RentalBillingTest`: 8 tests, 56 assertions.
+  - Verified `Phase15ProductHardeningTest`: 151 tests, 21626 assertions.
+  - Verified targeted Rental workflow select/option/redirect scan, remaining native-select inventory scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 148 implementation:
+  - Replaced Settings Company attachment entity native select with a shared `SearchableSelect`.
+  - Replaced Settings Branch attachment entity native select with a shared `SearchableSelect`.
+  - Kept attachment entity selectors non-clearable so attachment panels always point at an explicit selected record.
+  - Verified Settings attachment entity select-control guard: 1 test, 20 assertions.
+  - Verified `SettingsActionsTest`: 3 tests, 19 assertions.
+  - Verified `MigratedPagesTest`: 2 tests, 83 assertions.
+  - Verified `Phase15ProductHardeningTest`: 152 tests, 21646 assertions.
+  - Verified targeted Settings select/option/redirect scan, remaining native-select inventory scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 149 implementation:
+  - Replaced Sales Orders status filter and modal customer/currency/product selectors with shared `SearchableSelect` controls.
+  - Replaced Purchase Orders status filter and modal supplier/currency/product selectors with shared `SearchableSelect` controls.
+  - Preserved order creation/editing payloads, product-to-UOM defaulting, status actions, permissions, and route query names.
+  - Verified Sales/Purchase Order select-control guard: 1 test, 26 assertions.
+  - Verified `Phase4Slice2SalesOrderTest`: 15 tests, 72 assertions.
+  - Verified `Phase4Slice3PurchaseOrderTest`: 16 tests, 74 assertions.
+  - Verified `Phase15ProductHardeningTest`: 153 tests, 21672 assertions.
+  - Verified targeted Order select/option/redirect scan, remaining native-select inventory scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 150 implementation:
+  - Replaced Delivery Notes warehouse/status filters and confirmed Sales Order/Warehouse modal selectors with shared `SearchableSelect` controls.
+  - Replaced Goods Receipts warehouse/status filters and confirmed Purchase Order/Warehouse modal selectors with shared `SearchableSelect` controls.
+  - Preserved fulfillment payloads, source-document locking during edit, warehouse selection, status actions, permissions, and route query names.
+  - Verified Delivery/Goods Receipt select-control guard: 1 test, 26 assertions.
+  - Verified `Phase4Slice4FulfillmentTest`: 19 tests, 140 assertions.
+  - Verified `Phase4Slice8InventoryCostingTest`: 14 tests, 13 passed, 1 skipped, 99 assertions.
+  - Verified `Phase15ProductHardeningTest`: 154 tests, 21698 assertions.
+  - Verified targeted fulfillment select/option/redirect scan, remaining native-select inventory scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 151 implementation:
+  - Replaced Customer Invoices status filter, confirmed Sales Order selector, confirmed Delivery Note selector, customer selector, and line product selector with shared `SearchableSelect` controls.
+  - Replaced Supplier Bills status filter, confirmed Purchase Order selector, confirmed Goods Receipt selector, supplier selector, and line product selector with shared `SearchableSelect` controls.
+  - Preserved invoice/bill payloads, source-document copy logic, product-to-UOM defaulting, status actions, permissions, and route query names.
+  - Verified Customer Invoice/Supplier Bill select-control guard: 1 test, 32 assertions.
+  - Verified `Phase4Slice5CustomerInvoiceTest`: 19 tests, 84 assertions.
+  - Verified `Phase4Slice6SupplierBillTest`: 19 tests, 98 assertions.
+  - Verified `Phase7Slice3SalesOutputVatTest`: 5 tests, 23 assertions.
+  - Verified `Phase7Slice4PurchasingInputVatTest`: 4 tests, 25 assertions.
+  - Verified `Phase15ProductHardeningTest`: 155 tests, 21730 assertions.
+  - Verified targeted invoice/bill select/option/redirect scan, remaining native-select inventory scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 152 implementation:
+  - Replaced Sales Returns warehouse/status filters and modal customer/warehouse/delivery-note/posted-invoice/DN-line/disposition native controls with shared `SearchableSelect` controls.
+  - Replaced Customer Credit Notes status/customer/linked-invoice/linked-return/tax-mode/invoice-line native controls with shared `SearchableSelect` controls, and fills currency from the selected posted invoice.
+  - Replaced Purchase Returns warehouse/status filters and modal supplier/goods-receipt/warehouse native controls with shared `SearchableSelect` controls.
+  - Replaced Supplier Adjustment Notes status/supplier/linked-bill/direction/tax-mode native controls with shared `SearchableSelect` controls, and fills currency from the selected posted supplier bill.
+  - Replaced Landed Costs goods-receipt/supplier/allocation-method/status native controls with shared `SearchableSelect` controls and removed allocation-method event-value casts.
+  - Verified returns/adjustments/landed-cost select-control guard: 1 test, 89 assertions.
+  - Verified line-editor typed update guard: 1 test, 22 assertions.
+  - Verified `Phase4Slice10ReturnsCreditNotesTest`: 40 tests, 237 assertions.
+  - Verified `Phase10LandedCostAllocationTest`: 5 tests, 40 assertions.
+  - Verified `Phase15ProductHardeningTest`: 156 tests, 21819 assertions.
+  - Verified full Pages native select/option/redirect scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 153 implementation:
+  - Replaced remaining paginated Inertia page `links: any[]`, `links?: any[]`, and `links: unknown[]` declarations with shared `PaginationLink[]` types.
+  - Covered catalog, sales, purchasing, expenses, payroll, rentals, fixed-asset, accounting, customer/supplier, and treasury-transfer page payloads without changing route payloads or business logic.
+  - Added a global regression test scanning `resources/js/Pages` so loose pagination links cannot return.
+  - Verified pagination-link typing guard: 1 test, 504 assertions.
+  - Verified `Phase15ProductHardeningTest`: 157 tests, 22323 assertions.
+  - Verified full Pages native select/option/redirect scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 154 implementation:
+  - Added a dictionary-backed confirmation before posting Journal Detail vouchers to the ledger.
+  - Added a dictionary-backed confirmation before posting Opening Balances to the ledger.
+  - Added opening-balance readiness messaging via `title` and `aria-label` for balanced, unbalanced, and already-posted states.
+  - Verified JournalDetail dictionary/post-confirmation guard: 1 test, 554 assertions.
+  - Verified OpeningBalances dictionary/readiness guard: 1 test, 345 assertions.
+  - Verified `Phase15ProductHardeningTest`: 157 tests, 22401 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 155 implementation:
+  - Added explicit `canPost...` action predicates for Customer Receipts, Supplier Payments, Customer Opening Balances, and Supplier Opening Balances.
+  - Replaced blank action cells for draft rows without financial posting permission with dictionary-backed `Restricted` status badges.
+  - Replaced Customer Receipt and Supplier Payment allocation anchors with Inertia `Link` navigation.
+  - Added post-confirmation title text to row-level post actions.
+  - Verified restricted-action guard: 1 test, 40 assertions.
+  - Verified `Phase15ProductHardeningTest`: 158 tests, 22441 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 156 implementation:
+  - Added explicit lifecycle-action permission predicates to Sales Orders, Purchase Orders, Delivery Notes, and Goods Receipts.
+  - Replaced dense inline `space-x` action cells with stable grouped action wrappers and compact bordered action buttons.
+  - Added dictionary-backed `Restricted` badges for actionable rows blocked by permissions and `No actions` badges for terminal rows.
+  - Added title and `aria-label` text to row-level edit/submit/confirm/cancel actions.
+  - Verified document action-cell guard: 1 test, 90 assertions.
+  - Verified `Phase15ProductHardeningTest`: 159 tests, 22531 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 157 implementation:
+  - Added explicit lifecycle-action permission predicates to Customer Invoices, Supplier Bills, Sales Returns, Customer Credit Notes, Purchase Returns, and Supplier Adjustment Notes.
+  - Replaced dense inline `space-x` action cells with stable grouped action wrappers and compact bordered action buttons.
+  - Added dictionary-backed `Restricted` badges for actionable rows blocked by permissions and `No actions` badges for posted/cancelled terminal rows.
+  - Styled settlement links for posted customer credit notes and supplier adjustment notes inside the same grouped action pattern.
+  - Verified invoice/return action-cell guard: 1 test, 128 assertions.
+  - Verified financial post-action permission guard: 1 test, 36 assertions.
+  - Verified `Phase15ProductHardeningTest`: 160 tests, 22659 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 158 implementation:
+  - Added explicit lifecycle-action permission predicates to Stock Counts, Stock Adjustments, Stock Transfers, Rental Contracts, Rental Invoices, Payroll Runs, and Expenses.
+  - Replaced dense inline action cells with stable grouped wrappers and compact bordered action buttons.
+  - Added dictionary-backed `Restricted` badges for permission-blocked actionable rows and `No actions` badges for terminal rows where no lifecycle action remains.
+  - Preserved `view_financials` guards on financial posting actions for stock counts, stock adjustments, rental invoices, payroll runs, and expenses.
+  - Verified inventory/rental/payroll/expense action-cell guard: 1 test, 154 assertions.
+  - Verified `Phase15ProductHardeningTest`: 161 tests, 22813 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 159 implementation:
+  - Added explicit lifecycle-action permission predicates to Prepaid Schedules, Accrual Schedules, and Fixed Asset Depreciation Runs.
+  - Replaced dense schedule, recognition/accrual-entry, and depreciation-run action cells with stable grouped wrappers and compact bordered action buttons.
+  - Added dictionary-backed `Restricted` badges for permission-blocked actionable rows and `No actions` badges for completed schedule/entry rows where no lifecycle action remains.
+  - Preserved `view_financials` guards on prepaid recognition and accrual entry posting actions; preserved fixed-asset depreciation reverse authorization and scroll state.
+  - Verified expense schedule/depreciation-run action-cell guard: 1 test, 84 assertions.
+  - Verified `Phase15ProductHardeningTest`: 162 tests, 22897 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 160 implementation:
+  - Added explicit lifecycle-action permission predicates to Incoming Cheques, Outgoing Cheques, and Bank Reconciliation workspaces.
+  - Replaced cheque lifecycle and reconciliation statement-line action cells with stable grouped wrappers and compact bordered action buttons.
+  - Added dictionary-backed `Restricted` badges for permission-blocked actionable cheque/reconciliation rows and `No actions` badges for terminal rows.
+  - Replaced the bank reconciliation list plain anchor with an Inertia router action button and made reconciliation add/match/unmatch/delete/finalize actions preserve scroll.
+  - Verified cheque/bank-reconciliation action-cell guard: 1 test, 89 assertions.
+  - Verified `Phase15ProductHardeningTest`: 163 tests, 22986 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 161 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to cheque create/action modal buttons and bank reconciliation create/add/match/close buttons.
+  - Preserved existing dialog flows while improving keyboard and assistive-technology clarity for high-risk financial actions.
+  - Verified cheque/bank-reconciliation modal accessible-name guard: 1 test, 38 assertions.
+  - Verified `Phase15ProductHardeningTest`: 164 tests, 23024 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 162 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Customer Opening Balances, Supplier Opening Balances, Customer Receipts, and Supplier Payments create/post/allocate/save/cancel actions.
+  - Added scroll-safe Inertia state-changing actions for AR/AP creation and posting flows so accountants keep table context after workflow actions.
+  - Verified AR/AP receipt/payment/opening-balance accessible-name guard: 1 test, 48 assertions.
+  - Verified `Phase15ProductHardeningTest`: 165 tests, 23072 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 163 implementation:
+  - Added explicit create/edit/post permission predicates to Treasury Transfers.
+  - Grouped Treasury Transfer row actions with compact permission-aware controls and dictionary-backed restricted/no-action badges.
+  - Added dictionary-backed `title` and `aria-label` values to new/edit/post/cancel/save actions and preserved scroll on create/update/post/cancel flows.
+  - Verified Treasury Transfer action accessibility/scroll guard: 1 test, 29 assertions.
+  - Verified `Phase15ProductHardeningTest`: 166 tests, 23101 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 164 implementation:
+  - Added explicit allocation permission predicates to Receivable Allocations and Payable Allocations.
+  - Added dictionary-backed `title` and `aria-label` values to execute and reverse allocation actions.
+  - Added visible restricted badges for users without allocation permission and preserved scroll on allocation create/reverse flows.
+  - Verified AR/AP allocation accessibility/restricted/scroll guard: 1 test, 26 assertions.
+  - Verified `Phase15ProductHardeningTest`: 167 tests, 23127 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 165 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Receivable Settlement and Payable Settlement back links, settlement confirm actions, reverse actions, modal cancel, and reversal confirmation.
+  - Preserved existing AR/AP settlement routes and scroll-safe settlement/reversal submissions.
+  - Verified AR/AP settlement accessible-name guard: 1 test, 22 assertions.
+  - Verified `Phase15ProductHardeningTest`: 168 tests, 23149 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 166 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Customers, Suppliers, Cash Accounts, and Bank Accounts create, edit, cancel, and save actions.
+  - Added visible restricted row-action badges when edit permission is unavailable.
+  - Preserved scroll on master-data create/update submissions.
+  - Verified master-data action accessible-name guard: 1 test, 64 assertions.
+  - Verified `Phase15ProductHardeningTest`: 169 tests, 23213 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 167 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Company, Branches, and Numbering settings close/cancel/save/add/attachment/detail/edit/delete actions.
+  - Preserved scroll on branch deletion.
+  - Verified foundation settings accessible-action guard: 1 test, 37 assertions.
+  - Verified `Phase15ProductHardeningTest`: 170 tests, 23250 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 168 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Account Categories and Account Types create/edit/detail/delete/cancel/save/close actions.
+  - Preserved scroll on taxonomy create/update/delete flows and kept delete block reasons visible.
+  - Verified accounting taxonomy accessible-action guard: 1 test, 38 assertions.
+  - Verified `Phase15ProductHardeningTest`: 171 tests, 23288 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 169 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Chart of Accounts, Currencies, and FX Rates create/edit/delete/linked-detail/cancel/save/close actions.
+  - Preserved scroll on Chart of Accounts, currency, and FX-rate setup submissions so accountants keep table context.
+  - Verified accounting setup accessible-action guard: 1 test, 41 assertions.
+  - Verified `Phase15ProductHardeningTest`: 172 tests, 23329 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 170 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Users/Roles security administration user, role, permission, revoke, delete, tab, modal, cancel, save, create, and assign actions.
+  - Preserved scroll-safe user/role create/update/delete, assignment, and revoke submissions.
+  - Verified user/role security accessible-action guard: 1 test, 40 assertions.
+  - Verified `Phase15ProductHardeningTest`: 173 tests, 23369 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 171 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Financial Statement Mapping add/tab/assign/edit/delete/unassign/modal close/cancel/save actions.
+  - Added dictionary-backed `title` and `aria-label` values to Fiscal Periods create fiscal year/cancel/generate periods/close modal/close period/reopen period actions.
+  - Preserved scroll-safe fiscal-year generation and close/reopen period submissions.
+  - Verified financial mapping/fiscal period accessible-action guard: 1 test, 40 assertions.
+  - Verified `Phase15ProductHardeningTest`: 174 tests, 23409 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 172 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Fixed Asset detail back/edit/generate/regenerate depreciation schedule/capitalize/dispose/move/reverse capitalization/delete/modal cancel/record movement/post disposal actions.
+  - Preserved scroll-safe fixed-asset delete, capitalization, reverse-capitalization, schedule-generation, movement, and disposal submissions.
+  - Verified fixed-asset detail financial-action guard: 1 test, 31 assertions.
+  - Verified `Phase15ProductHardeningTest`: 175 tests, 23440 assertions.
+  - Verified Fixed Asset detail button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 173 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Landed Cost create/close form, cancel, save draft/save changes, filter, edit, submit, approve, post, and cancel lifecycle actions.
+  - Preserved scroll-safe landed-cost create/update, lifecycle submit/approve/post/cancel, and filter submissions.
+  - Verified landed-cost lifecycle accessible-action guard: 1 test, 22 assertions.
+  - Verified `Phase15ProductHardeningTest`: 176 tests, 23462 assertions.
+  - Verified Landed Cost button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 174 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Customer Invoice create, manual/source mode, add-line, remove-line, cancel, and save actions.
+  - Preserved scroll-safe Customer Invoice search/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions.
+  - Added `salesCustomerInvoices.removeLine` translations in EN/AR.
+  - Verified customer-invoice modal accessible-action guard: 1 test, 38 assertions.
+  - Verified `Phase15ProductHardeningTest`: 177 tests, 23500 assertions.
+  - Verified Customer Invoice button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 175 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Journal Detail submit, approve, post, reverse, number-details, and modal-close actions.
+  - Preserved scroll-safe journal submit/approve/post/reverse submissions.
+  - Verified journal-detail financial-action guard: 1 test, 16 assertions.
+  - Verified `Phase15ProductHardeningTest`: 178 tests, 23516 assertions.
+  - Verified Journal Detail button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 176 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Audit Log reset, filter, entity/request detail, payload, pagination, and modal-close actions.
+  - Preserved scroll-safe Audit Log filter, reset, previous-page, and next-page navigation.
+  - Verified audit-log accessible-action guard: 1 test, 20 assertions.
+  - Verified `Phase15ProductHardeningTest`: 179 tests, 23536 assertions.
+  - Verified Audit Log button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 177 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Supplier Bill create, filter, add-line, remove-line, cancel, and save actions.
+  - Preserved scroll-safe Supplier Bill filtering, create/update, and lifecycle submit/approve/post/cancel submissions.
+  - Added `purchasingSupplierBills.removeLine` translations in EN/AR.
+  - Verified supplier-bill modal accessible-action guard: 1 test, 37 assertions.
+  - Verified `Phase15ProductHardeningTest`: 180 tests, 23573 assertions.
+  - Verified Supplier Bill button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 178 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Sales Return create, source-mode, load-lines, cancel, and save actions.
+  - Preserved scroll-safe Sales Return search/warehouse/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions.
+  - Verified sales-return modal accessible-action guard: 1 test, 111 assertions.
+  - Verified `Phase15ProductHardeningTest`: 181 tests, 23684 assertions.
+  - Verified Sales Return button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 179 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Login language, theme, password visibility, submit, and development quick-fill actions.
+  - Replaced hardcoded theme action title text with EN/AR dictionary-backed text.
+  - Hid the development credential quick-fill helper behind `import.meta.env.DEV` so it is absent from production builds.
+  - Verified login accessible-action/dev-credentials guard: 1 test, 103 assertions.
+  - Verified `Phase15ProductHardeningTest`: 182 tests, 23787 assertions.
+  - Verified Login button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 180 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Catalog Product Categories, Products/Services, and Units of Measure create, edit, delete, cancel, and save actions.
+  - Preserved scroll-safe search, create, update, and delete submissions across the three catalog master-data pages.
+  - Moved the Products code placeholder to EN/AR locale dictionaries instead of leaving hardcoded visible helper copy.
+  - Verified catalog master-data accessible-action guard: 1 test, 391 assertions.
+  - Verified `Phase15ProductHardeningTest`: 183 tests, 24178 assertions.
+  - Verified Catalog button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 181 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Sales Orders and Purchase Orders create, add-line, remove-line, cancel, and save actions.
+  - Preserved scroll-safe search/status filtering, create/update, and lifecycle submit/confirm/cancel submissions across the two order workspaces.
+  - Added `removeLine` translations to Sales Orders and Purchase Orders dictionaries.
+  - Verified sales/purchase order modal accessible-action guard: 1 test, 248 assertions.
+  - Verified `Phase15ProductHardeningTest`: 184 tests, 24426 assertions.
+  - Verified Sales/Purchase Order button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 182 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Customer Credit Notes and Supplier Adjustment Notes create, add-line, remove-line, cancel, and save actions.
+  - Preserved scroll-safe search/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions across both note workspaces.
+  - Added `removeLine` translations to Customer Credit Notes and Supplier Adjustment Notes dictionaries.
+  - Verified credit/adjustment note modal accessible-action guard: 1 test, 248 assertions.
+  - Verified `Phase15ProductHardeningTest`: 185 tests, 24674 assertions.
+  - Verified Credit/Adjustment Note button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 183 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Fixed Asset Categories and Fixed Asset Locations create, edit, delete, cancel/back, and save actions.
+  - Preserved scroll-safe create/update/delete submissions across the two fixed-asset master-data pages.
+  - Verified fixed-asset master-data accessible-action guard: 1 test, 154 assertions.
+  - Verified `Phase15ProductHardeningTest`: 186 tests, 24828 assertions.
+  - Verified Fixed Asset master-data button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 184 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Notifications mark-read, mark-all-read, read/unread/all filter, and Tax Rates back, create, delete, cancel, and save actions.
+  - Preserved scroll-safe notification read/read-all submissions and tax-rate filter/create/delete submissions.
+  - Verified notification/tax-rate accessible-action guard: 1 test, 165 assertions.
+  - Verified `Phase15ProductHardeningTest`: 187 tests, 24993 assertions.
+  - Verified Notifications/Tax Rates button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 185 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Delivery Notes, Goods Receipts, and Purchase Returns create, cancel, and save modal actions.
+  - Preserved scroll-safe search/status/warehouse filtering, create/update, and lifecycle submissions across the three operational pages.
+  - Verified delivery/goods-receipt/purchase-return accessible-action guard: 1 test, 255 assertions.
+  - Verified `Phase15ProductHardeningTest`: 188 tests, 25248 assertions.
+  - Verified Delivery/Goods/Purchase Return button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 186 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Journal Form add/remove/save actions, General Journal close/create actions, Trial Balance generation, and Opening Balances save/post controls.
+  - Preserved scroll-safe journal draft, opening-balance save/post, fiscal-year switch, and trial-balance generation submissions.
+  - Added `accounting.removeLine` translations in EN/AR.
+  - Verified core accounting workflow accessible-action guard: 1 test, 136 assertions.
+  - Verified `Phase15ProductHardeningTest`: 189 tests, 25384 assertions.
+  - Verified core accounting workflow button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 187 implementation:
+  - Added dictionary-backed `title` and `aria-label` values to Balance Sheet, Income Statement, Cash Flow, fixed-asset reports, Tax Codes, and Stock Balances actions.
+  - Preserved scroll-safe report filters, tax-code search/delete, and stock-balance apply/clear filtering.
+  - Verified report/tax-code/stock-balance accessible-action guard: 1 test, 258 assertions.
+  - Verified `Phase15ProductHardeningTest`: 190 tests, 25642 assertions.
+  - Verified touched button scan, full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 188 implementation:
+  - Closed the final 9 missing page button labels in Expense Categories, Fixed Asset create/edit/depreciation preview/disposal detail flows, Warehouses location chips, Sales Invoice Revision print action, and Tax Code create/edit forms.
+  - Added scroll-safe state-changing submissions to fixed-asset create/edit/depreciation/reverse flows and tax-code create/edit forms.
+  - Added a global Phase 15 regression guard that scans every `resources/js/Pages/**/*.tsx` file and fails if any `<button>` lacks `title` or `aria-label`.
+  - Verified global Inertia page button accessible-action guard: 1 test, 1 assertion.
+  - Verified `Phase15ProductHardeningTest`: 191 tests, 25643 assertions.
+  - Verified full Pages button accessibility scan: `TOTAL_FILES=0`, `TOTAL_MISSING=0`, plus full Pages native select/option/redirect/pagination scan, no-scope scan, Pint, TypeScript typecheck, Vite production build, and controller direct-query scan.
+- Completed Slice 189 implementation:
+  - Added a global Phase 15 regression guard that scans every `resources/js/Pages/**/*.tsx` file for native `<select>`, `<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination link types.
+  - Converted the previously manual native-select/redirect/pagination scan into permanent PHPUnit coverage.
+  - Verified global page control/navigation/type guard: 1 test, 1 assertion.
+  - Verified `Phase15ProductHardeningTest`: 192 tests, 25644 assertions.
+  - Verified full Pages native select/option/redirect/pagination scan, no-scope scan, full Pages button scan, Pint, and controller direct-query scan.
+- Completed Slice 190 implementation:
+  - Replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` across financial reports, sales, purchasing, landed-cost, fixed-asset, and tax-rate workflows.
+  - Extended the global page control/navigation/type guard to fail on native `type="date"` inputs in `resources/js/Pages/**/*.tsx`.
+  - Verified global page control/navigation/type guard: 1 test, 1 assertion.
+  - Verified `Phase15ProductHardeningTest`: 192 tests, 25644 assertions.
+  - Verified full Pages native date/select/option/redirect/pagination scan, no-scope scan, controller direct-query scan, Pint, TypeScript typecheck, and Vite production build.
+- Phase 15 close-out:
+  - Phase 15 is closed for the current product-hardening gate.
+  - Future accountant-facing UX work must be opened as a new bounded phase/slice.
   - Keep all logic changes bounded to existing implemented modules; no deployment/cutover work unless explicitly resumed.
 
 ## Prepared Phase 14 Rentals

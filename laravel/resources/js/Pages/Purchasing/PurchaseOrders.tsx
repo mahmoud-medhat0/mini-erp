@@ -1,11 +1,12 @@
-﻿import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, useForm, router } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import DatePicker from '../../Components/DatePicker';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -77,7 +78,7 @@ type PurchaseOrderRow = {
 type PurchaseOrdersProps = SharedPageProps & {
   purchaseOrders: {
     data: PurchaseOrderRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   suppliers: SupplierOption[];
   currencies: CurrencyOption[];
@@ -92,6 +93,7 @@ type PurchaseOrdersProps = SharedPageProps & {
 export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers, currencies, products, filters }: PurchaseOrdersProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.purchasingPurchaseOrders;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
@@ -119,6 +121,33 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
     notes: '',
     lock_version: 1,
   });
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    { value: 'draft', label: pageDict.draft },
+    { value: 'submitted', label: pageDict.submitted },
+    { value: 'confirmed', label: pageDict.confirmed },
+    { value: 'cancelled', label: pageDict.cancelled },
+  ], [pageDict.allStatuses, pageDict.draft, pageDict.submitted, pageDict.confirmed, pageDict.cancelled]);
+  const supplierOptions = useMemo(() => suppliers.map((supplier) => ({
+    value: supplier.id,
+    label: supplier.name,
+    sublabel: supplier.code,
+  })), [suppliers]);
+  const currencyOptions = useMemo(() => currencies.map((currency) => ({
+    value: currency.code,
+    label: `${currency.code} - ${currency.name}`,
+    sublabel: currency.symbol,
+  })), [currencies]);
+  const productOptions = useMemo(() => products.map((product) => ({
+    value: product.id,
+    label: product.name,
+    sublabel: product.code,
+  })), [products]);
+  const canEditPurchaseOrders = can('purchasing.edit');
+  const canSubmitPurchaseOrders = can('purchasing.submit');
+  const canConfirmPurchaseOrders = can('purchasing.approve');
+  const canCancelPurchaseOrders = can('purchasing.cancel');
+  const purchaseOrderSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;
 
   const openCreateModal = () => {
     reset();
@@ -230,10 +259,12 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
 
     if (editingOrder) {
       router.put(`/purchasing/orders/${editingOrder.id}`, payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       router.post('/purchasing/orders', payload, {
+        preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     }
@@ -246,7 +277,7 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingPurchaseOrders.cancelThisPurchaseOrder;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/orders/${orderId}/${action}`);
+      router.post(`/purchasing/orders/${orderId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -280,6 +311,22 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
     }
   };
 
+  const isPurchaseOrderActionable = (order: PurchaseOrderRow) => order.status === 'draft' || order.status === 'submitted';
+
+  const hasAvailablePurchaseOrderAction = (order: PurchaseOrderRow) => (
+    order.status === 'draft'
+      ? canEditPurchaseOrders || canSubmitPurchaseOrders || canConfirmPurchaseOrders || canCancelPurchaseOrders
+      : order.status === 'submitted'
+        ? canConfirmPurchaseOrders || canCancelPurchaseOrders
+        : false
+  );
+
+  const getPurchaseOrderActionState = (order: PurchaseOrderRow) => {
+    if (hasAvailablePurchaseOrderAction(order)) return null;
+
+    return isPurchaseOrderActionable(order) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   const calculatePreviewSubtotal = () => {
     return lineItems.reduce((acc, item) => {
       const q = Number(item.quantity) || 0;
@@ -297,16 +344,18 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
         description={dict.app.pages.purchasingPurchaseOrders.manageSupplierPurchaseOrdersAndCommitments}
         actions={
           can('purchasing.create') ? (
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{dict.app.pages.purchasingPurchaseOrders.createPurchaseOrder}</span>
-          </button>
+            <button
+              type="button"
+              onClick={openCreateModal}
+              title={pageDict.createPurchaseOrder}
+              aria-label={pageDict.createPurchaseOrder}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{dict.app.pages.purchasingPurchaseOrders.createPurchaseOrder}</span>
+            </button>
           ) : null
         }
       />
@@ -321,7 +370,7 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/orders', { ...filters, search: val }, { preserveState: true });
+                  router.get('/purchasing/orders', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
                 }
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
@@ -332,17 +381,12 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={filters.status || ''}
-              onChange={(e) => router.get('/purchasing/orders', { ...filters, status: e.target.value }, { preserveState: true })}
-              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">{dict.app.pages.purchasingPurchaseOrders.allStatuses}</option>
-              <option value="draft">{dict.app.pages.purchasingPurchaseOrders.draft}</option>
-              <option value="submitted">{dict.app.pages.purchasingPurchaseOrders.submitted}</option>
-              <option value="confirmed">{dict.app.pages.purchasingPurchaseOrders.confirmed}</option>
-              <option value="cancelled">{dict.app.pages.purchasingPurchaseOrders.cancelled}</option>
-            </select>
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={filters.status || null}
+              onChange={(value) => router.get('/purchasing/orders', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
+              label={dict.app.pages.purchasingPurchaseOrders.status}
+            />
           </div>
         </div>
 
@@ -365,70 +409,82 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {purchaseOrders.data.map((order) => (
-                  <tr key={order.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {order.number || dict.app.pages.purchasingPurchaseOrders.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{order.supplier?.name || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{order.order_date}</td>
-                    <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
-                      {formatMoney(order.total_minor, order.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(order.status)}>
-                        {getStatusLabel(order.status)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {order.status === 'draft' ? (
-                        <>
-                          {can('purchasing.edit') ? (
+                {purchaseOrders.data.map((order) => {
+                  const actionState = getPurchaseOrderActionState(order);
+
+                  return (
+                    <tr key={order.id}>
+                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
+                        {order.number || dict.app.pages.purchasingPurchaseOrders.draft_2}
+                      </td>
+                      <td className={`${tableClasses.td} font-medium`}>{order.supplier?.name || accDict.notAvailable}</td>
+                      <td className={tableClasses.td}>{order.order_date}</td>
+                      <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
+                        {formatMoney(order.total_minor, order.currency)}
+                      </td>
+                      <td className={tableClasses.td}>
+                        <StatusBadge tone={getStatusTone(order.status)}>
+                          {getStatusLabel(order.status)}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableClasses.td} text-end`}>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {order.status === 'draft' && canEditPurchaseOrders ? (
                             <button
                               type="button"
                               onClick={() => openEditModal(order)}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                              title={dict.app.pages.purchasingPurchaseOrders.edit}
+                              aria-label={dict.app.pages.purchasingPurchaseOrders.edit}
+                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
                             >
                               {dict.app.pages.purchasingPurchaseOrders.edit}
                             </button>
                           ) : null}
-                          {can('purchasing.submit') ? (
+
+                          {order.status === 'draft' && canSubmitPurchaseOrders ? (
                             <button
                               type="button"
                               onClick={() => handleAction(order.id, 'submit')}
-                              className="text-xs font-semibold text-purple-600 hover:text-purple-800"
+                              title={dict.app.pages.purchasingPurchaseOrders.submit}
+                              aria-label={dict.app.pages.purchasingPurchaseOrders.submit}
+                              className="inline-flex h-8 items-center rounded-md border border-violet-200 px-2.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50 dark:border-violet-900/60 dark:text-violet-300 dark:hover:bg-violet-950/40"
                             >
                               {dict.app.pages.purchasingPurchaseOrders.submit}
                             </button>
                           ) : null}
-                        </>
-                      ) : null}
 
-                      {order.status === 'draft' || order.status === 'submitted' ? (
-                        <>
-                          {can('purchasing.approve') ? (
+                          {isPurchaseOrderActionable(order) && canConfirmPurchaseOrders ? (
                             <button
                               type="button"
                               onClick={() => handleAction(order.id, 'confirm')}
-                              className="text-xs font-semibold text-emerald-600 hover:text-emerald-800"
+                              title={dict.app.pages.purchasingPurchaseOrders.confirm}
+                              aria-label={dict.app.pages.purchasingPurchaseOrders.confirm}
+                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
                             >
                               {dict.app.pages.purchasingPurchaseOrders.confirm}
                             </button>
                           ) : null}
-                          {can('purchasing.cancel') ? (
+
+                          {isPurchaseOrderActionable(order) && canCancelPurchaseOrders ? (
                             <button
                               type="button"
                               onClick={() => handleAction(order.id, 'cancel')}
-                              className="text-xs font-semibold text-red-600 hover:text-red-800"
+                              title={dict.app.pages.purchasingPurchaseOrders.cancel}
+                              aria-label={dict.app.pages.purchasingPurchaseOrders.cancel}
+                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
                             >
                               {dict.app.pages.purchasingPurchaseOrders.cancel}
                             </button>
                           ) : null}
-                        </>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+
+                          {actionState ? (
+                            <StatusBadge tone="muted">{actionState}</StatusBadge>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -447,71 +503,41 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingPurchaseOrders.supplier_2} *
-                  </label>
-                  <select
-                    value={data.supplier_id}
-                    onChange={(e) => setData('supplier_id', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">{dict.app.pages.purchasingPurchaseOrders.selectSupplier}</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({s.code})
-                      </option>
-                    ))}
-                  </select>
-                  {errors.supplier_id ? <p className="mt-1 text-[10px] text-red-500">{errors.supplier_id}</p> : null}
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingPurchaseOrders.supplier_2}
+                  value={data.supplier_id || null}
+                  onChange={(value) => setData('supplier_id', value || '')}
+                  options={supplierOptions}
+                  placeholder={dict.app.pages.purchasingPurchaseOrders.selectSupplier}
+                  isClearable={false}
+                  required
+                  error={errors.supplier_id}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingPurchaseOrders.orderDate} *
-                  </label>
-                  <input
-                    type="date"
-                    value={data.order_date}
-                    onChange={(e) => setData('order_date', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                  {errors.order_date ? <p className="mt-1 text-[10px] text-red-500">{errors.order_date}</p> : null}
-                </div>
+                <DatePicker
+                  label={dict.app.pages.purchasingPurchaseOrders.orderDate}
+                  value={data.order_date}
+                  onChange={(value) => setData('order_date', value || '')}
+                  required
+                  error={errors.order_date}
+                />
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingPurchaseOrders.currency} *
-                  </label>
-                  <select
-                    value={data.currency}
-                    onChange={(e) => setData('currency', e.target.value)}
-                    required
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  >
-                    {currencies.map((curr) => (
-                      <option key={curr.code} value={curr.code}>
-                        {curr.code} - {curr.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label={dict.app.pages.purchasingPurchaseOrders.currency}
+                  value={data.currency || null}
+                  onChange={(value) => setData('currency', value || '')}
+                  options={currencyOptions}
+                  isClearable={false}
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {dict.app.pages.purchasingPurchaseOrders.expectedReceiptDate}
-                  </label>
-                  <input
-                    type="date"
-                    value={data.expected_receipt_date}
-                    onChange={(e) => setData('expected_receipt_date', e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
+                <DatePicker
+                  label={dict.app.pages.purchasingPurchaseOrders.expectedReceiptDate}
+                  value={data.expected_receipt_date}
+                  onChange={(value) => setData('expected_receipt_date', value || '')}
+                />
 
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
@@ -536,6 +562,8 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                   <button
                     type="button"
                     onClick={addLineItem}
+                    title={pageDict.addLine}
+                    aria-label={pageDict.addLine}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800"
                   >
                     <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -553,21 +581,14 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                     return (
                       <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-xl border border-[var(--border)] bg-[var(--background)]/50">
                         <div className="flex-1 w-full sm:w-auto">
-                          <label className="block text-[10px] font-semibold text-[var(--text-muted)] mb-1">
-                            {dict.app.pages.purchasingPurchaseOrders.productService}
-                          </label>
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => handleProductChange(idx, e.target.value)}
+                          <SearchableSelect
+                            label={dict.app.pages.purchasingPurchaseOrders.productService}
+                            value={item.product_id || null}
+                            onChange={(value) => handleProductChange(idx, value || '')}
+                            options={productOptions}
+                            isClearable={false}
                             required
-                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
-                          >
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} ({p.code})
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </div>
 
                         <div className="w-full sm:w-24">
@@ -639,6 +660,8 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                           <button
                             type="button"
                             onClick={() => removeLineItem(idx)}
+                            title={pageDict.removeLine}
+                            aria-label={pageDict.removeLine}
                             className="mt-4 sm:mt-0 p-1.5 text-red-500 hover:text-red-700 transition-colors"
                           >
                             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -679,6 +702,8 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                 <button
                   type="button"
                   onClick={closeModal}
+                  title={pageDict.cancel_2}
+                  aria-label={pageDict.cancel_2}
                   className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
                 >
                   {dict.app.pages.purchasingPurchaseOrders.cancel_2}
@@ -686,11 +711,11 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                 <button
                   type="submit"
                   disabled={processing}
+                  title={purchaseOrderSubmitLabel}
+                  aria-label={purchaseOrderSubmitLabel}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {processing
-                    ? dict.app.pages.purchasingPurchaseOrders.saving
-                    : dict.app.pages.purchasingPurchaseOrders.saveDraft}
+                  {purchaseOrderSubmitLabel}
                 </button>
               </div>
             </form>

@@ -4,12 +4,12 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { JournalRow, SharedPageProps } from '../../Types';
+import type { PaginationLink, JournalRow, SharedPageProps } from '../../Types';
 
 type GeneralJournalProps = SharedPageProps & {
   journals: {
     data: JournalRow[];
-    links: any[];
+    links: PaginationLink[];
   };
   periods: { id: string; month: number; status: string }[];
   filters: { status?: string; period_id?: string; start_date?: string; end_date?: string };
@@ -53,6 +53,8 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
         actions={
           <Link
             href="/accounting/journal/create"
+            title={accDict.createVoucher}
+            aria-label={accDict.createVoucher}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -86,6 +88,8 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
               <button
                 type="button"
                 onClick={() => setSelectedJournal(null)}
+                title={dict.app.actions.close}
+                aria-label={dict.app.actions.close}
                 className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -123,6 +127,8 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
               <button
                 type="button"
                 onClick={() => setSelectedJournal(null)}
+                title={dict.app.actions.close}
+                aria-label={dict.app.actions.close}
                 className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
               >
                 {dict.app.actions.close}

@@ -7,7 +7,7 @@ import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, Sea
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Customer = { id: string; code: string; name: TranslatedName };
@@ -122,7 +122,7 @@ type EditableLine = {
   notes: string;
 };
 type Props = SharedPageProps & {
-  invoices: { data: RentalInvoice[]; total: number; links?: any[] };
+  invoices: { data: RentalInvoice[]; total: number; links?: PaginationLink[] };
   contracts: Contract[];
   currencies: CurrencyOption[];
   taxCodes: TaxCode[];
@@ -214,6 +214,11 @@ export default function RentalInvoicesIndex({
   const activeLocale = locale === 'ar' ? 'ar' : 'en';
   const pageDict = dict.app.pages.rentalInvoices;
   const can = useCan();
+  const canCreateRentalInvoices = can('rentals.invoice');
+  const canSubmitRentalInvoices = can('rentals.submit');
+  const canApproveRentalInvoices = can('rentals.approve');
+  const canPostRentalInvoices = can('rentals.post') && can('view_financials');
+  const canCancelRentalInvoices = can('rentals.cancel');
   const defaultCurrency = contracts[0]?.currency || currencies[0]?.code || '';
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
@@ -483,13 +488,31 @@ export default function RentalInvoicesIndex({
     }
   }
 
+  const isRentalInvoiceActionable = (invoice: RentalInvoice) => ['draft', 'submitted', 'approved'].includes(invoice.status);
+
+  const hasAvailableRentalInvoiceAction = (invoice: RentalInvoice) => (
+    invoice.status === 'draft'
+      ? canCreateRentalInvoices || canSubmitRentalInvoices || canApproveRentalInvoices || canCancelRentalInvoices
+      : invoice.status === 'submitted'
+        ? canApproveRentalInvoices || canCancelRentalInvoices
+        : invoice.status === 'approved'
+          ? canPostRentalInvoices || canCancelRentalInvoices
+          : false
+  );
+
+  const getRentalInvoiceActionState = (invoice: RentalInvoice) => {
+    if (hasAvailableRentalInvoiceAction(invoice)) return null;
+
+    return isRentalInvoiceActionable(invoice) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="rentals.invoices.index">
       <Head title={pageDict.headTitle} />
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('rentals.invoice') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
+        actions={canCreateRentalInvoices ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
@@ -631,32 +654,47 @@ export default function RentalInvoicesIndex({
               </tr>
             </thead>
             <tbody>
-              {invoices.data.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td className={`${tableClasses.td} font-mono font-bold`}>{invoice.number || pageDict.notNumbered}</td>
-                  <td className={tableClasses.td}>{invoice.contract?.number || pageDict.notNumbered}</td>
-                  <td className={tableClasses.td}>
-                    {invoice.customer ? `${invoice.customer.code} - ${namePart(invoice.customer.name, activeLocale)}` : pageDict.customer}
-                  </td>
-                  <td className={tableClasses.td}>{formatDate(invoice.invoice_date)}</td>
-                  <td className={tableClasses.td}>{pageDict.invoiceTypes[invoice.invoice_type as keyof typeof pageDict.invoiceTypes] || invoice.invoice_type}</td>
-                  <td className={tableClasses.td}><AccountingAmount amountMinor={invoice.total_minor} currency={invoice.currency} /></td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={statusTone(invoice.status)}>
-                      {pageDict.statuses[invoice.status as keyof typeof pageDict.statuses] || invoice.status}
-                    </StatusBadge>
-                  </td>
-                  <td className={`${tableClasses.td} text-end`}>
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {invoice.status === 'draft' && can('rentals.invoice') ? <Button variant="secondary" onClick={() => openEdit(invoice)}>{pageDict.edit}</Button> : null}
-                      {invoice.status === 'draft' && can('rentals.submit') ? <Button variant="secondary" onClick={() => action(invoice, 'submit')}>{pageDict.submit}</Button> : null}
-                      {['draft', 'submitted'].includes(invoice.status) && can('rentals.approve') ? <Button variant="secondary" onClick={() => action(invoice, 'approve')}>{pageDict.approve}</Button> : null}
-                      {invoice.status === 'approved' && can('rentals.post') && can('view_financials') ? <Button onClick={() => action(invoice, 'post')}>{pageDict.postToArGl}</Button> : null}
-                      {!['posted', 'cancelled'].includes(invoice.status) && can('rentals.cancel') ? <Button variant="danger" onClick={() => action(invoice, 'cancel')}>{pageDict.cancel}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {invoices.data.map((invoice) => {
+                const actionState = getRentalInvoiceActionState(invoice);
+
+                return (
+                  <tr key={invoice.id}>
+                    <td className={`${tableClasses.td} font-mono font-bold`}>{invoice.number || pageDict.notNumbered}</td>
+                    <td className={tableClasses.td}>{invoice.contract?.number || pageDict.notNumbered}</td>
+                    <td className={tableClasses.td}>
+                      {invoice.customer ? `${invoice.customer.code} - ${namePart(invoice.customer.name, activeLocale)}` : pageDict.customer}
+                    </td>
+                    <td className={tableClasses.td}>{formatDate(invoice.invoice_date)}</td>
+                    <td className={tableClasses.td}>{pageDict.invoiceTypes[invoice.invoice_type as keyof typeof pageDict.invoiceTypes] || invoice.invoice_type}</td>
+                    <td className={tableClasses.td}><AccountingAmount amountMinor={invoice.total_minor} currency={invoice.currency} /></td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={statusTone(invoice.status)}>
+                        {pageDict.statuses[invoice.status as keyof typeof pageDict.statuses] || invoice.status}
+                      </StatusBadge>
+                    </td>
+                    <td className={`${tableClasses.td} text-end`}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {invoice.status === 'draft' && canCreateRentalInvoices ? (
+                          <button type="button" onClick={() => openEdit(invoice)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+                        ) : null}
+                        {invoice.status === 'draft' && canSubmitRentalInvoices ? (
+                          <button type="button" onClick={() => action(invoice, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                        ) : null}
+                        {['draft', 'submitted'].includes(invoice.status) && canApproveRentalInvoices ? (
+                          <button type="button" onClick={() => action(invoice, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                        ) : null}
+                        {invoice.status === 'approved' && canPostRentalInvoices ? (
+                          <button type="button" onClick={() => action(invoice, 'post')} title={pageDict.postToArGl} aria-label={pageDict.postToArGl} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.postToArGl}</button>
+                        ) : null}
+                        {isRentalInvoiceActionable(invoice) && canCancelRentalInvoices ? (
+                          <button type="button" onClick={() => action(invoice, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+                        ) : null}
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

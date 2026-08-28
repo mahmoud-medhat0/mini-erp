@@ -42,12 +42,12 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
   }
 
   function handleFilter() {
-    router.get('/taxes/codes', { search }, { preserveState: true, replace: true });
+    router.get('/taxes/codes', { search }, { preserveState: true, preserveScroll: true, replace: true });
   }
 
   function handleDelete(id: string) {
     if (confirm(taxDict.confirmDeleteCode)) {
-      router.delete(`/taxes/codes/${id}`);
+      router.delete(`/taxes/codes/${id}`, { preserveScroll: true });
     }
   }
 
@@ -63,12 +63,16 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
             <div className="flex items-center gap-3">
               <Link
                 href="/taxes/rates"
+                title={taxDict.taxRates}
+                aria-label={taxDict.taxRates}
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition font-medium text-sm"
               >
                 {taxDict.taxRates}
               </Link>
               <Link
                 href="/taxes/codes/create"
+                title={taxDict.newTaxCode}
+                aria-label={taxDict.newTaxCode}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium text-sm"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -94,7 +98,10 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
               />
             </div>
             <button
+              type="button"
               onClick={handleFilter}
+              title={taxDict.search}
+              aria-label={taxDict.search}
               className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-md font-medium text-sm hover:bg-slate-200 transition"
             >
               {taxDict.search}
@@ -160,7 +167,10 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                         </Link>
                         {!item.is_system && (
                           <button
+                            type="button"
                             onClick={() => handleDelete(item.id)}
+                            title={taxDict.delete}
+                            aria-label={taxDict.delete}
                             className="text-xs font-medium text-rose-600 dark:text-rose-400 hover:underline"
                           >
                             {taxDict.delete}

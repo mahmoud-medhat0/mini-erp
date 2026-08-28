@@ -1,8 +1,8 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -52,8 +52,15 @@ export default function IncomingChequesIndex({
 }: IncomingChequesProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
+  const pageDict = dict.app.pages.incomingCheques;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canCreateCheques = can('cheques.create');
+  const canReceiveIncomingCheques = can('cheques.receive');
+  const canDepositIncomingCheques = can('cheques.deposit');
+  const canClearIncomingCheques = can('cheques.clear');
+  const canBounceIncomingCheques = can('cheques.bounce');
+  const canReturnIncomingCheques = can('cheques.return');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeActionCheque, setActiveActionCheque] = useState<IncomingChequeRow | null>(null);
@@ -124,6 +131,30 @@ export default function IncomingChequesIndex({
   const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
+  const statusOptions = [
+    { value: 'draft', label: pageDict.statuses.draft },
+    { value: 'received', label: pageDict.statuses.received },
+    { value: 'deposited', label: pageDict.statuses.deposited },
+    { value: 'cleared', label: pageDict.statuses.cleared },
+    { value: 'bounced', label: pageDict.statuses.bounced },
+    { value: 'returned', label: pageDict.statuses.returned },
+  ];
+  const activeFilterCount = [filters.status, filters.customer_id].filter(Boolean).length;
+
+  const applyFilters = (next: Record<string, string>) => {
+    const status = next.status ?? filters.status ?? '';
+    const customerId = next.customer_id ?? filters.customer_id ?? '';
+    const params: Record<string, string> = {};
+
+    if (status) params.status = status;
+    if (customerId) params.customer_id = customerId;
+
+    router.get('/incoming-cheques', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/incoming-cheques', {}, { preserveScroll: true, preserveState: true });
+  }
 
   const statusToneMap: Record<string, 'muted' | 'info' | 'warning' | 'ok' | 'danger'> = {
     draft: 'muted',
@@ -134,6 +165,24 @@ export default function IncomingChequesIndex({
     returned: 'muted',
   };
 
+  const isIncomingChequeActionable = (cheque: IncomingChequeRow) => ['draft', 'received', 'deposited'].includes(cheque.status);
+
+  const hasAvailableIncomingChequeAction = (cheque: IncomingChequeRow) => (
+    cheque.status === 'draft'
+      ? canReceiveIncomingCheques
+      : cheque.status === 'received'
+        ? canDepositIncomingCheques || canReturnIncomingCheques
+        : cheque.status === 'deposited'
+          ? canClearIncomingCheques || canBounceIncomingCheques
+          : false
+  );
+
+  const getIncomingChequeActionState = (cheque: IncomingChequeRow) => {
+    if (hasAvailableIncomingChequeAction(cheque)) return null;
+
+    return isIncomingChequeActionable(cheque) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="incoming-cheques.index">
       <Head title={dict.app.pages.incomingCheques.incomingChequesMiniErp} />
@@ -142,10 +191,12 @@ export default function IncomingChequesIndex({
         title={dict.app.pages.incomingCheques.incomingChequesRegister}
         description={dict.app.pages.incomingCheques.manageIncomingChequesLifecycleStateMachine}
         actions={
-          can('cheques.create') ? (
+          canCreateCheques ? (
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
+              title={dict.app.pages.incomingCheques.addIncomingCheque}
+              aria-label={dict.app.pages.incomingCheques.addIncomingCheque}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.incomingCheques.addIncomingCheque}
@@ -156,21 +207,21 @@ export default function IncomingChequesIndex({
 
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            defaultValue={filters.status || ''}
-            onChange={(e) => {
-              window.location.href = `/incoming-cheques?status=${e.target.value}`;
-            }}
-            className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-          >
-            <option value="">{dict.app.pages.incomingCheques.allStatuses}</option>
-            <option value="draft">Draft</option>
-            <option value="received">Received</option>
-            <option value="deposited">Deposited</option>
-            <option value="cleared">Cleared</option>
-            <option value="bounced">Bounced</option>
-            <option value="returned">Returned</option>
-          </select>
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
+            value={filters.status || ''}
+            onChange={(value) => applyFilters({ status: value || '' })}
+            className="w-48"
+            isSearchable={false}
+          />
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.customer }, ...customerSelectOptions]}
+            value={filters.customer_id || ''}
+            onChange={(value) => applyFilters({ customer_id: value || '' })}
+            className="w-72"
+            isSearchable
+          />
+          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
         </div>
       </Card>
 
@@ -194,87 +245,93 @@ export default function IncomingChequesIndex({
               </tr>
             </thead>
             <tbody>
-              {cheques.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>
-                    {row.customer ? `${row.customer.code} - ${row.customer.name}` : accDict.notAvailable}
-                  </td>
-                  <td className={tableClasses.td}>{row.bank_name}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatMoney(row.amount_minor, row.currency)}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
-                      {row.status.toUpperCase()}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-1">
-                      {row.status === 'draft' && can('cheques.receive') ? (
-                        <button
-                          type="button"
-                          onClick={() => openActionModal(row, 'receive')}
-                          className="rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400 px-2 py-1 text-[11px] font-bold hover:bg-blue-600/20 cursor-pointer"
-                        >
-                          {dict.app.pages.incomingCheques.receive}
-                        </button>
-                      ) : null}
+              {cheques.data.map((row) => {
+                const actionState = getIncomingChequeActionState(row);
 
-                      {row.status === 'received' ? (
-                        <>
-                          {can('cheques.deposit') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'deposit')}
-                              className="rounded-lg bg-amber-600/10 text-amber-600 dark:text-amber-400 px-2 py-1 text-[11px] font-bold hover:bg-amber-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.incomingCheques.deposit}
-                            </button>
-                          ) : null}
-                          {can('cheques.return') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'return')}
-                              className="rounded-lg bg-slate-600/10 text-slate-600 dark:text-slate-400 px-2 py-1 text-[11px] font-bold hover:bg-slate-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.incomingCheques.return}
-                            </button>
-                          ) : null}
-                        </>
-                      ) : null}
+                return (
+                  <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
+                    <td className={`${tableClasses.td} font-semibold`}>
+                      {row.customer ? `${row.customer.code} - ${row.customer.name}` : accDict.notAvailable}
+                    </td>
+                    <td className={tableClasses.td}>{row.bank_name}</td>
+                    <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
+                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
+                      {formatMoney(row.amount_minor, row.currency)}
+                    </td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
+                        {pageDict.statuses[row.status]}
+                      </StatusBadge>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {row.status === 'draft' && canReceiveIncomingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'receive')}
+                            title={pageDict.receive}
+                            aria-label={pageDict.receive}
+                            className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                          >
+                            {pageDict.receive}
+                          </button>
+                        ) : null}
 
-                      {row.status === 'deposited' ? (
-                        <>
-                          {can('cheques.clear') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'clear')}
-                              className="rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 text-[11px] font-bold hover:bg-emerald-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.incomingCheques.clear}
-                            </button>
-                          ) : null}
-                          {can('cheques.bounce') ? (
-                            <button
-                              type="button"
-                              onClick={() => openActionModal(row, 'bounce')}
-                              className="rounded-lg bg-red-600/10 text-red-600 dark:text-red-400 px-2 py-1 text-[11px] font-bold hover:bg-red-600/20 cursor-pointer"
-                            >
-                              {dict.app.pages.incomingCheques.bounce}
-                            </button>
-                          ) : null}
-                        </>
-                      ) : null}
+                        {row.status === 'received' && canDepositIncomingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'deposit')}
+                            title={pageDict.deposit}
+                            aria-label={pageDict.deposit}
+                            className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                          >
+                            {pageDict.deposit}
+                          </button>
+                        ) : null}
 
-                      {row.status === 'cleared' ? (
-                        <span className="text-[11px] font-mono text-[var(--text-muted)]">{dict.app.pages.incomingCheques.terminalCleared}</span>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {row.status === 'received' && canReturnIncomingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'return')}
+                            title={pageDict.return}
+                            aria-label={pageDict.return}
+                            className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
+                          >
+                            {pageDict.return}
+                          </button>
+                        ) : null}
+
+                        {row.status === 'deposited' && canClearIncomingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'clear')}
+                            title={pageDict.clear}
+                            aria-label={pageDict.clear}
+                            className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                          >
+                            {pageDict.clear}
+                          </button>
+                        ) : null}
+
+                        {row.status === 'deposited' && canBounceIncomingCheques ? (
+                          <button
+                            type="button"
+                            onClick={() => openActionModal(row, 'bounce')}
+                            title={pageDict.bounce}
+                            aria-label={pageDict.bounce}
+                            className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                          >
+                            {pageDict.bounce}
+                          </button>
+                        ) : null}
+
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -369,6 +426,8 @@ export default function IncomingChequesIndex({
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
+                  title={dict.app.pages.incomingCheques.cancel}
+                  aria-label={dict.app.pages.incomingCheques.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.incomingCheques.cancel}
@@ -376,6 +435,8 @@ export default function IncomingChequesIndex({
                 <button
                   type="submit"
                   disabled={createForm.processing}
+                  title={dict.app.pages.incomingCheques.saveCheque}
+                  aria-label={dict.app.pages.incomingCheques.saveCheque}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {createForm.processing ? dict.app.pages.incomingCheques.saving : dict.app.pages.incomingCheques.saveCheque}
@@ -512,6 +573,8 @@ export default function IncomingChequesIndex({
                     setActiveActionCheque(null);
                     setActionType(null);
                   }}
+                  title={dict.app.pages.incomingCheques.cancel_2}
+                  aria-label={dict.app.pages.incomingCheques.cancel_2}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
                 >
                   {dict.app.pages.incomingCheques.cancel_2}
@@ -519,6 +582,8 @@ export default function IncomingChequesIndex({
                 <button
                   type="submit"
                   disabled={actionForm.processing}
+                  title={dict.app.pages.incomingCheques.confirmAction}
+                  aria-label={dict.app.pages.incomingCheques.confirmAction}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {actionForm.processing ? dict.app.pages.incomingCheques.processing : dict.app.pages.incomingCheques.confirmAction}

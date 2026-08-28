@@ -5,9 +5,9 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current date/context: 2026-08-26. Phase 15 Product Hardening is IN PROGRESS. Slices 1-133 are COMPLETE. Slice 133 replaced native rental filter selects with shared `SearchableSelect` controls in Handovers, Returns, and Invoices. Phase 8 and Phase 9 operational/deployment documentation remain COMPLETE, but deployment execution is parked until owner/operator cutover decisions are needed.
+Current date/context: 2026-08-28. Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Slice 190 replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` and extended the global Inertia guard to prevent native date inputs, native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination links from returning to Inertia pages. Phase 8 and Phase 9 operational/deployment documentation remain COMPLETE, but deployment execution is parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 15 Slices 1-133 are COMPLETE. Slice 133 passed the rental filter-control guard, rental focused suites, `Phase15ProductHardeningTest` with 138 tests / 20734 assertions, Pint, TypeScript typecheck, Vite build, and the global controller direct-query scan.
+Latest update: Phase 15 Slices 1-190 are COMPLETE and the phase is closed. Slice 190 passed the global Inertia page control/navigation/type guard after enforcing shared controls, shared `DatePicker` date inputs, Inertia navigation, and typed pagination payloads across all page sources. `Phase15ProductHardeningTest` passed with 192 tests / 25644 assertions; Slice 188 also keeps the standalone Pages button scanner at `TOTAL_FILES=0` and `TOTAL_MISSING=0`; Pint, full Pages native-control/pagination scan, no-scope scan, global controller direct-query scan, TypeScript typecheck, and Vite build passed.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -18,6 +18,7 @@ Use the current Laravel code and these documents first:
 - `README.md`
 - `IMPLEMENTATION_STATUS.md`
 - `NEXT_TASKS.md`
+- `PHASE_15_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_15_PRODUCT_HARDENING_REPORT.md`
 - `PRODUCT_EXTENSIBILITY_ROADMAP.md`
 - `PHASE_14_RENTALS.md`
@@ -297,7 +298,7 @@ Latest Phase 6 Slice 4 local correction notes:
 - Fixed Asset detail depreciation schedule UI uses dictionary-backed statuses, date separators, table labels, buttons, and empty states.
 - Verification: migrations up to date through `2026_08_23_051000_enforce_fixed_asset_depreciation_schedule_immutability`, `vendor/bin/pint --test`, Slice 4 suite 13/13 / 64 assertions, full PHPUnit suite 483 tests / 480 passed / 3 skipped / 3588 assertions, Concurrency testsuite 7/7, PostgreSQL stress commands, `npm run typecheck`, and `npm run build`.
 
-Historical next-step note resolved: Phase 7 is closed out, Phase 8 is complete, Phase 9 is complete, Phase 10 warehouse/stock-transfer foundation is complete, Phase 10 stock count/adjustment/warehouse selector completion is complete, Phase 10 branch cash/bank treasury transfer is complete, Phase 10 fixed asset movement history is complete, Phase 10 branch operational reports are complete, branch profitability is complete, branch-specific GL mapping overrides are complete, branch-aware approval rules are complete, landed cost/freight allocation is complete, Phase 11 Expense Management is complete, Phase 12 Prepaid & Accrued Expenses is complete, Phase 13 Payroll Foundation is complete, and Phase 14 Rentals is complete and verified. Phase 15 Product Hardening has started; Slices 1-133 are complete. Current continuation should proceed with Slice 134 accountant-facing UI flow simplification and remaining clean-code scans without reopening deployment until owner/operator cutover decisions are ready.
+Historical next-step note resolved: Phase 7 is closed out, Phase 8 is complete, Phase 9 is complete, Phase 10 warehouse/stock-transfer foundation is complete, Phase 10 stock count/adjustment/warehouse selector completion is complete, Phase 10 branch cash/bank treasury transfer is complete, Phase 10 fixed asset movement history is complete, Phase 10 branch operational reports are complete, branch profitability is complete, branch-specific GL mapping overrides are complete, branch-aware approval rules are complete, landed cost/freight allocation is complete, Phase 11 Expense Management is complete, Phase 12 Prepaid & Accrued Expenses is complete, Phase 13 Payroll Foundation is complete, Phase 14 Rentals are complete and verified, and Phase 15 Product Hardening is closed with Slices 1-190 complete. Current continuation should open a new bounded phase/slice for the next product capability or UX initiative, without reopening deployment until owner/operator cutover decisions are ready.
 
 Latest Phase 6 Slice 1 notes:
 
@@ -472,10 +473,63 @@ npm run typecheck
 npm run build
 ```
 
-Latest Slice 84 results:
+Latest Phase 15 results:
 
 - Last full Laravel suite pass remains Slice 57: 720 tests, 717 passed, 3 skipped, 17923 assertions.
-- Phase 15 product hardening test after Slice 84: 90 tests, 17583 assertions.
+- Phase 15 product hardening test after Slice 190: 192 tests, 25644 assertions.
+- Slice 190 global Inertia page control/navigation/type guard with native date-input coverage: 1 test, 1 assertion.
+- Slice 188 global Inertia page button accessible-action guard: 1 test, 1 assertion.
+- Full Pages button accessibility scanner after Slice 188: `TOTAL_FILES=0`, `TOTAL_MISSING=0`.
+- Slice 187 report/tax-code/stock-balance accessible-action guard: 1 test, 258 assertions.
+- Slice 186 core accounting workflow accessible-action guard: 1 test, 136 assertions.
+- Slice 185 delivery/goods-receipt/purchase-return accessible-action guard: 1 test, 255 assertions.
+- Slice 184 notification/tax-rate accessible-action guard: 1 test, 165 assertions.
+- Slice 183 fixed-asset master-data accessible-action guard: 1 test, 154 assertions.
+- Slice 182 credit/adjustment note modal accessible-action guard: 1 test, 248 assertions.
+- Slice 181 sales/purchase order modal accessible-action guard: 1 test, 248 assertions.
+- Slice 180 catalog master-data accessible-action guard: 1 test, 391 assertions.
+- Slice 179 login accessible-action/dev-credentials guard: 1 test, 103 assertions.
+- Slice 178 sales-return modal accessible-action guard: 1 test, 111 assertions.
+- Slice 177 supplier-bill modal accessible-action guard: 1 test, 37 assertions.
+- Slice 176 audit-log accessible-action guard: 1 test, 20 assertions.
+- Slice 175 journal-detail financial-action guard: 1 test, 16 assertions.
+- Slice 174 customer-invoice modal accessible-action guard: 1 test, 38 assertions.
+- Slice 173 landed-cost lifecycle accessible-action guard: 1 test, 22 assertions.
+- Slice 172 fixed-asset detail financial-action guard: 1 test, 31 assertions.
+- Slice 171 financial mapping/fiscal period accessible-action guard: 1 test, 40 assertions.
+- Slice 170 user/role security accessible-action guard: 1 test, 40 assertions.
+- Slice 169 accounting setup accessible-action guard: 1 test, 41 assertions.
+- Slice 168 accounting taxonomy accessible-action guard: 1 test, 38 assertions.
+- Slice 167 foundation settings accessible-action guard: 1 test, 37 assertions.
+- Slice 166 master-data action accessible-name guard: 1 test, 64 assertions.
+- Slice 165 AR/AP settlement accessible-name guard: 1 test, 22 assertions.
+- Slice 164 AR/AP allocation accessibility/restricted/scroll guard: 1 test, 26 assertions.
+- Slice 163 Treasury Transfer action accessibility/scroll guard: 1 test, 29 assertions.
+- Slice 162 AR/AP receipt/payment/opening-balance accessible-name guard: 1 test, 48 assertions.
+- Slice 161 cheque/bank-reconciliation modal accessible-name guard: 1 test, 38 assertions.
+- Slice 160 cheque/bank-reconciliation action-cell guard: 1 test, 89 assertions.
+- Slice 159 expense schedule/depreciation-run action-cell guard: 1 test, 84 assertions.
+- Slice 158 inventory/rental/payroll/expense action-cell guard: 1 test, 154 assertions.
+- Slice 157 invoice/return action-cell guard: 1 test, 128 assertions.
+- Slice 157 financial post-action permission guard: 1 test, 36 assertions.
+- Slice 156 sales/purchasing document action-cell guard: 1 test, 90 assertions.
+- Slice 155 AR/AP restricted-action guard: 1 test, 40 assertions.
+- Slice 154 JournalDetail and OpeningBalances posting-readiness guards: 2 tests, 899 assertions.
+- Slice 153 pagination-link typing guard: 1 test, 504 assertions.
+- Slice 152 returns/adjustments/landed-cost select-control guard: 1 test, 89 assertions.
+- Slice 149 Sales/Purchase Order select-control guard: 1 test, 26 assertions.
+- Slice 148 Settings attachment entity select-control guard: 1 test, 20 assertions.
+- Slice 147 Rental handover/return line select-control guard: 1 test, 20 assertions.
+- Slice 146 Fixed Asset workflow select-control guard: 1 test, 22 assertions.
+- Slice 145 Product Catalog select-control guard: 1 test, 38 assertions.
+- Slice 144 accounting mapping select-control guard: 1 test, 19 assertions.
+- Slice 143 tax master select-control guard: 1 test, 15 assertions.
+- Slice 142 fixed-asset report filter-control guard: 1 test, 33 assertions.
+- Slice 141 operational report filter-control guard: 1 test, 84 assertions.
+- Slice 139 financial statement export-link guard: 1 test, 21 assertions.
+- Slice 140 AR/AP receipt/payment cash-bank type-control guard: 1 test, 12 assertions.
+- Phase 5 financial statement suites passed after Slice 139: Balance Sheet/Income Statement 8 tests, 54 assertions; Cash Flow 9 tests, 46 assertions.
+- Phase 3 receipt/payment suite passed after Slice 140: 14 tests, 71 assertions, 2 skipped.
 - Bank/cheque localization guard after Slice 84: 1 test, 358 assertions.
 - Phase 3 cheque and bank reconciliation feature suites after Slice 84: 19 tests, 97 assertions.
 - Concurrency suite after Slice 84: 7 tests, 16 assertions.
@@ -486,7 +540,7 @@ Latest Slice 84 results:
 - Console command and seeder fixed-currency scan passed with zero hardcoded `EGP`/`USD` matches under `app/Console/Commands` and `database/seeders`.
 - Visible financial post actions now match backend `view_financials` authorization requirements, and return/credit-note/adjustment pages use route-specific permissions.
 - Inventory stock count/adjustment dense tables now use canonical missing-warehouse labels, and stock adjustment value deltas are formatted with the adjustment currency.
-- Pint, TypeScript typecheck, and Vite production build passed after Slice 84.
+- Pint, TypeScript typecheck, and Vite production build passed after Slice 190.
 - Monolithic full Laravel suite was attempted after Slice 58 but exceeded the local timeout budget during the broader run; `Phase4Slice10ReturnsCreditNotesTest.php` passed standalone with a larger timeout, and the suite runtime needs separate tuning.
 
 Phase 13 Payroll Foundation:

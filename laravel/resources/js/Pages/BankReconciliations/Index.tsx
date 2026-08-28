@@ -1,8 +1,8 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+﻿import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -46,8 +46,10 @@ export default function BankReconciliationsIndex({
   filters,
 }: BankReconciliationsProps) {
   const dict = getDictionary(locale);
+  const pageDict = dict.app.pages.bankReconciliations;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canReconcileBanks = can('banks.reconcile');
 
   const [showModal, setShowModal] = useState(false);
 
@@ -85,6 +87,26 @@ export default function BankReconciliationsIndex({
   const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name} (${b.currency})` }));
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const formatBankAmount = (amountMinor: number, currency?: string | null): string => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
+  const statusOptions = [
+    { value: 'draft', label: pageDict.draft },
+    { value: 'finalized', label: pageDict.finalized },
+  ];
+  const activeFilterCount = [filters.status, filters.bank_account_id].filter(Boolean).length;
+
+  const applyFilters = (next: Record<string, string>) => {
+    const status = next.status ?? filters.status ?? '';
+    const bankAccountId = next.bank_account_id ?? filters.bank_account_id ?? '';
+    const params: Record<string, string> = {};
+
+    if (status) params.status = status;
+    if (bankAccountId) params.bank_account_id = bankAccountId;
+
+    router.get('/bank-reconciliations', params, { preserveScroll: true, preserveState: true });
+  };
+
+  function clearFilters() {
+    router.get('/bank-reconciliations', {}, { preserveScroll: true, preserveState: true });
+  }
 
   return (
     <AppLayout active="bank-reconciliations.index">
@@ -94,13 +116,15 @@ export default function BankReconciliationsIndex({
         title={dict.app.pages.bankReconciliations.bankReconciliations}
         description={dict.app.pages.bankReconciliations.matchBankStatementLinesWithGeneral}
         actions={
-          can('banks.reconcile') ? (
+          canReconcileBanks ? (
             <button
               type="button"
               onClick={() => {
                 reset();
                 setShowModal(true);
               }}
+              title={dict.app.pages.bankReconciliations.newBankReconciliation}
+              aria-label={dict.app.pages.bankReconciliations.newBankReconciliation}
               className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {dict.app.pages.bankReconciliations.newBankReconciliation}
@@ -111,17 +135,21 @@ export default function BankReconciliationsIndex({
 
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <select
-            defaultValue={filters.status || ''}
-            onChange={(e) => {
-              window.location.href = `/bank-reconciliations?status=${e.target.value}`;
-            }}
-            className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-          >
-            <option value="">{dict.app.pages.bankReconciliations.allStatuses}</option>
-            <option value="draft">Draft</option>
-            <option value="finalized">Finalized</option>
-          </select>
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
+            value={filters.status || ''}
+            onChange={(value) => applyFilters({ status: value || '' })}
+            className="w-48"
+            isSearchable={false}
+          />
+          <SearchableSelect
+            options={[{ value: '', label: pageDict.bankAccount }, ...bankSelectOptions]}
+            value={filters.bank_account_id || ''}
+            onChange={(value) => applyFilters({ bank_account_id: value || '' })}
+            className="w-80"
+            isSearchable
+          />
+          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
         </div>
       </Card>
 
@@ -166,12 +194,17 @@ export default function BankReconciliationsIndex({
                     </StatusBadge>
                   </td>
                   <td className={tableClasses.td}>
-                    <a
-                      href={`/bank-reconciliations/${row.id}`}
-                      className="text-xs font-bold text-[var(--primary)] hover:underline"
-                    >
-                      {row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
-                    </a>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => router.get(`/bank-reconciliations/${row.id}`)}
+                        title={row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
+                        aria-label={row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
+                        className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-[var(--primary)] transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900/50"
+                      >
+                        {row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -281,6 +314,8 @@ export default function BankReconciliationsIndex({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
+                  title={dict.app.pages.bankReconciliations.cancel}
+                  aria-label={dict.app.pages.bankReconciliations.cancel}
                   className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {dict.app.pages.bankReconciliations.cancel}
@@ -288,6 +323,8 @@ export default function BankReconciliationsIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={dict.app.pages.bankReconciliations.createOpenWorkspace}
+                  aria-label={dict.app.pages.bankReconciliations.createOpenWorkspace}
                   className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.bankReconciliations.creating : dict.app.pages.bankReconciliations.createOpenWorkspace}

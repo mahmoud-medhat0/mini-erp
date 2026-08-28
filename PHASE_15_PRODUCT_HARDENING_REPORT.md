@@ -1,10 +1,10 @@
-# Phase 15 Product Hardening - Slices 1-134 Report
+# Phase 15 Product Hardening - Slices 1-190 Final Report
 
 > **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices.
 
 ## Status
 
-Phase 15 Product Hardening is in progress.
+Phase 15 Product Hardening is COMPLETE / CLOSED.
 
 - Slice 1 is complete as a focused security and UI text hardening pass.
 - Slice 2 is complete as a focused controller/service boundary cleanup pass.
@@ -140,6 +140,62 @@ Phase 15 Product Hardening is in progress.
 - Slice 132 is complete as a remaining operational clear-filter UX pass disabling no-op reset actions across inventory, expense, and rental workflow pages.
 - Slice 133 is complete as a rental filter-control consistency pass replacing native status/type filter selects with shared `SearchableSelect` controls.
 - Slice 134 is complete as a fixed-asset filter-control UX pass replacing native filter selects with shared `SearchableSelect` controls and guarded clear actions.
+- Slice 135 is complete as a cash/bank/cheque filter-control UX pass replacing native filter selects and full-page reload filters with shared searchable Inertia filter controls.
+- Slice 136 is complete as a customer/supplier master-data filter-control UX pass replacing full-page reload filters and native status controls with shared searchable Inertia controls.
+- Slice 137 is complete as an AR/AP allocation and settlement filter-control UX pass replacing full-page reload filters and native settlement selectors with shared searchable Inertia controls.
+- Slice 138 is complete as a treasury-transfer filter and endpoint-type UX pass replacing full-page reload filters and native cash/bank type selectors with shared searchable Inertia controls.
+- Slice 139 is complete as a financial statement export UX pass replacing imperative `window.location.href` redirects with plain export links.
+- Slice 140 is complete as an AR/AP receipt-payment cash-bank type-control UX pass replacing remaining native cash/bank type selects with shared searchable controls.
+- Slice 141 is complete as an operational report filter-control UX pass replacing native status/customer/supplier/product filter selects with shared searchable controls.
+- Slice 142 is complete as a fixed-asset report filter-control UX pass replacing native status/type report filters with shared searchable controls.
+- Slice 143 is complete as a tax master-data select-control UX pass replacing native tax-code, calculation-mode, and recoverability-mode selects with shared searchable controls.
+- Slice 144 is complete as an accounting mapping select-control UX pass replacing native scope, statement-line, section, normal-balance, and cash-flow activity controls with shared searchable controls.
+- Slice 145 is complete as a catalog product select-control UX pass replacing native product type/status/UOM/category controls with shared searchable controls and exposing the existing category filter.
+- Slice 146 is complete as a fixed-asset workflow select-control UX pass replacing native asset category, currency, disposal type, and depreciation-period controls with shared searchable controls.
+- Slice 147 is complete as a rental fulfillment select-control UX pass replacing handover/return line condition and outcome native controls with shared searchable controls.
+- Slice 148 is complete as a Settings attachment selector UX pass replacing Company/Branch attachment entity native controls with shared searchable controls.
+- Slice 149 is complete as a Sales/Purchase Order select-control UX pass replacing status, party, currency, and product native controls with shared searchable controls.
+- Slice 150 is complete as a Delivery/Goods Receipt select-control UX pass replacing warehouse, status, and source-document native controls with shared searchable controls.
+- Slice 151 is complete as a Customer Invoice/Supplier Bill select-control UX pass replacing status, source-document, party, and product native controls with shared searchable controls.
+- Slice 152 is complete as a returns, adjustment-note, and landed-cost select-control UX pass replacing the remaining native workflow controls with shared searchable controls.
+- Slice 153 is complete as a paginated Inertia payload typing pass replacing remaining loose page `links` types with shared `PaginationLink[]`.
+- Slice 154 is complete as a critical posting confirmation/readiness UX pass for Journal Detail and Opening Balances.
+- Slice 155 is complete as an AR/AP restricted-action cell cleanup pass for receipt/payment and opening-balance pages.
+- Slice 156 is complete as a sales/purchasing document action-cell grouping pass for order and fulfillment lifecycle pages.
+- Slice 157 is complete as an invoice, bill, return, credit-note, purchase-return, and supplier-adjustment action-cell grouping pass.
+- Slice 158 is complete as an inventory, rental, payroll, and expense lifecycle action-cell grouping pass.
+- Slice 159 is complete as a prepaid/accrual schedule and fixed-asset depreciation-run action-cell grouping pass.
+- Slice 160 is complete as a cheque workflow and bank reconciliation action-cell grouping pass.
+- Slice 161 is complete as a cheque and bank reconciliation modal accessible-action pass.
+- Slice 162 is complete as an AR/AP opening balance, receipt, and payment accessible-action pass.
+- Slice 163 is complete as a Treasury Transfer action accessibility and scroll-safety pass.
+- Slice 164 is complete as an AR/AP allocation accessibility, restricted-state, and scroll-safety pass.
+- Slice 165 is complete as an AR/AP settlement accessible-action pass.
+- Slice 166 is complete as a master-data action accessibility, restricted-state, and scroll-safety pass.
+- Slice 167 is complete as a foundation settings action accessibility and scroll-safety pass.
+- Slice 168 is complete as an accounting taxonomy action accessibility and scroll-safety pass.
+- Slice 169 is complete as an accounting setup action accessibility and scroll-safety pass.
+- Slice 170 is complete as a user/role security administration action accessibility and scroll-safety pass.
+- Slice 171 is complete as a financial statement mapping and fiscal period action accessibility and scroll-safety pass.
+- Slice 172 is complete as a fixed-asset detail financial action accessibility and scroll-safety pass.
+- Slice 173 is complete as a landed-cost lifecycle action accessibility and scroll-safety pass.
+- Slice 174 is complete as a customer-invoice modal action accessibility and scroll-safety pass.
+- Slice 175 is complete as a journal-detail financial action accessibility and scroll-safety pass.
+- Slice 176 is complete as an audit-log action accessibility and scroll-safety pass.
+- Slice 177 is complete as a supplier-bill modal action accessibility and scroll-safety pass.
+- Slice 178 is complete as a sales-return modal action accessibility and scroll-safety pass.
+- Slice 179 is complete as a login action accessibility and development-credential exposure hardening pass.
+- Slice 180 is complete as a catalog master-data action accessibility and scroll-safe submission pass.
+- Slice 181 is complete as a sales/purchase order modal action accessibility and scroll-safe submission pass.
+- Slice 182 is complete as a customer-credit/supplier-adjustment note modal action accessibility and scroll-safe submission pass.
+- Slice 183 is complete as a fixed-asset master-data action accessibility and scroll-safe submission pass.
+- Slice 184 is complete as a notification and tax-rate action accessibility and scroll-safe submission pass.
+- Slice 185 is complete as a delivery/goods-receipt/purchase-return action accessibility and scroll-safe submission pass.
+- Slice 186 is complete as a core accounting workflow action accessibility and scroll-safe submission pass.
+- Slice 187 is complete as a reports, tax-code, and stock-balance action accessibility and scroll-safe filter pass.
+- Slice 188 is complete as a global Inertia page button accessibility closure pass.
+- Slice 189 is complete as a global Inertia page control/navigation/type regression guard pass.
+- Slice 190 is complete as the final native date-input cleanup and Phase 15 close-out pass.
 
 ## Scope
 
@@ -1253,6 +1309,474 @@ This phase does not add a new ERP module, migration, table, or business workflow
 - Preserved existing fixed asset route names, query parameter names, permissions, backend page-data services, operational branch/location references, and disposal workflows.
 - Added regression coverage proving fixed asset filter bars use shared searchable controls, no native filter selects remain in the touched pages, locale JSON remains valid, and reset actions stay guarded.
 
+## Slice 135 Changes
+
+- Replaced native filter selects in Cash Accounts, Bank Accounts, Incoming Cheques, Outgoing Cheques, and Bank Reconciliations with shared `SearchableSelect` controls.
+- Replaced full-page `window.location.href` filter reloads with Inertia `router.get(...)` calls that preserve state and scroll position.
+- Added status filters to Cash Accounts and Bank Accounts, using the backend-supported `status` query parameter that was already present in the page-data services.
+- Added customer/supplier/bank-account searchable filters to cheque and reconciliation register pages using existing backend-supported filter parameters.
+- Added active-filter counts and disabled clear-filter buttons when no filters are active.
+- Moved incoming/outgoing cheque status option labels and status badges to EN/AR dictionaries instead of rendering raw uppercase enum values.
+- Preserved existing route names, page-data services, query parameter names, RBAC permissions, cheque lifecycle actions, bank reconciliation workflow, and operational branch references.
+- Added regression coverage proving the touched cash/bank/cheque filter bars avoid native selects, avoid full-page reloads, use guarded clear actions, and keep localized cheque status labels.
+
+## Slice 136 Changes
+
+- Replaced customer and supplier master-data search redirects with Inertia `router.get(...)` filter updates that preserve state and scroll position.
+- Added backend-supported status filters to Customers and Suppliers using shared `SearchableSelect` controls.
+- Replaced the create/edit modal status native selects with shared `SearchableSelect` controls while preserving the existing active/inactive status coercion helpers.
+- Added active-filter counts and disabled clear-filter buttons when no customer/supplier filter is active.
+- Added EN/AR dictionary keys for customer and supplier all-status filter labels.
+- Preserved existing route names, page-data services, query parameter names, RBAC permissions, optimistic locking payloads, customer/supplier data model, and attachment/audit behavior.
+- Added regression coverage proving the touched customer/supplier master-data pages avoid native selects, avoid full-page reloads, use guarded clear actions, and keep locale keys present.
+
+## Slice 137 Changes
+
+- Replaced AR/AP allocation receipt/payment selection redirects with Inertia `router.get(...)` filter updates that preserve state and scroll position.
+- Added customer and supplier searchable filter controls to Receivable Allocations and Payable Allocations using existing backend-supported filter parameters.
+- Replaced manual AR/AP settlement customer/supplier and source-entry native selects with shared `SearchableSelect` controls.
+- Added active-filter counts and disabled clear-filter buttons when no allocation/settlement filter is active.
+- Added EN/AR dictionary keys for receivable/payable allocation customer/supplier filter labels.
+- Preserved existing route names, page-data services, query parameter names, RBAC permissions, settlement/allocations posting actions, reversals, subledger behavior, and PostingEngine invariants.
+- Added regression coverage proving the touched AR/AP allocation and settlement pages avoid native selects, avoid full-page reloads, use guarded clear actions, and keep locale keys present.
+
+## Slice 138 Changes
+
+- Replaced Treasury Transfers search redirect with Inertia `router.get(...)` filter updates that preserve state and scroll position.
+- Added the backend-provided status list to the Treasury Transfers filter bar with shared `SearchableSelect` controls.
+- Added active-filter counts and disabled clear-filter buttons when no treasury-transfer filter is active.
+- Replaced native source/destination cash-bank type selects in the transfer form with shared `SearchableSelect` controls.
+- Added EN/AR dictionary coverage for the all-status treasury-transfer filter label.
+- Preserved existing route names, page-data services, query parameter names, RBAC permissions, PostingEngine-backed posting, cancellation behavior, and operational branch/cash/bank references.
+- Added regression coverage proving Treasury Transfers avoid native selects, avoid full-page reloads, use guarded clear actions, and keep locale keys present.
+
+## Slice 139 Changes
+
+- Replaced financial statement CSV export buttons that used `window.location.href` with plain anchor links so browser download behavior stays native and predictable.
+- Updated Balance Sheet, Income Statement, and Cash Flow report pages to derive `exportUrl` from current filters without imperative redirects.
+- Preserved existing report routes, export permissions, controller/exporter behavior, date/period query parameters, and print/report rendering behavior.
+- Added regression coverage proving the touched report pages use export links and do not reintroduce `window.location.href` export handlers.
+
+## Slice 140 Changes
+
+- Replaced the remaining native cash/bank type selects inside Customer Receipt and Supplier Payment modals with shared `SearchableSelect` controls.
+- Kept the existing cash/bank coercion helper and submit payload behavior, including nulling the inactive destination/source account field before posting.
+- Preserved existing route names, AR/AP receipt/payment services, PostingEngine-backed posting, allocation links, permissions, and currency/period/customer/supplier selectors.
+- Added regression coverage proving the touched receipt/payment pages use searchable cash-bank type controls and no native `<select>` remains there.
+
+## Slice 141 Changes
+
+- Replaced native status, customer/supplier, and product filter selects in Sales Orders, Purchase Orders, Customer Invoices, and Supplier Bills report pages with shared `SearchableSelect` controls.
+- Kept the existing `ReportFilterPanel`, date filters, search input, visible currency filter, active-filter count, and guarded reset behavior.
+- Preserved existing report routes, query parameter names, report page-data services, CSV export behavior, route permissions, and mixed-currency summary handling.
+- Extended regression coverage proving the touched operational report pages use searchable filter controls and no native `<select>` remains there.
+
+## Slice 142 Changes
+
+- Replaced native status filters in Fixed Asset Register, Net Book Value, Depreciation Schedule, and Depreciation Run report pages with shared `SearchableSelect` controls.
+- Replaced native disposal type and status filters in the Fixed Asset Disposal report with shared `SearchableSelect` controls.
+- Preserved existing fixed-asset report routes, query parameter names, report services, export links, print actions, and financial visibility/export permissions.
+- Added regression coverage proving fixed-asset report filters use searchable controls and no native `<select>` remains in the five report pages.
+
+## Slice 143 Changes
+
+- Replaced native tax-code selectors in Tax Rates filter and create modal with shared `SearchableSelect` controls.
+- Replaced native calculation-mode and recoverability-mode controls in Tax Code create/edit forms with typed `SearchableSelect` controls.
+- Added explicit Tax Code form TypeScript types so select values stay narrowed without event-value casts.
+- Preserved existing tax routes, validation, rate effective-date handling, delete action, and VAT posting/reporting behavior.
+- Added regression coverage proving the touched tax master-data pages use searchable controls and avoid native `<select>` and event-value casts.
+
+## Slice 144 Changes
+
+- Replaced the native global/branch scope selector in Accounting Account Mappings with a typed `SearchableSelect<MappingScope>` control and explicit `toMappingScope` parser.
+- Replaced native statement type, section, normal balance, statement-line cash-flow activity, and account-level cash-flow activity selectors in Financial Statement Mappings with shared `SearchableSelect` controls.
+- Preserved existing account mapping routes, operational branch override behavior, financial statement mapping lifecycle, cash-flow classification behavior, delete confirmations, and permissions.
+- Added regression coverage proving the two accounting mapping pages use searchable controls and avoid native `<select>`, event-value casts, and export redirects.
+
+## Slice 145 Changes
+
+- Replaced Product Catalog type and status filter native selects with shared `SearchableSelect` controls.
+- Exposed the existing backend-supported product category filter as a searchable category selector without changing route query names.
+- Replaced Product create/edit type, unit of measure, category, and status native selects with shared searchable controls while preserving explicit `toProductType` and `toProductStatus` parsers.
+- Added `allCategories` dictionary labels in EN/AR and kept product modal option labels cleanly localized.
+- Added regression coverage proving the product catalog page uses searchable controls and avoids native `<select>`, event-value casts, and export redirects.
+
+## Slice 146 Changes
+
+- Replaced Fixed Asset create page asset category and currency native selects with shared searchable controls.
+- Replaced Fixed Asset disposal modal disposal-type native select with a shared searchable control while preserving scrap/sale/retirement behavior.
+- Replaced Fixed Asset depreciation run financial-period native select with a shared searchable period selector.
+- Preserved existing fixed-asset creation, capitalization, disposal, depreciation run posting, permission gates, and PostingEngine behavior.
+- Added regression coverage proving the touched fixed-asset workflow pages use searchable controls and avoid native `<select>`, event-value casts, and export redirects.
+
+## Slice 147 Changes
+
+- Replaced Rental Handover line condition-out native select with a shared searchable control.
+- Replaced Rental Return line condition-in and outcome native selects with shared searchable controls.
+- Kept rental fulfillment line controls non-clearable so handover, inspection, and outcome submissions always carry explicit operational state values.
+- Preserved rental handover, return, inspection, damage-charge, contract status, item status, and rental billing behavior.
+- Added regression coverage proving the touched rental workflow pages use searchable controls and avoid native `<select>` and `<option>` controls.
+
+## Slice 148 Changes
+
+- Replaced Settings Company attachment entity native select with a shared searchable control.
+- Replaced Settings Branch attachment entity native select with a shared searchable control.
+- Kept attachment entity selectors non-clearable so attachment panels remain bound to explicit selected records.
+- Preserved existing company/branch settings, optimistic lock forms, attachment listing/upload behavior, and no-multi-tenant constraints.
+- Added regression coverage proving the touched settings pages use searchable controls and avoid native `<select>` and `<option>` controls.
+
+## Slice 149 Changes
+
+- Replaced Sales Orders status filter native select with a shared searchable control.
+- Replaced Sales Order modal customer, currency, and product native selects with shared searchable controls.
+- Replaced Purchase Orders status filter native select with a shared searchable control.
+- Replaced Purchase Order modal supplier, currency, and product native selects with shared searchable controls.
+- Preserved existing order creation/editing payloads, product-to-UOM defaulting, status actions, permissions, and route query names.
+- Added regression coverage proving the touched order pages use searchable controls and avoid native `<select>` and `<option>` controls.
+
+## Slice 150 Changes
+
+- Replaced Delivery Notes warehouse and status filter native selects with shared searchable controls.
+- Replaced Delivery Note modal confirmed Sales Order and warehouse native selects with shared searchable controls.
+- Replaced Goods Receipts warehouse and status filter native selects with shared searchable controls.
+- Replaced Goods Receipt modal confirmed Purchase Order and warehouse native selects with shared searchable controls.
+- Preserved fulfillment payloads, source-document locking during edit, warehouse selection, status actions, permissions, and route query names.
+- Added regression coverage proving the touched fulfillment pages use searchable controls and avoid native `<select>` and `<option>` controls.
+
+## Slice 151 Changes
+
+- Replaced Customer Invoices status filter native select with a shared searchable control.
+- Replaced Customer Invoice modal confirmed Sales Order, confirmed Delivery Note, customer, and line product native selects with shared searchable controls.
+- Replaced Supplier Bills status filter native select with a shared searchable control.
+- Replaced Supplier Bill modal confirmed Purchase Order, confirmed Goods Receipt, supplier, and line product native selects with shared searchable controls.
+- Preserved invoice/bill payloads, source-document copy logic, product-to-UOM defaulting, status actions, permissions, and route query names.
+- Added regression coverage proving the touched invoice and bill pages use searchable controls and avoid native `<select>` and `<option>` controls.
+
+## Slice 152 Changes
+
+- Replaced Sales Returns warehouse/status filters plus customer, warehouse, delivery-note, posted-invoice, delivery-note line, and disposition modal native selects with shared searchable controls.
+- Replaced Customer Credit Notes status/customer/source-document/tax-mode/invoice-line native selects with shared searchable controls.
+- Replaced Purchase Returns warehouse/status filters plus supplier, goods-receipt, and warehouse modal native selects with shared searchable controls.
+- Replaced Supplier Adjustment Notes status/supplier/posted-bill/direction/tax-mode native selects with shared searchable controls.
+- Replaced Landed Costs goods-receipt, supplier, allocation-method, and status native selects with shared searchable controls and removed the remaining allocation-method event cast.
+- Filled linked invoice/bill currency on Customer Credit Note and Supplier Adjustment Note source selection while preserving payloads, permissions, posting flows, and route query names.
+- Added regression coverage proving the touched returns, adjustment-note, and landed-cost pages use searchable controls and avoid native `<select>`, `<option>`, event-cast, and imperative redirect regressions.
+
+## Slice 153 Changes
+
+- Replaced remaining paginated Inertia page `links: any[]`, `links?: any[]`, and `links: unknown[]` declarations with the shared `PaginationLink[]` type.
+- Covered catalog, customer/supplier, accounting, sales, purchasing, expenses, payroll, fixed-asset, rental, and treasury-transfer pages.
+- Preserved route payloads, pagination rendering, filters, actions, permissions, and all business workflows; this slice only tightened TypeScript data contracts.
+- Added a global regression test scanning every TSX page under `resources/js/Pages` so loose pagination link types cannot return.
+
+## Slice 154 Changes
+
+- Added a dictionary-backed confirmation before posting Journal Detail vouchers to the ledger.
+- Added a dictionary-backed confirmation before posting Opening Balances to the ledger.
+- Added opening-balance readiness messaging via translated `title` and `aria-label` values for balanced, unbalanced, and already-posted states.
+- Preserved PostingEngine behavior, route permissions, journal/opening-balance payloads, and all accounting invariants.
+- Extended existing JournalDetail and OpeningBalances dictionary regression tests to cover the new confirmation/readiness keys.
+
+## Slice 155 Changes
+
+- Added explicit `canPost...` predicates for Customer Receipts, Supplier Payments, Customer Opening Balances, and Supplier Opening Balances.
+- Replaced blank draft-row action cells for users without financial posting permission with a dictionary-backed restricted status badge.
+- Replaced Customer Receipt and Supplier Payment allocation anchors with Inertia `Link` navigation.
+- Added confirmation-title text to row-level post actions while preserving existing confirmation prompts, route payloads, permissions, and posting services.
+- Added regression coverage proving AR/AP action cells expose restricted state instead of blank action cells.
+
+## Slice 156 Changes
+
+- Added explicit lifecycle-action permission predicates for Sales Orders, Purchase Orders, Delivery Notes, and Goods Receipts.
+- Replaced dense inline `space-x` action-cell layouts with stable grouped wrappers using compact bordered action buttons.
+- Added dictionary-backed restricted badges for actionable rows blocked by permissions and dictionary-backed no-action badges for confirmed/cancelled terminal rows.
+- Added title and `aria-label` text to row-level edit, submit, confirm, and cancel actions.
+- Added regression coverage proving the four high-risk sales/purchasing document pages keep grouped action cells, translated empty action states, and precomputed permission checks.
+
+## Slice 157 Changes
+
+- Added explicit lifecycle-action permission predicates for Customer Invoices, Supplier Bills, Sales Returns, Customer Credit Notes, Purchase Returns, and Supplier Adjustment Notes.
+- Replaced dense inline action-cell layouts with stable grouped wrappers and compact bordered action buttons across invoice, bill, return, credit-note, purchase-return, and supplier-adjustment tables.
+- Added dictionary-backed restricted badges for actionable rows blocked by permissions and dictionary-backed no-action badges for posted/cancelled terminal rows.
+- Styled posted adjustment settlement links inside the same action grouping pattern with title and `aria-label` text.
+- Updated the financial-posting permission guard to accept the new computed permission constants while still proving `view_financials` is required before financial posting actions render.
+- Added regression coverage proving the six lifecycle pages keep grouped action cells, translated empty action states, precomputed permission checks, and non-hardcoded settlement labels.
+
+## Slice 158 Changes
+
+- Added explicit lifecycle-action permission predicates for Stock Counts, Stock Adjustments, Stock Transfers, Rental Contracts, Rental Invoices, Payroll Runs, and Expenses.
+- Replaced remaining dense inline action-cell layouts in those pages with stable grouped wrappers and compact bordered action buttons.
+- Added title and `aria-label` text to row-level lifecycle actions, including receive/receive-remaining actions on stock transfers and details/regenerate actions on payroll runs.
+- Added dictionary-backed restricted badges for permission-blocked actionable rows and dictionary-backed no-action badges where terminal rows have no lifecycle action.
+- Preserved existing route semantics and financial-posting protection, including `view_financials` guards for stock count/adjustment, rental invoice, payroll, and expense posting actions.
+- Added regression coverage proving the seven operational lifecycle pages keep grouped action cells, translated permission states, and precomputed permission checks.
+
+## Slice 159 Changes
+
+- Added explicit lifecycle-action permission predicates for Prepaid Schedules, Accrual Schedules, and Fixed Asset Depreciation Runs.
+- Replaced dense schedule, recognition/accrual-entry, and depreciation-run action cells with stable grouped wrappers and compact bordered action buttons.
+- Added title and `aria-label` text to row-level schedule edit/submit/approve/cancel, recognition/accrual posting, depreciation-run view, and depreciation-run reverse actions.
+- Added dictionary-backed restricted badges for permission-blocked actionable rows and dictionary-backed no-action badges for terminal schedule/entry rows.
+- Preserved `view_financials` guards for prepaid recognition and accrual entry posting actions.
+- Preserved fixed-asset depreciation reverse authorization while keeping reverse actions scroll-safe through Inertia `preserveScroll`.
+- Added regression coverage proving these pages keep grouped action cells, translated permission states, precomputed permission checks, and RTL-safe gap spacing.
+
+## Slice 160 Changes
+
+- Added explicit lifecycle-action permission predicates for Incoming Cheques, Outgoing Cheques, and Bank Reconciliation workspaces.
+- Replaced dense cheque lifecycle and reconciliation statement-line action cells with stable grouped wrappers and compact bordered action buttons.
+- Added title and `aria-label` text to receive/deposit/return/clear/bounce/issue/cancel, reconciliation workspace, add-line, finalize, match, unmatch, and delete actions.
+- Added dictionary-backed restricted badges for permission-blocked actionable cheque/reconciliation rows and dictionary-backed no-action badges for terminal rows.
+- Replaced the bank reconciliation list plain anchor with an Inertia router action button to avoid a jarring full page navigation.
+- Preserved reconciliation workspace scroll position across add/match/unmatch/delete/finalize actions.
+- Added regression coverage proving these pages keep grouped action cells, translated permission states, precomputed permission checks, and no plain text action links.
+
+## Slice 161 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Incoming Cheque create-modal cancel/save buttons and lifecycle action-modal cancel/confirm buttons.
+- Added dictionary-backed `title` and `aria-label` values to Outgoing Cheque create-modal cancel/save buttons and lifecycle action-modal cancel/confirm buttons.
+- Added dictionary-backed `title` and `aria-label` values to Bank Reconciliation create-modal cancel/create buttons.
+- Confirmed Bank Reconciliation workspace add-line, finalize, add-line modal, candidate match, and close actions expose stable accessible names.
+- Preserved all existing submit targets, modal state, validation, and posting/reconciliation flows.
+- Added regression coverage proving these high-risk financial dialogs keep stable accessible names on primary and secondary actions.
+
+## Slice 162 Changes
+
+- Added explicit create-action permission predicates for Customer Opening Balances, Supplier Opening Balances, Customer Receipts, and Supplier Payments.
+- Added dictionary-backed `title` and `aria-label` values to AR/AP create, post, allocate, modal cancel, and save-draft actions.
+- Added `preserveScroll` to AR/AP opening balance, receipt, and payment creation/posting actions so accountants keep table context after workflow actions.
+- Preserved existing posting, allocation, validation, and permission semantics, including `view_financials` guards on financial posting actions.
+- Added regression coverage proving AR/AP opening balance, receipt, and payment workflow actions expose stable accessible names and preserve scroll context.
+
+## Slice 163 Changes
+
+- Added explicit create/edit/post permission predicates to the Treasury Transfers page.
+- Replaced the remaining inline Treasury Transfer action cell with a stable grouped wrapper, compact bordered action buttons, and dictionary-backed restricted/no-action badges.
+- Added dictionary-backed `title` and `aria-label` values to new, edit, post, cancel, modal cancel, and save-transfer actions.
+- Added `preserveScroll` to Treasury Transfer create/update/post/cancel flows so accountants keep table context after internal fund-transfer workflow actions.
+- Preserved existing branch-operational transfer behavior, posting permission requirements, and `view_financials` protection for posting.
+- Added regression coverage proving Treasury Transfer actions stay accessible, permission-aware, and scroll-safe.
+
+## Slice 164 Changes
+
+- Added explicit allocation permission predicates to Receivable Allocations and Payable Allocations.
+- Added dictionary-backed `title` and `aria-label` values to allocation execute and reverse actions.
+- Added visible restricted badges for users without allocation permissions in both the allocation workspace submit area and the allocation history action cells.
+- Grouped allocation history reverse actions with stable table-cell spacing and compact bordered action buttons.
+- Added `preserveScroll` to allocation create/reverse flows so accountants keep table context after allocation actions.
+- Preserved existing AR/AP allocation services, filters, selected receipt/payment behavior, and posting/subledger invariants.
+- Added regression coverage proving AR/AP allocation actions are accessible, restricted-state visible, and scroll-safe.
+
+## Slice 165 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Receivable Settlement and Payable Settlement back links.
+- Added dictionary-backed `title` and `aria-label` values to AR/AP settlement confirmation buttons.
+- Added dictionary-backed `title` and `aria-label` values to AR/AP settlement reverse actions, modal cancel buttons, and reversal confirmation buttons.
+- Preserved existing settlement routes, reverse-reason requirements, and scroll-safe settlement/reversal submissions.
+- Added regression coverage proving AR/AP settlement actions expose stable accessible names.
+
+## Slice 166 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Customers, Suppliers, Cash Accounts, and Bank Accounts create, edit, cancel, and save actions.
+- Added visible restricted row-action badges when the current user lacks edit permission, avoiding empty action cells on daily master-data tables.
+- Preserved scroll on master-data create/update submissions so accountants keep their table context after saves.
+- Added regression coverage proving master-data actions are permission-aware, accessible, and scroll-safe.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 167 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Company, Branches, and Numbering settings close, cancel, save, add, attachment, detail, edit, and delete actions.
+- Preserved scroll on branch deletion so settings operators keep table context after a destructive action.
+- Kept all labels dictionary-backed through the existing actions/settings dictionaries.
+- Added regression coverage proving foundation settings actions expose stable accessible names and branch delete remains scroll-safe.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 168 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Account Categories and Account Types create, edit, detail, delete, cancel, save, and close actions.
+- Preserved scroll on accounting taxonomy create/update/delete flows so accountants keep their table context after maintenance actions.
+- Kept blocked delete controls descriptive by exposing the same dictionary-backed block reason through visible text and accessible labels.
+- Added regression coverage proving accounting taxonomy actions are accessible, permission-aware, and scroll-safe.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 169 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Chart of Accounts, Currencies, and FX Rates create, edit, delete, linked-detail, cancel, save, and close actions.
+- Preserved scroll on Chart of Accounts group/account creation, currency create/update/delete, and FX-rate creation submissions.
+- Kept linked-account and recorded-FX-rate count buttons descriptive in both enabled and disabled states.
+- Added regression coverage proving accounting setup actions expose stable accessible names and preserve accountant table context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 170 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Users/Roles security administration user, role, permission, revoke, delete, tab, modal, cancel, save, create, and assign actions.
+- Preserved scroll-safe user/role create/update/delete, assignment, and revoke submissions.
+- Kept last-self-delete protection visible through the existing self-delete block message while exposing the same reason as an accessible action label.
+- Added regression coverage proving user/role security actions expose stable names and preserve operator context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 171 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Financial Statement Mapping add, tab, assign, edit, delete, unassign, modal close, cancel, and save actions.
+- Added dictionary-backed `title` and `aria-label` values to Fiscal Periods create fiscal year, cancel, generate periods, close modal, close period, and reopen period actions.
+- Preserved scroll-safe fiscal-year generation and close/reopen period submissions so accountants keep context on long period grids.
+- Added regression coverage proving financial mapping and period actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 172 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Fixed Asset detail back, edit, generate/regenerate depreciation schedule, capitalize, dispose, move, reverse capitalization, delete, modal cancel, record movement, and post disposal actions.
+- Preserved scroll-safe fixed-asset delete, capitalization, reverse-capitalization, schedule-generation, movement, and disposal submissions.
+- Kept all fixed-asset detail action labels on existing accounting/disposal dictionaries without adding hardcoded visible copy.
+- Added regression coverage proving fixed-asset detail financial actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 173 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Landed Cost create/close form, cancel, save draft/save changes, filter, edit, submit, approve, post, and cancel actions.
+- Preserved scroll-safe landed-cost create/update, lifecycle submit/approve/post/cancel, and filter submissions so accountants keep table context during cost allocation review.
+- Kept landed-cost action labels on the existing purchasing landed-cost dictionary without adding hardcoded visible copy.
+- Added regression coverage proving landed-cost lifecycle actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 174 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Customer Invoice create, manual/source mode, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe Customer Invoice search/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions so accountants keep table context during invoice review.
+- Added EN/AR `salesCustomerInvoices.removeLine` translation keys and kept visible labels dictionary-backed.
+- Added regression coverage proving Customer Invoice modal actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 175 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Journal Detail submit, approve, post, reverse, number-details, and modal-close actions.
+- Preserved scroll-safe journal submit/approve/post/reverse submissions so accountants keep voucher context during review and posting.
+- Kept Journal Detail action labels on existing accounting/action dictionaries without adding hardcoded visible copy.
+- Added regression coverage proving Journal Detail financial actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 176 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Audit Log reset, filter, entity/request detail, payload, pagination, and modal-close actions.
+- Preserved scroll-safe Audit Log filter, reset, previous-page, and next-page navigation so reviewers keep investigation context.
+- Kept Audit Log action labels on existing audit/action dictionaries without adding hardcoded visible copy.
+- Added regression coverage proving Audit Log actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 177 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Supplier Bill create, filter, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe Supplier Bill filtering, create/update, and lifecycle submit/approve/post/cancel submissions so accountants keep purchase-bill context during AP review.
+- Added EN/AR `purchasingSupplierBills.removeLine` translation keys and kept visible labels dictionary-backed.
+- Added regression coverage proving Supplier Bill modal actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 178 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Sales Return create, source-mode, load-lines, cancel, and save actions.
+- Preserved scroll-safe Sales Return search, warehouse, and status filtering plus create/update and lifecycle submit/approve/post/cancel submissions so accountants keep return context during review.
+- Kept Sales Return action labels on existing sales-return dictionaries without adding hardcoded visible copy.
+- Added regression coverage proving Sales Return modal actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 179 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Login language, theme, password visibility, submit, and development quick-fill actions.
+- Replaced the hardcoded Login theme action title with EN/AR dictionary-backed text.
+- Hid the development credential quick-fill helper behind `import.meta.env.DEV` so production builds do not expose bootstrap credentials on the login page.
+- Added regression coverage proving Login actions expose stable names and development credentials remain development-only.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 180 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Catalog Product Categories, Products/Services, and Units of Measure create, edit, delete, cancel, and save actions.
+- Preserved scroll-safe search, create, update, and delete submissions across the three catalog master-data pages so accountants keep list context during master-data maintenance.
+- Moved the Products code placeholder to EN/AR locale dictionaries instead of leaving hardcoded visible helper copy.
+- Added regression coverage proving catalog master-data actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 181 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Sales Orders and Purchase Orders create, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe search/status filtering, create/update, and lifecycle submit/confirm/cancel submissions across both order workspaces so accountants keep order-list context during daily processing.
+- Added `removeLine` dictionary entries to Sales Orders and Purchase Orders in EN/AR locale files.
+- Added regression coverage proving Sales/Purchase Order modal actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 182 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Customer Credit Notes and Supplier Adjustment Notes create, add-line, remove-line, cancel, and save actions.
+- Preserved scroll-safe search/status filtering, create/update, and lifecycle submit/approve/post/cancel submissions across both note workspaces so accountants keep list context while correcting AR/AP balances.
+- Added `removeLine` dictionary entries to Customer Credit Notes and Supplier Adjustment Notes in EN/AR locale files.
+- Added regression coverage proving credit/adjustment note modal actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 183 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Fixed Asset Categories and Fixed Asset Locations create, edit, delete, cancel/back, and save actions.
+- Preserved scroll-safe create/update/delete submissions across fixed-asset master-data pages so accountants keep master-data context while maintaining depreciation setup records.
+- Added regression coverage proving fixed-asset master-data actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 184 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Notifications mark-read, mark-all-read, all/unread/read filter actions, and the unread status indicator.
+- Added dictionary-backed `title` and `aria-label` values to Tax Rates back, create, delete, cancel, and save actions.
+- Preserved scroll-safe Notifications read/read-all submissions and Tax Rates filter/create/delete submissions so accountants keep list context while clearing alerts and maintaining tax-rate setup.
+- Added regression coverage proving notification and tax-rate actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 185 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Delivery Notes, Goods Receipts, and Purchase Returns create, cancel, and save modal actions.
+- Preserved scroll-safe search/status/warehouse filtering, create/update, and lifecycle submissions across the three operational pages.
+- Added regression coverage proving delivery, goods receipt, and purchase return actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 186 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Journal Form add-line, remove-line, save, and back-to-journal actions.
+- Added dictionary-backed accessible names to General Journal create and modal close actions, Trial Balance generation, and Opening Balances save/post controls.
+- Preserved scroll-safe journal draft, opening-balance save/post, fiscal-year switch, and trial-balance generation submissions.
+- Added the missing `accounting.removeLine` dictionary key in EN/AR locale files.
+- Added regression coverage proving core accounting workflow actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 187 Changes
+
+- Added dictionary-backed `title` and `aria-label` values to Balance Sheet, Income Statement, Cash Flow, fixed-asset register/depreciation/run/disposal/net-book-value reports, Tax Codes, and Stock Balances actions.
+- Preserved scroll-safe report filtering, tax-code search/delete, and stock-balance apply/clear filtering.
+- Added regression coverage proving report, tax-code, and stock-balance actions expose stable names and preserve page context.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 188 Changes
+
+- Closed the final 9 missing page button labels in Expense Categories, Fixed Asset create/edit/depreciation preview/disposal detail flows, Warehouses location chips, Sales Invoice Revision print action, and Tax Code create/edit forms.
+- Added scroll-safe state-changing submissions to fixed-asset create/edit/depreciation/reverse flows and tax-code create/edit forms where they were still missing.
+- Added a global Phase 15 regression guard that scans every `resources/js/Pages/**/*.tsx` file and fails if any `<button>` lacks `title` or `aria-label`.
+- Verified the standalone Pages button scanner now reports `TOTAL_FILES=0` and `TOTAL_MISSING=0`.
+- No new routes, migrations, tables, business modules, or permission names were added.
+
+## Slice 189 Changes
+
+- Added a global Phase 15 regression guard that scans every `resources/js/Pages/**/*.tsx` file for native `<select>`, native `<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination link types.
+- Converted the previously manual Pages native-control/navigation/type scan into permanent PHPUnit coverage.
+- Preserved the shared `SearchableSelect`/Inertia navigation/typed `PaginationLink` conventions for accountant-facing workflows.
+- No React page, route, migration, table, business module, or permission changes were added in this slice.
+
+## Slice 190 Changes
+
+- Replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` across:
+  - financial reports: Balance Sheet, Income Statement, and Cash Flow;
+  - sales workflows: Sales Orders, Delivery Notes, Customer Invoices, Sales Returns, and Customer Credit Notes;
+  - purchasing workflows: Purchase Orders, Goods Receipts, Supplier Bills, Purchase Returns, Supplier Adjustment Notes, and Landed Costs;
+  - fixed-asset workflows: Create, Edit, Show capitalization/movement/disposal actions;
+  - tax-rate workflow dates.
+- Extended the global page control/navigation/type regression guard to block native `type="date"` inputs in `resources/js/Pages/**/*.tsx`.
+- Preserved shared control conventions, RTL-friendly UX, dictionary-backed visible text, Inertia state preservation, and typed payload boundaries.
+- Closed Phase 15 Product Hardening for the current product-hardening gate.
+- No routes, migrations, tables, business modules, or permission names were added.
+
 ## Verification
 
 - `node` JSON parse for `lang/ar.json`, `resources/js/locales/en.json`, and `resources/js/locales/ar.json`: passed.
@@ -1783,6 +2307,504 @@ This phase does not add a new ERP module, migration, table, or business workflow
 - `vendor/bin/pint --test`: passed after Slice 134.
 - `npm run typecheck`: passed after Slice 134 with 0 TypeScript errors.
 - `npm run build`: passed after Slice 134 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_cash_bank_and_cheque_filter_bars_use_searchable_controls --stop-on-failure`: passed after Slice 135, 1 test / 349 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 135, 140 tests / 21143 assertions.
+- `php artisan test --filter=Phase3Slice1MasterDataTest --stop-on-failure`: passed after Slice 135, 14 tests / 58 assertions.
+- `php artisan test --filter=Phase3Slice5ChequeTest --stop-on-failure`: passed after Slice 135, 8 tests / 51 assertions.
+- `php artisan test --filter=Phase3Slice6BankReconciliationTest --stop-on-failure`: passed after Slice 135, 11 tests / 46 assertions.
+- `php artisan test --filter=Phase3Slice7UiTest --stop-on-failure`: passed after Slice 135, 13 tests / 112 assertions.
+- Targeted cash/bank/cheque filter scan for `<select`, `window.location.href`, and `row.status.toUpperCase()`: passed after Slice 135 with 0 matches.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 135.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 135, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 135.
+- `npm run typecheck`: passed after Slice 135 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 135 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_customer_supplier_master_data_filters_use_inertia_and_searchable_status_controls --stop-on-failure`: passed after Slice 136, 1 test / 62 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 136, 141 tests / 21205 assertions.
+- `php artisan test --filter=Phase3Slice1MasterDataTest --stop-on-failure`: passed after Slice 136, 14 tests / 58 assertions.
+- `php artisan test --filter=Phase3Slice7UiTest --stop-on-failure`: passed after Slice 136, 13 tests / 112 assertions.
+- Targeted customer/supplier filter scan for `<select` and `window.location.href`: passed after Slice 136 with 0 matches.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 136.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 136, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 136.
+- `npm run typecheck`: passed after Slice 136 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 136 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_ar_ap_allocation_and_settlement_filters_use_inertia_searchable_controls --stop-on-failure`: passed after Slice 137, 1 test / 156 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 137, 142 tests / 21361 assertions.
+- `php artisan test --filter=Phase3Slice4AllocationTest --stop-on-failure`: passed after Slice 137, 7 tests / 38 assertions.
+- `php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest --stop-on-failure`: passed after Slice 137, 40 tests / 237 assertions.
+- `php artisan test --filter=Phase3Slice7UiTest --stop-on-failure`: passed after Slice 137, 13 tests / 112 assertions.
+- Targeted AR/AP allocation and settlement scan for `<select` and `window.location.href`: passed after Slice 137 with 0 matches.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 137.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 137, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 137.
+- `npm run typecheck`: passed after Slice 137 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 137 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_treasury_transfer_filters_and_endpoint_type_controls_use_searchable_inertia_controls --stop-on-failure`: passed after Slice 138, 1 test / 69 assertions.
+- `php artisan test --filter=Phase10TreasuryTransferTest --stop-on-failure`: passed after Slice 138, 4 tests / 34 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 138, 143 tests / 21430 assertions.
+- Targeted Treasury Transfers scan for `<select` and `window.location.href`: passed after Slice 138 with 0 matches.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 138.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 138, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 138.
+- `npm run typecheck`: passed after Slice 138 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 138 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_financial_statement_exports_use_links_instead_of_window_redirects --stop-on-failure`: passed after Slice 139, 1 test / 21 assertions.
+- `php artisan test --filter=Phase5Slice2FinancialStatementsTest --stop-on-failure`: passed after Slice 139, 8 tests / 54 assertions.
+- `php artisan test --filter=Phase5Slice3CashFlowStatementTest --stop-on-failure`: passed after Slice 139, 9 tests / 46 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 139, 144 tests / 21451 assertions.
+- Targeted financial statement export scan for `window.location.href` and `handleExportCsv`: passed after Slice 139 with 0 matches.
+- `php artisan test --filter=test_ar_ap_receipt_payment_cash_bank_type_controls_use_searchable_selects --stop-on-failure`: passed after Slice 140, 1 test / 12 assertions.
+- `php artisan test --filter=Phase3Slice3ReceiptPaymentTest --stop-on-failure`: passed after Slice 140, 14 tests / 71 assertions / 2 skipped.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 140, 145 tests / 21463 assertions.
+- Targeted AR/AP receipt/payment scan for `<select` and `window.location.href`: passed after Slice 140 with 0 matches.
+- `rg -n "window\\.location\\.href" resources/js/Pages -g "*.tsx"`: passed after Slice 140 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 140, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 140.
+- `npm run typecheck`: passed after Slice 140 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 140 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_operational_report_pages_use_shared_filter_panel_with_visible_currency_filter --stop-on-failure`: passed after Slice 141, 1 test / 84 assertions.
+- `php artisan test --filter=Phase4Slice9OperationalReportsTest --stop-on-failure`: passed after Slice 141, 7 tests / 85 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 141, 145 tests / 21479 assertions.
+- Targeted Sales/Purchase/Invoice/Bill report scan for `<select` and `window.location.href`: passed after Slice 141 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 141, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 141.
+- `npm run typecheck`: passed after Slice 141 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 141 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_fixed_asset_report_filters_use_searchable_select_controls --stop-on-failure`: passed after Slice 142, 1 test / 33 assertions.
+- `php artisan test --filter=Phase6Slice7FixedAssetReportsTest --stop-on-failure`: passed after Slice 142, 6 tests / 151 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 142, 146 tests / 21512 assertions.
+- Targeted Fixed Asset report scan for `<select` and `window.location.href`: passed after Slice 142 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 142, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 142.
+- `npm run typecheck`: passed after Slice 142 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 142 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_tax_master_select_controls_use_searchable_selects --stop-on-failure`: passed after Slice 143, 1 test / 15 assertions.
+- `php artisan test --filter=Phase7Slice2TaxFoundationTest --stop-on-failure`: passed after Slice 143, 7 tests / 38 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --stop-on-failure`: passed after Slice 143, 147 tests / 21527 assertions.
+- Targeted Tax Codes/Rates scan for `<select`, `e.target.value as`, and `window.location.href`: passed after Slice 143 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 143, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 143.
+- `npm run typecheck`: passed after Slice 143 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 143 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_accounting_mapping_pages_use_searchable_selection_controls`: passed after Slice 144, 1 test / 19 assertions.
+- `php artisan test --filter=Phase5Slice1FinancialStatementMappingTest`: passed after Slice 144, 9 tests / 30 assertions.
+- `php artisan test --filter=Phase10BranchSpecificGlMappingTest`: passed after Slice 144, 4 tests / 27 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 144, 148 tests / 21546 assertions.
+- Targeted Accounting Account/Financial Statement mapping scan for `<select`, `e.target.value as`, and `window.location.href`: passed after Slice 144 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 144, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 144.
+- `npm run typecheck`: passed after Slice 144 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 144 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_catalog_product_filters_and_modal_use_searchable_select_controls`: passed after Slice 145, 1 test / 38 assertions.
+- `php artisan test --filter=test_catalog_product_modal_select_labels_are_cleanly_localized_in_arabic`: passed after Slice 145, 1 test / 15 assertions.
+- `php artisan test --filter=Phase4Slice1CatalogTest`: passed after Slice 145, 12 tests / 66 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 145, 149 tests / 21584 assertions.
+- Targeted Product Catalog scan for `<select`, `e.target.value as`, and `window.location.href`: passed after Slice 145 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 145, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 145.
+- `npm run typecheck`: passed after Slice 145 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 145 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_fixed_asset_workflow_modals_use_searchable_select_controls`: passed after Slice 146, 1 test / 22 assertions.
+- `php artisan test --filter=Phase6Slice2FixedAssetRegisterTest`: passed after Slice 146, 9 tests / 71 assertions.
+- `php artisan test --filter=Phase6Slice5DepreciationRunTest`: passed after Slice 146, 10 tests / 44 assertions.
+- `php artisan test --filter=Phase6Slice6FixedAssetDisposalTest`: passed after Slice 146, 15 tests / 60 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 146, 150 tests / 21606 assertions.
+- Targeted Fixed Asset workflow scan for `<select`, `e.target.value as`, and `window.location.href`: passed after Slice 146 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 146, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 146.
+- `npm run typecheck`: passed after Slice 146 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 146 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_rental_handover_return_line_controls_use_searchable_selects`: passed after Slice 147, 1 test / 20 assertions.
+- `php artisan test --filter=Phase14RentalsFoundationTest`: passed after Slice 147, 16 tests / 159 assertions.
+- `php artisan test --filter=Phase14RentalBillingTest`: passed after Slice 147, 8 tests / 56 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 147, 151 tests / 21626 assertions.
+- Targeted Rental handover/return scan for `<select`, `<option`, and `window.location.href`: passed after Slice 147 with 0 matches.
+- Remaining native-select inventory scan after Slice 147: open Sales/Purchasing/Settings workflow pages still contain native selects and are queued for Slice 148+ cleanup.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 147, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 147.
+- `npm run typecheck`: passed after Slice 147 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 147 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_settings_attachment_entity_selectors_use_searchable_controls`: passed after Slice 148, 1 test / 20 assertions.
+- `php artisan test --filter=SettingsActionsTest`: passed after Slice 148, 3 tests / 19 assertions.
+- `php artisan test --filter=MigratedPagesTest`: passed after Slice 148, 2 tests / 83 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 148, 152 tests / 21646 assertions.
+- Targeted Settings Company/Branch scan for `<select`, `<option`, and `window.location.href`: passed after Slice 148 with 0 matches.
+- Remaining native-select inventory scan after Slice 148: open Sales/Purchasing workflow pages still contain native selects and are queued for Slice 149+ cleanup.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 148, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 148.
+- `npm run typecheck`: passed after Slice 148 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 148 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_sales_and_purchase_order_select_controls_use_searchable_controls`: passed after Slice 149, 1 test / 26 assertions.
+- `php artisan test --filter=Phase4Slice2SalesOrderTest`: passed after Slice 149, 15 tests / 72 assertions.
+- `php artisan test --filter=Phase4Slice3PurchaseOrderTest`: passed after Slice 149, 16 tests / 74 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 149, 153 tests / 21672 assertions.
+- Targeted Sales/Purchase Order scan for `<select`, `<option`, and `window.location.href`: passed after Slice 149 with 0 matches.
+- Remaining native-select inventory scan after Slice 149: Delivery/Goods Receipt, invoice/bill, returns/adjustments, and landed-cost workflow pages still contain native selects and are queued for Slice 150+ cleanup.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 149, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 149.
+- `npm run typecheck`: passed after Slice 149 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 149 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_delivery_note_and_goods_receipt_select_controls_use_searchable_controls`: passed after Slice 150, 1 test / 26 assertions.
+- `php artisan test --filter=Phase4Slice4FulfillmentTest`: passed after Slice 150, 19 tests / 140 assertions.
+- `php artisan test --filter=Phase4Slice8InventoryCostingTest`: passed after Slice 150, 14 tests / 99 assertions, 1 skipped PostgreSQL-specific check.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 150, 154 tests / 21698 assertions.
+- Targeted Delivery/Goods Receipt scan for `<select`, `<option`, and `window.location.href`: passed after Slice 150 with 0 matches.
+- Remaining native-select inventory scan after Slice 150: invoice/bill, returns/adjustments, and landed-cost workflow pages still contain native selects and are queued for Slice 151+ cleanup.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 150, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 150.
+- `npm run typecheck`: passed after Slice 150 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 150 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_customer_invoice_and_supplier_bill_select_controls_use_searchable_controls`: passed after Slice 151, 1 test / 32 assertions.
+- `php artisan test --filter=Phase4Slice5CustomerInvoiceTest`: passed after Slice 151, 19 tests / 84 assertions.
+- `php artisan test --filter=Phase4Slice6SupplierBillTest`: passed after Slice 151, 19 tests / 98 assertions.
+- `php artisan test --filter=Phase7Slice3SalesOutputVatTest`: passed after Slice 151, 5 tests / 23 assertions.
+- `php artisan test --filter=Phase7Slice4PurchasingInputVatTest`: passed after Slice 151, 4 tests / 25 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 151, 155 tests / 21730 assertions.
+- Targeted Customer Invoice/Supplier Bill scan for `<select`, `<option`, and `window.location.href`: passed after Slice 151 with 0 matches.
+- Remaining native-select inventory scan after Slice 151: returns/adjustments and landed-cost workflow pages still contain native selects and are queued for Slice 152+ cleanup.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 151, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 151.
+- `npm run typecheck`: passed after Slice 151 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 151 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_returns_adjustments_and_landed_cost_select_controls_use_searchable_controls`: passed after Slice 152, 1 test / 89 assertions.
+- `php artisan test --filter=test_sales_and_purchasing_line_editors_use_typed_update_helpers`: passed after Slice 152, 1 test / 22 assertions.
+- `php artisan test --filter=Phase4Slice10ReturnsCreditNotesTest`: passed after Slice 152, 40 tests / 237 assertions.
+- `php artisan test --filter=Phase10LandedCostAllocationTest`: passed after Slice 152, 5 tests / 40 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 152, 156 tests / 21819 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, and `window.location.href`: passed after Slice 152 with 0 matches.
+- Touched returns/adjustments/landed-cost scan for `<select`, `<option`, `e.target.value as`, and `window.location.href`: passed after Slice 152 with 0 matches.
+- Touched Slice 152 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 152, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 152.
+- `npm run typecheck`: passed after Slice 152 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 152 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_inertia_page_pagination_links_are_explicitly_typed`: passed after Slice 153, 1 test / 504 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 153, 157 tests / 22323 assertions.
+- Full `resources/js/Pages` scan for loose paginated `links` types: passed after Slice 153 with 0 matches.
+- Full `resources/js/Pages` scan for `<select`, `<option`, and `window.location.href`: passed after Slice 153 with 0 matches.
+- Phase 15 page/test no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed after Slice 153 with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 153, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 153.
+- `npm run typecheck`: passed after Slice 153 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 153 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_journal_detail_uses_dictionary_backed_visible_text`: passed after Slice 154, 1 test / 554 assertions.
+- `php artisan test --filter=test_opening_balances_uses_accounting_dictionary_without_legacy_page_fallbacks`: passed after Slice 154, 1 test / 345 assertions.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 154.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 154, 157 tests / 22401 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 154 with 0 matches.
+- Touched Slice 154 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 154, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 154.
+- `npm run typecheck`: passed after Slice 154 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 154 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_ar_ap_post_action_cells_show_restricted_state_instead_of_blank_actions`: passed after Slice 155, 1 test / 40 assertions.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 155.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 155, 158 tests / 22441 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 155 with 0 matches.
+- Touched Slice 155 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 155, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 155.
+- `npm run typecheck`: passed after Slice 155 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 155 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_sales_and_purchasing_document_action_cells_are_grouped_and_explain_empty_states`: passed after Slice 156, 1 test / 90 assertions.
+- `node` JSON parse for `resources/js/locales/en.json` and `resources/js/locales/ar.json`: passed after Slice 156.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 156, 159 tests / 22531 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 156 with 0 matches.
+- Touched Slice 156 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 156, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 156.
+- `npm run typecheck`: passed after Slice 156 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 156 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_sales_and_purchasing_invoice_return_action_cells_are_grouped_and_explain_empty_states`: passed after Slice 157, 1 test / 128 assertions.
+- `php artisan test --filter=test_financial_post_actions_match_backend_permissions_in_visible_pages`: passed after Slice 157, 1 test / 36 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 157, 160 tests / 22659 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 157 with 0 matches.
+- Touched Slice 157 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 157, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 157.
+- `npm run typecheck`: passed after Slice 157 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 157 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_inventory_rental_payroll_and_expense_action_cells_are_grouped_and_explain_permission_states`: passed after Slice 158, 1 test / 154 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 158, 161 tests / 22813 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 158 with 0 matches.
+- Touched Slice 158 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 158, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 158.
+- `npm run typecheck`: passed after Slice 158 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 158 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_expense_schedule_and_depreciation_run_action_cells_are_grouped_and_explain_permission_states`: passed after Slice 159, 1 test / 84 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 159, 162 tests / 22897 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 159 with 0 matches.
+- Touched Slice 159 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 159, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 159.
+- `npm run typecheck`: passed after Slice 159 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 159 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_cheque_and_bank_reconciliation_action_cells_are_grouped_and_explain_permission_states`: passed after Slice 160, 1 test / 89 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 160, 163 tests / 22986 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 160 with 0 matches.
+- Touched Slice 160 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 160, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 160.
+- `npm run typecheck`: passed after Slice 160 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 160 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_cheque_and_bank_reconciliation_modal_actions_have_accessible_names`: passed after Slice 161, 1 test / 38 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 161, 164 tests / 23024 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 161 with 0 matches.
+- Touched Slice 161 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 161, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 161.
+- `npm run typecheck`: passed after Slice 161 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 161 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_ar_ap_receipt_payment_and_opening_balance_actions_have_accessible_names`: passed after Slice 162, 1 test / 48 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 162, 165 tests / 23072 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 162 with 0 matches.
+- Touched Slice 162 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 162, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 162.
+- `npm run typecheck`: passed after Slice 162 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 162 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_treasury_transfer_actions_are_grouped_accessible_and_scroll_safe`: passed after Slice 163, 1 test / 29 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 163, 166 tests / 23101 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 163 with 0 matches.
+- Touched Slice 163 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 163, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 163.
+- `npm run typecheck`: passed after Slice 163 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 163 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_ar_ap_allocation_actions_are_accessible_restricted_and_scroll_safe`: passed after Slice 164, 1 test / 26 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 164, 167 tests / 23127 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 164 with 0 matches.
+- Touched Slice 164 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 164, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 164.
+- `npm run typecheck`: passed after Slice 164 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 164 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_ar_ap_settlement_actions_have_accessible_names`: passed after Slice 165, 1 test / 22 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 165, 168 tests / 23149 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 165 with 0 matches.
+- Touched Slice 165 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 165, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 165.
+- `npm run typecheck`: passed after Slice 165 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 165 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_customer_supplier_cash_bank_master_actions_have_accessible_names --stop-on-failure`: passed after Slice 166, 1 test / 64 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 166, 169 tests / 23213 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 166 with 0 matches.
+- Touched Slice 166 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 166, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 166.
+- `npm run typecheck`: passed after Slice 166 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 166 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_foundation_settings_actions_have_accessible_names_and_scroll_safe_delete --stop-on-failure`: passed after Slice 167, 1 test / 37 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 167, 170 tests / 23250 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 167 with 0 matches.
+- Touched Slice 167 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 167, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 167.
+- `npm run typecheck`: passed after Slice 167 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 167 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_accounting_taxonomy_actions_have_accessible_names_and_scroll_safe_delete --stop-on-failure`: passed after Slice 168, 1 test / 38 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 168, 171 tests / 23288 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 168 with 0 matches.
+- Touched Slice 168 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 168, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 168.
+- `npm run typecheck`: passed after Slice 168 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 168 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_accounting_setup_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 169, 1 test / 41 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 169, 172 tests / 23329 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 169 with 0 matches.
+- Touched Slice 169 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 169, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 169.
+- `npm run typecheck`: passed after Slice 169 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 169 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_settings_user_role_actions_have_accessible_names_and_scroll_safe_security_actions --stop-on-failure`: passed after Slice 170, 1 test / 40 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 170, 173 tests / 23369 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 170 with 0 matches.
+- Touched Slice 170 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 170, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 170.
+- `npm run typecheck`: passed after Slice 170 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 170 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_financial_mapping_and_period_actions_have_accessible_names_and_scroll_safe_flows --stop-on-failure`: passed after Slice 171, 1 test / 40 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 171, 174 tests / 23409 assertions.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 171 with 0 matches.
+- Touched Slice 171 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 171, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 171.
+- `npm run typecheck`: passed after Slice 171 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 171 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_fixed_asset_detail_financial_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 172, 1 test / 31 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 172, 175 tests / 23440 assertions.
+- Fixed Asset detail button accessibility scan: passed after Slice 172 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 172 with 0 matches.
+- Touched Slice 172 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 172, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 172.
+- `npm run typecheck`: passed after Slice 172 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 172 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_landed_cost_lifecycle_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 173, 1 test / 22 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 173, 176 tests / 23462 assertions.
+- Landed Cost button accessibility scan: passed after Slice 173 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 173 with 0 matches.
+- Touched Slice 173 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 173, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 173.
+- `npm run typecheck`: passed after Slice 173 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 173 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_customer_invoice_modal_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 174, 1 test / 38 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 174, 177 tests / 23500 assertions.
+- Customer Invoice button accessibility scan: passed after Slice 174 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 174 with 0 matches.
+- Touched Slice 174 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 174, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 174.
+- `npm run typecheck`: passed after Slice 174 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 174 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_journal_detail_financial_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 175, 1 test / 16 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 175, 178 tests / 23516 assertions.
+- Journal Detail button accessibility scan: passed after Slice 175 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 175 with 0 matches.
+- Touched Slice 175 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 175, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 175.
+- `npm run typecheck`: passed after Slice 175 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 175 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_audit_log_actions_have_accessible_names_and_scroll_safe_navigation --stop-on-failure`: passed after Slice 176, 1 test / 20 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 176, 179 tests / 23536 assertions.
+- Audit Log button accessibility scan: passed after Slice 176 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 176 with 0 matches.
+- Touched Slice 176 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 176, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 176.
+- `npm run typecheck`: passed after Slice 176 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 176 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_supplier_bill_modal_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 177, 1 test / 37 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 177, 180 tests / 23573 assertions.
+- Supplier Bill button accessibility scan: passed after Slice 177 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 177 with 0 matches.
+- Touched Slice 177 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 177, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 177.
+- `npm run typecheck`: passed after Slice 177 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 177 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_sales_return_modal_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 178, 1 test / 111 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 178, 181 tests / 23684 assertions.
+- Sales Return button accessibility scan: passed after Slice 178 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 178 with 0 matches.
+- Touched Slice 178 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 178, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 178.
+- `npm run typecheck`: passed after Slice 178 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 178 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_login_actions_have_accessible_names_and_dev_credentials_are_dev_only --stop-on-failure`: passed after Slice 179, 1 test / 103 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 179, 182 tests / 23787 assertions.
+- Login button accessibility scan: passed after Slice 179 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 179 with 0 matches.
+- Touched Slice 179 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 179, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 179.
+- `npm run typecheck`: passed after Slice 179 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 179 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_catalog_master_data_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 180, 1 test / 391 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 180, 183 tests / 24178 assertions.
+- Catalog Product Categories, Products/Services, and Units of Measure button accessibility scan: passed after Slice 180 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 180 with 0 matches.
+- Touched Slice 180 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 180, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 180.
+- `npm run typecheck`: passed after Slice 180 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 180 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_sales_and_purchase_order_modal_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 181, 1 test / 248 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 181, 184 tests / 24426 assertions.
+- Sales Orders and Purchase Orders button accessibility scan: passed after Slice 181 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 181 with 0 matches.
+- Touched Slice 181 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 181, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 181.
+- `npm run typecheck`: passed after Slice 181 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 181 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_customer_credit_and_supplier_adjustment_note_modal_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 182, 1 test / 248 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 182, 185 tests / 24674 assertions.
+- Customer Credit Notes and Supplier Adjustment Notes button accessibility scan: passed after Slice 182 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 182 with 0 matches.
+- Touched Slice 182 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 182, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 182.
+- `npm run typecheck`: passed after Slice 182 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 182 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_fixed_asset_master_data_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 183, 1 test / 154 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest`: passed after Slice 183, 186 tests / 24828 assertions.
+- Fixed Asset Categories and Fixed Asset Locations button accessibility scan: passed after Slice 183 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 183 with 0 matches.
+- Touched Slice 183 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 183, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 183.
+- `npm run typecheck`: passed after Slice 183 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 183 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_notifications_and_tax_rate_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 184, 1 test / 165 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 184, 187 tests / 24993 assertions.
+- Notifications and Tax Rates button accessibility scan: passed after Slice 184 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 184 with 0 matches.
+- Touched Slice 184 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 184, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 184.
+- `npm run typecheck`: passed after Slice 184 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 184 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_delivery_goods_receipt_and_purchase_return_modal_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 185, 1 test / 255 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 185, 188 tests / 25248 assertions.
+- Delivery Notes, Goods Receipts, and Purchase Returns button accessibility scan: passed after Slice 185 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 185 with 0 matches.
+- Touched Slice 185 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 185, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 185.
+- `npm run typecheck`: passed after Slice 185 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 185 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_core_accounting_workflow_actions_have_accessible_names_and_scroll_safe_submissions --stop-on-failure`: passed after Slice 186, 1 test / 136 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 186, 189 tests / 25384 assertions.
+- Journal Form, General Journal, Trial Balance, and Opening Balances button accessibility scan: passed after Slice 186 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 186 with 0 matches.
+- Touched Slice 186 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 186, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 186.
+- `npm run typecheck`: passed after Slice 186 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 186 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_report_tax_code_and_stock_balance_actions_have_accessible_names_and_scroll_safe_filters --stop-on-failure`: passed after Slice 187, 1 test / 258 assertions.
+- `php artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 187, 190 tests / 25642 assertions.
+- Balance Sheet, Income Statement, Cash Flow, fixed-asset reports, Tax Codes, and Stock Balances button accessibility scan: passed after Slice 187 with 0 missing button labels.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 187 with 0 matches.
+- Touched Slice 187 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 187, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 187.
+- `npm run typecheck`: passed after Slice 187 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 187 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_all_inertia_page_buttons_have_accessible_names --compact`: passed after Slice 188, 1 test / 1 assertion.
+- `php artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 188, 191 tests / 25643 assertions.
+- Full `resources/js/Pages` button accessibility scan: passed after Slice 188 with `TOTAL_FILES=0` and `TOTAL_MISSING=0`.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 188 with 0 matches.
+- Touched Slice 188 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 188, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 188.
+- `npm run typecheck`: passed after Slice 188 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 188 with the existing Vite chunk-size warning only.
+- `php artisan test --filter=test_all_inertia_pages_avoid_native_selects_unsafe_redirects_and_loose_pagination_links --compact`: passed after Slice 189, 1 test / 1 assertion.
+- `php artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 189, 192 tests / 25644 assertions.
+- Full `resources/js/Pages` button accessibility scan: passed after Slice 189 with `TOTAL_FILES=0` and `TOTAL_MISSING=0`.
+- Full `resources/js/Pages` scan for `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 189 with 0 matches.
+- Touched Slice 189 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 189, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 189.
+- `php -d memory_limit=512M artisan test --filter=test_all_inertia_pages_avoid_native_selects_unsafe_redirects_and_loose_pagination_links --compact`: passed after Slice 190, 1 test / 1 assertion.
+- `php -d memory_limit=512M artisan test --filter=Phase15ProductHardeningTest --compact`: passed after Slice 190, 192 tests / 25644 assertions.
+- Full `resources/js/Pages` scan for `type="date"`, `<select`, `<option`, `window.location.href`, and loose paginated `links` types: passed after Slice 190 with 0 matches.
+- Touched Slice 190 no-scope scan for `company_id`, `tenant_id`, `currentCompany`, `currentTenant`, `currentBranch`, and Spatie Teams: passed with 0 matches.
+- `rg -n "::query\\(|DB::table\\(" app/Http/Controllers -g "*.php"`: passed after Slice 190, 0 matches.
+- `vendor/bin/pint --test`: passed after Slice 190.
+- `npm run typecheck`: passed after Slice 190 with 0 TypeScript errors.
+- `npm run build`: passed after Slice 190 with the existing Vite chunk-size warning only.
 - `php artisan test --filter=test_state_changing_routes_are_auth_gated_and_authorized_or_explicitly_allowlisted --stop-on-failure`: passed, 1 test / 550 assertions.
 - `php artisan test --filter=test_ar_ap_cash_posting_confirmations_name_the_ledger_impact --stop-on-failure`: passed, 1 test / 80 assertions.
 - `php artisan test --filter=test_invoice_source_document_shapes_do_not_use_loose_any --stop-on-failure`: passed, 1 test / 15 assertions.
@@ -1842,12 +2864,8 @@ This phase does not add a new ERP module, migration, table, or business workflow
 - Multi-tenant/company scope introduced: 0.
 - `company_id`, `tenant_id`, `currentCompany`, `currentBranch`, and Spatie Teams introduced: 0.
 
-## Next Hardening Slice
+## Phase 15 Close-Out
 
-- Continue Phase 15 with accountant-focused UX and consistency hardening:
-
-- continue Slice 135 with accountant-facing UI flow simplification and remaining clean-code scans;
-- continue scanning sales, purchasing, inventory, fixed asset, and payroll pages for remaining workflow friction;
-- prioritize permission-aware disabled states, remaining visible fallback labels in dense operational pages, table scanning, and pre-posting guidance for the next UX hardening pass;
-- keep visible labels dictionary-backed through `en.json` and `ar.json`;
-- add focused regression tests for any UX/data-shape changes.
+- Phase 15 Product Hardening is closed for the current product-hardening gate.
+- Future accountant-facing UX work should open a new bounded phase or slice.
+- Deployment remains parked until owner/operator cutover decisions are intentionally resumed.

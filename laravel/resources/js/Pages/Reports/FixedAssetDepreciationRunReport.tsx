@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import SearchableSelect from '../../Components/SearchableSelect';
 import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import type { SharedPageProps } from '../../Types/page';
 import { getDictionary } from '../../lib/i18n';
@@ -45,7 +46,7 @@ export default function FixedAssetDepreciationRunReport({ locale, runs, filters 
   const [status, setStatus] = useState(filters.status || '');
 
   function applyFilters() {
-    router.get('/reports/fixed-asset-depreciation-runs', { status }, { preserveState: true, replace: true });
+    router.get('/reports/fixed-asset-depreciation-runs', { status }, { preserveState: true, preserveScroll: true, replace: true });
   }
 
   function exportHref() {
@@ -71,16 +72,16 @@ export default function FixedAssetDepreciationRunReport({ locale, runs, filters 
         actions={
           <>
             {canExport ? (
-              <a href={exportHref()} className="inline-flex items-center justify-center rounded-md bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white hover:opacity-90">
+              <a href={exportHref()} title={dict.app.actions.exportCsv} aria-label={dict.app.actions.exportCsv} className="inline-flex items-center justify-center rounded-md bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white hover:opacity-90">
                 {dict.app.actions.exportCsv}
               </a>
             ) : null}
             {canPrint ? (
-              <button type="button" onClick={() => window.print()} className="inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)]">
+              <button type="button" onClick={() => window.print()} title={dict.app.actions.printReport} aria-label={dict.app.actions.printReport} className="inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)]">
                 {dict.app.actions.printReport}
               </button>
             ) : null}
-            <Link href="/reports" className="inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)]">
+            <Link href="/reports" title={reportDict.backToReports} aria-label={reportDict.backToReports} className="inline-flex items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)]">
               {reportDict.backToReports}
             </Link>
           </>
@@ -90,24 +91,16 @@ export default function FixedAssetDepreciationRunReport({ locale, runs, filters 
       <div className="space-y-5">
         <Card className="p-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className="space-y-1 text-sm font-medium text-[var(--text-secondary)]">
-              <span>{reportDict.status}</span>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value)}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]"
-              >
-                <option value="">{reportDict.allStatuses}</option>
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SearchableSelect
+              label={reportDict.status}
+              options={statusOptions}
+              value={status}
+              onChange={(value) => setStatus(value || '')}
+              placeholder={reportDict.allStatuses}
+            />
 
             <div className="flex items-end">
-              <button type="button" onClick={applyFilters} className="inline-flex w-full items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)]">
+              <button type="button" onClick={applyFilters} title={reportDict.applyFilters} aria-label={reportDict.applyFilters} className="inline-flex w-full items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)]">
                 {reportDict.applyFilters}
               </button>
             </div>

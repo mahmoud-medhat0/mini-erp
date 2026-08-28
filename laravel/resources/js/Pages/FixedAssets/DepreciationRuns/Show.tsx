@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '../../../Components/AppLayout';
-import { Card, PageHeader } from '../../../Components/Primitives';
+import { Card, PageHeader, StatusBadge } from '../../../Components/Primitives';
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -44,10 +44,11 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
   const dict = getDictionary(locale);
   const appDict = dict.app.accounting;
   const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
+  const canReverseDepreciationRuns = can.reverse;
 
   function handleReverse() {
     if (confirm(appDict.confirmReverseDepreciationRun)) {
-      router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`);
+      router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, {}, { preserveScroll: true });
     }
   }
 
@@ -63,7 +64,12 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
     return status === 'posted' ? appDict.scheduleStatusPosted : appDict.scheduleStatusReversed;
   }
 
+  function runStatusTone(status: DepreciationRunDetail['status']): 'ok' | 'danger' {
+    return status === 'posted' ? 'ok' : 'danger';
+  }
+
   const schedules = run.schedules || [];
+  const actionState = run.status === 'posted' && !canReverseDepreciationRuns ? dict.app.actions.restricted : null;
 
   return (
     <AppLayout active="fixed-assets.depreciation-runs.index">
@@ -74,22 +80,27 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
           title={`${appDict.runNumber}: ${run.number}`}
           description={appDict.depreciationRuns}
           actions={
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <div className="flex flex-wrap items-center gap-2">
               <Link
                 href="/fixed-assets-depreciation-runs"
-                className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+                title={appDict.back}
+                aria-label={appDict.back}
+                className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
               >
                 {appDict.back}
               </Link>
-              {can.reverse && run.status === 'posted' && (
+              {canReverseDepreciationRuns && run.status === 'posted' && (
                 <button
                   type="button"
                   onClick={handleReverse}
-                  className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700"
+                  title={appDict.reverseDepreciationRun}
+                  aria-label={appDict.reverseDepreciationRun}
+                  className="inline-flex h-9 items-center rounded-md border border-amber-200 px-3 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
                 >
                   {appDict.reverseDepreciationRun}
                 </button>
               )}
+              {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
             </div>
           }
         />
@@ -117,15 +128,7 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
             <div>
               <dt className="text-slate-500">{appDict.status}</dt>
               <dd className="capitalize font-semibold text-slate-900 dark:text-slate-100">
-                <span
-                  className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                    run.status === 'posted'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-                  }`}
-                >
-                  {formatRunStatus(run.status)}
-                </span>
+                <StatusBadge tone={runStatusTone(run.status)}>{formatRunStatus(run.status)}</StatusBadge>
               </dd>
             </div>
             {run.journal_entry && (

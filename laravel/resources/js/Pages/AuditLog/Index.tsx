@@ -84,7 +84,7 @@ export default function AuditLogIndex({
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
       },
-      { preserveState: true }
+      { preserveState: true, preserveScroll: true }
     );
   }
 
@@ -96,7 +96,7 @@ export default function AuditLogIndex({
     setRequestIdFilter('');
     setDateFrom('');
     setDateTo('');
-    router.get('/audit-log', {}, { preserveState: true });
+    router.get('/audit-log', {}, { preserveState: true, preserveScroll: true });
   }
 
   function parseJsonPayload(raw?: string | null) {
@@ -214,12 +214,16 @@ export default function AuditLogIndex({
             <button
               type="button"
               onClick={handleReset}
+              title={actionsDict.reset}
+              aria-label={actionsDict.reset}
               className="px-3 py-1.5 text-xs font-bold rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
             >
               {actionsDict.reset}
             </button>
             <button
               type="submit"
+              title={actionsDict.filter}
+              aria-label={actionsDict.filter}
               className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white shadow-xs hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
               {actionsDict.filter}
@@ -278,6 +282,7 @@ export default function AuditLogIndex({
                         onClick={() => setSelectedPayload(log)}
                         className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md text-start max-w-[140px] truncate block"
                         title={`${log.entity_id} - ${actionsDict.viewDetails}`}
+                        aria-label={`${log.entity_id} - ${actionsDict.viewDetails}`}
                       >
                         {log.entity_id}
                       </button>
@@ -288,6 +293,7 @@ export default function AuditLogIndex({
                         onClick={() => setSelectedPayload(log)}
                         className="font-mono text-[11px] font-bold text-[var(--text-secondary)] hover:text-blue-500 bg-[var(--background)] border border-[var(--border)] px-2 py-0.5 rounded-md"
                         title={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}
+                        aria-label={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}
                       >
                         {log.request_id ? log.request_id.substring(0, 8) : auditDict.notAvailable}
                       </button>
@@ -297,6 +303,8 @@ export default function AuditLogIndex({
                         <button
                           type="button"
                           onClick={() => setSelectedPayload(log)}
+                          title={auditDict.viewPayload}
+                          aria-label={auditDict.viewPayload}
                           className="inline-flex items-center gap-1 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
                         >
                           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -324,7 +332,9 @@ export default function AuditLogIndex({
               {logs.prev_page_url ? (
                 <button
                   type="button"
-                  onClick={() => router.get(logs.prev_page_url!)}
+                  onClick={() => router.get(logs.prev_page_url!, {}, { preserveState: true, preserveScroll: true })}
+                  title={actionsDict.previous}
+                  aria-label={actionsDict.previous}
                   className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
                 >
                   {actionsDict.previous}
@@ -336,7 +346,9 @@ export default function AuditLogIndex({
               {logs.next_page_url ? (
                 <button
                   type="button"
-                  onClick={() => router.get(logs.next_page_url!)}
+                  onClick={() => router.get(logs.next_page_url!, {}, { preserveState: true, preserveScroll: true })}
+                  title={actionsDict.next}
+                  aria-label={actionsDict.next}
                   className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
                 >
                   {actionsDict.next}
@@ -363,6 +375,8 @@ export default function AuditLogIndex({
               <button
                 type="button"
                 onClick={() => setSelectedPayload(null)}
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
               >
                 <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -399,6 +413,8 @@ export default function AuditLogIndex({
               <button
                 type="button"
                 onClick={() => setSelectedPayload(null)}
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
             >
                 {actionsDict.close}

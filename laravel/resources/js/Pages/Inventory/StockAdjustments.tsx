@@ -111,6 +111,9 @@ export default function StockAdjustmentsIndex({ locale, adjustments, warehouses,
   const pageDict = dict.app.pages.stockAdjustments;
   const accDict = dict.app.accounting;
   const can = useCan();
+  const canAdjustStock = can('inventory.adjust');
+  const canApproveInventory = can('inventory.approve');
+  const canPostInventory = can('inventory.post') && can('view_financials');
   const defaultCurrency = currencies[0]?.code || '';
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
@@ -238,13 +241,31 @@ export default function StockAdjustmentsIndex({ locale, adjustments, warehouses,
     router.post(`/inventory/adjustments/${adjustment.id}/${action}`, {}, { preserveScroll: true });
   }
 
+  const isStockAdjustmentActionable = (adjustment: StockAdjustment) => ['draft', 'submitted', 'approved'].includes(adjustment.status);
+
+  const hasAvailableStockAdjustmentAction = (adjustment: StockAdjustment) => (
+    adjustment.status === 'draft'
+      ? canAdjustStock || canApproveInventory
+      : adjustment.status === 'submitted'
+        ? canApproveInventory || canAdjustStock
+        : adjustment.status === 'approved'
+          ? canPostInventory || canAdjustStock
+          : false
+  );
+
+  const getStockAdjustmentActionState = (adjustment: StockAdjustment) => {
+    if (hasAvailableStockAdjustmentAction(adjustment)) return null;
+
+    return isStockAdjustmentActionable(adjustment) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="stock-adjustments.index">
       <Head title={pageDict.headTitle} />
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('inventory.adjust') ? <Button onClick={openCreate}>{pageDict.createAdjustment}</Button> : null}
+        actions={canAdjustStock ? <Button onClick={openCreate}>{pageDict.createAdjustment}</Button> : null}
       />
 
       <Card className="mb-5 p-4">
@@ -309,25 +330,40 @@ export default function StockAdjustmentsIndex({ locale, adjustments, warehouses,
               </tr>
             </thead>
             <tbody>
-              {adjustments.data.map((adjustment) => (
-                <tr key={adjustment.id}>
-                  <td className={tableClasses.td}>{adjustment.number || pageDict.draftNumber}</td>
-                  <td className={tableClasses.td}>{formatDate(adjustment.adjustment_date)}</td>
-                  <td className={tableClasses.td}>{adjustment.warehouse ? `${adjustment.warehouse.code} - ${getLocalizedName(adjustment.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                  <td className={tableClasses.td}><StatusBadge tone={statusTone(adjustment.status)}>{labelForStatus(adjustment.status)}</StatusBadge></td>
-                  <td className={`${tableClasses.td} accounting-amount`}>{formatMoney(adjustment.total_value_delta_minor, adjustment.currency)}</td>
-                  <td className={tableClasses.td}>{adjustment.lines.length}</td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {adjustment.status === 'draft' && can('inventory.adjust') ? <Button variant="secondary" onClick={() => openEdit(adjustment)}>{pageDict.edit}</Button> : null}
-                      {adjustment.status === 'draft' && can('inventory.adjust') ? <Button variant="secondary" onClick={() => transition(adjustment, 'submit')}>{pageDict.submit}</Button> : null}
-                      {['draft', 'submitted'].includes(adjustment.status) && can('inventory.approve') ? <Button variant="secondary" onClick={() => transition(adjustment, 'approve')}>{pageDict.approve}</Button> : null}
-                      {adjustment.status === 'approved' && can('inventory.post') && can('view_financials') ? <Button onClick={() => transition(adjustment, 'post')}>{pageDict.post}</Button> : null}
-                      {['draft', 'submitted', 'approved'].includes(adjustment.status) && can('inventory.adjust') ? <Button variant="danger" onClick={() => transition(adjustment, 'cancel')}>{pageDict.cancelAdjustment}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {adjustments.data.map((adjustment) => {
+                const actionState = getStockAdjustmentActionState(adjustment);
+
+                return (
+                  <tr key={adjustment.id}>
+                    <td className={tableClasses.td}>{adjustment.number || pageDict.draftNumber}</td>
+                    <td className={tableClasses.td}>{formatDate(adjustment.adjustment_date)}</td>
+                    <td className={tableClasses.td}>{adjustment.warehouse ? `${adjustment.warehouse.code} - ${getLocalizedName(adjustment.warehouse.name, locale)}` : accDict.notAvailable}</td>
+                    <td className={tableClasses.td}><StatusBadge tone={statusTone(adjustment.status)}>{labelForStatus(adjustment.status)}</StatusBadge></td>
+                    <td className={`${tableClasses.td} accounting-amount`}>{formatMoney(adjustment.total_value_delta_minor, adjustment.currency)}</td>
+                    <td className={tableClasses.td}>{adjustment.lines.length}</td>
+                    <td className={`${tableClasses.td} text-end`}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {adjustment.status === 'draft' && canAdjustStock ? (
+                          <button type="button" onClick={() => openEdit(adjustment)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+                        ) : null}
+                        {adjustment.status === 'draft' && canAdjustStock ? (
+                          <button type="button" onClick={() => transition(adjustment, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                        ) : null}
+                        {['draft', 'submitted'].includes(adjustment.status) && canApproveInventory ? (
+                          <button type="button" onClick={() => transition(adjustment, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                        ) : null}
+                        {adjustment.status === 'approved' && canPostInventory ? (
+                          <button type="button" onClick={() => transition(adjustment, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+                        ) : null}
+                        {isStockAdjustmentActionable(adjustment) && canAdjustStock ? (
+                          <button type="button" onClick={() => transition(adjustment, 'cancel')} title={pageDict.cancelAdjustment} aria-label={pageDict.cancelAdjustment} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelAdjustment}</button>
+                        ) : null}
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

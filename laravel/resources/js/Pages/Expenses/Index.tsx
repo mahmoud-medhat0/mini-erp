@@ -7,7 +7,7 @@ import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, Sea
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -70,7 +70,7 @@ type ExpenseRow = {
   lines: ExpenseLine[];
 };
 
-type PaginatedData<T> = { data: T[]; total: number; links: any[] };
+type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type LineForm = {
   expense_category_id: string;
   expense_account_id: string;
@@ -169,6 +169,11 @@ export default function ExpensesIndex({
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.expenses;
   const can = useCan();
+  const canCreateExpenses = can('expenses.create');
+  const canEditExpenses = can('expenses.edit');
+  const canSubmitExpenses = can('expenses.submit');
+  const canApproveExpenses = can('expenses.approve');
+  const canPostExpenses = can('expenses.post') && can('view_financials');
   const defaultCurrency = currencies[0]?.code || '';
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
@@ -376,6 +381,24 @@ export default function ExpensesIndex({
     router.post(`/expenses/${id}/${action}`, {}, { preserveScroll: true });
   }
 
+  const isExpenseActionable = (expense: ExpenseRow) => ['draft', 'submitted', 'approved'].includes(expense.status);
+
+  const hasAvailableExpenseAction = (expense: ExpenseRow) => (
+    expense.status === 'draft'
+      ? canEditExpenses || canSubmitExpenses
+      : expense.status === 'submitted'
+        ? canApproveExpenses || canEditExpenses
+        : expense.status === 'approved'
+          ? canPostExpenses || canEditExpenses
+          : false
+  );
+
+  const getExpenseActionState = (expense: ExpenseRow) => {
+    if (hasAvailableExpenseAction(expense)) return null;
+
+    return isExpenseActionable(expense) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="expenses.index">
       <Head title={pageDict.headTitle} />
@@ -383,7 +406,7 @@ export default function ExpensesIndex({
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('expenses.create') ? <Button onClick={openCreate}>{pageDict.createExpense}</Button> : null}
+        actions={canCreateExpenses ? <Button onClick={openCreate}>{pageDict.createExpense}</Button> : null}
       />
 
       <div className="mb-5 grid gap-4 md:grid-cols-3">
@@ -545,52 +568,47 @@ export default function ExpensesIndex({
               </tr>
             </thead>
             <tbody>
-              {expenses.data.map((expense) => (
-                <tr key={expense.id} className="hover:bg-[var(--background)]/60">
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{expense.number || expense.reference || expense.id.slice(0, 8)}</td>
-                  <td className={tableClasses.td}>{formatDate(expense.expense_date)}</td>
-                  <td className={tableClasses.td}>{labelForMethod(expense.settlement_method)}</td>
-                  <td className={tableClasses.td}>{expense.branch ? `${expense.branch.code} - ${getLocalizedName(expense.branch.name, locale)}` : pageDict.unassignedBranch}</td>
-                  <td className={tableClasses.td}>
-                    {expense.supplier ? `${expense.supplier.code} - ${getLocalizedName(expense.supplier.name, locale)}` : expense.payee_name || pageDict.noSupplier}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <AccountingAmount amountMinor={expense.total_minor} currency={expense.currency} />
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={statusTone(expense.status)}>{labelForStatus(expense.status)}</StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {expense.status === 'draft' && can('expenses.edit') ? (
-                        <button type="button" onClick={() => openEdit(expense)} className="text-xs font-bold text-[var(--primary)] hover:underline">
-                          {pageDict.edit}
-                        </button>
-                      ) : null}
-                      {expense.status === 'draft' && can('expenses.submit') ? (
-                        <button type="button" onClick={() => transition(expense.id, 'submit')} className="text-xs font-bold text-blue-500 hover:underline">
-                          {pageDict.submit}
-                        </button>
-                      ) : null}
-                      {expense.status === 'submitted' && can('expenses.approve') ? (
-                        <button type="button" onClick={() => transition(expense.id, 'approve')} className="text-xs font-bold text-amber-500 hover:underline">
-                          {pageDict.approve}
-                        </button>
-                      ) : null}
-                      {expense.status === 'approved' && can('expenses.post') && can('view_financials') ? (
-                        <button type="button" onClick={() => transition(expense.id, 'post')} className="text-xs font-bold text-emerald-500 hover:underline">
-                          {pageDict.post}
-                        </button>
-                      ) : null}
-                      {['draft', 'submitted', 'approved'].includes(expense.status) && can('expenses.edit') ? (
-                        <button type="button" onClick={() => transition(expense.id, 'cancel')} className="text-xs font-bold text-red-500 hover:underline">
-                          {pageDict.cancelExpense}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {expenses.data.map((expense) => {
+                const actionState = getExpenseActionState(expense);
+
+                return (
+                  <tr key={expense.id} className="hover:bg-[var(--background)]/60">
+                    <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{expense.number || expense.reference || expense.id.slice(0, 8)}</td>
+                    <td className={tableClasses.td}>{formatDate(expense.expense_date)}</td>
+                    <td className={tableClasses.td}>{labelForMethod(expense.settlement_method)}</td>
+                    <td className={tableClasses.td}>{expense.branch ? `${expense.branch.code} - ${getLocalizedName(expense.branch.name, locale)}` : pageDict.unassignedBranch}</td>
+                    <td className={tableClasses.td}>
+                      {expense.supplier ? `${expense.supplier.code} - ${getLocalizedName(expense.supplier.name, locale)}` : expense.payee_name || pageDict.noSupplier}
+                    </td>
+                    <td className={tableClasses.td}>
+                      <AccountingAmount amountMinor={expense.total_minor} currency={expense.currency} />
+                    </td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={statusTone(expense.status)}>{labelForStatus(expense.status)}</StatusBadge>
+                    </td>
+                    <td className={`${tableClasses.td} text-end`}>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {expense.status === 'draft' && canEditExpenses ? (
+                          <button type="button" onClick={() => openEdit(expense)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+                        ) : null}
+                        {expense.status === 'draft' && canSubmitExpenses ? (
+                          <button type="button" onClick={() => transition(expense.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                        ) : null}
+                        {expense.status === 'submitted' && canApproveExpenses ? (
+                          <button type="button" onClick={() => transition(expense.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                        ) : null}
+                        {expense.status === 'approved' && canPostExpenses ? (
+                          <button type="button" onClick={() => transition(expense.id, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+                        ) : null}
+                        {isExpenseActionable(expense) && canEditExpenses ? (
+                          <button type="button" onClick={() => transition(expense.id, 'cancel')} title={pageDict.cancelExpense} aria-label={pageDict.cancelExpense} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelExpense}</button>
+                        ) : null}
+                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -1,7 +1,7 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { Card, PageHeader } from '../../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../../Components/Primitives';
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -47,6 +47,8 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
   const dict = getDictionary(locale);
   const appDict = dict.app.accounting;
   const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
+  const canPostDepreciationRuns = can.post;
+  const canReverseDepreciationRuns = can.reverse;
 
   const [showPostModal, setShowPostModal] = useState(false);
 
@@ -61,15 +63,40 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
     });
   }
 
+  function handleReverseRun(run: DepreciationRun) {
+    if (!confirm(appDict.confirmReverseDepreciationRun)) return;
+
+    router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, {}, { preserveScroll: true });
+  }
+
   function formatRunStatus(status: DepreciationRun['status']) {
     return status === 'posted' ? appDict.scheduleStatusPosted : appDict.scheduleStatusReversed;
   }
+
+  function runStatusTone(status: DepreciationRun['status']): 'ok' | 'danger' {
+    return status === 'posted' ? 'ok' : 'danger';
+  }
+
+  const getDepreciationRunActionState = (run: DepreciationRun) => {
+    if (run.status !== 'posted' || canReverseDepreciationRuns) return null;
+
+    return dict.app.actions.restricted;
+  };
 
   function formatPeriodStatus(status: string) {
     if (status === 'open') return appDict.statusOpen;
     if (status === 'reopened') return appDict.statusReopened;
     return status;
   }
+
+  const periodOptions = useMemo(
+    () => openPeriods.map((period) => ({
+      value: period.id,
+      label: `${period.start_date} ${appDict.periodDateSeparator} ${period.end_date}`,
+      sublabel: formatPeriodStatus(period.status),
+    })),
+    [appDict.periodDateSeparator, openPeriods],
+  );
 
   return (
     <AppLayout active="fixed-assets.depreciation-runs.index">
@@ -80,18 +107,22 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
           title={appDict.depreciationRuns}
           description={appDict.fixedAssets}
           actions={
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <div className="flex flex-wrap items-center gap-2">
               <Link
                 href="/fixed-assets"
-                className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+                title={appDict.back}
+                aria-label={appDict.back}
+                className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
               >
                 {appDict.back}
               </Link>
-              {can.post && (
+              {canPostDepreciationRuns && (
                 <button
                   type="button"
                   onClick={() => setShowPostModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                  title={appDict.newDepreciationRun}
+                  aria-label={appDict.newDepreciationRun}
+                  className="inline-flex h-9 items-center rounded-md border border-transparent bg-indigo-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                 >
                   {appDict.newDepreciationRun}
                 </button>
@@ -122,42 +153,54 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
                     </td>
                   </tr>
                 ) : (
-                  runs.data.map((run) => (
-                    <tr key={run.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                      <td className="px-4 py-3 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                        <Link href={`/fixed-assets-depreciation-runs/${run.id}`}>{run.number}</Link>
-                      </td>
-                      <td className="px-4 py-3 font-mono">{run.run_date}</td>
-                      <td className="px-4 py-3">
-                        {run.financial_period
-                          ? `${run.financial_period.start_date} ${appDict.periodDateSeparator} ${run.financial_period.end_date}`
-                          : appDict.notAvailable}
-                      </td>
-                      <td className="px-4 py-3 text-right rtl:text-left font-mono font-medium">{run.asset_count}</td>
-                      <td className="px-4 py-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                        {formatAmount(run.total_depreciation_minor)}
-                      </td>
-                      <td className="px-4 py-3 text-center capitalize">
-                        <span
-                          className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full ${
-                            run.status === 'posted'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
-                          }`}
-                        >
-                          {formatRunStatus(run.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right rtl:text-left">
-                        <Link
-                          href={`/fixed-assets-depreciation-runs/${run.id}`}
-                          className="text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400"
-                        >
-                          {appDict.viewDetail}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
+                  runs.data.map((run) => {
+                    const actionState = getDepreciationRunActionState(run);
+
+                    return (
+                      <tr key={run.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                        <td className="px-4 py-3 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                          <Link href={`/fixed-assets-depreciation-runs/${run.id}`}>{run.number}</Link>
+                        </td>
+                        <td className="px-4 py-3 font-mono">{run.run_date}</td>
+                        <td className="px-4 py-3">
+                          {run.financial_period
+                            ? `${run.financial_period.start_date} ${appDict.periodDateSeparator} ${run.financial_period.end_date}`
+                            : appDict.notAvailable}
+                        </td>
+                        <td className="px-4 py-3 text-right rtl:text-left font-mono font-medium">{run.asset_count}</td>
+                        <td className="px-4 py-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
+                          {formatAmount(run.total_depreciation_minor)}
+                        </td>
+                        <td className="px-4 py-3 text-center capitalize">
+                          <StatusBadge tone={runStatusTone(run.status)}>{formatRunStatus(run.status)}</StatusBadge>
+                        </td>
+                        <td className="px-4 py-3 text-right rtl:text-left">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Link
+                              href={`/fixed-assets-depreciation-runs/${run.id}`}
+                              title={appDict.viewDetail}
+                              aria-label={appDict.viewDetail}
+                              className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
+                            >
+                              {appDict.viewDetail}
+                            </Link>
+                            {run.status === 'posted' && canReverseDepreciationRuns ? (
+                              <button
+                                type="button"
+                                onClick={() => handleReverseRun(run)}
+                                title={appDict.reverseDepreciationRun}
+                                aria-label={appDict.reverseDepreciationRun}
+                                className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                              >
+                                {appDict.reverseDepreciationRun}
+                              </button>
+                            ) : null}
+                            {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -175,30 +218,26 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {appDict.financialPeriod}
                 </label>
-                <select
+                <SearchableSelect
                   value={data.financial_period_id}
-                  onChange={(e) => setData('financial_period_id', e.target.value)}
-                  className="w-full mt-1 text-sm rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700"
+                  options={periodOptions}
+                  onChange={(value) => setData('financial_period_id', value || '')}
+                  placeholder={appDict.selectOption}
+                  className="mt-1"
                   required
-                >
-                  <option value="" disabled>
-                    {appDict.selectOption}
-                  </option>
-                  {openPeriods.map((period) => (
-                    <option key={period.id} value={period.id}>
-                      {period.start_date} {appDict.periodDateSeparator} {period.end_date} ({formatPeriodStatus(period.status)})
-                    </option>
-                  ))}
-                </select>
+                  error={errors.financial_period_id}
+                />
                 {errors.financial_period_id && (
                   <p className="mt-1 text-xs text-rose-600">{errors.financial_period_id}</p>
                 )}
               </div>
 
-              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowPostModal(false)}
+                  title={appDict.cancel}
+                  aria-label={appDict.cancel}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
                 >
                   {appDict.cancel}
@@ -206,6 +245,8 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
                 <button
                   type="submit"
                   disabled={processing}
+                  title={appDict.postDepreciationRun}
+                  aria-label={appDict.postDepreciationRun}
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {appDict.postDepreciationRun}

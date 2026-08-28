@@ -1,9 +1,9 @@
 ﻿import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { BranchFormData, BranchRow, SharedPageProps } from '../../Types';
 
@@ -56,6 +56,8 @@ function BranchFormModal({
         <button
           type="button"
           onClick={onClose}
+          title={dict.app.actions.cancel}
+          aria-label={dict.app.actions.cancel}
           className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
         >
           <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -128,6 +130,8 @@ function BranchFormModal({
           <button
             type="button"
             onClick={onClose}
+            title={dict.app.actions.cancel}
+            aria-label={dict.app.actions.cancel}
             className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
           >
             {dict.app.actions.cancel}
@@ -135,6 +139,8 @@ function BranchFormModal({
           <button
             type="submit"
             disabled={processing}
+            title={branch ? dict.app.actions.save : dict.app.actions.create}
+            aria-label={branch ? dict.app.actions.save : dict.app.actions.create}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-60"
           >
             {processing ? (
@@ -156,6 +162,14 @@ export default function Branches({ branches, locale }: BranchesProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(branches[0]?.id ?? '');
+  const branchAttachmentOptions = useMemo(() => branches.map((branch) => ({
+    value: branch.id,
+    label: `${branch.name} (${branch.code})`,
+  })), [branches]);
+
+  function selectAttachmentBranch(value: string | null) {
+    setSelectedBranchId(value || branches[0]?.id || '');
+  }
 
   return (
     <AppLayout active="settings.branches">
@@ -171,6 +185,8 @@ export default function Branches({ branches, locale }: BranchesProps) {
               setEditingBranchId(null);
               setShowAddForm(!showAddForm);
             }}
+            title={dict.app.actions.addBranch}
+            aria-label={dict.app.actions.addBranch}
             className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -236,6 +252,8 @@ export default function Branches({ branches, locale }: BranchesProps) {
                           <button
                             type="button"
                             onClick={() => setSelectedBranchId(branch.id)}
+                            title={dict.app.pages.settingsBranches.attachments}
+                            aria-label={dict.app.pages.settingsBranches.attachments}
                             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                               isSelectedForAttachments
                                 ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400'
@@ -253,6 +271,8 @@ export default function Branches({ branches, locale }: BranchesProps) {
                               setShowAddForm(false);
                               setEditingBranchId(isEditing ? null : branch.id);
                             }}
+                            title={dict.app.actions.edit}
+                            aria-label={dict.app.actions.edit}
                             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
                               isEditing
                                 ? 'border-[var(--primary)] bg-[var(--primary)] text-white'
@@ -268,9 +288,11 @@ export default function Branches({ branches, locale }: BranchesProps) {
                             type="button"
                             onClick={() => {
                               if (confirm(dict.app.messages.confirmDeleteBranch.replace('{name}', branch.name ?? branch.code))) {
-                                router.delete(`/settings/branches/${branch.id}`);
+                                router.delete(`/settings/branches/${branch.id}`, { preserveScroll: true });
                               }
                             }}
+                            title={dict.app.actions.delete}
+                            aria-label={dict.app.actions.delete}
                             className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
                           >
                             <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -303,20 +325,15 @@ export default function Branches({ branches, locale }: BranchesProps) {
             <div className="mt-6 space-y-3">
               {branches.length > 1 ? (
                 <div className="flex items-center justify-between bg-[var(--surface)] p-3.5 rounded-xl border border-[var(--border)]">
-                  <label className="text-xs font-bold text-[var(--text-primary)]">
-                    {dict.app.pages.settingsBranches.selectBranchForAttachments}
-                  </label>
-                  <select
-                    value={selectedBranchId}
-                    onChange={(e) => setSelectedBranchId(e.target.value)}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] focus:border-[var(--primary)] outline-hidden cursor-pointer"
-                  >
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.code})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full max-w-sm">
+                    <SearchableSelect
+                      label={dict.app.pages.settingsBranches.selectBranchForAttachments}
+                      value={selectedBranchId}
+                      onChange={selectAttachmentBranch}
+                      options={branchAttachmentOptions}
+                      isClearable={false}
+                    />
+                  </div>
                 </div>
               ) : null}
               <AttachmentPanel

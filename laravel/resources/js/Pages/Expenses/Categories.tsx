@@ -6,7 +6,7 @@ import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, ta
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, AccountOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 
@@ -37,7 +37,7 @@ type ExpenseAccountOption = AccountOption & {
 type PaginatedData<T> = {
   data: T[];
   total: number;
-  links: any[];
+  links: PaginationLink[];
 };
 
 type Props = SharedPageProps & {
@@ -298,7 +298,13 @@ export default function ExpenseCategoriesIndex({ locale, categories, expenseAcco
                   <td className={tableClasses.td}>
                     <div className="flex flex-wrap items-center gap-3">
                       {can('expenses.edit') ? (
-                        <button type="button" onClick={() => openEdit(category)} className="text-xs font-bold text-[var(--primary)] hover:underline">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(category)}
+                          className="text-xs font-bold text-[var(--primary)] hover:underline"
+                          title={pageDict.edit}
+                          aria-label={pageDict.edit}
+                        >
                           {pageDict.edit}
                         </button>
                       ) : null}

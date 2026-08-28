@@ -108,8 +108,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use SplFileInfo;
 use Tests\TestCase;
 
 class Phase15ProductHardeningTest extends TestCase
@@ -206,7 +209,11 @@ class Phase15ProductHardeningTest extends TestCase
             $this->assertStringContainsString('pageDict.clearFilters', $source);
             $this->assertStringContainsString('activeFilterCount', $source);
             $this->assertStringContainsString('currencies: Array<{ code: string }>', $source);
+            $this->assertStringContainsString('const statusOptions', $source);
+            $this->assertStringContainsString('const productOptions', $source);
+            $this->assertMatchesRegularExpression('/const (customerOptions|supplierOptions)/', $source);
             $this->assertStringContainsString("onChange={(value) => setCurrency(value || '')}", $source);
+            $this->assertStringNotContainsString('<select', $source, "{$case['source']} should use shared searchable report filter controls.");
             $this->assertStringContainsString("'currencies' => \$this->options->currencies(columns: ['code']),", $controllerSource);
 
             $this->actingAs($user)
@@ -351,6 +358,40 @@ class Phase15ProductHardeningTest extends TestCase
         $this->assertStringNotContainsString('<select className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)]" value={invoiceType}', $invoiceSource);
     }
 
+    public function test_rental_handover_return_line_controls_use_searchable_selects(): void
+    {
+        foreach ([
+            'Rentals/Handovers.tsx' => [
+                'label={pageDict.conditionOut}',
+                'value={line.condition_out}',
+                "onChange={(value) => updateLine(index, { condition_out: value || 'good' })}",
+                'options={conditionOptions}',
+                'isClearable={false}',
+            ],
+            'Rentals/Returns.tsx' => [
+                'label={pageDict.conditionIn}',
+                'value={line.condition_in}',
+                "onChange={(value) => updateLine(index, { condition_in: value || 'good' })}",
+                'label={pageDict.outcome}',
+                'value={line.outcome}',
+                "onChange={(value) => updateLine(index, { outcome: value || 'returned' })}",
+                'options={conditionOptions}',
+                'options={outcomeOptions}',
+                'isClearable={false}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should not use native select controls.");
+            $this->assertStringNotContainsString('<option', $source, "{$relativePath} should not render native options.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
     public function test_fixed_asset_filter_bars_use_searchable_select_and_clear_actions(): void
     {
         foreach ([
@@ -397,6 +438,347 @@ class Phase15ProductHardeningTest extends TestCase
             $this->assertLocalePathIsNotEmpty($en, $path, 'EN');
             $this->assertLocalePathIsNotEmpty($ar, $path, 'AR');
         }
+    }
+
+    public function test_cash_bank_and_cheque_filter_bars_use_searchable_controls(): void
+    {
+        foreach ([
+            'CashAccounts/Index.tsx' => [
+                'route' => '/cash-accounts',
+                'filter_keys' => ['filters.search', 'filters.status', 'filters.branch_id'],
+                'selectors' => ['pageDict.allBranches', 'pageDict.allStatuses'],
+            ],
+            'BankAccounts/Index.tsx' => [
+                'route' => '/bank-accounts',
+                'filter_keys' => ['filters.search', 'filters.status', 'filters.branch_id'],
+                'selectors' => ['pageDict.allBranches', 'pageDict.allStatuses'],
+            ],
+            'IncomingCheques/Index.tsx' => [
+                'route' => '/incoming-cheques',
+                'filter_keys' => ['filters.status', 'filters.customer_id'],
+                'selectors' => ['pageDict.allStatuses', 'pageDict.customer'],
+            ],
+            'OutgoingCheques/Index.tsx' => [
+                'route' => '/outgoing-cheques',
+                'filter_keys' => ['filters.status', 'filters.supplier_id'],
+                'selectors' => ['pageDict.allStatuses', 'pageDict.supplier'],
+            ],
+            'BankReconciliations/Index.tsx' => [
+                'route' => '/bank-reconciliations',
+                'filter_keys' => ['filters.status', 'filters.bank_account_id'],
+                'selectors' => ['pageDict.allStatuses', 'pageDict.bankAccount'],
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringContainsString('const activeFilterCount', $source);
+            $this->assertStringContainsString('function clearFilters()', $source);
+            $this->assertStringContainsString('disabled={activeFilterCount === 0}', $source);
+            $this->assertStringContainsString("router.get('{$case['route']}',", $source);
+            $this->assertStringContainsString('preserveScroll: true, preserveState: true', $source);
+            $this->assertStringContainsString('accDict.clearFilters', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} filter bar should not use native selects.");
+            $this->assertStringNotContainsString('window.location.href', $source);
+
+            foreach ($case['filter_keys'] as $filterKey) {
+                $this->assertStringContainsString($filterKey, $source);
+            }
+
+            foreach ($case['selectors'] as $selector) {
+                $this->assertStringContainsString($selector, $source);
+            }
+        }
+
+        foreach ([
+            'IncomingCheques/Index.tsx' => 'pageDict.statuses[row.status]',
+            'OutgoingCheques/Index.tsx' => 'pageDict.statuses[row.status]',
+        ] as $relativePath => $localizedStatusExpression) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString($localizedStatusExpression, $source);
+            $this->assertStringNotContainsString('row.status.toUpperCase()', $source);
+        }
+
+        $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode(file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ([
+            ['app', 'pages', 'cashAccounts', 'allStatuses'],
+            ['app', 'pages', 'bankAccounts', 'allStatuses'],
+            ['app', 'pages', 'incomingCheques', 'statuses', 'draft'],
+            ['app', 'pages', 'incomingCheques', 'statuses', 'received'],
+            ['app', 'pages', 'incomingCheques', 'statuses', 'deposited'],
+            ['app', 'pages', 'incomingCheques', 'statuses', 'cleared'],
+            ['app', 'pages', 'incomingCheques', 'statuses', 'bounced'],
+            ['app', 'pages', 'incomingCheques', 'statuses', 'returned'],
+            ['app', 'pages', 'outgoingCheques', 'statuses', 'draft'],
+            ['app', 'pages', 'outgoingCheques', 'statuses', 'issued'],
+            ['app', 'pages', 'outgoingCheques', 'statuses', 'cleared'],
+            ['app', 'pages', 'outgoingCheques', 'statuses', 'returned'],
+            ['app', 'pages', 'outgoingCheques', 'statuses', 'cancelled'],
+        ] as $path) {
+            $this->assertLocalePathIsNotEmpty($en, $path, 'EN');
+            $this->assertLocalePathIsNotEmpty($ar, $path, 'AR');
+        }
+    }
+
+    public function test_customer_supplier_master_data_filters_use_inertia_and_searchable_status_controls(): void
+    {
+        foreach ([
+            'Customers/Index.tsx' => [
+                'route' => '/customers',
+                'dictionary' => 'dict.app.pages.customers',
+            ],
+            'Suppliers/Index.tsx' => [
+                'route' => '/suppliers',
+                'dictionary' => 'dict.app.pages.suppliers',
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringContainsString('const activeFilterCount', $source);
+            $this->assertStringContainsString('function clearFilters()', $source);
+            $this->assertStringContainsString('disabled={activeFilterCount === 0}', $source);
+            $this->assertStringContainsString("router.get('{$case['route']}',", $source);
+            $this->assertStringContainsString('preserveScroll: true, preserveState: true', $source);
+            $this->assertStringContainsString('filters.search', $source);
+            $this->assertStringContainsString('filters.status', $source);
+            $this->assertStringContainsString('pageDict.allStatuses', $source);
+            $this->assertStringContainsString('accDict.clearFilters', $source);
+            $this->assertStringContainsString($case['dictionary'], $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should use SearchableSelect for status controls.");
+            $this->assertStringNotContainsString('window.location.href', $source);
+        }
+
+        $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode(file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ([
+            ['app', 'pages', 'customers', 'allStatuses'],
+            ['app', 'pages', 'suppliers', 'allStatuses'],
+        ] as $path) {
+            $this->assertLocalePathIsNotEmpty($en, $path, 'EN');
+            $this->assertLocalePathIsNotEmpty($ar, $path, 'AR');
+        }
+    }
+
+    public function test_ar_ap_allocation_and_settlement_filters_use_inertia_searchable_controls(): void
+    {
+        foreach ([
+            'ReceivableAllocations/Index.tsx' => [
+                'route' => '/receivable-allocations',
+                'filter_keys' => ['filters.customer_id', 'filters.receipt_id'],
+                'selectors' => ['dict.app.pages.receivableAllocations.filterCustomer', 'dict.app.pages.receivableAllocations.allCustomers'],
+            ],
+            'PayableAllocations/Index.tsx' => [
+                'route' => '/payable-allocations',
+                'filter_keys' => ['filters.supplier_id', 'filters.payment_id'],
+                'selectors' => ['dict.app.pages.payableAllocations.filterSupplier', 'dict.app.pages.payableAllocations.allSuppliers'],
+            ],
+            'Sales/ReceivableSettlements.tsx' => [
+                'route' => '/sales/receivable-settlements',
+                'filter_keys' => ['filters.customer_id', 'filters.source_entry_id'],
+                'selectors' => ['pageDict.allCustomers', 'pageDict.selectOpenCreditEntry'],
+            ],
+            'Purchasing/PayableSettlements.tsx' => [
+                'route' => '/purchasing/payable-settlements',
+                'filter_keys' => ['filters.supplier_id', 'filters.source_entry_id'],
+                'selectors' => ['pageDict.allSuppliers', 'pageDict.selectOpenDebitEntry'],
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringContainsString('const activeFilterCount', $source);
+            $this->assertStringContainsString('function clearFilters()', $source);
+            $this->assertStringContainsString('disabled={activeFilterCount === 0}', $source);
+            $this->assertStringContainsString("router.get('{$case['route']}',", $source);
+            $this->assertStringContainsString('preserveScroll: true, preserveState: true', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should use searchable selection controls.");
+            $this->assertStringNotContainsString('window.location.href', $source);
+
+            foreach ($case['filter_keys'] as $filterKey) {
+                $this->assertStringContainsString($filterKey, $source);
+            }
+
+            foreach ($case['selectors'] as $selector) {
+                $this->assertStringContainsString($selector, $source);
+            }
+        }
+
+        $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode(file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ([
+            ['app', 'pages', 'receivableAllocations', 'filterCustomer'],
+            ['app', 'pages', 'receivableAllocations', 'allCustomers'],
+            ['app', 'pages', 'payableAllocations', 'filterSupplier'],
+            ['app', 'pages', 'payableAllocations', 'allSuppliers'],
+            ['app', 'pages', 'receivableSettlements', 'allCustomers'],
+            ['app', 'pages', 'payableSettlements', 'allSuppliers'],
+        ] as $path) {
+            $this->assertLocalePathIsNotEmpty($en, $path, 'EN');
+            $this->assertLocalePathIsNotEmpty($ar, $path, 'AR');
+        }
+    }
+
+    public function test_treasury_transfer_filters_and_endpoint_type_controls_use_searchable_inertia_controls(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/TreasuryTransfers/Index.tsx'));
+
+        $this->assertStringContainsString('SearchableSelect', $source);
+        $this->assertStringContainsString('const statusOptions', $source);
+        $this->assertStringContainsString('const endpointTypeOptions', $source);
+        $this->assertStringContainsString('const activeFilterCount', $source);
+        $this->assertStringContainsString('function clearFilters()', $source);
+        $this->assertStringContainsString('disabled={activeFilterCount === 0}', $source);
+        $this->assertStringContainsString("router.get('/treasury-transfers',", $source);
+        $this->assertStringContainsString('preserveScroll: true, preserveState: true', $source);
+        $this->assertStringContainsString('filters.search', $source);
+        $this->assertStringContainsString('filters.status', $source);
+        $this->assertStringContainsString('pageDict.allStatuses', $source);
+        $this->assertStringContainsString('accDict.clearFilters', $source);
+        $this->assertStringContainsString('options={endpointTypeOptions}', $source);
+        $this->assertStringNotContainsString('<select', $source);
+        $this->assertStringNotContainsString('window.location.href', $source);
+
+        $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode(file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ([
+            ['app', 'pages', 'treasuryTransfers', 'allStatuses'],
+            ['app', 'pages', 'treasuryTransfers', 'cash'],
+            ['app', 'pages', 'treasuryTransfers', 'bank'],
+        ] as $path) {
+            $this->assertLocalePathIsNotEmpty($en, $path, 'EN');
+            $this->assertLocalePathIsNotEmpty($ar, $path, 'AR');
+        }
+    }
+
+    public function test_financial_statement_exports_use_links_instead_of_window_redirects(): void
+    {
+        foreach ([
+            'Reports/BalanceSheet.tsx' => '/reports/balance-sheet/export',
+            'Reports/CashFlow.tsx' => '/reports/cash-flow/export',
+            'Reports/IncomeStatement.tsx' => '/reports/income-statement/export',
+        ] as $relativePath => $route) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('const exportUrl', $source);
+            $this->assertStringContainsString($route, $source);
+            $this->assertStringContainsString('<a', $source);
+            $this->assertStringContainsString('href={exportUrl}', $source);
+            $this->assertStringContainsString('actionsDict.exportCsv', $source);
+            $this->assertStringNotContainsString('handleExportCsv', $source);
+            $this->assertStringNotContainsString('window.location.href', $source);
+        }
+    }
+
+    public function test_ar_ap_receipt_payment_cash_bank_type_controls_use_searchable_selects(): void
+    {
+        foreach ([
+            'CustomerReceipts/Index.tsx' => [
+                'options' => 'const destinationTypeOptions',
+                'label' => 'dict.app.pages.customerReceipts.destinationType',
+            ],
+            'SupplierPayments/Index.tsx' => [
+                'options' => 'const sourceTypeOptions',
+                'label' => 'dict.app.pages.supplierPayments.sourceType',
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringContainsString($case['options'], $source);
+            $this->assertStringContainsString($case['label'], $source);
+            $this->assertStringContainsString('toCashBankDestinationType(val || \'cash\')', $source);
+            $this->assertStringContainsString('isClearable={false}', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should use the shared searchable cash/bank type control.");
+        }
+    }
+
+    public function test_ar_ap_post_action_cells_show_restricted_state_instead_of_blank_actions(): void
+    {
+        foreach ([
+            'CustomerReceipts/Index.tsx' => [
+                'permissionCheck' => "const canPostReceipt = can('customers.receipts') && can('view_financials')",
+                'oldBlankAction' => "can('customers.receipts') && can('view_financials') ? (",
+                'confirmTitle' => 'title={dict.app.pages.customerReceipts.confirmPostReceipt}',
+                'allocationLink' => '/receivable-allocations?receipt_id=${row.id}',
+            ],
+            'SupplierPayments/Index.tsx' => [
+                'permissionCheck' => "const canPostPayment = can('suppliers.payments') && can('view_financials')",
+                'oldBlankAction' => "can('suppliers.payments') && can('view_financials') ? (",
+                'confirmTitle' => 'title={dict.app.pages.supplierPayments.confirmPostPayment}',
+                'allocationLink' => '/payable-allocations?payment_id=${row.id}',
+            ],
+            'CustomerOpeningBalances/Index.tsx' => [
+                'permissionCheck' => "const canPostOpeningBalance = can('customers.opening_balances') && can('view_financials')",
+                'oldBlankAction' => "can('customers.opening_balances') && can('view_financials') ? (",
+                'confirmTitle' => 'title={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}',
+                'allocationLink' => null,
+            ],
+            'SupplierOpeningBalances/Index.tsx' => [
+                'permissionCheck' => "const canPostOpeningBalance = can('suppliers.opening_balances') && can('view_financials')",
+                'oldBlankAction' => "can('suppliers.opening_balances') && can('view_financials') ? (",
+                'confirmTitle' => 'title={dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance}',
+                'allocationLink' => null,
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString($case['permissionCheck'], $source);
+            $this->assertStringContainsString($case['confirmTitle'], $source);
+            $this->assertStringContainsString('StatusBadge tone="muted"', $source);
+            $this->assertStringContainsString('dict.app.actions.restricted', $source);
+            $this->assertStringNotContainsString($case['oldBlankAction'], $source, "{$relativePath} must show a restricted action state instead of leaving the action cell blank.");
+
+            if ($case['allocationLink'] !== null) {
+                $this->assertStringContainsString('<Link', $source);
+                $this->assertStringContainsString($case['allocationLink'], $source);
+                $this->assertStringNotContainsString('<a', $source, "{$relativePath} should use Inertia Link for allocation navigation.");
+            }
+        }
+
+        $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode(file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertLocalePathIsNotEmpty($en, ['app', 'actions', 'restricted'], 'EN');
+        $this->assertLocalePathIsNotEmpty($ar, ['app', 'actions', 'restricted'], 'AR');
+    }
+
+    public function test_accounting_mapping_pages_use_searchable_selection_controls(): void
+    {
+        $accountMappings = (string) file_get_contents(resource_path('js/Pages/Accounting/AccountMappings.tsx'));
+        $statementMappings = (string) file_get_contents(resource_path('js/Pages/Accounting/FinancialStatementMappings.tsx'));
+
+        $this->assertStringContainsString('function toMappingScope', $accountMappings);
+        $this->assertStringContainsString('const scopeOptions', $accountMappings);
+        $this->assertStringContainsString('SearchableSelect<MappingScope>', $accountMappings);
+        $this->assertStringContainsString('onChange={(value) => changeScope(toMappingScope(value))}', $accountMappings);
+        $this->assertStringNotContainsString("event.target.value as 'global' | 'branch'", $accountMappings);
+        $this->assertStringNotContainsString('<select', $accountMappings);
+
+        foreach ([
+            'const statementTypeOptions',
+            'const sectionSelectOptions',
+            'const normalBalanceOptions',
+            'const cashFlowActivityOptions',
+            'const accountCashFlowActivityOptions',
+            'SearchableSelect<StatementType>',
+            'SearchableSelect<NormalBalance>',
+            'options={accountCashFlowActivityOptions}',
+            'function toStatementType',
+            'function toNormalBalance',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $statementMappings);
+        }
+
+        $this->assertStringNotContainsString('<select', $statementMappings);
+        $this->assertStringNotContainsString('e.target.value as', $statementMappings);
+        $this->assertStringNotContainsString('window.location.href', $statementMappings);
     }
 
     public function test_phase15_report_dictionary_keys_exist_in_both_locales(): void
@@ -654,7 +1036,7 @@ class Phase15ProductHardeningTest extends TestCase
             app_path('Application/Reports'),
             app_path('Http/Controllers/Reports'),
         ] as $directory) {
-            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
+            $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
 
             foreach ($files as $file) {
                 if (! $file->isFile() || $file->getExtension() !== 'php') {
@@ -712,7 +1094,7 @@ class Phase15ProductHardeningTest extends TestCase
             app_path('Application'),
             app_path('Http/Controllers'),
         ] as $directory) {
-            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
+            $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
 
             foreach ($files as $file) {
                 if (! $file->isFile() || $file->getExtension() !== 'php') {
@@ -825,7 +1207,7 @@ class Phase15ProductHardeningTest extends TestCase
     public function test_console_commands_and_seeders_do_not_use_fixed_currency_fixtures(): void
     {
         foreach ([app_path('Console/Commands'), database_path('seeders')] as $directory) {
-            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
+            $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
 
             foreach ($files as $file) {
                 if (! $file->isFile() || $file->getExtension() !== 'php') {
@@ -1200,6 +1582,317 @@ class Phase15ProductHardeningTest extends TestCase
         }
     }
 
+    public function test_foundation_settings_actions_have_accessible_names_and_scroll_safe_delete(): void
+    {
+        foreach ([
+            'Settings/Company.tsx' => [
+                'title={dict.app.actions.addCompany}',
+                'aria-label={dict.app.actions.addCompany}',
+                'title={dict.app.pages.settingsCompany.attachments}',
+                'aria-label={dict.app.pages.settingsCompany.attachments}',
+                'title={dict.app.actions.edit}',
+                'aria-label={dict.app.actions.edit}',
+                'title={company ? dict.app.actions.save : dict.app.actions.create}',
+                'aria-label={company ? dict.app.actions.save : dict.app.actions.create}',
+                'title={dict.app.actions.cancel}',
+                'aria-label={dict.app.actions.cancel}',
+            ],
+            'Settings/Branches.tsx' => [
+                'title={dict.app.actions.addBranch}',
+                'aria-label={dict.app.actions.addBranch}',
+                'title={dict.app.pages.settingsBranches.attachments}',
+                'aria-label={dict.app.pages.settingsBranches.attachments}',
+                'title={dict.app.actions.edit}',
+                'aria-label={dict.app.actions.edit}',
+                'title={dict.app.actions.delete}',
+                'aria-label={dict.app.actions.delete}',
+                'title={branch ? dict.app.actions.save : dict.app.actions.create}',
+                'aria-label={branch ? dict.app.actions.save : dict.app.actions.create}',
+                'title={dict.app.actions.cancel}',
+                'aria-label={dict.app.actions.cancel}',
+                'router.delete(`/settings/branches/${branch.id}`, { preserveScroll: true });',
+            ],
+            'Settings/Numbering.tsx' => [
+                'title={dict.app.actions.addSequence}',
+                'aria-label={dict.app.actions.addSequence}',
+                'title={`${dict.app.fields.preview}: ${sequence.preview}`}',
+                'aria-label={`${dict.app.fields.preview}: ${sequence.preview}`}',
+                'title={dict.app.actions.viewDetails}',
+                'aria-label={dict.app.actions.viewDetails}',
+                'title={dict.app.actions.edit}',
+                'aria-label={dict.app.actions.edit}',
+                'title={sequence ? dict.app.actions.save : dict.app.actions.create}',
+                'aria-label={sequence ? dict.app.actions.save : dict.app.actions.create}',
+                'title={dict.app.actions.cancel}',
+                'aria-label={dict.app.actions.cancel}',
+                'title={dict.app.actions.close}',
+                'aria-label={dict.app.actions.close}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} settings actions must expose stable accessible names.");
+            }
+        }
+    }
+
+    public function test_accounting_taxonomy_actions_have_accessible_names_and_scroll_safe_delete(): void
+    {
+        foreach ([
+            'Accounting/AccountCategories.tsx' => [
+                'createTitle' => 'title={accDict.addAccountCategory || pageDict.addAccountCategory}',
+                'createAria' => 'aria-label={accDict.addAccountCategory || pageDict.addAccountCategory}',
+                'detailsTitle' => 'title={pageDict.viewAccountTypesDetails}',
+                'detailsAria' => 'aria-label={pageDict.viewAccountTypesDetails}',
+                'deleteLabel' => 'const deleteActionLabel = cat.is_system',
+                'deleteRoute' => 'router.delete(`/accounting/account-categories/${cat.id}`, { preserveScroll: true });',
+                'oldDeleteRoute' => 'router.delete(`/accounting/account-categories/${cat.id}`);',
+            ],
+            'Accounting/AccountTypes.tsx' => [
+                'createTitle' => 'title={accDict.addAccountType || pageDict.addAccountType}',
+                'createAria' => 'aria-label={accDict.addAccountType || pageDict.addAccountType}',
+                'detailsTitle' => 'title={pageDict.viewAccountGroupsDetails}',
+                'detailsAria' => 'aria-label={pageDict.viewAccountGroupsDetails}',
+                'detailsTitle2' => 'title={pageDict.viewAccountsDetails}',
+                'detailsAria2' => 'aria-label={pageDict.viewAccountsDetails}',
+                'deleteLabel' => 'const deleteActionLabel = at.is_system',
+                'deleteRoute' => 'router.delete(`/accounting/account-types/${at.id}`, { preserveScroll: true });',
+                'oldDeleteRoute' => 'router.delete(`/accounting/account-types/${at.id}`);',
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ([
+                'preserveScroll: true',
+                'title={actionsDict.cancel}',
+                'aria-label={actionsDict.cancel}',
+                'title={actionsDict.save}',
+                'aria-label={actionsDict.save}',
+                'title={actionsDict.edit}',
+                'aria-label={actionsDict.edit}',
+                'title={deleteActionLabel}',
+                'aria-label={deleteActionLabel}',
+                'title={actionsDict.close}',
+                'aria-label={actionsDict.close}',
+                $case['createTitle'],
+                $case['createAria'],
+                $case['detailsTitle'],
+                $case['detailsAria'],
+                $case['deleteLabel'],
+                $case['deleteRoute'],
+            ] as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} accounting taxonomy actions must be accessible and scroll-safe.");
+            }
+
+            foreach (['detailsTitle2', 'detailsAria2'] as $optionalKey) {
+                if (isset($case[$optionalKey])) {
+                    $this->assertStringContainsString($case[$optionalKey], $source, "{$relativePath} account type detail actions must be accessible.");
+                }
+            }
+
+            $this->assertStringNotContainsString($case['oldDeleteRoute'], $source, "{$relativePath} delete actions must preserve table context.");
+        }
+    }
+
+    public function test_accounting_setup_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        foreach ([
+            'Accounting/ChartOfAccounts.tsx' => [
+                "groupForm.post('/accounting/coa/groups', {",
+                "accountForm.post('/accounting/coa/accounts', {",
+                'title={accDict.addGroup}',
+                'aria-label={accDict.addGroup}',
+                'title={accDict.addAccount}',
+                'aria-label={accDict.addAccount}',
+                'title={actionsDict.cancel}',
+                'aria-label={actionsDict.cancel}',
+                'title={actionsDict.save}',
+                'aria-label={actionsDict.save}',
+            ],
+            'Accounting/Currencies.tsx' => [
+                "createForm.post('/accounting/currencies', {",
+                'editForm.patch(`/accounting/currencies/${editingCurrency.code}`, {',
+                'router.delete(`/accounting/currencies/${deletingCurrency.code}`, {',
+                'title={accDict.addCurrency}',
+                'aria-label={accDict.addCurrency}',
+                'title={actionsDict.cancel}',
+                'aria-label={actionsDict.cancel}',
+                'title={actionsDict.save}',
+                'aria-label={actionsDict.save}',
+                'title={actionsDict.delete}',
+                'aria-label={actionsDict.delete}',
+                'title={actionsDict.close}',
+                'aria-label={actionsDict.close}',
+                'title={(c.accounts_count || 0) > 0 ? accDict.viewLinkedAccountsTitle : accDict.noLinkedAccountsTitle}',
+                'aria-label={(c.accounts_count || 0) > 0 ? accDict.viewLinkedAccountsTitle : accDict.noLinkedAccountsTitle}',
+                'title={(c.exchange_rates_count || 0) > 0 ? accDict.viewRecordedFxRatesTitle : accDict.noRatesRecordedTitle}',
+                'aria-label={(c.exchange_rates_count || 0) > 0 ? accDict.viewRecordedFxRatesTitle : accDict.noRatesRecordedTitle}',
+                'title={hasLinkedRecords ? accDict.cannotDeleteCurrencyInUseTitle : accDict.deleteCurrencyTitle}',
+                'aria-label={hasLinkedRecords ? accDict.cannotDeleteCurrencyInUseTitle : accDict.deleteCurrencyTitle}',
+            ],
+            'Accounting/ExchangeRates.tsx' => [
+                "form.post('/accounting/fx-rates', {",
+                'title={accDict.setFxRate}',
+                'aria-label={accDict.setFxRate}',
+                'title={actionsDict.close}',
+                'aria-label={actionsDict.close}',
+                'title={actionsDict.cancel}',
+                'aria-label={actionsDict.cancel}',
+                'title={accDict.saveFxRate}',
+                'aria-label={accDict.saveFxRate}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} accounting setup actions must expose stable accessible names.");
+            }
+
+            $this->assertStringContainsString('preserveScroll: true', $source, "{$relativePath} save/delete flows must preserve accountant table context.");
+        }
+    }
+
+    public function test_financial_mapping_and_period_actions_have_accessible_names_and_scroll_safe_flows(): void
+    {
+        foreach ([
+            'Accounting/FinancialStatementMappings.tsx' => [
+                'title={accDict.addStatementLine}',
+                'aria-label={accDict.addStatementLine}',
+                'title={accDict.allStatementTypes}',
+                'aria-label={accDict.allStatementTypes}',
+                'title={accDict.balanceSheet}',
+                'aria-label={accDict.balanceSheet}',
+                'title={accDict.incomeStatement}',
+                'aria-label={accDict.incomeStatement}',
+                'title={accDict.assignAccount}',
+                'aria-label={accDict.assignAccount}',
+                'title={`${actionsDict.edit} ${line.code}`}',
+                'aria-label={`${actionsDict.edit} ${line.code}`}',
+                'title={`${actionsDict.delete} ${line.code}`}',
+                'aria-label={`${actionsDict.delete} ${line.code}`}',
+                'title={`${accDict.unassign} ${acc.code}`}',
+                'aria-label={`${accDict.unassign} ${acc.code}`}',
+                'title={actionsDict.close}',
+                'aria-label={actionsDict.close}',
+                'title={actionsDict.cancel}',
+                'aria-label={actionsDict.cancel}',
+                'title={actionsDict.save}',
+                'aria-label={actionsDict.save}',
+                'preserveScroll: true',
+            ],
+            'Accounting/Periods.tsx' => [
+                "yearForm.post('/accounting/periods/fiscal-years', {",
+                'actionForm.post(endpoint, {',
+                'title={tx(\'createFiscalYear\')}',
+                'aria-label={tx(\'createFiscalYear\')}',
+                'title={ax(\'cancel\')}',
+                'aria-label={ax(\'cancel\')}',
+                'title={tx(\'generate12Periods\')}',
+                'aria-label={tx(\'generate12Periods\')}',
+                'title={ax(\'close\')}',
+                'aria-label={ax(\'close\')}',
+                'title={modalMode === \'close\' ? tx(\'closePeriod\') : tx(\'reopenPeriod\')}',
+                'aria-label={modalMode === \'close\' ? tx(\'closePeriod\') : tx(\'reopenPeriod\')}',
+                'title={`${tx(\'reopenPeriod\')} - ${tx(\'month\')} ${p.month}`}',
+                'aria-label={`${tx(\'reopenPeriod\')} - ${tx(\'month\')} ${p.month}`}',
+                'title={`${tx(\'closePeriod\')} - ${tx(\'month\')} ${p.month}`}',
+                'aria-label={`${tx(\'closePeriod\')} - ${tx(\'month\')} ${p.month}`}',
+                'preserveScroll: true',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} accounting control actions must stay accessible and preserve page context.");
+            }
+        }
+    }
+
+    public function test_settings_user_role_actions_have_accessible_names_and_scroll_safe_security_actions(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Settings/Users.tsx'));
+
+        foreach ([
+            'title={dict.app.actions.close}',
+            'aria-label={dict.app.actions.close}',
+            'title={dict.app.actions.cancel}',
+            'aria-label={dict.app.actions.cancel}',
+            'title={user ? dict.app.actions.save : dict.app.actions.create}',
+            'aria-label={user ? dict.app.actions.save : dict.app.actions.create}',
+            'title={dict.app.actions.assign}',
+            'aria-label={dict.app.actions.assign}',
+            'title={data.permissions.length === allPermissions.length ? dict.app.actions.clearAll : dict.app.actions.selectAll}',
+            'aria-label={data.permissions.length === allPermissions.length ? dict.app.actions.clearAll : dict.app.actions.selectAll}',
+            'title={catTitle}',
+            'aria-label={catTitle}',
+            'title={isCurrentGroupAllSelected ? dict.app.actions.deselectModule : dict.app.actions.selectAllInModule}',
+            'aria-label={isCurrentGroupAllSelected ? dict.app.actions.deselectModule : dict.app.actions.selectAllInModule}',
+            'title={role ? dict.app.actions.save : dict.app.actions.create}',
+            'aria-label={role ? dict.app.actions.save : dict.app.actions.create}',
+            'title={expanded ? dict.app.actions.showLess : `+ ${remainingCount} ${dict.app.actions.showMore}`}',
+            'aria-label={expanded ? dict.app.actions.showLess : `+ ${remainingCount} ${dict.app.actions.showMore}`}',
+            'title={dict.app.actions.revoke}',
+            'aria-label={dict.app.actions.revoke}',
+            'title={dict.app.actions.deleteRole}',
+            'aria-label={dict.app.actions.deleteRole}',
+            'title={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}',
+            'aria-label={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}',
+            'title={dict.app.actions.addUser}',
+            'aria-label={dict.app.actions.addUser}',
+            'title={`${dict.app.actions.assign} ${dict.app.fields.roles}`}',
+            'aria-label={`${dict.app.actions.assign} ${dict.app.fields.roles}`}',
+            'title={dict.app.actions.addRole}',
+            'aria-label={dict.app.actions.addRole}',
+            'title={dict.app.fields.user}',
+            'aria-label={dict.app.fields.user}',
+            'title={dict.app.fields.roles}',
+            'aria-label={dict.app.fields.roles}',
+            'title={dict.app.actions.editRole}',
+            'aria-label={dict.app.actions.editRole}',
+            'aria-label={dict.app.actions.editUser}',
+            "destroy('/settings/users/roles', { preserveScroll: true });",
+            'destroy(`/settings/roles/${roleId}`, { preserveScroll: true });',
+            'destroy(`/settings/users/${userId}`, { preserveScroll: true });',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Settings user/role security actions must stay accessible and scroll-safe.');
+        }
+    }
+
+    public function test_settings_attachment_entity_selectors_use_searchable_controls(): void
+    {
+        foreach ([
+            'Settings/Company.tsx' => [
+                'const companyAttachmentOptions',
+                'function selectAttachmentCompany(value: string | null)',
+                'label={dict.app.pages.settingsCompany.selectCompanyForAttachments}',
+                'value={selectedCompanyId}',
+                'onChange={selectAttachmentCompany}',
+                'options={companyAttachmentOptions}',
+                'isClearable={false}',
+            ],
+            'Settings/Branches.tsx' => [
+                'const branchAttachmentOptions',
+                'function selectAttachmentBranch(value: string | null)',
+                'label={dict.app.pages.settingsBranches.selectBranchForAttachments}',
+                'value={selectedBranchId}',
+                'onChange={selectAttachmentBranch}',
+                'options={branchAttachmentOptions}',
+                'isClearable={false}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should not use native select controls.");
+            $this->assertStringNotContainsString('<option', $source, "{$relativePath} should not render native option controls.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
     public function test_operational_document_pages_do_not_use_silent_currency_uom_or_warehouse_fallbacks(): void
     {
         foreach ([
@@ -1342,7 +2035,7 @@ class Phase15ProductHardeningTest extends TestCase
 
     public function test_visible_pages_do_not_hardcode_egp_or_usd_currency_literals(): void
     {
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(resource_path('js/Pages')));
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(resource_path('js/Pages')));
 
         foreach ($iterator as $file) {
             if (! $file->isFile() || $file->getExtension() !== 'tsx') {
@@ -1415,6 +2108,31 @@ class Phase15ProductHardeningTest extends TestCase
         }
     }
 
+    public function test_fixed_asset_report_filters_use_searchable_select_controls(): void
+    {
+        foreach ([
+            'Reports/FixedAssetRegisterReport.tsx',
+            'Reports/FixedAssetNetBookValueReport.tsx',
+            'Reports/FixedAssetDepreciationReport.tsx',
+            'Reports/FixedAssetDepreciationRunReport.tsx',
+            'Reports/FixedAssetDisposalReport.tsx',
+        ] as $relativePath) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString("import SearchableSelect from '../../Components/SearchableSelect';", $source);
+            $this->assertStringContainsString('options={statusOptions}', $source);
+            $this->assertStringContainsString("onChange={(value) => setStatus(value || '')}", $source);
+            $this->assertStringContainsString('placeholder={reportDict.allStatuses}', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should use searchable report filter controls.");
+            $this->assertStringNotContainsString('window.location.href', $source);
+        }
+
+        $disposalReport = (string) file_get_contents(resource_path('js/Pages/Reports/FixedAssetDisposalReport.tsx'));
+        $this->assertStringContainsString('options={typeOptions}', $disposalReport);
+        $this->assertStringContainsString("onChange={(value) => setType(value || '')}", $disposalReport);
+        $this->assertStringContainsString('placeholder={reportDict.allTypes}', $disposalReport);
+    }
+
     public function test_tax_master_pages_use_dictionary_backed_visible_text_without_inline_fallbacks(): void
     {
         foreach ([
@@ -1437,6 +2155,25 @@ class Phase15ProductHardeningTest extends TestCase
 
             foreach (['name', 'search', 'searchTaxCode', 'createSubtitle', 'codePlaceholder', 'rateBpsInput', 'basisPointsSuffix', 'allTaxCodes', 'notAvailable'] as $key) {
                 $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'taxes', $key], $locale);
+            }
+        }
+    }
+
+    public function test_tax_master_select_controls_use_searchable_selects(): void
+    {
+        foreach ([
+            'Taxes/Codes/Create.tsx' => ['calculationModeOptions', 'recoverabilityModeOptions'],
+            'Taxes/Codes/Edit.tsx' => ['calculationModeOptions', 'recoverabilityModeOptions'],
+            'Taxes/Rates/Index.tsx' => ['taxCodeOptions', 'taxCodeFilterOptions'],
+        ] as $relativePath => $expectedFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should use shared searchable tax controls.");
+            $this->assertStringNotContainsString('e.target.value as ', $source, "{$relativePath} should avoid event-value casts for select controls.");
+
+            foreach ($expectedFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
             }
         }
     }
@@ -1497,6 +2234,36 @@ class Phase15ProductHardeningTest extends TestCase
             ] as $key) {
                 $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'audit', $key], $locale);
             }
+        }
+    }
+
+    public function test_audit_log_actions_have_accessible_names_and_scroll_safe_navigation(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/AuditLog/Index.tsx'));
+
+        foreach ([
+            '{ preserveState: true, preserveScroll: true }',
+            'router.get(\'/audit-log\', {}, { preserveState: true, preserveScroll: true });',
+            'router.get(logs.prev_page_url!, {}, { preserveState: true, preserveScroll: true })',
+            'router.get(logs.next_page_url!, {}, { preserveState: true, preserveScroll: true })',
+            'title={actionsDict.reset}',
+            'aria-label={actionsDict.reset}',
+            'title={actionsDict.filter}',
+            'aria-label={actionsDict.filter}',
+            'title={`${log.entity_id} - ${actionsDict.viewDetails}`}',
+            'aria-label={`${log.entity_id} - ${actionsDict.viewDetails}`}',
+            'title={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}',
+            'aria-label={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}',
+            'title={auditDict.viewPayload}',
+            'aria-label={auditDict.viewPayload}',
+            'title={actionsDict.previous}',
+            'aria-label={actionsDict.previous}',
+            'title={actionsDict.next}',
+            'aria-label={actionsDict.next}',
+            'title={actionsDict.close}',
+            'aria-label={actionsDict.close}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Audit log actions must remain accessible and scroll-safe.');
         }
     }
 
@@ -1730,6 +2497,1302 @@ class Phase15ProductHardeningTest extends TestCase
         }
     }
 
+    public function test_sales_and_purchase_order_select_controls_use_searchable_controls(): void
+    {
+        foreach ([
+            'Sales/SalesOrders.tsx' => [
+                'const statusFilterOptions',
+                'const customerOptions',
+                'const currencyOptions',
+                'const productOptions',
+                'options={statusFilterOptions}',
+                'options={customerOptions}',
+                'options={currencyOptions}',
+                'options={productOptions}',
+                'onChange={(value) => setData(\'customer_id\', value || \'\')}',
+                'onChange={(value) => handleProductChange(idx, value || \'\')}',
+            ],
+            'Purchasing/PurchaseOrders.tsx' => [
+                'const statusFilterOptions',
+                'const supplierOptions',
+                'const currencyOptions',
+                'const productOptions',
+                'options={statusFilterOptions}',
+                'options={supplierOptions}',
+                'options={currencyOptions}',
+                'options={productOptions}',
+                'onChange={(value) => setData(\'supplier_id\', value || \'\')}',
+                'onChange={(value) => handleProductChange(idx, value || \'\')}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should not use native select controls.");
+            $this->assertStringNotContainsString('<option', $source, "{$relativePath} should not render native option controls.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
+    public function test_delivery_note_and_goods_receipt_select_controls_use_searchable_controls(): void
+    {
+        foreach ([
+            'Sales/DeliveryNotes.tsx' => [
+                'const warehouseOptions',
+                'const warehouseFilterOptions',
+                'const statusFilterOptions',
+                'const salesOrderOptions',
+                'options={warehouseFilterOptions}',
+                'options={statusFilterOptions}',
+                'options={salesOrderOptions}',
+                'options={warehouseOptions}',
+                'onChange={(value) => handleSalesOrderSelect(value || \'\')}',
+                'onChange={(value) => setData(\'warehouse_id\', value || \'\')}',
+            ],
+            'Purchasing/GoodsReceipts.tsx' => [
+                'const warehouseOptions',
+                'const warehouseFilterOptions',
+                'const statusFilterOptions',
+                'const purchaseOrderOptions',
+                'options={warehouseFilterOptions}',
+                'options={statusFilterOptions}',
+                'options={purchaseOrderOptions}',
+                'options={warehouseOptions}',
+                'onChange={(value) => handlePurchaseOrderSelect(value || \'\')}',
+                'onChange={(value) => setData(\'warehouse_id\', value || \'\')}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should not use native select controls.");
+            $this->assertStringNotContainsString('<option', $source, "{$relativePath} should not render native option controls.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
+    public function test_sales_and_purchasing_document_action_cells_are_grouped_and_explain_empty_states(): void
+    {
+        foreach ([
+            'Sales/SalesOrders.tsx' => [
+                'permissionChecks' => [
+                    "const canEditSalesOrders = can('sales.edit');",
+                    "const canSubmitSalesOrders = can('sales.submit');",
+                    "const canConfirmSalesOrders = can('sales.approve');",
+                    "const canCancelSalesOrders = can('sales.cancel');",
+                ],
+                'helpers' => [
+                    'const isSalesOrderActionable',
+                    'const hasAvailableSalesOrderAction',
+                    'const getSalesOrderActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('sales.edit') ? (",
+                    "can('sales.submit') ? (",
+                    "can('sales.approve') ? (",
+                    "can('sales.cancel') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.salesSalesOrders.edit}',
+                    'title={dict.app.pages.salesSalesOrders.submit}',
+                    'title={dict.app.pages.salesSalesOrders.confirm}',
+                    'title={dict.app.pages.salesSalesOrders.cancel}',
+                ],
+            ],
+            'Purchasing/PurchaseOrders.tsx' => [
+                'permissionChecks' => [
+                    "const canEditPurchaseOrders = can('purchasing.edit');",
+                    "const canSubmitPurchaseOrders = can('purchasing.submit');",
+                    "const canConfirmPurchaseOrders = can('purchasing.approve');",
+                    "const canCancelPurchaseOrders = can('purchasing.cancel');",
+                ],
+                'helpers' => [
+                    'const isPurchaseOrderActionable',
+                    'const hasAvailablePurchaseOrderAction',
+                    'const getPurchaseOrderActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('purchasing.edit') ? (",
+                    "can('purchasing.submit') ? (",
+                    "can('purchasing.approve') ? (",
+                    "can('purchasing.cancel') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.purchasingPurchaseOrders.edit}',
+                    'title={dict.app.pages.purchasingPurchaseOrders.submit}',
+                    'title={dict.app.pages.purchasingPurchaseOrders.confirm}',
+                    'title={dict.app.pages.purchasingPurchaseOrders.cancel}',
+                ],
+            ],
+            'Sales/DeliveryNotes.tsx' => [
+                'permissionChecks' => [
+                    "const canEditDeliveryNotes = can('sales.edit');",
+                    "const canConfirmDeliveryNotes = can('sales.approve');",
+                    "const canCancelDeliveryNotes = can('sales.cancel');",
+                ],
+                'helpers' => [
+                    'const hasAvailableDeliveryNoteAction',
+                    'const getDeliveryNoteActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('sales.edit') ? (",
+                    "can('sales.approve') ? (",
+                    "can('sales.cancel') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.salesDeliveryNotes.edit}',
+                    'title={dict.app.pages.salesDeliveryNotes.confirm}',
+                    'title={dict.app.pages.salesDeliveryNotes.cancel}',
+                ],
+            ],
+            'Purchasing/GoodsReceipts.tsx' => [
+                'permissionChecks' => [
+                    "const canEditGoodsReceipts = can('purchasing.edit');",
+                    "const canConfirmGoodsReceipts = can('purchasing.approve');",
+                    "const canCancelGoodsReceipts = can('purchasing.cancel');",
+                ],
+                'helpers' => [
+                    'const hasAvailableGoodsReceiptAction',
+                    'const getGoodsReceiptActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('purchasing.edit') ? (",
+                    "can('purchasing.approve') ? (",
+                    "can('purchasing.cancel') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.purchasingGoodsReceipts.edit}',
+                    'title={dict.app.pages.purchasingGoodsReceipts.confirm}',
+                    'title={dict.app.pages.purchasingGoodsReceipts.cancel}',
+                ],
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('className="flex flex-wrap items-center justify-end gap-2"', $source);
+            $this->assertStringContainsString('dict.app.actions.restricted', $source);
+            $this->assertStringContainsString('dict.app.actions.noActions', $source);
+            $this->assertStringContainsString('StatusBadge tone="muted"', $source);
+            $this->assertStringContainsString('aria-label=', $source);
+            $this->assertStringNotContainsString('text-end space-x-2 rtl:space-x-reverse', $source, "{$relativePath} should use the stable grouped action wrapper.");
+
+            foreach ($case['permissionChecks'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['helpers'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['actionTitles'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['oldInlinePermissionFragments'] as $fragment) {
+                $this->assertStringNotContainsString($fragment, $source, "{$relativePath} should compute action permissions before rendering row actions.");
+            }
+        }
+
+        $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode(file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertLocalePathIsNotEmpty($en, ['app', 'actions', 'noActions'], 'EN');
+        $this->assertLocalePathIsNotEmpty($ar, ['app', 'actions', 'noActions'], 'AR');
+    }
+
+    public function test_sales_and_purchasing_invoice_return_action_cells_are_grouped_and_explain_empty_states(): void
+    {
+        foreach ([
+            'Sales/CustomerInvoices.tsx' => [
+                'permissionChecks' => [
+                    "const canEditCustomerInvoices = can('sales.edit');",
+                    "const canSubmitCustomerInvoices = can('sales.submit');",
+                    "const canApproveCustomerInvoices = can('sales.approve');",
+                    "const canPostCustomerInvoices = can('sales.post') && can('view_financials');",
+                    "const canCancelCustomerInvoices = can('sales.cancel');",
+                ],
+                'helpers' => [
+                    'const isCustomerInvoiceActionable',
+                    'const hasAvailableCustomerInvoiceAction',
+                    'const getCustomerInvoiceActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('sales.edit') ? (",
+                    "can('sales.submit') ? (",
+                    "can('sales.approve') ? (",
+                    "can('sales.post') && can('view_financials') ? (",
+                    "can('sales.cancel') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.salesCustomerInvoices.edit}',
+                    'title={dict.app.pages.salesCustomerInvoices.submit}',
+                    'title={dict.app.pages.salesCustomerInvoices.approve}',
+                    'title={dict.app.pages.salesCustomerInvoices.postToArGl}',
+                    'title={dict.app.pages.salesCustomerInvoices.cancel}',
+                ],
+                'requiredLinks' => [],
+            ],
+            'Purchasing/SupplierBills.tsx' => [
+                'permissionChecks' => [
+                    "const canEditSupplierBills = can('purchasing.edit');",
+                    "const canSubmitSupplierBills = can('purchasing.submit');",
+                    "const canApproveSupplierBills = can('purchasing.approve');",
+                    "const canPostSupplierBills = can('purchasing.post') && can('view_financials');",
+                    "const canCancelSupplierBills = can('purchasing.cancel');",
+                ],
+                'helpers' => [
+                    'const isSupplierBillActionable',
+                    'const hasAvailableSupplierBillAction',
+                    'const getSupplierBillActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('purchasing.edit') ? (",
+                    "can('purchasing.submit') ? (",
+                    "can('purchasing.approve') ? (",
+                    "can('purchasing.post') && can('view_financials') ? (",
+                    "can('purchasing.cancel') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.purchasingSupplierBills.edit}',
+                    'title={dict.app.pages.purchasingSupplierBills.submit}',
+                    'title={dict.app.pages.purchasingSupplierBills.approve}',
+                    'title={dict.app.pages.purchasingSupplierBills.post}',
+                    'title={dict.app.pages.purchasingSupplierBills.cancel}',
+                ],
+                'requiredLinks' => [],
+            ],
+            'Sales/SalesReturns.tsx' => [
+                'permissionChecks' => [
+                    "const canManageSalesReturns = can('sales.returns');",
+                    "const canPostSalesReturns = canManageSalesReturns && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isSalesReturnActionable',
+                    'const hasAvailableSalesReturnAction',
+                    'const getSalesReturnActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('sales.returns') ? (",
+                    "can('sales.returns') && can('view_financials') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.salesSalesReturns.edit}',
+                    'title={dict.app.pages.salesSalesReturns.submit}',
+                    'title={dict.app.pages.salesSalesReturns.approve}',
+                    'title={dict.app.pages.salesSalesReturns.post}',
+                    'title={dict.app.pages.salesSalesReturns.cancel}',
+                ],
+                'requiredLinks' => [],
+            ],
+            'Sales/CustomerCreditNotes.tsx' => [
+                'permissionChecks' => [
+                    "const canManageCustomerCreditNotes = can('sales.credit_notes');",
+                    "const canPostCustomerCreditNotes = canManageCustomerCreditNotes && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const canSettleCustomerCreditNote',
+                    'const isCustomerCreditNoteActionable',
+                    'const hasAvailableCustomerCreditNoteAction',
+                    'const getCustomerCreditNoteActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('sales.credit_notes') ? (",
+                    "can('sales.credit_notes') && can('view_financials') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.salesCustomerCreditNotes.edit}',
+                    'title={dict.app.pages.salesCustomerCreditNotes.submit}',
+                    'title={dict.app.pages.salesCustomerCreditNotes.approve}',
+                    'title={dict.app.pages.salesCustomerCreditNotes.postToArGl}',
+                    'title={dict.app.pages.salesCustomerCreditNotes.settle}',
+                    'title={dict.app.pages.salesCustomerCreditNotes.cancel}',
+                ],
+                'requiredLinks' => [
+                    '/sales/receivable-settlements?customer_id=${note.customer_id}&source_entry_id=${note.receivable_entry_id}',
+                ],
+            ],
+            'Purchasing/PurchaseReturns.tsx' => [
+                'permissionChecks' => [
+                    "const canManagePurchaseReturns = can('purchasing.returns');",
+                    "const canPostPurchaseReturns = canManagePurchaseReturns && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isPurchaseReturnActionable',
+                    'const hasAvailablePurchaseReturnAction',
+                    'const getPurchaseReturnActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('purchasing.returns') ? (",
+                    "can('purchasing.returns') && can('view_financials') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.purchasingPurchaseReturns.edit}',
+                    'title={dict.app.pages.purchasingPurchaseReturns.submit}',
+                    'title={dict.app.pages.purchasingPurchaseReturns.approve}',
+                    'title={dict.app.pages.purchasingPurchaseReturns.post}',
+                    'title={dict.app.pages.purchasingPurchaseReturns.cancel}',
+                ],
+                'requiredLinks' => [],
+            ],
+            'Purchasing/SupplierAdjustmentNotes.tsx' => [
+                'permissionChecks' => [
+                    "const canManageSupplierAdjustmentNotes = can('purchasing.adjustment_notes');",
+                    "const canPostSupplierAdjustmentNotes = canManageSupplierAdjustmentNotes && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const canSettleSupplierAdjustmentNote',
+                    'const isSupplierAdjustmentNoteActionable',
+                    'const hasAvailableSupplierAdjustmentNoteAction',
+                    'const getSupplierAdjustmentNoteActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('purchasing.adjustment_notes') ? (",
+                    "can('purchasing.adjustment_notes') && can('view_financials') ? (",
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.purchasingSupplierAdjustmentNotes.edit}',
+                    'title={dict.app.pages.purchasingSupplierAdjustmentNotes.submit}',
+                    'title={dict.app.pages.purchasingSupplierAdjustmentNotes.approve}',
+                    'title={dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}',
+                    'title={dict.app.pages.purchasingSupplierAdjustmentNotes.settle}',
+                    'title={dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}',
+                ],
+                'requiredLinks' => [
+                    '/purchasing/payable-settlements?supplier_id=${note.supplier_id}&source_entry_id=${note.payable_entry_id}',
+                ],
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('className="flex flex-wrap items-center justify-end gap-2"', $source);
+            $this->assertStringContainsString('dict.app.actions.restricted', $source);
+            $this->assertStringContainsString('dict.app.actions.noActions', $source);
+            $this->assertStringContainsString('StatusBadge tone="muted"', $source);
+            $this->assertStringContainsString('aria-label=', $source);
+            $this->assertStringNotContainsString('text-end space-x-2 rtl:space-x-reverse', $source, "{$relativePath} should use the grouped lifecycle action wrapper.");
+
+            foreach ($case['permissionChecks'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['helpers'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['actionTitles'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['oldInlinePermissionFragments'] as $fragment) {
+                $this->assertStringNotContainsString($fragment, $source, "{$relativePath} should compute lifecycle permissions before rendering row actions.");
+            }
+
+            foreach ($case['requiredLinks'] as $fragment) {
+                $this->assertStringContainsString('<Link', $source);
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
+    public function test_inventory_rental_payroll_and_expense_action_cells_are_grouped_and_explain_permission_states(): void
+    {
+        foreach ([
+            'Inventory/StockCounts.tsx' => [
+                'permissionChecks' => [
+                    "const canCountStock = can('inventory.count');",
+                    "const canApproveInventory = can('inventory.approve');",
+                    "const canPostInventory = can('inventory.post') && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isStockCountActionable',
+                    'const hasAvailableStockCountAction',
+                    'const getStockCountActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('inventory.count') ? <Button",
+                    "can('inventory.approve') ? <Button",
+                    "can('inventory.post') && can('view_financials') ? <Button",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.post}',
+                    'title={pageDict.cancelCount}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'Inventory/StockAdjustments.tsx' => [
+                'permissionChecks' => [
+                    "const canAdjustStock = can('inventory.adjust');",
+                    "const canApproveInventory = can('inventory.approve');",
+                    "const canPostInventory = can('inventory.post') && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isStockAdjustmentActionable',
+                    'const hasAvailableStockAdjustmentAction',
+                    'const getStockAdjustmentActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('inventory.adjust') ? <Button",
+                    "can('inventory.approve') ? <Button",
+                    "can('inventory.post') && can('view_financials') ? <Button",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.post}',
+                    'title={pageDict.cancelAdjustment}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'Inventory/StockTransfers.tsx' => [
+                'permissionChecks' => [
+                    "const canTransferStock = can('inventory.transfer');",
+                    "const canApproveInventory = can('inventory.approve');",
+                    "const canIssueInventory = can('inventory.post');",
+                    "const canReceiveInventory = can('inventory.receive');",
+                ],
+                'helpers' => [
+                    'const isStockTransferActionable',
+                    'const hasAvailableStockTransferAction',
+                    'const getStockTransferActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('inventory.transfer') && transfer.status",
+                    "can('inventory.approve') &&",
+                    "can('inventory.post') && transfer.status",
+                    "can('inventory.receive') &&",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.editTransfer}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.issue}',
+                    'title={pageDict.receive}',
+                    'title={pageDict.receiveRemaining}',
+                    'title={pageDict.cancelTransfer}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'Rentals/Contracts.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateRentalContracts = can('rentals.create');",
+                    "const canEditRentalContracts = can('rentals.edit');",
+                    "const canSubmitRentalContracts = can('rentals.submit');",
+                    "const canApproveRentalContracts = can('rentals.approve');",
+                    "const canActivateRentalContracts = can('rentals.deliver');",
+                    "const canCancelRentalContracts = can('rentals.cancel');",
+                ],
+                'helpers' => [
+                    'const isRentalContractActionable',
+                    'const hasAvailableRentalContractAction',
+                    'const getRentalContractActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('rentals.edit') && contract.status",
+                    "can('rentals.submit') && contract.status",
+                    "can('rentals.approve') && contract.status",
+                    "can('rentals.deliver') && contract.status",
+                    "can('rentals.cancel') &&",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.activate}',
+                    'title={pageDict.cancelContract}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'Rentals/Invoices.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateRentalInvoices = can('rentals.invoice');",
+                    "const canSubmitRentalInvoices = can('rentals.submit');",
+                    "const canApproveRentalInvoices = can('rentals.approve');",
+                    "const canPostRentalInvoices = can('rentals.post') && can('view_financials');",
+                    "const canCancelRentalInvoices = can('rentals.cancel');",
+                ],
+                'helpers' => [
+                    'const isRentalInvoiceActionable',
+                    'const hasAvailableRentalInvoiceAction',
+                    'const getRentalInvoiceActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('rentals.invoice') ? <Button",
+                    "can('rentals.submit') ? <Button",
+                    "can('rentals.approve') ? <Button",
+                    "can('rentals.post') && can('view_financials') ? <Button",
+                    "can('rentals.cancel') ? <Button",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.postToArGl}',
+                    'title={pageDict.cancel}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'Payroll/Runs.tsx' => [
+                'permissionChecks' => [
+                    "const canViewPayroll = can('view_payroll');",
+                    "const canCreatePayrollRuns = can('payroll.create') && canViewPayroll;",
+                    "const canRegeneratePayrollRuns = can('payroll.edit') && canViewPayroll;",
+                    "const canSubmitPayrollRuns = can('payroll.submit') && canViewPayroll;",
+                    "const canApprovePayrollRuns = can('payroll.approve') && canViewPayroll;",
+                    "const canPostPayrollRuns = can('payroll.post') && canViewPayroll && can('view_financials');",
+                    'const canCancelPayrollRuns = canRegeneratePayrollRuns;',
+                ],
+                'helpers' => [
+                    'const isPayrollRunLifecycleActionable',
+                    'const hasAvailablePayrollRunLifecycleAction',
+                    'const getPayrollRunActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('payroll.edit') && can('view_payroll')",
+                    "can('payroll.submit') && can('view_payroll')",
+                    "can('payroll.approve') && can('view_payroll')",
+                    "can('payroll.post') && can('view_payroll') && can('view_financials')",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.details}',
+                    'title={pageDict.regenerate}',
+                    'title={shared.submit}',
+                    'title={shared.approve}',
+                    'title={shared.post}',
+                    'title={shared.cancel}',
+                ],
+                'requiresNoActionsState' => false,
+            ],
+            'Expenses/Index.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateExpenses = can('expenses.create');",
+                    "const canEditExpenses = can('expenses.edit');",
+                    "const canSubmitExpenses = can('expenses.submit');",
+                    "const canApproveExpenses = can('expenses.approve');",
+                    "const canPostExpenses = can('expenses.post') && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isExpenseActionable',
+                    'const hasAvailableExpenseAction',
+                    'const getExpenseActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('expenses.edit') ? (",
+                    "can('expenses.submit') ? (",
+                    "can('expenses.approve') ? (",
+                    "can('expenses.post') && can('view_financials') ? (",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.post}',
+                    'title={pageDict.cancelExpense}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('className="flex flex-wrap items-center justify-end gap-2"', $source);
+            $this->assertStringContainsString('dict.app.actions.restricted', $source);
+            $this->assertStringContainsString('StatusBadge tone="muted"', $source);
+            $this->assertStringContainsString('aria-label=', $source);
+
+            if ($case['requiresNoActionsState']) {
+                $this->assertStringContainsString('dict.app.actions.noActions', $source);
+            }
+
+            foreach ($case['permissionChecks'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['helpers'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['actionTitles'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['oldInlinePermissionFragments'] as $fragment) {
+                $this->assertStringNotContainsString($fragment, $source, "{$relativePath} should compute lifecycle permissions before rendering row actions.");
+            }
+        }
+    }
+
+    public function test_expense_schedule_and_depreciation_run_action_cells_are_grouped_and_explain_permission_states(): void
+    {
+        foreach ([
+            'Expenses/Prepaids.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateExpenseSchedules = can('expenses.create');",
+                    "const canEditExpenseSchedules = can('expenses.edit');",
+                    "const canSubmitExpenseSchedules = can('expenses.submit');",
+                    "const canApproveExpenseSchedules = can('expenses.approve');",
+                    "const canPostExpenseSchedules = can('expenses.post') && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isScheduleActionable',
+                    'const hasAvailableScheduleAction',
+                    'const getScheduleActionState',
+                    'const isRecognitionPostable',
+                    'const getRecognitionActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('expenses.edit') ? <button",
+                    "can('expenses.submit') ? <button",
+                    "can('expenses.approve') ? <button",
+                    "can('expenses.post') && can('view_financials') ? <button",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.post}',
+                    'title={pageDict.cancelSchedule}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'Expenses/Accruals.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateExpenseSchedules = can('expenses.create');",
+                    "const canEditExpenseSchedules = can('expenses.edit');",
+                    "const canSubmitExpenseSchedules = can('expenses.submit');",
+                    "const canApproveExpenseSchedules = can('expenses.approve');",
+                    "const canPostExpenseSchedules = can('expenses.post') && can('view_financials');",
+                ],
+                'helpers' => [
+                    'const isScheduleActionable',
+                    'const hasAvailableScheduleAction',
+                    'const getScheduleActionState',
+                    'const isAccrualEntryPostable',
+                    'const getAccrualEntryActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('expenses.edit') ? <button",
+                    "can('expenses.submit') ? <button",
+                    "can('expenses.approve') ? <button",
+                    "can('expenses.post') && can('view_financials') ? <button",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.edit}',
+                    'title={pageDict.submit}',
+                    'title={pageDict.approve}',
+                    'title={pageDict.post}',
+                    'title={pageDict.cancelSchedule}',
+                ],
+                'requiresNoActionsState' => true,
+            ],
+            'FixedAssets/DepreciationRuns/Index.tsx' => [
+                'permissionChecks' => [
+                    'const canPostDepreciationRuns = can.post;',
+                    'const canReverseDepreciationRuns = can.reverse;',
+                ],
+                'helpers' => [
+                    'const getDepreciationRunActionState',
+                    'router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, {}, { preserveScroll: true });',
+                ],
+                'oldInlinePermissionFragments' => [
+                    'can.post &&',
+                    'can.reverse &&',
+                    'run.status === \'posted\' && can.reverse',
+                ],
+                'actionTitles' => [
+                    'title={appDict.back}',
+                    'title={appDict.newDepreciationRun}',
+                    'title={appDict.viewDetail}',
+                    'title={appDict.reverseDepreciationRun}',
+                ],
+                'requiresNoActionsState' => false,
+            ],
+            'FixedAssets/DepreciationRuns/Show.tsx' => [
+                'permissionChecks' => [
+                    'const canReverseDepreciationRuns = can.reverse;',
+                ],
+                'helpers' => [
+                    'router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, {}, { preserveScroll: true });',
+                ],
+                'oldInlinePermissionFragments' => [
+                    'can.reverse &&',
+                ],
+                'actionTitles' => [
+                    'title={appDict.back}',
+                    'title={appDict.reverseDepreciationRun}',
+                ],
+                'requiresNoActionsState' => false,
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('flex flex-wrap items-center', $source);
+            $this->assertStringContainsString('dict.app.actions.restricted', $source);
+            $this->assertStringContainsString('StatusBadge tone="muted"', $source);
+            $this->assertStringContainsString('aria-label=', $source);
+            $this->assertStringNotContainsString('text-end space-x-2 rtl:space-x-reverse', $source, "{$relativePath} should use grouped action controls.");
+            $this->assertStringNotContainsString('space-x-2', $source, "{$relativePath} should not rely on directional spacing utilities for action groups.");
+            $this->assertStringNotContainsString('rtl:space-x-reverse', $source, "{$relativePath} should use gap-based RTL-safe action spacing.");
+
+            if ($case['requiresNoActionsState']) {
+                $this->assertStringContainsString('dict.app.actions.noActions', $source);
+            }
+
+            foreach ($case['permissionChecks'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['helpers'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['actionTitles'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['oldInlinePermissionFragments'] as $fragment) {
+                $this->assertStringNotContainsString($fragment, $source, "{$relativePath} should compute permissions before rendering row actions.");
+            }
+        }
+    }
+
+    public function test_cheque_and_bank_reconciliation_action_cells_are_grouped_and_explain_permission_states(): void
+    {
+        foreach ([
+            'IncomingCheques/Index.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateCheques = can('cheques.create');",
+                    "const canReceiveIncomingCheques = can('cheques.receive');",
+                    "const canDepositIncomingCheques = can('cheques.deposit');",
+                    "const canClearIncomingCheques = can('cheques.clear');",
+                    "const canBounceIncomingCheques = can('cheques.bounce');",
+                    "const canReturnIncomingCheques = can('cheques.return');",
+                ],
+                'helpers' => [
+                    'const isIncomingChequeActionable',
+                    'const hasAvailableIncomingChequeAction',
+                    'const getIncomingChequeActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "row.status === 'draft' && can('cheques.receive')",
+                    "can('cheques.deposit') ?",
+                    "can('cheques.return') ?",
+                    "can('cheques.clear') ?",
+                    "can('cheques.bounce') ?",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.receive}',
+                    'title={pageDict.deposit}',
+                    'title={pageDict.return}',
+                    'title={pageDict.clear}',
+                    'title={pageDict.bounce}',
+                ],
+                'requiresPermissionState' => true,
+                'requiresNoActionsState' => true,
+            ],
+            'OutgoingCheques/Index.tsx' => [
+                'permissionChecks' => [
+                    "const canCreateCheques = can('cheques.create');",
+                    "const canIssueOutgoingCheques = can('cheques.issue');",
+                    "const canClearOutgoingCheques = can('cheques.clear');",
+                    "const canReturnOutgoingCheques = can('cheques.return');",
+                    "const canCancelOutgoingCheques = can('cheques.cancel');",
+                ],
+                'helpers' => [
+                    'const isOutgoingChequeActionable',
+                    'const hasAvailableOutgoingChequeAction',
+                    'const getOutgoingChequeActionState',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "row.status === 'draft' && can('cheques.issue')",
+                    "can('cheques.clear') ?",
+                    "can('cheques.return') ?",
+                    "can('cheques.cancel') ?",
+                ],
+                'actionTitles' => [
+                    'title={pageDict.issue}',
+                    'title={pageDict.clear}',
+                    'title={pageDict.return}',
+                    'title={pageDict.cancel}',
+                ],
+                'requiresPermissionState' => true,
+                'requiresNoActionsState' => true,
+            ],
+            'BankReconciliations/Index.tsx' => [
+                'permissionChecks' => [
+                    "const canReconcileBanks = can('banks.reconcile');",
+                    'canReconcileBanks ? (',
+                ],
+                'helpers' => [
+                    'onClick={() => router.get(`/bank-reconciliations/${row.id}`)}',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "can('banks.reconcile') ? (",
+                    '<a',
+                    'href={`/bank-reconciliations/${row.id}`}',
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.bankReconciliations.newBankReconciliation}',
+                    'aria-label={dict.app.pages.bankReconciliations.newBankReconciliation}',
+                    'title={row.status === \'draft\' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}',
+                ],
+                'requiresPermissionState' => false,
+                'requiresNoActionsState' => false,
+            ],
+            'BankReconciliations/Show.tsx' => [
+                'permissionChecks' => [
+                    "const canReconcileBanks = can('banks.reconcile');",
+                    "const canEditReconciliation = reconciliation.status === 'draft' && canReconcileBanks;",
+                ],
+                'helpers' => [
+                    'const headerActionState',
+                    'const getStatementLineActionState',
+                    'preserveScroll: true',
+                ],
+                'oldInlinePermissionFragments' => [
+                    "reconciliation.status === 'draft' && can('banks.reconcile')",
+                    '<span className="text-xs text-[var(--text-muted)] font-mono">{accDict.notAvailable}</span>',
+                    'className="text-xs font-bold text-amber-600 hover:underline cursor-pointer"',
+                    'className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"',
+                    'className="text-xs font-bold text-red-600 hover:underline cursor-pointer"',
+                ],
+                'actionTitles' => [
+                    'title={dict.app.pages.bankReconciliationsShow.addStatementLine}',
+                    'title={finalizeTitle}',
+                    'title={dict.app.pages.bankReconciliationsShow.unmatch}',
+                    'title={dict.app.pages.bankReconciliationsShow.matchGl}',
+                    'title={dict.app.pages.bankReconciliationsShow.delete}',
+                    'title={dict.app.pages.bankReconciliationsShow.match}',
+                ],
+                'requiresPermissionState' => true,
+                'requiresNoActionsState' => true,
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('className="flex flex-wrap items-center justify-end gap-2"', $source);
+            $this->assertStringContainsString('aria-label=', $source);
+            $this->assertStringNotContainsString('flex flex-wrap gap-1', $source, "{$relativePath} should use the grouped lifecycle action wrapper.");
+            $this->assertStringNotContainsString('text-end space-x-2 rtl:space-x-reverse', $source, "{$relativePath} should use gap-based action spacing.");
+            $this->assertStringNotContainsString('rtl:space-x-reverse', $source, "{$relativePath} should not rely on directional spacing utilities for action groups.");
+
+            if ($case['requiresPermissionState']) {
+                $this->assertStringContainsString('dict.app.actions.restricted', $source);
+                $this->assertStringContainsString('StatusBadge tone="muted"', $source);
+            }
+
+            if ($case['requiresNoActionsState']) {
+                $this->assertStringContainsString('dict.app.actions.noActions', $source);
+            }
+
+            foreach ($case['permissionChecks'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['helpers'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['actionTitles'] as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+
+            foreach ($case['oldInlinePermissionFragments'] as $fragment) {
+                $this->assertStringNotContainsString($fragment, $source, "{$relativePath} should avoid inline permission checks or plain text action links.");
+            }
+        }
+    }
+
+    public function test_cheque_and_bank_reconciliation_modal_actions_have_accessible_names(): void
+    {
+        foreach ([
+            'IncomingCheques/Index.tsx' => [
+                'title={dict.app.pages.incomingCheques.addIncomingCheque}',
+                'aria-label={dict.app.pages.incomingCheques.addIncomingCheque}',
+                'title={dict.app.pages.incomingCheques.cancel}',
+                'aria-label={dict.app.pages.incomingCheques.cancel}',
+                'title={dict.app.pages.incomingCheques.saveCheque}',
+                'aria-label={dict.app.pages.incomingCheques.saveCheque}',
+                'title={dict.app.pages.incomingCheques.cancel_2}',
+                'aria-label={dict.app.pages.incomingCheques.cancel_2}',
+                'title={dict.app.pages.incomingCheques.confirmAction}',
+                'aria-label={dict.app.pages.incomingCheques.confirmAction}',
+            ],
+            'OutgoingCheques/Index.tsx' => [
+                'title={dict.app.pages.outgoingCheques.addOutgoingCheque}',
+                'aria-label={dict.app.pages.outgoingCheques.addOutgoingCheque}',
+                'title={dict.app.pages.outgoingCheques.cancel_2}',
+                'aria-label={dict.app.pages.outgoingCheques.cancel_2}',
+                'title={dict.app.pages.outgoingCheques.saveCheque}',
+                'aria-label={dict.app.pages.outgoingCheques.saveCheque}',
+                'title={dict.app.pages.outgoingCheques.cancel_3}',
+                'aria-label={dict.app.pages.outgoingCheques.cancel_3}',
+                'title={dict.app.pages.outgoingCheques.confirmAction}',
+                'aria-label={dict.app.pages.outgoingCheques.confirmAction}',
+            ],
+            'BankReconciliations/Index.tsx' => [
+                'title={dict.app.pages.bankReconciliations.newBankReconciliation}',
+                'aria-label={dict.app.pages.bankReconciliations.newBankReconciliation}',
+                'title={dict.app.pages.bankReconciliations.cancel}',
+                'aria-label={dict.app.pages.bankReconciliations.cancel}',
+                'title={dict.app.pages.bankReconciliations.createOpenWorkspace}',
+                'aria-label={dict.app.pages.bankReconciliations.createOpenWorkspace}',
+            ],
+            'BankReconciliations/Show.tsx' => [
+                'title={dict.app.pages.bankReconciliationsShow.addStatementLine}',
+                'aria-label={dict.app.pages.bankReconciliationsShow.addStatementLine}',
+                'title={finalizeTitle}',
+                'aria-label={finalizeTitle}',
+                'title={dict.app.pages.bankReconciliationsShow.cancel}',
+                'aria-label={dict.app.pages.bankReconciliationsShow.cancel}',
+                'title={dict.app.pages.bankReconciliationsShow.addLine}',
+                'aria-label={dict.app.pages.bankReconciliationsShow.addLine}',
+                'title={dict.app.pages.bankReconciliationsShow.match}',
+                'aria-label={dict.app.pages.bankReconciliationsShow.match}',
+                'title={dict.app.pages.bankReconciliationsShow.close}',
+                'aria-label={dict.app.pages.bankReconciliationsShow.close}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} modal and primary actions must expose stable accessible names.");
+            }
+        }
+    }
+
+    public function test_ar_ap_receipt_payment_and_opening_balance_actions_have_accessible_names(): void
+    {
+        foreach ([
+            'CustomerOpeningBalances/Index.tsx' => [
+                'const canCreateOpeningBalance = can(\'customers.opening_balances\');',
+                'title={dict.app.pages.customerOpeningBalances.newOpeningBalance}',
+                'aria-label={dict.app.pages.customerOpeningBalances.newOpeningBalance}',
+                'title={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}',
+                'aria-label={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}',
+                'post(`/customer-opening-balances/${id}/post`, { preserveScroll: true })',
+                'title={dict.app.pages.customerOpeningBalances.cancel}',
+                'aria-label={dict.app.pages.customerOpeningBalances.cancel}',
+                'title={dict.app.pages.customerOpeningBalances.saveDraft}',
+                'aria-label={dict.app.pages.customerOpeningBalances.saveDraft}',
+            ],
+            'SupplierOpeningBalances/Index.tsx' => [
+                'const canCreateOpeningBalance = can(\'suppliers.opening_balances\');',
+                'title={dict.app.pages.supplierOpeningBalances.newOpeningBalance}',
+                'aria-label={dict.app.pages.supplierOpeningBalances.newOpeningBalance}',
+                'title={dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance}',
+                'aria-label={dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance}',
+                'post(`/supplier-opening-balances/${id}/post`, { preserveScroll: true })',
+                'title={dict.app.pages.supplierOpeningBalances.cancel}',
+                'aria-label={dict.app.pages.supplierOpeningBalances.cancel}',
+                'title={dict.app.pages.supplierOpeningBalances.saveDraft}',
+                'aria-label={dict.app.pages.supplierOpeningBalances.saveDraft}',
+            ],
+            'CustomerReceipts/Index.tsx' => [
+                'const canCreateReceipt = can(\'customers.receipts\');',
+                'title={dict.app.pages.customerReceipts.newCustomerReceipt}',
+                'aria-label={dict.app.pages.customerReceipts.newCustomerReceipt}',
+                'title={dict.app.pages.customerReceipts.confirmPostReceipt}',
+                'aria-label={dict.app.pages.customerReceipts.confirmPostReceipt}',
+                'post(`/customer-receipts/${id}/post`, { preserveScroll: true })',
+                'title={dict.app.pages.customerReceipts.allocate}',
+                'aria-label={dict.app.pages.customerReceipts.allocate}',
+                'title={dict.app.pages.customerReceipts.cancel}',
+                'aria-label={dict.app.pages.customerReceipts.cancel}',
+                'title={dict.app.pages.customerReceipts.saveDraft}',
+                'aria-label={dict.app.pages.customerReceipts.saveDraft}',
+            ],
+            'SupplierPayments/Index.tsx' => [
+                'const canCreatePayment = can(\'suppliers.payments\');',
+                'title={dict.app.pages.supplierPayments.newSupplierPayment}',
+                'aria-label={dict.app.pages.supplierPayments.newSupplierPayment}',
+                'title={dict.app.pages.supplierPayments.confirmPostPayment}',
+                'aria-label={dict.app.pages.supplierPayments.confirmPostPayment}',
+                'post(`/supplier-payments/${id}/post`, { preserveScroll: true })',
+                'title={dict.app.pages.supplierPayments.allocate}',
+                'aria-label={dict.app.pages.supplierPayments.allocate}',
+                'title={dict.app.pages.supplierPayments.cancel}',
+                'aria-label={dict.app.pages.supplierPayments.cancel}',
+                'title={dict.app.pages.supplierPayments.saveDraft}',
+                'aria-label={dict.app.pages.supplierPayments.saveDraft}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('preserveScroll: true', $source, "{$relativePath} state-changing actions should preserve table context.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} AR/AP actions must expose stable accessible names.");
+            }
+        }
+    }
+
+    public function test_treasury_transfer_actions_are_grouped_accessible_and_scroll_safe(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/TreasuryTransfers/Index.tsx'));
+
+        foreach ([
+            "const canCreateTreasuryTransfers = can('cash.create') || can('banks.create');",
+            "const canEditTreasuryTransfers = can('cash.edit') || can('banks.edit');",
+            "const canPostTreasuryTransfers = (can('cash.post') || can('banks.post')) && can('view_financials');",
+            'const isTreasuryTransferActionable',
+            'const hasAvailableTreasuryTransferAction',
+            'const getTreasuryTransferActionState',
+            'dict.app.actions.restricted',
+            'dict.app.actions.noActions',
+            'className="flex flex-wrap items-center justify-end gap-2"',
+            'title={pageDict.newTransfer}',
+            'aria-label={pageDict.newTransfer}',
+            'title={pageDict.editTransfer}',
+            'aria-label={pageDict.editTransfer}',
+            'title={pageDict.confirmPost}',
+            'aria-label={pageDict.confirmPost}',
+            'title={pageDict.confirmCancel}',
+            'aria-label={pageDict.confirmCancel}',
+            'title={pageDict.cancelTransfer}',
+            'aria-label={pageDict.cancelTransfer}',
+            'title={pageDict.saveTransfer}',
+            'aria-label={pageDict.saveTransfer}',
+            'router.post(`/treasury-transfers/${id}/post`, {}, { preserveScroll: true })',
+            'router.post(`/treasury-transfers/${id}/cancel`, {}, { preserveScroll: true })',
+            'preserveScroll: true',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Treasury transfer actions must stay accessible, permission-aware, and scroll-safe.');
+        }
+
+        foreach ([
+            '<td className={`${tableClasses.td} space-x-2`}>',
+            "row.status === 'draft' && (can('cash.edit') || can('banks.edit'))",
+            "row.status === 'draft' && (can('cash.post') || can('banks.post')) && can('view_financials')",
+            'router.post(`/treasury-transfers/${id}/post`);',
+            'router.post(`/treasury-transfers/${id}/cancel`);',
+        ] as $fragment) {
+            $this->assertStringNotContainsString($fragment, $source, 'Treasury transfer page should avoid old inline/scroll-reset action patterns.');
+        }
+    }
+
+    public function test_ar_ap_allocation_actions_are_accessible_restricted_and_scroll_safe(): void
+    {
+        foreach ([
+            'ReceivableAllocations/Index.tsx' => [
+                'permission' => "const canManageReceivableAllocations = can('customers.allocations');",
+                'store' => "post('/receivable-allocations', {",
+                'reverse' => 'post(`/receivable-allocations/${id}/reverse`, { preserveScroll: true })',
+                'executeTitle' => 'title={dict.app.pages.receivableAllocations.executeAllocation}',
+                'executeAria' => 'aria-label={dict.app.pages.receivableAllocations.executeAllocation}',
+                'reverseTitle' => 'title={dict.app.pages.receivableAllocations.reverse}',
+                'reverseAria' => 'aria-label={dict.app.pages.receivableAllocations.reverse}',
+                'oldInlinePermission' => "can('customers.allocations') ? (",
+                'oldReversePost' => 'post(`/receivable-allocations/${id}/reverse`);',
+            ],
+            'PayableAllocations/Index.tsx' => [
+                'permission' => "const canManagePayableAllocations = can('suppliers.allocations');",
+                'store' => "post('/payable-allocations', {",
+                'reverse' => 'post(`/payable-allocations/${id}/reverse`, { preserveScroll: true })',
+                'executeTitle' => 'title={dict.app.pages.payableAllocations.executeAllocation}',
+                'executeAria' => 'aria-label={dict.app.pages.payableAllocations.executeAllocation}',
+                'reverseTitle' => 'title={dict.app.pages.payableAllocations.reverse}',
+                'reverseAria' => 'aria-label={dict.app.pages.payableAllocations.reverse}',
+                'oldInlinePermission' => "can('suppliers.allocations') ? (",
+                'oldReversePost' => 'post(`/payable-allocations/${id}/reverse`);',
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ([
+                'StatusBadge',
+                $case['permission'],
+                $case['store'],
+                $case['reverse'],
+                'preserveScroll: true',
+                'className="flex flex-wrap items-center justify-end gap-2"',
+                'dict.app.actions.restricted',
+                $case['executeTitle'],
+                $case['executeAria'],
+                $case['reverseTitle'],
+                $case['reverseAria'],
+            ] as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} allocation actions must be accessible, restricted, and scroll-safe.");
+            }
+
+            foreach ([$case['oldInlinePermission'], $case['oldReversePost']] as $fragment) {
+                $this->assertStringNotContainsString($fragment, $source, "{$relativePath} should avoid old hidden-action or scroll-reset allocation patterns.");
+            }
+        }
+    }
+
+    public function test_ar_ap_settlement_actions_have_accessible_names(): void
+    {
+        foreach ([
+            'Sales/ReceivableSettlements.tsx' => [
+                'backTitle' => 'title={pageDict.backToCreditNotes}',
+                'backAria' => 'aria-label={pageDict.backToCreditNotes}',
+            ],
+            'Purchasing/PayableSettlements.tsx' => [
+                'backTitle' => 'title={pageDict.backToAdjustmentNotes}',
+                'backAria' => 'aria-label={pageDict.backToAdjustmentNotes}',
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ([
+                $case['backTitle'],
+                $case['backAria'],
+                'title={pageDict.confirmSettlement}',
+                'aria-label={pageDict.confirmSettlement}',
+                'title={pageDict.reverse}',
+                'aria-label={pageDict.reverse}',
+                'title={pageDict.cancel}',
+                'aria-label={pageDict.cancel}',
+                'title={pageDict.confirmReversal}',
+                'aria-label={pageDict.confirmReversal}',
+                '{ preserveScroll: true }',
+            ] as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} settlement actions must expose stable accessible names.");
+            }
+        }
+    }
+
+    public function test_customer_supplier_cash_bank_master_actions_have_accessible_names(): void
+    {
+        foreach ([
+            'Customers/Index.tsx' => [
+                'createPermission' => "can('customers.create')",
+                'editPermission' => "can('customers.edit')",
+                'storeRoute' => "post('/customers', {",
+                'updateRoute' => 'patch(`/customers/${editingCustomer.id}`, {',
+                'createTitle' => 'title={pageDict.createCustomer}',
+                'createAria' => 'aria-label={pageDict.createCustomer}',
+                'editTitle' => 'title={pageDict.edit}',
+                'editAria' => 'aria-label={pageDict.edit}',
+                'cancelTitle' => 'title={pageDict.cancel}',
+                'cancelAria' => 'aria-label={pageDict.cancel}',
+                'saveTitle' => 'title={pageDict.saveCustomer}',
+                'saveAria' => 'aria-label={pageDict.saveCustomer}',
+            ],
+            'Suppliers/Index.tsx' => [
+                'createPermission' => "can('suppliers.create')",
+                'editPermission' => "can('suppliers.edit')",
+                'storeRoute' => "post('/suppliers', {",
+                'updateRoute' => 'patch(`/suppliers/${editingSupplier.id}`, {',
+                'createTitle' => 'title={pageDict.createSupplier}',
+                'createAria' => 'aria-label={pageDict.createSupplier}',
+                'editTitle' => 'title={pageDict.edit}',
+                'editAria' => 'aria-label={pageDict.edit}',
+                'cancelTitle' => 'title={pageDict.cancel}',
+                'cancelAria' => 'aria-label={pageDict.cancel}',
+                'saveTitle' => 'title={pageDict.saveSupplier}',
+                'saveAria' => 'aria-label={pageDict.saveSupplier}',
+            ],
+            'CashAccounts/Index.tsx' => [
+                'createPermission' => "can('cash.create')",
+                'editPermission' => "can('cash.edit')",
+                'storeRoute' => "post('/cash-accounts', {",
+                'updateRoute' => 'patch(`/cash-accounts/${editingAccount.id}`, {',
+                'createTitle' => 'title={pageDict.createCashAccount}',
+                'createAria' => 'aria-label={pageDict.createCashAccount}',
+                'editTitle' => 'title={pageDict.edit}',
+                'editAria' => 'aria-label={pageDict.edit}',
+                'cancelTitle' => 'title={pageDict.cancel}',
+                'cancelAria' => 'aria-label={pageDict.cancel}',
+                'saveTitle' => 'title={pageDict.saveAccount}',
+                'saveAria' => 'aria-label={pageDict.saveAccount}',
+            ],
+            'BankAccounts/Index.tsx' => [
+                'createPermission' => "can('banks.create')",
+                'editPermission' => "can('banks.edit')",
+                'storeRoute' => "post('/bank-accounts', {",
+                'updateRoute' => 'patch(`/bank-accounts/${editingAccount.id}`, {',
+                'createTitle' => 'title={pageDict.createBankAccount}',
+                'createAria' => 'aria-label={pageDict.createBankAccount}',
+                'editTitle' => 'title={pageDict.edit}',
+                'editAria' => 'aria-label={pageDict.edit}',
+                'cancelTitle' => 'title={pageDict.cancel}',
+                'cancelAria' => 'aria-label={pageDict.cancel}',
+                'saveTitle' => 'title={pageDict.saveAccount}',
+                'saveAria' => 'aria-label={pageDict.saveAccount}',
+            ],
+        ] as $relativePath => $case) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            foreach ([
+                $case['createPermission'],
+                $case['editPermission'],
+                $case['storeRoute'],
+                $case['updateRoute'],
+                'preserveScroll: true',
+                'className="flex flex-wrap items-center justify-end gap-2"',
+                'dict.app.actions.restricted',
+                $case['createTitle'],
+                $case['createAria'],
+                $case['editTitle'],
+                $case['editAria'],
+                $case['cancelTitle'],
+                $case['cancelAria'],
+                $case['saveTitle'],
+                $case['saveAria'],
+            ] as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "{$relativePath} master-data actions must be permission-aware, accessible, and scroll-safe.");
+            }
+
+            $this->assertStringContainsString(') : (', $source, "{$relativePath} row action cells should show a restricted state instead of appearing empty.");
+        }
+    }
+
+    public function test_customer_invoice_and_supplier_bill_select_controls_use_searchable_controls(): void
+    {
+        foreach ([
+            'Sales/CustomerInvoices.tsx' => [
+                'const statusFilterOptions',
+                'const customerOptions',
+                'const salesOrderOptions',
+                'const deliveryNoteOptions',
+                'const productOptions',
+                'options={statusFilterOptions}',
+                'options={customerOptions}',
+                'options={salesOrderOptions}',
+                'options={deliveryNoteOptions}',
+                'options={productOptions}',
+                'onChange={(value) => handleSalesOrderSelect(value || \'\')}',
+                'onChange={(value) => handleDeliveryNoteSelect(value || \'\')}',
+                'onChange={(value) => updateLineProduct(idx, value || \'\')}',
+            ],
+            'Purchasing/SupplierBills.tsx' => [
+                'const statusFilterOptions',
+                'const supplierOptions',
+                'const purchaseOrderOptions',
+                'const goodsReceiptOptions',
+                'const productOptions',
+                'options={statusFilterOptions}',
+                'options={supplierOptions}',
+                'options={purchaseOrderOptions}',
+                'options={goodsReceiptOptions}',
+                'options={productOptions}',
+                'onChange={(value) => handlePurchaseOrderSelect(value || \'\')}',
+                'onChange={(value) => handleGoodsReceiptSelect(value || \'\')}',
+                'onChange={(value) => updateLineItem(idx, \'product_id\', value || \'\')}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should not use native select controls.");
+            $this->assertStringNotContainsString('<option', $source, "{$relativePath} should not render native option controls.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
     public function test_sales_and_purchasing_line_editors_use_typed_update_helpers(): void
     {
         foreach ([
@@ -1755,7 +3818,131 @@ class Phase15ProductHardeningTest extends TestCase
         $salesReturns = (string) file_get_contents(resource_path('js/Pages/Sales/SalesReturns.tsx'));
 
         $this->assertStringContainsString('function toDisposition', $salesReturns);
-        $this->assertStringContainsString("updateLineItem(idx, 'disposition', toDisposition(e.target.value))", $salesReturns);
+        $this->assertStringContainsString("onChange={(value) => updateLineItem(idx, 'disposition', toDisposition(value || ''))}", $salesReturns);
+    }
+
+    public function test_returns_adjustments_and_landed_cost_select_controls_use_searchable_controls(): void
+    {
+        foreach ([
+            'Sales/SalesReturns.tsx' => [
+                'const warehouseOptions',
+                'const warehouseFilterOptions',
+                'const statusFilterOptions',
+                'const customerOptions',
+                'const deliveryNoteOptions',
+                'const postedInvoiceOptions',
+                'const deliveryNoteLineOptions',
+                'const dispositionOptions',
+                'options={warehouseFilterOptions}',
+                'options={statusFilterOptions}',
+                'options={customerOptions}',
+                'options={warehouseOptions}',
+                'options={deliveryNoteOptions}',
+                'options={postedInvoiceOptions}',
+                'options={deliveryNoteLineOptions}',
+                'options={dispositionOptions}',
+                'onChange={(value) => handleCustomerSelect(value || \'\')}',
+                'onChange={(value) => updateLineItem(idx, \'delivery_note_line_id\', value || \'\')}',
+                'onChange={(value) => updateLineItem(idx, \'disposition\', toDisposition(value || \'\'))}',
+            ],
+            'Sales/CustomerCreditNotes.tsx' => [
+                'const filteredInvoiceOptions',
+                'const filteredSalesReturnOptions',
+                'const statusFilterOptions',
+                'const customerOptions',
+                'const taxModeOptions',
+                'const invoiceLineOptions',
+                'const handleInvoiceSelect',
+                'options={filteredInvoiceOptions}',
+                'options={filteredSalesReturnOptions}',
+                'options={statusFilterOptions}',
+                'options={customerOptions}',
+                'options={taxModeOptions}',
+                'options={invoiceLineOptions}',
+                'onChange={(value) => handleInvoiceSelect(value || \'\')}',
+            ],
+            'Purchasing/PurchaseReturns.tsx' => [
+                'const warehouseOptions',
+                'const warehouseFilterOptions',
+                'const statusFilterOptions',
+                'const supplierOptions',
+                'const goodsReceiptOptions',
+                'options={warehouseFilterOptions}',
+                'options={statusFilterOptions}',
+                'options={supplierOptions}',
+                'options={goodsReceiptOptions}',
+                'options={warehouseOptions}',
+                'onChange={(value) => handleSupplierSelect(value || \'\')}',
+                'onChange={(value) => handleGoodsReceiptSelect(value || \'\')}',
+            ],
+            'Purchasing/SupplierAdjustmentNotes.tsx' => [
+                'const filteredBillOptions',
+                'const statusFilterOptions',
+                'const supplierOptions',
+                'const directionOptions',
+                'const taxModeOptions',
+                'const handleSupplierBillSelect',
+                'options={filteredBillOptions}',
+                'options={statusFilterOptions}',
+                'options={supplierOptions}',
+                'options={directionOptions}',
+                'options={taxModeOptions}',
+                'onChange={(value) => handleSupplierBillSelect(value || \'\')}',
+            ],
+            'Purchasing/LandedCosts.tsx' => [
+                'type AllocationMethod',
+                'function toAllocationMethod',
+                'const goodsReceiptOptions',
+                'const supplierOptions',
+                'const allocationMethodOptions',
+                'const statusFilterOptions',
+                'options={goodsReceiptOptions}',
+                'options={supplierOptions}',
+                'options={allocationMethodOptions}',
+                'options={statusFilterOptions}',
+                'onChange={(value) => handleReceiptChange(value || \'\')}',
+                'onChange={(value) => setData(\'allocation_method\', toAllocationMethod(value))}',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should not use native select controls.");
+            $this->assertStringNotContainsString('<option', $source, "{$relativePath} should not render native option controls.");
+            $this->assertStringNotContainsString('e.target.value as', $source, "{$relativePath} should not cast native select event values.");
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
+    public function test_inertia_page_pagination_links_are_explicitly_typed(): void
+    {
+        $pages = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator(resource_path('js/Pages'), \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($pages as $page) {
+            if (! $page->isFile() || $page->getExtension() !== 'tsx') {
+                continue;
+            }
+
+            $source = (string) file_get_contents($page->getPathname());
+
+            foreach ([
+                'links: any[]',
+                'links?: any[]',
+                'links: unknown[]',
+                'PaginatedData<T> = { data: T[]; total: number; links: any[] }',
+            ] as $fragment) {
+                $this->assertStringNotContainsString(
+                    $fragment,
+                    $source,
+                    "{$page->getPathname()} must use PaginationLink[] for paginated Inertia payloads."
+                );
+            }
+        }
     }
 
     public function test_remaining_page_any_casts_are_removed_from_landed_costs_and_customer_invoices(): void
@@ -1778,6 +3965,186 @@ class Phase15ProductHardeningTest extends TestCase
         $this->assertStringContainsString('errors.supplier_id', $landedCosts);
         $this->assertStringContainsString('sales_order_line_id: l.sales_order_line_id', $customerInvoices);
         $this->assertStringContainsString('delivery_note_line_id: l.delivery_note_line_id', $customerInvoices);
+    }
+
+    public function test_landed_cost_lifecycle_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Purchasing/LandedCosts.tsx'));
+
+        foreach ([
+            'router.put(`/purchasing/landed-costs/${editing.id}`, payload, { preserveScroll: true, onSuccess: closeForm });',
+            'router.post(\'/purchasing/landed-costs\', payload, { preserveScroll: true, onSuccess: closeForm });',
+            'router.post(`/purchasing/landed-costs/${row.id}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/purchasing/landed-costs\', { search: searchFilter, status: statusFilter }, { preserveState: true, preserveScroll: true, replace: true });',
+            'title={showForm ? t.closeForm : t.create}',
+            'aria-label={showForm ? t.closeForm : t.create}',
+            'title={t.cancel}',
+            'aria-label={t.cancel}',
+            'title={processing ? t.processing : editing ? t.saveChanges : t.saveDraft}',
+            'aria-label={processing ? t.processing : editing ? t.saveChanges : t.saveDraft}',
+            'title={t.filter}',
+            'aria-label={t.filter}',
+            'title={`${t.edit} ${rowLabel(row)}`}',
+            'aria-label={`${t.edit} ${rowLabel(row)}`}',
+            'title={`${t.submit} ${rowLabel(row)}`}',
+            'aria-label={`${t.submit} ${rowLabel(row)}`}',
+            'title={`${t.approve} ${rowLabel(row)}`}',
+            'aria-label={`${t.approve} ${rowLabel(row)}`}',
+            'title={`${t.post} ${rowLabel(row)}`}',
+            'aria-label={`${t.post} ${rowLabel(row)}`}',
+            'title={`${t.cancel} ${rowLabel(row)}`}',
+            'aria-label={`${t.cancel} ${rowLabel(row)}`}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Landed cost lifecycle actions must remain accessible and scroll-safe.');
+        }
+    }
+
+    public function test_customer_invoice_modal_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Sales/CustomerInvoices.tsx'));
+
+        foreach ([
+            'router.get(\'/sales/invoices\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/sales/invoices\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.post(`/sales/invoices/${invId}/${action}`, {}, { preserveScroll: true });',
+            'preserveScroll: true',
+            'title={dict.app.pages.salesCustomerInvoices.createCustomerInvoice}',
+            'aria-label={dict.app.pages.salesCustomerInvoices.createCustomerInvoice}',
+            'title={dict.app.pages.salesCustomerInvoices.manualService}',
+            'aria-label={dict.app.pages.salesCustomerInvoices.manualService}',
+            'title={dict.app.pages.salesCustomerInvoices.fromSalesOrder}',
+            'aria-label={dict.app.pages.salesCustomerInvoices.fromSalesOrder}',
+            'title={dict.app.pages.salesCustomerInvoices.fromDeliveryNote}',
+            'aria-label={dict.app.pages.salesCustomerInvoices.fromDeliveryNote}',
+            'title={dict.app.pages.salesCustomerInvoices.addLine}',
+            'aria-label={dict.app.pages.salesCustomerInvoices.addLine}',
+            'title={`${dict.app.pages.salesCustomerInvoices.removeLine} ${idx + 1}`}',
+            'aria-label={`${dict.app.pages.salesCustomerInvoices.removeLine} ${idx + 1}`}',
+            'title={dict.app.pages.salesCustomerInvoices.cancel_2}',
+            'aria-label={dict.app.pages.salesCustomerInvoices.cancel_2}',
+            'title={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}',
+            'aria-label={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Customer invoice modal actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', 'salesCustomerInvoices', 'removeLine'], $locale);
+        }
+    }
+
+    public function test_supplier_bill_modal_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Purchasing/SupplierBills.tsx'));
+
+        foreach ([
+            'router.put(`/purchasing/bills/${editingBill.id}`, payload, {',
+            'router.post(\'/purchasing/bills\', payload, {',
+            'router.post(`/purchasing/bills/${billId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(',
+            '{ preserveState: true, preserveScroll: true, replace: true }',
+            'const supplierBillSubmitLabel = editingBill ? pageDict.saveChanges : pageDict.createBill;',
+            'title={dict.app.pages.purchasingSupplierBills.createSupplierBill}',
+            'aria-label={dict.app.pages.purchasingSupplierBills.createSupplierBill}',
+            'title={dict.app.pages.purchasingSupplierBills.filter}',
+            'aria-label={dict.app.pages.purchasingSupplierBills.filter}',
+            'title={dict.app.pages.purchasingSupplierBills.addLine}',
+            'aria-label={dict.app.pages.purchasingSupplierBills.addLine}',
+            'title={`${dict.app.pages.purchasingSupplierBills.removeLine} ${idx + 1}`}',
+            'aria-label={`${dict.app.pages.purchasingSupplierBills.removeLine} ${idx + 1}`}',
+            'title={dict.app.pages.purchasingSupplierBills.cancel_2}',
+            'aria-label={dict.app.pages.purchasingSupplierBills.cancel_2}',
+            'title={supplierBillSubmitLabel}',
+            'aria-label={supplierBillSubmitLabel}',
+            'preserveScroll: true',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Supplier bill modal actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', 'purchasingSupplierBills', 'removeLine'], $locale);
+        }
+    }
+
+    public function test_sales_return_modal_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Sales/SalesReturns.tsx'));
+
+        foreach ([
+            'router.put(`/sales/returns/${editingReturn.id}`, payload, {',
+            'router.post(\'/sales/returns\', payload, {',
+            'router.post(`/sales/returns/${retId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/sales/returns\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/sales/returns\', { ...filters, warehouse_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.get(\'/sales/returns\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'const salesReturnLoadLinesLabel = fetchingLines ? pageDict.loading : pageDict.loadLines;',
+            'const salesReturnSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'title={dict.app.pages.salesSalesReturns.createSalesReturn}',
+            'aria-label={dict.app.pages.salesSalesReturns.createSalesReturn}',
+            'title={dict.app.pages.salesSalesReturns.fromDeliveryNote}',
+            'aria-label={dict.app.pages.salesSalesReturns.fromDeliveryNote}',
+            'title={dict.app.pages.salesSalesReturns.createFromInvoice}',
+            'aria-label={dict.app.pages.salesSalesReturns.createFromInvoice}',
+            'title={salesReturnLoadLinesLabel}',
+            'aria-label={salesReturnLoadLinesLabel}',
+            'title={dict.app.pages.salesSalesReturns.cancel_2}',
+            'aria-label={dict.app.pages.salesSalesReturns.cancel_2}',
+            'title={salesReturnSubmitLabel}',
+            'aria-label={salesReturnSubmitLabel}',
+            'preserveScroll: true',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Sales return modal actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach (['fromDeliveryNote', 'createFromInvoice', 'loadLines', 'saving', 'saveDraft'] as $key) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', 'salesSalesReturns', $key], $locale);
+            }
+        }
+    }
+
+    public function test_login_actions_have_accessible_names_and_dev_credentials_are_dev_only(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Auth/Login.tsx'));
+
+        foreach ([
+            "post('/login', {",
+            'preserveScroll: true',
+            'const passwordToggleLabel = showPassword ? t.hidePassword : t.showPassword;',
+            'const loginSubmitLabel = processing ? t.submitting : t.submitButton;',
+            'const devQuickFillEnabled = import.meta.env.DEV;',
+            'title={t.switchToEnglish}',
+            'aria-label={t.switchToEnglish}',
+            'title={t.switchToArabic}',
+            'aria-label={t.switchToArabic}',
+            "title={t.switchTheme.replace(':theme', mode.label)}",
+            "aria-label={t.switchTheme.replace(':theme', mode.label)}",
+            'title={passwordToggleLabel}',
+            'aria-label={passwordToggleLabel}',
+            'title={loginSubmitLabel}',
+            'aria-label={loginSubmitLabel}',
+            '{devQuickFillEnabled ? (',
+            'title={t.fillDevAdminCredentials}',
+            'aria-label={t.fillDevAdminCredentials}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Login actions must remain accessible and development credentials must stay dev-only.');
+        }
+
+        $this->assertStringNotContainsString('Switch to ${mode.label} theme', $source);
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach (['switchToEnglish', 'switchToArabic', 'switchTheme', 'showPassword', 'hidePassword', 'fillDevAdminCredentials'] as $key) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['auth', 'login', $key], $locale);
+            }
+        }
     }
 
     public function test_invoice_source_document_shapes_do_not_use_loose_any(): void
@@ -2066,11 +4433,11 @@ class Phase15ProductHardeningTest extends TestCase
         $source = (string) file_get_contents(resource_path('js/Pages/Catalog/Products.tsx'));
 
         foreach ([
-            'catalogProducts.stock_2',
-            'catalogProducts.service_2',
-            'catalogProducts.nonStock_2',
-            'catalogProducts.active_2',
-            'catalogProducts.inactive_2',
+            'pageDict.stock_2',
+            'pageDict.service_2',
+            'pageDict.nonStock_2',
+            'pageDict.active_2',
+            'pageDict.inactive_2',
         ] as $fragment) {
             $this->assertStringContainsString($fragment, $source);
         }
@@ -2089,6 +4456,43 @@ class Phase15ProductHardeningTest extends TestCase
             $this->assertNotEmpty($label, "Missing Arabic catalog product label [{$key}].");
             $this->assertDoesNotMatchRegularExpression('/[A-Za-z]/', $label, "Arabic catalog product label [{$key}] must not include English parenthetical copy.");
         }
+    }
+
+    public function test_catalog_product_filters_and_modal_use_searchable_select_controls(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Catalog/Products.tsx'));
+
+        foreach ([
+            'SearchableSelect',
+            'const pageDict = dict.app.pages.catalogProducts',
+            'const typeOptions',
+            'const typeFilterOptions',
+            'const statusOptions',
+            'const statusFilterOptions',
+            'const uomOptions',
+            'const categoryOptions',
+            'const categoryFilterOptions',
+            'SearchableSelect<ProductType>',
+            'SearchableSelect<ProductStatus>',
+            'options={typeFilterOptions}',
+            'options={statusFilterOptions}',
+            'options={categoryFilterOptions}',
+            'options={uomOptions}',
+            'function toProductType',
+            'function toProductStatus',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source);
+        }
+
+        $this->assertStringNotContainsString('<select', $source);
+        $this->assertStringNotContainsString('e.target.value as', $source);
+        $this->assertStringNotContainsString('window.location.href', $source);
+
+        $en = json_decode((string) file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
+        $ar = json_decode((string) file_get_contents(resource_path('js/locales/ar.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertLocalePathIsNotEmpty($en, ['app', 'pages', 'catalogProducts', 'allCategories'], 'EN');
+        $this->assertLocalePathIsNotEmpty($ar, ['app', 'pages', 'catalogProducts', 'allCategories'], 'AR');
     }
 
     public function test_catalog_category_and_uom_form_labels_and_placeholders_are_dictionary_backed(): void
@@ -2129,6 +4533,662 @@ class Phase15ProductHardeningTest extends TestCase
         ] as [$section, $key]) {
             $this->assertNotEmpty($ar['app']['pages'][$section][$key] ?? null, "Missing Arabic catalog placeholder [{$section}.{$key}].");
         }
+    }
+
+    public function test_catalog_master_data_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $productCategories = (string) file_get_contents(resource_path('js/Pages/Catalog/ProductCategories.tsx'));
+        $unitsOfMeasure = (string) file_get_contents(resource_path('js/Pages/Catalog/UnitsOfMeasure.tsx'));
+        $products = (string) file_get_contents(resource_path('js/Pages/Catalog/Products.tsx'));
+
+        foreach ([
+            'const categorySubmitLabel = processing',
+            'put(`/catalog/categories/${editingCategory.id}`, {',
+            'post(\'/catalog/categories\', {',
+            'destroy(`/catalog/categories/${category.id}`, { preserveScroll: true });',
+            'router.get(\'/catalog/categories\', { search: val }, { preserveState: true, preserveScroll: true });',
+            'title={dict.app.pages.catalogProductCategories.addCategory}',
+            'aria-label={dict.app.pages.catalogProductCategories.addCategory}',
+            'title={dict.app.pages.catalogProductCategories.edit}',
+            'aria-label={dict.app.pages.catalogProductCategories.edit}',
+            'title={dict.app.pages.catalogProductCategories.delete}',
+            'aria-label={dict.app.pages.catalogProductCategories.delete}',
+            'title={dict.app.pages.catalogProductCategories.cancel}',
+            'aria-label={dict.app.pages.catalogProductCategories.cancel}',
+            'title={categorySubmitLabel}',
+            'aria-label={categorySubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $productCategories, 'Product category actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const uomSubmitLabel = processing',
+            'put(`/catalog/uoms/${editingUom.id}`, {',
+            'post(\'/catalog/uoms\', {',
+            'destroy(`/catalog/uoms/${uom.id}`, { preserveScroll: true });',
+            'router.get(\'/catalog/uoms\', { search: val }, { preserveState: true, preserveScroll: true });',
+            'title={dict.app.pages.catalogUnitsOfMeasure.addUnitOfMeasure}',
+            'aria-label={dict.app.pages.catalogUnitsOfMeasure.addUnitOfMeasure}',
+            'title={dict.app.pages.catalogUnitsOfMeasure.edit}',
+            'aria-label={dict.app.pages.catalogUnitsOfMeasure.edit}',
+            'title={dict.app.pages.catalogUnitsOfMeasure.delete}',
+            'aria-label={dict.app.pages.catalogUnitsOfMeasure.delete}',
+            'title={dict.app.pages.catalogUnitsOfMeasure.cancel}',
+            'aria-label={dict.app.pages.catalogUnitsOfMeasure.cancel}',
+            'title={uomSubmitLabel}',
+            'aria-label={uomSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $unitsOfMeasure, 'Unit-of-measure actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const productSubmitLabel = processing ? pageDict.saving : pageDict.save;',
+            'put(`/catalog/products/${editingProduct.id}`, {',
+            'post(\'/catalog/products\', {',
+            'destroy(`/catalog/products/${product.id}`, { preserveScroll: true });',
+            'router.get(\'/catalog/products\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/catalog/products\', { ...filters, type: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.get(\'/catalog/products\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.get(\'/catalog/products\', { ...filters, product_category_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.addProduct}',
+            'aria-label={pageDict.addProduct}',
+            'title={pageDict.edit}',
+            'aria-label={pageDict.edit}',
+            'title={pageDict.delete}',
+            'aria-label={pageDict.delete}',
+            'placeholder={pageDict.codePlaceholder}',
+            'title={pageDict.cancel}',
+            'aria-label={pageDict.cancel}',
+            'title={productSubmitLabel}',
+            'aria-label={productSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $products, 'Product actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                ['catalogProductCategories', 'addCategory'],
+                ['catalogProductCategories', 'edit'],
+                ['catalogProductCategories', 'delete'],
+                ['catalogProductCategories', 'cancel'],
+                ['catalogProductCategories', 'saving'],
+                ['catalogProductCategories', 'save'],
+                ['catalogUnitsOfMeasure', 'addUnitOfMeasure'],
+                ['catalogUnitsOfMeasure', 'edit'],
+                ['catalogUnitsOfMeasure', 'delete'],
+                ['catalogUnitsOfMeasure', 'cancel'],
+                ['catalogUnitsOfMeasure', 'saving'],
+                ['catalogUnitsOfMeasure', 'save'],
+                ['catalogProducts', 'addProduct'],
+                ['catalogProducts', 'edit'],
+                ['catalogProducts', 'delete'],
+                ['catalogProducts', 'codePlaceholder'],
+                ['catalogProducts', 'cancel'],
+                ['catalogProducts', 'saving'],
+                ['catalogProducts', 'save'],
+            ] as [$section, $key]) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', $section, $key], $locale);
+            }
+        }
+    }
+
+    public function test_sales_and_purchase_order_modal_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $salesOrders = (string) file_get_contents(resource_path('js/Pages/Sales/SalesOrders.tsx'));
+        $purchaseOrders = (string) file_get_contents(resource_path('js/Pages/Purchasing/PurchaseOrders.tsx'));
+
+        foreach ([
+            'const salesOrderSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/sales/orders/${editingOrder.id}`, payload, {',
+            'router.post(\'/sales/orders\', payload, {',
+            'router.post(`/sales/orders/${orderId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/sales/orders\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/sales/orders\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createSalesOrder}',
+            'aria-label={pageDict.createSalesOrder}',
+            'title={pageDict.addLine}',
+            'aria-label={pageDict.addLine}',
+            'title={pageDict.removeLine}',
+            'aria-label={pageDict.removeLine}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={salesOrderSubmitLabel}',
+            'aria-label={salesOrderSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $salesOrders, 'Sales Order modal and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const purchaseOrderSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/purchasing/orders/${editingOrder.id}`, payload, {',
+            'router.post(\'/purchasing/orders\', payload, {',
+            'router.post(`/purchasing/orders/${orderId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/purchasing/orders\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/purchasing/orders\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createPurchaseOrder}',
+            'aria-label={pageDict.createPurchaseOrder}',
+            'title={pageDict.addLine}',
+            'aria-label={pageDict.addLine}',
+            'title={pageDict.removeLine}',
+            'aria-label={pageDict.removeLine}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={purchaseOrderSubmitLabel}',
+            'aria-label={purchaseOrderSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $purchaseOrders, 'Purchase Order modal and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                ['salesSalesOrders', 'createSalesOrder'],
+                ['salesSalesOrders', 'addLine'],
+                ['salesSalesOrders', 'removeLine'],
+                ['salesSalesOrders', 'cancel_2'],
+                ['salesSalesOrders', 'saving'],
+                ['salesSalesOrders', 'saveDraft'],
+                ['purchasingPurchaseOrders', 'createPurchaseOrder'],
+                ['purchasingPurchaseOrders', 'addLine'],
+                ['purchasingPurchaseOrders', 'removeLine'],
+                ['purchasingPurchaseOrders', 'cancel_2'],
+                ['purchasingPurchaseOrders', 'saving'],
+                ['purchasingPurchaseOrders', 'saveDraft'],
+            ] as [$section, $key]) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', $section, $key], $locale);
+            }
+        }
+    }
+
+    public function test_customer_credit_and_supplier_adjustment_note_modal_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $customerCreditNotes = (string) file_get_contents(resource_path('js/Pages/Sales/CustomerCreditNotes.tsx'));
+        $supplierAdjustmentNotes = (string) file_get_contents(resource_path('js/Pages/Purchasing/SupplierAdjustmentNotes.tsx'));
+
+        foreach ([
+            'const customerCreditNoteSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/sales/credit-notes/${editingNote.id}`, payload, {',
+            'router.post(\'/sales/credit-notes\', payload, {',
+            'router.post(`/sales/credit-notes/${note.id}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/sales/credit-notes\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/sales/credit-notes\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createCustomerCreditNote}',
+            'aria-label={pageDict.createCustomerCreditNote}',
+            'title={pageDict.addLine}',
+            'aria-label={pageDict.addLine}',
+            'title={pageDict.removeLine}',
+            'aria-label={pageDict.removeLine}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={customerCreditNoteSubmitLabel}',
+            'aria-label={customerCreditNoteSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $customerCreditNotes, 'Customer Credit Note modal and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const supplierAdjustmentNoteSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/purchasing/adjustment-notes/${editingNote.id}`, payload, {',
+            'router.post(\'/purchasing/adjustment-notes\', payload, {',
+            'router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/purchasing/adjustment-notes\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/purchasing/adjustment-notes\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createAdjustmentNote}',
+            'aria-label={pageDict.createAdjustmentNote}',
+            'title={pageDict.addLine}',
+            'aria-label={pageDict.addLine}',
+            'title={pageDict.removeLine}',
+            'aria-label={pageDict.removeLine}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={supplierAdjustmentNoteSubmitLabel}',
+            'aria-label={supplierAdjustmentNoteSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $supplierAdjustmentNotes, 'Supplier Adjustment Note modal and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                ['salesCustomerCreditNotes', 'createCustomerCreditNote'],
+                ['salesCustomerCreditNotes', 'addLine'],
+                ['salesCustomerCreditNotes', 'removeLine'],
+                ['salesCustomerCreditNotes', 'cancel_2'],
+                ['salesCustomerCreditNotes', 'saving'],
+                ['salesCustomerCreditNotes', 'saveDraft'],
+                ['purchasingSupplierAdjustmentNotes', 'createAdjustmentNote'],
+                ['purchasingSupplierAdjustmentNotes', 'addLine'],
+                ['purchasingSupplierAdjustmentNotes', 'removeLine'],
+                ['purchasingSupplierAdjustmentNotes', 'cancel_2'],
+                ['purchasingSupplierAdjustmentNotes', 'saving'],
+                ['purchasingSupplierAdjustmentNotes', 'saveDraft'],
+            ] as [$section, $key]) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', $section, $key], $locale);
+            }
+        }
+    }
+
+    public function test_fixed_asset_master_data_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $categories = (string) file_get_contents(resource_path('js/Pages/FixedAssets/Categories.tsx'));
+        $locations = (string) file_get_contents(resource_path('js/Pages/FixedAssets/Locations.tsx'));
+
+        foreach ([
+            'const categorySubmitLabel = processing ? appDict.saving : appDict.save;',
+            'put(`/fixed-asset-categories/${editingCategory.id}`, {',
+            'post(\'/fixed-asset-categories\', {',
+            'router.delete(`/fixed-asset-categories/${id}`, { preserveScroll: true });',
+            'title={appDict.createAssetCategory}',
+            'aria-label={appDict.createAssetCategory}',
+            'title={appDict.editAssetCategory}',
+            'aria-label={appDict.editAssetCategory}',
+            'title={appDict.delete}',
+            'aria-label={appDict.delete}',
+            'title={appDict.back}',
+            'aria-label={appDict.back}',
+            'title={categorySubmitLabel}',
+            'aria-label={categorySubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $categories, 'Fixed Asset Category actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const locationSubmitLabel = form.processing ? appDict.saving : appDict.save;',
+            'form.put(`/fixed-asset-locations/${editingLocation.id}`, {',
+            'form.post(\'/fixed-asset-locations\', {',
+            'router.delete(`/fixed-asset-locations/${location.id}`, { preserveScroll: true });',
+            'title={appDict.createAssetLocation}',
+            'aria-label={appDict.createAssetLocation}',
+            'title={appDict.edit}',
+            'aria-label={appDict.edit}',
+            'title={appDict.delete}',
+            'aria-label={appDict.delete}',
+            'title={appDict.cancel}',
+            'aria-label={appDict.cancel}',
+            'title={locationSubmitLabel}',
+            'aria-label={locationSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $locations, 'Fixed Asset Location actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                'createAssetCategory',
+                'editAssetCategory',
+                'createAssetLocation',
+                'editAssetLocation',
+                'delete',
+                'back',
+                'cancel',
+                'saving',
+                'save',
+            ] as $key) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'accounting', $key], $locale);
+            }
+        }
+    }
+
+    public function test_notifications_and_tax_rate_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $notifications = (string) file_get_contents(resource_path('js/Pages/Notifications.tsx'));
+        $taxRates = (string) file_get_contents(resource_path('js/Pages/Taxes/Rates/Index.tsx'));
+
+        foreach ([
+            'post(`/notifications/${id}/read`, { preserveScroll: true });',
+            'post(\'/notifications/read-all\', { preserveScroll: true });',
+            'title={label}',
+            'aria-label={label}',
+            'title={dict.app.notifications.all}',
+            'aria-label={dict.app.notifications.all}',
+            'title={dict.app.notifications.unread}',
+            'aria-label={dict.app.notifications.unread}',
+            'title={dict.app.notifications.read}',
+            'aria-label={dict.app.notifications.read}',
+            'title={dict.app.notifications.unread}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $notifications, 'Notification actions and filter tabs must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            "router.get('/taxes/rates', { tax_code_id: codeId }, { preserveState: true, preserveScroll: true, replace: true });",
+            "post('/taxes/rates', {",
+            'router.delete(`/taxes/rates/${id}`, { preserveScroll: true });',
+            'title={taxDict.backToCodes}',
+            'aria-label={taxDict.backToCodes}',
+            'title={taxDict.newTaxRate}',
+            'aria-label={taxDict.newTaxRate}',
+            'type="button"',
+            'title={taxDict.delete}',
+            'aria-label={taxDict.delete}',
+            'title={taxDict.cancel}',
+            'aria-label={taxDict.cancel}',
+            'title={taxDict.save}',
+            'aria-label={taxDict.save}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $taxRates, 'Tax Rate actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                ['app', 'notifications', 'all'],
+                ['app', 'notifications', 'unread'],
+                ['app', 'notifications', 'read'],
+                ['app', 'notifications', 'markRead'],
+                ['app', 'notifications', 'markAllRead'],
+                ['app', 'taxes', 'newTaxRate'],
+                ['app', 'taxes', 'backToCodes'],
+                ['app', 'taxes', 'delete'],
+                ['app', 'taxes', 'cancel'],
+                ['app', 'taxes', 'save'],
+            ] as $path) {
+                $this->assertLocalePathIsNotEmpty($dictionary, $path, $locale);
+            }
+        }
+    }
+
+    public function test_delivery_goods_receipt_and_purchase_return_modal_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $deliveryNotes = (string) file_get_contents(resource_path('js/Pages/Sales/DeliveryNotes.tsx'));
+        $goodsReceipts = (string) file_get_contents(resource_path('js/Pages/Purchasing/GoodsReceipts.tsx'));
+        $purchaseReturns = (string) file_get_contents(resource_path('js/Pages/Purchasing/PurchaseReturns.tsx'));
+
+        foreach ([
+            'const deliveryNoteSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/sales/delivery-notes/${editingNote.id}`, payload, {',
+            'router.post(\'/sales/delivery-notes\', payload, {',
+            'router.post(`/sales/delivery-notes/${noteId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/sales/delivery-notes\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/sales/delivery-notes\', { ...filters, warehouse_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.get(\'/sales/delivery-notes\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createDeliveryNote}',
+            'aria-label={pageDict.createDeliveryNote}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={deliveryNoteSubmitLabel}',
+            'aria-label={deliveryNoteSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $deliveryNotes, 'Delivery Note modal, lifecycle, and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const goodsReceiptSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/purchasing/goods-receipts/${editingReceipt.id}`, payload, {',
+            'router.post(\'/purchasing/goods-receipts\', payload, {',
+            'router.post(`/purchasing/goods-receipts/${receiptId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/purchasing/goods-receipts\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/purchasing/goods-receipts\', { ...filters, warehouse_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.get(\'/purchasing/goods-receipts\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createGoodsReceipt}',
+            'aria-label={pageDict.createGoodsReceipt}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={goodsReceiptSubmitLabel}',
+            'aria-label={goodsReceiptSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $goodsReceipts, 'Goods Receipt modal, lifecycle, and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'const purchaseReturnSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
+            'router.put(`/purchasing/returns/${editingReturn.id}`, payload, {',
+            'router.post(\'/purchasing/returns\', payload, {',
+            'router.post(`/purchasing/returns/${retId}/${action}`, {}, { preserveScroll: true });',
+            'router.get(\'/purchasing/returns\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
+            'router.get(\'/purchasing/returns\', { ...filters, warehouse_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'router.get(\'/purchasing/returns\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
+            'title={pageDict.createPurchaseReturn}',
+            'aria-label={pageDict.createPurchaseReturn}',
+            'title={pageDict.cancel_2}',
+            'aria-label={pageDict.cancel_2}',
+            'title={purchaseReturnSubmitLabel}',
+            'aria-label={purchaseReturnSubmitLabel}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $purchaseReturns, 'Purchase Return modal, lifecycle, and filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                ['salesDeliveryNotes', 'createDeliveryNote'],
+                ['salesDeliveryNotes', 'cancel_2'],
+                ['salesDeliveryNotes', 'saving'],
+                ['salesDeliveryNotes', 'saveDraft'],
+                ['purchasingGoodsReceipts', 'createGoodsReceipt'],
+                ['purchasingGoodsReceipts', 'cancel_2'],
+                ['purchasingGoodsReceipts', 'saving'],
+                ['purchasingGoodsReceipts', 'saveDraft'],
+                ['purchasingPurchaseReturns', 'createPurchaseReturn'],
+                ['purchasingPurchaseReturns', 'cancel_2'],
+                ['purchasingPurchaseReturns', 'saving'],
+                ['purchasingPurchaseReturns', 'saveDraft'],
+            ] as [$section, $key]) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'pages', $section, $key], $locale);
+            }
+        }
+    }
+
+    public function test_core_accounting_workflow_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $journalForm = (string) file_get_contents(resource_path('js/Pages/Accounting/JournalForm.tsx'));
+        $generalJournal = (string) file_get_contents(resource_path('js/Pages/Accounting/GeneralJournal.tsx'));
+        $trialBalance = (string) file_get_contents(resource_path('js/Pages/Accounting/TrialBalance.tsx'));
+        $openingBalances = (string) file_get_contents(resource_path('js/Pages/Accounting/OpeningBalances.tsx'));
+
+        foreach ([
+            "post('/accounting/journal', { preserveScroll: true });",
+            'title={accDict.journal}',
+            'aria-label={accDict.journal}',
+            'title={accDict.addLine}',
+            'aria-label={accDict.addLine}',
+            'title={`${accDict.removeLine} ${idx + 1}`}',
+            'aria-label={`${accDict.removeLine} ${idx + 1}`}',
+            'title={accDict.saveDraftJournal}',
+            'aria-label={accDict.saveDraftJournal}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $journalForm, 'Journal Form actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'title={accDict.createVoucher}',
+            'aria-label={accDict.createVoucher}',
+            'title={dict.app.actions.close}',
+            'aria-label={dict.app.actions.close}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $generalJournal, 'General Journal actions must remain accessible.');
+        }
+
+        foreach ([
+            "router.get('/accounting/trial-balance', {",
+            '}, { preserveScroll: true });',
+            'title={accDict.generateTrialBalance}',
+            'aria-label={accDict.generateTrialBalance}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $trialBalance, 'Trial Balance generation must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            "saveForm.post('/accounting/opening-balances', { preserveScroll: true });",
+            "postForm.post('/accounting/opening-balances/post', { preserveScroll: true });",
+            "router.get('/accounting/opening-balances', { fiscal_year_id: val }, { preserveState: false, preserveScroll: true });",
+            'title={postingReadinessMessage}',
+            'aria-label={postingReadinessMessage}',
+            'title={accDict.saveDraft}',
+            'aria-label={accDict.saveDraft}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $openingBalances, 'Opening Balance actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                'journal',
+                'createVoucher',
+                'addLine',
+                'removeLine',
+                'saveDraftJournal',
+                'generateTrialBalance',
+                'saveDraft',
+            ] as $key) {
+                $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'accounting', $key], $locale);
+            }
+
+            $this->assertLocalePathIsNotEmpty($dictionary, ['app', 'actions', 'close'], $locale);
+        }
+    }
+
+    public function test_report_tax_code_and_stock_balance_actions_have_accessible_names_and_scroll_safe_filters(): void
+    {
+        $balanceSheet = (string) file_get_contents(resource_path('js/Pages/Reports/BalanceSheet.tsx'));
+        $incomeStatement = (string) file_get_contents(resource_path('js/Pages/Reports/IncomeStatement.tsx'));
+        $cashFlow = (string) file_get_contents(resource_path('js/Pages/Reports/CashFlow.tsx'));
+        $taxCodes = (string) file_get_contents(resource_path('js/Pages/Taxes/Codes/Index.tsx'));
+        $stockBalances = (string) file_get_contents(resource_path('js/Pages/Inventory/StockBalances.tsx'));
+
+        foreach ([
+            $balanceSheet,
+            $incomeStatement,
+            $cashFlow,
+        ] as $source) {
+            foreach ([
+                'preserveScroll: true',
+                'title={actionsDict.printReport}',
+                'aria-label={actionsDict.printReport}',
+                'title={actionsDict.exportCsv}',
+                'aria-label={actionsDict.exportCsv}',
+                'title={accDict.applyFilter}',
+                'aria-label={accDict.applyFilter}',
+            ] as $fragment) {
+                $this->assertStringContainsString($fragment, $source, 'Financial report actions must remain accessible and scroll-safe.');
+            }
+        }
+
+        foreach ([
+            'FixedAssetRegisterReport.tsx' => 'fixed-asset-register',
+            'FixedAssetDepreciationReport.tsx' => 'fixed-asset-depreciation',
+            'FixedAssetDepreciationRunReport.tsx' => 'fixed-asset-depreciation-runs',
+            'FixedAssetDisposalReport.tsx' => 'fixed-asset-disposals',
+            'FixedAssetNetBookValueReport.tsx' => 'fixed-asset-net-book-values',
+        ] as $file => $routePart) {
+            $source = (string) file_get_contents(resource_path("js/Pages/Reports/{$file}"));
+
+            foreach ([
+                "router.get('/reports/{$routePart}'",
+                'preserveScroll: true',
+                'title={dict.app.actions.exportCsv}',
+                'aria-label={dict.app.actions.exportCsv}',
+                'title={dict.app.actions.printReport}',
+                'aria-label={dict.app.actions.printReport}',
+                'title={reportDict.backToReports}',
+                'aria-label={reportDict.backToReports}',
+                'title={reportDict.applyFilters}',
+                'aria-label={reportDict.applyFilters}',
+            ] as $fragment) {
+                $this->assertStringContainsString($fragment, $source, "Fixed asset report {$file} actions must remain accessible and scroll-safe.");
+            }
+        }
+
+        foreach ([
+            "router.get('/taxes/codes', { search }, { preserveState: true, preserveScroll: true, replace: true });",
+            'router.delete(`/taxes/codes/${id}`, { preserveScroll: true });',
+            'title={taxDict.taxRates}',
+            'aria-label={taxDict.taxRates}',
+            'title={taxDict.newTaxCode}',
+            'aria-label={taxDict.newTaxCode}',
+            'type="button"',
+            'title={taxDict.search}',
+            'aria-label={taxDict.search}',
+            'title={taxDict.delete}',
+            'aria-label={taxDict.delete}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $taxCodes, 'Tax Code actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            "router.get('/inventory/stock-balances', { warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });",
+            "router.get('/inventory/stock-balances', {}, { preserveState: true, preserveScroll: true });",
+            'title={pageDict.applyFilter}',
+            'aria-label={pageDict.applyFilter}',
+            'title={pageDict.clearFilter}',
+            'aria-label={pageDict.clearFilter}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $stockBalances, 'Stock Balance filter actions must remain accessible and scroll-safe.');
+        }
+
+        foreach (['en', 'ar'] as $locale) {
+            $dictionary = json_decode((string) file_get_contents(resource_path("js/locales/{$locale}.json")), true, flags: JSON_THROW_ON_ERROR);
+
+            foreach ([
+                ['app', 'actions', 'printReport'],
+                ['app', 'actions', 'exportCsv'],
+                ['app', 'accounting', 'applyFilter'],
+                ['app', 'pages', 'reports', 'applyFilters'],
+                ['app', 'pages', 'reports', 'backToReports'],
+                ['app', 'taxes', 'taxRates'],
+                ['app', 'taxes', 'newTaxCode'],
+                ['app', 'taxes', 'search'],
+                ['app', 'taxes', 'delete'],
+                ['app', 'pages', 'stockBalances', 'applyFilter'],
+                ['app', 'pages', 'stockBalances', 'clearFilter'],
+            ] as $path) {
+                $this->assertLocalePathIsNotEmpty($dictionary, $path, $locale);
+            }
+        }
+    }
+
+    public function test_all_inertia_page_buttons_have_accessible_names(): void
+    {
+        $failures = [];
+
+        foreach ($this->inertiaPageSourceFiles() as $relativePath => $source) {
+            foreach ($this->missingAccessibleButtonLines($source) as $line) {
+                $failures[] = "{$relativePath}:{$line}";
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $failures,
+            'Every Inertia page <button> must expose a title or aria-label.'.PHP_EOL.implode(PHP_EOL, $failures)
+        );
+    }
+
+    public function test_all_inertia_pages_avoid_native_selects_unsafe_redirects_and_loose_pagination_links(): void
+    {
+        $failures = [];
+        $forbiddenFragments = [
+            '<select',
+            '<option',
+            'type="date"',
+            'window.location.href',
+            'links: any[]',
+            'links?: any[]',
+            'links: unknown[]',
+            'links?: unknown[]',
+        ];
+
+        foreach ($this->inertiaPageSourceFiles() as $relativePath => $source) {
+            foreach ($forbiddenFragments as $fragment) {
+                if (str_contains($source, $fragment)) {
+                    $failures[] = "{$relativePath}: {$fragment}";
+                }
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $failures,
+            'Inertia pages must use shared controls, Inertia navigation, and typed pagination payloads.'.PHP_EOL.implode(PHP_EOL, $failures)
+        );
     }
 
     public function test_dashboard_controller_delegates_page_data_to_application_service(): void
@@ -3469,6 +6529,85 @@ class Phase15ProductHardeningTest extends TestCase
         }
     }
 
+    public function test_fixed_asset_workflow_modals_use_searchable_select_controls(): void
+    {
+        foreach ([
+            'FixedAssets/Create.tsx' => [
+                'const categoryOptions',
+                'const currencyOptions',
+                'options={categoryOptions}',
+                'options={currencyOptions}',
+            ],
+            'FixedAssets/Show.tsx' => [
+                'const disposalTypeOptions',
+                'options={disposalTypeOptions}',
+                'disposalDict.disposalType',
+            ],
+            'FixedAssets/DepreciationRuns/Index.tsx' => [
+                'const periodOptions',
+                'options={periodOptions}',
+                'appDict.selectOption',
+            ],
+        ] as $relativePath => $requiredFragments) {
+            $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
+
+            $this->assertStringContainsString('SearchableSelect', $source);
+            $this->assertStringNotContainsString('<select', $source, "{$relativePath} should use shared searchable select controls.");
+            $this->assertStringNotContainsString('e.target.value as', $source, "{$relativePath} should avoid event-value casts.");
+            $this->assertStringNotContainsString('window.location.href', $source);
+
+            foreach ($requiredFragments as $fragment) {
+                $this->assertStringContainsString($fragment, $source);
+            }
+        }
+    }
+
+    public function test_fixed_asset_detail_financial_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/FixedAssets/Show.tsx'));
+
+        foreach ([
+            'title={appDict.back}',
+            'aria-label={appDict.back}',
+            'title={schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}',
+            'aria-label={schedules.length > 0 ? appDict.regenerateSchedule : appDict.generateSchedule}',
+            'title={appDict.editFixedAsset}',
+            'aria-label={appDict.editFixedAsset}',
+            'title={appDict.capitalizeAsset}',
+            'aria-label={appDict.capitalizeAsset}',
+            'title={disposalDict.disposeAsset}',
+            'aria-label={disposalDict.disposeAsset}',
+            'title={appDict.moveAsset}',
+            'aria-label={appDict.moveAsset}',
+            'title={appDict.reverseCapitalization}',
+            'aria-label={appDict.reverseCapitalization}',
+            'title={`${appDict.delete} ${asset.asset_number}`}',
+            'aria-label={`${appDict.delete} ${asset.asset_number}`}',
+            'title={appDict.cancel}',
+            'aria-label={appDict.cancel}',
+            'title={appDict.recordMovement}',
+            'aria-label={appDict.recordMovement}',
+            'title={disposalDict.cancel}',
+            'aria-label={disposalDict.cancel}',
+            'title={disposalDict.postDisposal}',
+            'aria-label={disposalDict.postDisposal}',
+            'preserveScroll: true',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Fixed asset detail actions must remain accessible and scroll-safe.');
+        }
+
+        foreach ([
+            'router.delete(`/fixed-assets/${asset.id}`, {',
+            'post(`/fixed-assets/${asset.id}/capitalize`, {',
+            'router.post(`/fixed-assets/${asset.id}/reverse-capitalization`, {}, {',
+            'router.post(`/fixed-assets/${asset.id}/generate-schedule`, {}, {',
+            'moveForm.post(`/fixed-assets/${asset.id}/movements`, {',
+            'disposeForm.post(`/fixed-assets/${asset.id}/disposals`, {',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $source, 'Fixed asset detail financial actions must keep Inertia submissions explicit.');
+        }
+    }
+
     public function test_master_data_delete_confirmations_are_entity_specific(): void
     {
         foreach ([
@@ -3961,6 +7100,7 @@ class Phase15ProductHardeningTest extends TestCase
             'submitForApproval',
             'approve',
             'postToLedger',
+            'confirmPostJournal',
             'reverseEntry',
             'reverseJournalEntry',
             'reverseEntryDescription',
@@ -3995,6 +7135,37 @@ class Phase15ProductHardeningTest extends TestCase
         ] as $key) {
             $this->assertLocalePathIsNotEmpty($en, ['app', 'accounting', $key], 'EN');
             $this->assertLocalePathIsNotEmpty($ar, ['app', 'accounting', $key], 'AR');
+        }
+
+        $this->assertStringContainsString('const handlePostJournal', $pageSource);
+        $this->assertStringContainsString('confirm(accDict.confirmPostJournal)', $pageSource);
+        $this->assertStringContainsString('onClick={handlePostJournal}', $pageSource);
+        $this->assertStringContainsString('title={accDict.confirmPostJournal}', $pageSource);
+    }
+
+    public function test_journal_detail_financial_actions_have_accessible_names_and_scroll_safe_submissions(): void
+    {
+        $pageSource = (string) file_get_contents(resource_path('js/Pages/Accounting/JournalDetail.tsx'));
+
+        foreach ([
+            'postForm.post(`/accounting/journal/${journal.id}/post`, { preserveScroll: true });',
+            'submitForm.post(`/accounting/journal/${journal.id}/submit`, { preserveScroll: true })',
+            'approveForm.post(`/accounting/journal/${journal.id}/approve`, { preserveScroll: true })',
+            'reverseForm.post(`/accounting/journal/${journal.id}/reverse`, { preserveScroll: true });',
+            'title={accDict.submitForApproval}',
+            'aria-label={accDict.submitForApproval}',
+            'title={accDict.approve}',
+            'aria-label={accDict.approve}',
+            'title={accDict.confirmPostJournal}',
+            'aria-label={accDict.confirmPostJournal}',
+            'title={accDict.reverseEntry}',
+            'aria-label={accDict.reverseEntry}',
+            'title={dict.app.actions.close}',
+            'aria-label={dict.app.actions.close}',
+            'title={dict.app.actions.numberDetails}',
+            'aria-label={dict.app.actions.numberDetails}',
+        ] as $fragment) {
+            $this->assertStringContainsString($fragment, $pageSource, 'Journal detail financial actions must remain accessible and scroll-safe.');
         }
     }
 
@@ -4100,6 +7271,10 @@ class Phase15ProductHardeningTest extends TestCase
 
         $this->assertStringContainsString('accDict.openingBalancesDesc', $pageSource);
         $this->assertStringContainsString('accDict.postOpeningJournal', $pageSource);
+        $this->assertStringContainsString('const postingReadinessMessage', $pageSource);
+        $this->assertStringContainsString('confirm(accDict.confirmPostOpeningJournal)', $pageSource);
+        $this->assertStringContainsString('title={postingReadinessMessage}', $pageSource);
+        $this->assertStringContainsString('aria-label={postingReadinessMessage}', $pageSource);
         $this->assertStringContainsString('accDict.noOpeningBalancesConfiguredDesc', $pageSource);
 
         $en = json_decode(file_get_contents(resource_path('js/locales/en.json')), true, flags: JSON_THROW_ON_ERROR);
@@ -4109,6 +7284,10 @@ class Phase15ProductHardeningTest extends TestCase
             'openingBalances',
             'openingBalancesDesc',
             'postOpeningJournal',
+            'confirmPostOpeningJournal',
+            'openingPostReady',
+            'openingPostBlockedUnbalanced',
+            'openingPostBlockedPosted',
             'noFiscalYearsWarning',
             'balancesAlreadyPosted',
             'fiscalYear',
@@ -4417,19 +7596,19 @@ class Phase15ProductHardeningTest extends TestCase
 
         foreach ([
             'Sales/CustomerCreditNotes.tsx' => [
-                'required' => ["can('sales.credit_notes') && can('view_financials')", 'dict.app.pages.salesCustomerCreditNotes.settle'],
+                'required' => ["const canPostCustomerCreditNotes = canManageCustomerCreditNotes && can('view_financials');", 'dict.app.pages.salesCustomerCreditNotes.settle'],
                 'forbidden' => ["can('sales.post')", "can('sales.submit')", "can('sales.approve')", "can('sales.cancel')", '>Settle<'],
             ],
             'Sales/SalesReturns.tsx' => [
-                'required' => ["can('sales.returns') && can('view_financials')"],
+                'required' => ["const canPostSalesReturns = canManageSalesReturns && can('view_financials');"],
                 'forbidden' => ["can('sales.post')", "can('sales.submit')", "can('sales.approve')", "can('sales.cancel')"],
             ],
             'Purchasing/PurchaseReturns.tsx' => [
-                'required' => ["can('purchasing.returns') && can('view_financials')"],
+                'required' => ["const canPostPurchaseReturns = canManagePurchaseReturns && can('view_financials');"],
                 'forbidden' => ["can('purchasing.post')", "can('purchasing.submit')", "can('purchasing.approve')", "can('purchasing.cancel')"],
             ],
             'Purchasing/SupplierAdjustmentNotes.tsx' => [
-                'required' => ["can('purchasing.adjustment_notes') && can('view_financials')", 'dict.app.pages.purchasingSupplierAdjustmentNotes.settle'],
+                'required' => ["const canPostSupplierAdjustmentNotes = canManageSupplierAdjustmentNotes && can('view_financials');", 'dict.app.pages.purchasingSupplierAdjustmentNotes.settle'],
                 'forbidden' => ["can('purchasing.post')", "can('purchasing.submit')", "can('purchasing.approve')", "can('purchasing.cancel')", '>Settle<'],
             ],
         ] as $relativePath => $expectations) {
@@ -5094,8 +8273,8 @@ class Phase15ProductHardeningTest extends TestCase
             }
         }
 
-        $controllerFiles = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator(app_path('Http/Controllers')),
+        $controllerFiles = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator(app_path('Http/Controllers')),
         );
 
         foreach ($controllerFiles as $file) {
@@ -5142,8 +8321,8 @@ class Phase15ProductHardeningTest extends TestCase
 
     public function test_controller_success_flash_messages_are_translation_backed(): void
     {
-        $controllerFiles = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator(app_path('Http/Controllers')),
+        $controllerFiles = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator(app_path('Http/Controllers')),
         );
 
         foreach ($controllerFiles as $file) {
@@ -7947,6 +11126,100 @@ class Phase15ProductHardeningTest extends TestCase
             app_path('Http/Controllers/Reports/SupplierStatementController.php'),
             app_path('Application/Reports/CsvReportResponse.php'),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function inertiaPageSourceFiles(): array
+    {
+        $root = resource_path('js/Pages');
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($root, RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (! $file instanceof SplFileInfo || $file->getExtension() !== 'tsx') {
+                continue;
+            }
+
+            $path = $file->getPathname();
+            $relativePath = str_replace('\\', '/', substr($path, strlen($root.DIRECTORY_SEPARATOR)));
+            $files[$relativePath] = (string) file_get_contents($path);
+        }
+
+        ksort($files);
+
+        return $files;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function missingAccessibleButtonLines(string $source): array
+    {
+        $missing = [];
+        $offset = 0;
+
+        while (($buttonStart = strpos($source, '<button', $offset)) !== false) {
+            [$tag, $nextOffset] = $this->readOpeningTag($source, $buttonStart);
+
+            if (! str_contains($tag, 'aria-label=') && ! str_contains($tag, 'title=')) {
+                $missing[] = substr_count(substr($source, 0, $buttonStart), "\n") + 1;
+            }
+
+            $offset = $nextOffset;
+        }
+
+        return $missing;
+    }
+
+    /**
+     * @return array{0: string, 1: int}
+     */
+    private function readOpeningTag(string $source, int $start): array
+    {
+        $depth = 0;
+        $quote = null;
+        $length = strlen($source);
+
+        for ($index = $start + 7; $index < $length; $index++) {
+            $char = $source[$index];
+            $previous = $index > 0 ? $source[$index - 1] : '';
+
+            if ($quote !== null) {
+                if ($char === $quote && $previous !== '\\') {
+                    $quote = null;
+                }
+
+                continue;
+            }
+
+            if ($char === '"' || $char === "'" || $char === '`') {
+                $quote = $char;
+
+                continue;
+            }
+
+            if ($char === '{') {
+                $depth++;
+
+                continue;
+            }
+
+            if ($char === '}') {
+                $depth = max(0, $depth - 1);
+
+                continue;
+            }
+
+            if ($char === '>' && $depth === 0 && $previous !== '=') {
+                return [substr($source, $start, $index - $start + 1), $index + 1];
+            }
+        }
+
+        return [substr($source, $start), $length];
     }
 
     /**

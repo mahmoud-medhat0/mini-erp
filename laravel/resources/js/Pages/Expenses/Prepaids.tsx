@@ -7,7 +7,7 @@ import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelec
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
+import type { PaginationLink, AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -43,7 +43,7 @@ type Schedule = {
   expense_account?: AccountOption | null;
   recognitions: Recognition[];
 };
-type PaginatedData<T> = { data: T[]; total: number; links: any[] };
+type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
   schedules: PaginatedData<Schedule>;
   categories: Category[];
@@ -90,6 +90,11 @@ export default function PrepaidSchedulesIndex({
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.prepaidSchedules;
   const can = useCan();
+  const canCreateExpenseSchedules = can('expenses.create');
+  const canEditExpenseSchedules = can('expenses.edit');
+  const canSubmitExpenseSchedules = can('expenses.submit');
+  const canApproveExpenseSchedules = can('expenses.approve');
+  const canPostExpenseSchedules = can('expenses.post') && can('view_financials');
   const defaultCurrency = currencies[0]?.code || '';
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
@@ -198,13 +203,41 @@ export default function PrepaidSchedulesIndex({
     router.post(url, {}, { preserveScroll: true });
   }
 
+  const isScheduleActionable = (schedule: Schedule) => ['draft', 'submitted', 'approved'].includes(schedule.status);
+
+  const hasAvailableScheduleAction = (schedule: Schedule) => (
+    schedule.status === 'draft'
+      ? canEditExpenseSchedules || canSubmitExpenseSchedules
+      : schedule.status === 'submitted'
+        ? canApproveExpenseSchedules || canEditExpenseSchedules
+        : schedule.status === 'approved'
+          ? canEditExpenseSchedules
+          : false
+  );
+
+  const getScheduleActionState = (schedule: Schedule) => {
+    if (hasAvailableScheduleAction(schedule)) return null;
+
+    return isScheduleActionable(schedule) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
+  const isRecognitionPostable = (schedule: Schedule, recognition: Recognition) => (
+    recognition.status === 'pending' && ['approved', 'active'].includes(schedule.status)
+  );
+
+  const getRecognitionActionState = (schedule: Schedule, recognition: Recognition) => {
+    if (isRecognitionPostable(schedule, recognition) && canPostExpenseSchedules) return null;
+
+    return isRecognitionPostable(schedule, recognition) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   return (
     <AppLayout active="prepaid-schedules.index">
       <Head title={pageDict.headTitle} />
       <PageHeader
         title={pageDict.title}
         description={pageDict.description}
-        actions={can('expenses.create') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
+        actions={canCreateExpenseSchedules ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
 
       <div className="mb-5 grid gap-4 md:grid-cols-3">
@@ -270,29 +303,41 @@ export default function PrepaidSchedulesIndex({
         <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
       ) : (
         <div className="space-y-4">
-          {schedules.data.map((schedule) => (
-            <Card key={schedule.id} className="overflow-hidden">
-              <div className="grid gap-3 border-b border-[var(--border)] p-4 lg:grid-cols-[1fr_auto]">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-bold">{schedule.number || pageDict.notNumbered}</h3>
-                    <StatusBadge tone={statusTone(schedule.status)}>{pageDict.statuses[schedule.status]}</StatusBadge>
+          {schedules.data.map((schedule) => {
+            const actionState = getScheduleActionState(schedule);
+
+            return (
+              <Card key={schedule.id} className="overflow-hidden">
+                <div className="grid gap-3 border-b border-[var(--border)] p-4 lg:grid-cols-[1fr_auto]">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold">{schedule.number || pageDict.notNumbered}</h3>
+                      <StatusBadge tone={statusTone(schedule.status)}>{pageDict.statuses[schedule.status]}</StatusBadge>
+                    </div>
+                    <div className="mt-2 grid gap-2 text-xs text-[var(--text-muted)] md:grid-cols-4">
+                      <span>{pageDict.scheduleDate}: {formatDate(schedule.schedule_date)}</span>
+                      <span>{pageDict.startDate}: {formatDate(schedule.start_date)}</span>
+                      <span>{pageDict.months}: {schedule.months}</span>
+                      <span>{pageDict.branch}: {schedule.branch ? `${schedule.branch.code} - ${getLocalizedName(schedule.branch.name, locale)}` : pageDict.noBranch}</span>
+                    </div>
                   </div>
-                  <div className="mt-2 grid gap-2 text-xs text-[var(--text-muted)] md:grid-cols-4">
-                    <span>{pageDict.scheduleDate}: {formatDate(schedule.schedule_date)}</span>
-                    <span>{pageDict.startDate}: {formatDate(schedule.start_date)}</span>
-                    <span>{pageDict.months}: {schedule.months}</span>
-                    <span>{pageDict.branch}: {schedule.branch ? `${schedule.branch.code} - ${getLocalizedName(schedule.branch.name, locale)}` : pageDict.noBranch}</span>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <AccountingAmount amountMinor={schedule.total_minor} currency={schedule.currency} />
+                    {schedule.status === 'draft' && canEditExpenseSchedules ? (
+                      <button type="button" onClick={() => openEdit(schedule)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+                    ) : null}
+                    {schedule.status === 'draft' && canSubmitExpenseSchedules ? (
+                      <button type="button" onClick={() => action(`/expenses/prepaids/${schedule.id}/submit`, pageDict.confirmations.submit)} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+                    ) : null}
+                    {schedule.status === 'submitted' && canApproveExpenseSchedules ? (
+                      <button type="button" onClick={() => action(`/expenses/prepaids/${schedule.id}/approve`, pageDict.confirmations.approve)} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+                    ) : null}
+                    {isScheduleActionable(schedule) && canEditExpenseSchedules ? (
+                      <button type="button" onClick={() => action(`/expenses/prepaids/${schedule.id}/cancel`, pageDict.confirmations.cancel)} title={pageDict.cancelSchedule} aria-label={pageDict.cancelSchedule} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelSchedule}</button>
+                    ) : null}
+                    {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <AccountingAmount amountMinor={schedule.total_minor} currency={schedule.currency} />
-                  {can('expenses.edit') && schedule.status === 'draft' ? <Button variant="secondary" onClick={() => openEdit(schedule)}>{pageDict.edit}</Button> : null}
-                  {can('expenses.submit') && schedule.status === 'draft' ? <Button variant="secondary" onClick={() => action(`/expenses/prepaids/${schedule.id}/submit`, pageDict.confirmations.submit)}>{pageDict.submit}</Button> : null}
-                  {can('expenses.approve') && schedule.status === 'submitted' ? <Button variant="secondary" onClick={() => action(`/expenses/prepaids/${schedule.id}/approve`, pageDict.confirmations.approve)}>{pageDict.approve}</Button> : null}
-                  {can('expenses.edit') && ['draft', 'submitted', 'approved'].includes(schedule.status) ? <Button variant="danger" onClick={() => action(`/expenses/prepaids/${schedule.id}/cancel`, pageDict.confirmations.cancel)}>{pageDict.cancelSchedule}</Button> : null}
-                </div>
-              </div>
               <div className="overflow-x-auto">
                 <table className={tableClasses.table}>
                   <thead>
@@ -305,24 +350,32 @@ export default function PrepaidSchedulesIndex({
                     </tr>
                   </thead>
                   <tbody>
-                    {schedule.recognitions.map((recognition) => (
-                      <tr key={recognition.id}>
-                        <td className={tableClasses.td}>{formatDate(recognition.recognition_date)}</td>
-                        <td className={tableClasses.td}><AccountingAmount amountMinor={recognition.amount_minor} currency={schedule.currency} /></td>
-                        <td className={tableClasses.td}><StatusBadge tone={statusTone(recognition.status)}>{pageDict.entryStatuses[recognition.status]}</StatusBadge></td>
-                        <td className={tableClasses.td}>{recognition.journal_entry?.number || pageDict.notPosted}</td>
-                        <td className={tableClasses.td}>
-                          {can('expenses.post') && can('view_financials') && recognition.status === 'pending' && ['approved', 'active'].includes(schedule.status) ? (
-                            <Button className="px-3 py-1.5" onClick={() => action(`/expenses/prepaids/${schedule.id}/recognitions/${recognition.id}/post`, pageDict.confirmations.postRecognition)}>{pageDict.post}</Button>
-                          ) : null}
-                        </td>
-                      </tr>
-                    ))}
+                    {schedule.recognitions.map((recognition) => {
+                      const recognitionActionState = getRecognitionActionState(schedule, recognition);
+
+                      return (
+                        <tr key={recognition.id}>
+                          <td className={tableClasses.td}>{formatDate(recognition.recognition_date)}</td>
+                          <td className={tableClasses.td}><AccountingAmount amountMinor={recognition.amount_minor} currency={schedule.currency} /></td>
+                          <td className={tableClasses.td}><StatusBadge tone={statusTone(recognition.status)}>{pageDict.entryStatuses[recognition.status]}</StatusBadge></td>
+                          <td className={tableClasses.td}>{recognition.journal_entry?.number || pageDict.notPosted}</td>
+                          <td className={`${tableClasses.td} text-end`}>
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              {isRecognitionPostable(schedule, recognition) && canPostExpenseSchedules ? (
+                                <button type="button" onClick={() => action(`/expenses/prepaids/${schedule.id}/recognitions/${recognition.id}/post`, pageDict.confirmations.postRecognition)} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+                              ) : null}
+                              {recognitionActionState ? <StatusBadge tone="muted">{recognitionActionState}</StatusBadge> : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </AppLayout>

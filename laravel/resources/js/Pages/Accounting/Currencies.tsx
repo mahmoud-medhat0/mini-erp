@@ -54,6 +54,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
   function handleCreateSubmit(e: FormEvent) {
     e.preventDefault();
     createForm.post('/accounting/currencies', {
+      preserveScroll: true,
       onSuccess: () => {
         setShowCreateModal(false);
         createForm.reset();
@@ -65,6 +66,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
     e.preventDefault();
     if (!editingCurrency) return;
     editForm.patch(`/accounting/currencies/${editingCurrency.code}`, {
+      preserveScroll: true,
       onSuccess: () => {
         setEditingCurrency(null);
         editForm.reset();
@@ -75,6 +77,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
   function handleDeleteConfirm() {
     if (!deletingCurrency) return;
     router.delete(`/accounting/currencies/${deletingCurrency.code}`, {
+      preserveScroll: true,
       onSuccess: () => setDeletingCurrency(null),
     });
   }
@@ -108,6 +111,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
         actions={
           <button
             type="button"
+            title={accDict.addCurrency}
+            aria-label={accDict.addCurrency}
             onClick={() => setShowCreateModal(true)}
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all"
           >
@@ -184,6 +189,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             </div>
             <button
               type="button"
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
               onClick={() => setShowCreateModal(false)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
@@ -275,6 +282,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             <div className="sm:col-span-2 lg:col-span-3 flex justify-end gap-3 mt-2">
               <button
                 type="button"
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 onClick={() => setShowCreateModal(false)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
@@ -282,6 +291,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </button>
               <button
                 type="submit"
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
                 disabled={createForm.processing}
                 className="rounded-xl bg-[var(--primary)] px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
@@ -301,6 +312,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             </h3>
             <button
               type="button"
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
               onClick={() => setEditingCurrency(null)}
               className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
             >
@@ -373,6 +386,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             <div className="sm:col-span-2 lg:col-span-4 flex justify-end gap-3 mt-2">
               <button
                 type="button"
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 onClick={() => setEditingCurrency(null)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
@@ -380,6 +395,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </button>
               <button
                 type="submit"
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
                 disabled={editForm.processing}
                 className="rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
               >
@@ -410,6 +427,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
                 onClick={() => setDeletingCurrency(null)}
                 className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
               >
@@ -417,6 +436,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </button>
               <button
                 type="button"
+                title={actionsDict.delete}
+                aria-label={actionsDict.delete}
                 onClick={handleDeleteConfirm}
                 className="rounded-xl bg-red-600 px-4.5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-md shadow-red-500/20 transition-all cursor-pointer"
               >
@@ -445,6 +466,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </div>
               <button
                 type="button"
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 onClick={() => setSelectedAccountsCurrency(null)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
               >
@@ -538,6 +561,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
               </div>
               <button
                 type="button"
+                title={actionsDict.close}
+                aria-label={actionsDict.close}
                 onClick={() => setSelectedFxRatesCurrency(null)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
               >
@@ -647,9 +672,10 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                   <td className={tableClasses.td}>
                     <button
                       type="button"
+                      title={(c.accounts_count || 0) > 0 ? accDict.viewLinkedAccountsTitle : accDict.noLinkedAccountsTitle}
+                      aria-label={(c.accounts_count || 0) > 0 ? accDict.viewLinkedAccountsTitle : accDict.noLinkedAccountsTitle}
                       onClick={() => (c.accounts_count || 0) > 0 && setSelectedAccountsCurrency(c)}
                       disabled={(c.accounts_count || 0) === 0}
-                      title={(c.accounts_count || 0) > 0 ? accDict.viewLinkedAccountsTitle : accDict.noLinkedAccountsTitle}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 font-mono disabled:opacity-40 transition-all cursor-pointer disabled:cursor-default"
                     >
                       <span>{c.accounts_count || 0}</span>
@@ -662,9 +688,10 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                   <td className={tableClasses.td}>
                     <button
                       type="button"
+                      title={(c.exchange_rates_count || 0) > 0 ? accDict.viewRecordedFxRatesTitle : accDict.noRatesRecordedTitle}
+                      aria-label={(c.exchange_rates_count || 0) > 0 ? accDict.viewRecordedFxRatesTitle : accDict.noRatesRecordedTitle}
                       onClick={() => (c.exchange_rates_count || 0) > 0 && setSelectedFxRatesCurrency(c)}
                       disabled={(c.exchange_rates_count || 0) === 0}
-                      title={(c.exchange_rates_count || 0) > 0 ? accDict.viewRecordedFxRatesTitle : accDict.noRatesRecordedTitle}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono disabled:opacity-40 transition-all cursor-pointer disabled:cursor-default"
                     >
                       <span>{c.exchange_rates_count || 0}</span>
@@ -678,6 +705,8 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
+                        title={actionsDict.edit}
+                        aria-label={actionsDict.edit}
                         onClick={() => startEdit(c)}
                         className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors"
                       >
@@ -689,6 +718,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                         onClick={() => !hasLinkedRecords && setDeletingCurrency(c)}
                         disabled={hasLinkedRecords}
                         title={hasLinkedRecords ? accDict.cannotDeleteCurrencyInUseTitle : accDict.deleteCurrencyTitle}
+                        aria-label={hasLinkedRecords ? accDict.cannotDeleteCurrencyInUseTitle : accDict.deleteCurrencyTitle}
                         className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1 text-[11px] font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
                         {actionsDict.delete}

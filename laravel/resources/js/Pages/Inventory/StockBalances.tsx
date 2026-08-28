@@ -133,6 +133,8 @@ export default function StockBalances({ locale, balances, warehouses, filters }:
             <button
               type="button"
               onClick={applyFilter}
+              title={pageDict.applyFilter}
+              aria-label={pageDict.applyFilter}
               className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 text-xs font-bold text-white shadow-sm transition-all hover:opacity-90"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
@@ -144,6 +146,8 @@ export default function StockBalances({ locale, balances, warehouses, filters }:
               type="button"
               onClick={clearFilter}
               disabled={activeFilterCount === 0}
+              title={pageDict.clearFilter}
+              aria-label={pageDict.clearFilter}
               className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-xs font-bold text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--background)]"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
