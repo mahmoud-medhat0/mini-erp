@@ -68,6 +68,7 @@ export default function PayableAllocationsIndex({
   const canManagePayableAllocations = can('suppliers.allocations');
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
+  const [allocationError, setAllocationError] = useState<string | null>(null);
   const [reversingId, setReversingId] = useState<string | null>(null);
 
   const { post, transform, processing } = useForm({});
@@ -98,6 +99,7 @@ export default function PayableAllocationsIndex({
   };
 
   const handleAmountChange = (entryId: string, val: string) => {
+    setAllocationError(null);
     setAllocationAmounts((prev) => ({
       ...prev,
       [entryId]: val,
@@ -107,6 +109,10 @@ export default function PayableAllocationsIndex({
   const submitAllocation = (e: FormEvent) => {
     e.preventDefault();
     if (!selectedPayment) return;
+    if (!canManagePayableAllocations) {
+      setAllocationError(dict.app.actions.restricted);
+      return;
+    }
 
     const lines = Object.entries(allocationAmounts)
       .map(([payable_entry_id, val]) => {
@@ -119,7 +125,7 @@ export default function PayableAllocationsIndex({
       .filter((line) => line.amount_minor > 0);
 
     if (lines.length === 0) {
-      alert(dict.app.pages.payableAllocations.pleaseEnterAtLeastOneValid);
+      setAllocationError(dict.app.pages.payableAllocations.pleaseEnterAtLeastOneValid);
       return;
     }
 
@@ -132,6 +138,7 @@ export default function PayableAllocationsIndex({
       preserveScroll: true,
       onSuccess: () => {
         setAllocationAmounts({});
+        setAllocationError(null);
       },
     });
   };
@@ -263,6 +270,12 @@ export default function PayableAllocationsIndex({
                   </tbody>
                 </table>
               </div>
+
+              {allocationError ? (
+                <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-700 dark:text-red-300" role="alert">
+                  {allocationError}
+                </div>
+              ) : null}
 
               <div className="flex justify-end">
                 {canManagePayableAllocations ? (

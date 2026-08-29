@@ -5,6 +5,7 @@ import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatMoney, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { JournalLineRow, SharedPageProps } from '../../Types';
 
 type JournalDetailProps = SharedPageProps & {
@@ -32,6 +33,12 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const branchReportDict = dict.app.pages.branchOperationsReport;
+  const can = useCan();
+  const canPrintVoucher = can('reports.print');
+  const canSubmitJournal = can('accounting.submit');
+  const canApproveJournal = can('accounting.approve');
+  const canPostJournal = can('accounting.post') && can('view_financials');
+  const canReverseJournal = (can('accounting.reverse') || can('settings.configure')) && can('view_financials');
   const [showReverseModal, setShowReverseModal] = useState(false);
   const [showNumberModal, setShowNumberModal] = useState(false);
   const [reversalPeriodId, setReversalPeriodId] = useState(openPeriods[0]?.id ?? '');
@@ -87,7 +94,22 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
         description={`${accDict.createdOn} ${formatDate(journal.entry_date)} - ${dict.app.fields.status}: ${getStatusLabel(journal.status)}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {journal.status === 'draft' ? (
+            {canPrintVoucher ? (
+              <button
+                type="button"
+                onClick={() => window.print()}
+                title={dict.app.actions.printVoucher}
+                aria-label={dict.app.actions.printVoucher}
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>{dict.app.actions.printVoucher}</span>
+              </button>
+            ) : null}
+
+            {journal.status === 'draft' && canSubmitJournal ? (
               <button
                 type="button"
                 onClick={() => submitForm.post(`/accounting/journal/${journal.id}/submit`, { preserveScroll: true })}
@@ -100,7 +122,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </button>
             ) : null}
 
-            {inArray(journal.status, ['draft', 'submitted']) ? (
+            {inArray(journal.status, ['draft', 'submitted']) && canApproveJournal ? (
               <button
                 type="button"
                 onClick={() => approveForm.post(`/accounting/journal/${journal.id}/approve`, { preserveScroll: true })}
@@ -113,7 +135,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </button>
             ) : null}
 
-            {inArray(journal.status, ['draft', 'submitted', 'approved']) ? (
+            {inArray(journal.status, ['draft', 'submitted', 'approved']) && canPostJournal ? (
               <button
                 type="button"
                 onClick={handlePostJournal}
@@ -126,7 +148,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </button>
             ) : null}
 
-            {journal.status === 'posted' && !journal.reversalEntry ? (
+            {journal.status === 'posted' && !journal.reversalEntry && canReverseJournal ? (
               <button
                 type="button"
                 onClick={() => setShowReverseModal(!showReverseModal)}
@@ -362,8 +384,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               <th className={tableClasses.th}>{accDict.project}</th>
               <th className={tableClasses.th}>{accDict.costCenter}</th>
               <th className={tableClasses.th}>{accDict.lineMemo}</th>
-              <th className={`${tableClasses.th} text-right`}>{accDict.debitMinor}</th>
-              <th className={`${tableClasses.th} text-right`}>{accDict.creditMinor}</th>
+              <th className={`${tableClasses.th} text-end`}>{accDict.debitMinor}</th>
+              <th className={`${tableClasses.th} text-end`}>{accDict.creditMinor}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -400,10 +422,10 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 <td className={tableClasses.td}>
                   <span className="text-xs text-[var(--text-secondary)]">{line.memo || accDict.notAvailable}</span>
                 </td>
-                <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
+                <td className={`${tableClasses.td} text-end font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
                   {line.debit_minor > 0 ? formatMoney(line.debit_minor, journal.currency) : accDict.notAvailable}
                 </td>
-                <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400`}>
+                <td className={`${tableClasses.td} text-end font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400`}>
                   {line.credit_minor > 0 ? formatMoney(line.credit_minor, journal.currency) : accDict.notAvailable}
                 </td>
               </tr>
@@ -411,9 +433,9 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           </tbody>
           <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
             <tr>
-              <td colSpan={7} className="p-3 text-right">{accDict.totalLabel}</td>
-              <td className="p-3 text-right font-mono text-blue-600 dark:text-blue-400">{formatMoney(totalDebit, journal.currency)}</td>
-              <td className="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatMoney(totalCredit, journal.currency)}</td>
+              <td colSpan={7} className="p-3 text-end">{accDict.totalLabel}</td>
+              <td className="p-3 text-end font-mono text-blue-600 dark:text-blue-400">{formatMoney(totalDebit, journal.currency)}</td>
+              <td className="p-3 text-end font-mono text-emerald-600 dark:text-emerald-400">{formatMoney(totalCredit, journal.currency)}</td>
             </tr>
           </tfoot>
         </table>

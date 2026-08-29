@@ -3,6 +3,50 @@
 > **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
+### Added - Phase 20 Slice 4 Final Hands-On Acceptance Close-Out (2026-08-29)
+
+- Executed complete verification gate across migrations, Pint code style, `Phase20HandsOnAcceptanceTest` (14 tests / 289 assertions), `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), Concurrency testsuite (7 tests / 16 assertions), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and all source scans (anti-tenancy, unsafe UI controls, browser alerts, raw secrets). Over 29,100 regression assertions verified with zero failures.
+- Verified zero occurrences of unsafe HTML rendering (`dangerouslySetInnerHTML`), native `<select>`, native `<option>`, native `type="date"`, `window.location.href`, or browser `alert()` calls across all React pages and components.
+- Verified zero multi-tenant database columns or scope assumptions across schema, models, routes, and controllers.
+- Verified zero hardcoded credentials, API keys, bot tokens, or AWS secrets in Phase 20 documents, acceptance defect log, execution scripts, seeders, and test files.
+- Confirmed all 10 items in `PRODUCT_ACCEPTANCE_DEFECT_LOG.md` are resolved and verified as `Retest Passed` with 0 open defects.
+- Created `PHASE_20_FINAL_VERIFICATION_REPORT.md` and marked Phase 20 100% COMPLETE. Deployment remains parked.
+
+
+### Added - Phase 20 Slice 3 Validation Feedback, Permissions Clarity, and Action Availability (2026-08-29)
+
+- Tightened acceptance workflow action clarity across accountant-facing screens:
+  - Replaced AR/AP settlement browser alerts with inline localized feedback and routed settlement reversals through shared `SensitiveActionModal` with reason-required confirmation.
+  - Added submit permission guards for receivable and payable settlement actions.
+  - Replaced Financial Statement Mapping browser alerts with inline `pageError` feedback.
+  - Removed remaining browser alerts from AR/AP allocation pages and user self-delete feedback, replacing them with inline localized feedback.
+  - Made Chart of Accounts, Account Mappings, and Sales Returns primary actions permission-aware and clearer for restricted users.
+  - Fixed TypeScript-safe Sales Return line validation display through `formErrors.lines` while preserving localized error rendering.
+- Extended `Phase20HandsOnAcceptanceTest` to 14 tests / 289 assertions, including regression coverage for inline validation feedback, permission-aware action visibility, and confirmation-backed sensitive actions.
+- Verified Pint, TypeScript typecheck, global frontend alert scan, and financial Print/Export permission-pattern scan. Final broad gate remains assigned to Slice 4.
+- Created `PHASE_20_SLICE_3_REPORT.md`.
+
+### Added - Phase 20 Slice 2 Accountant-Facing UX Friction Cleanup (2026-08-29)
+
+- Resolved usability friction across accountant-facing financial and subledger pages:
+  - Added `<PaginationControls links={journals.links} />` beneath the General Journal vouchers table (`GeneralJournal.tsx`) and enhanced `EmptyState` primitive with optional primary action button support.
+  - Surfaced field validation errors directly beneath inputs in Chart of Accounts (`ChartOfAccounts.tsx`) for immediate localized error feedback on group and account modal forms.
+  - Resolved Cheque Register (`ChequeRegister.tsx`) friction: removed duplicate bank selector, added missing date range pickers (`dateFrom`, `dateTo`), localized status options and badges (`statusCleared`, `statusBounced`, `statusReturned`), added Filter Reset button, and added permission-aware Print/Export header actions.
+  - Replaced hardcoded directional CSS classes (`text-left`, `text-right`) with logical classes (`text-start` for labels, `text-end` for amounts and debits/credits) across all subledger and report pages (`JournalDetail.tsx`, `TrialBalance.tsx`, `OpeningBalances.tsx`, `GeneralLedger.tsx`, `ArGlReconciliation.tsx`, `ApGlReconciliation.tsx`, `VatGlReconciliation.tsx`, `VatRegister.tsx`, `VatSummary.tsx`, `CustomerStatement.tsx`, `SupplierStatement.tsx`, `CashBook.tsx`, `BankBook.tsx`, `ArAging.tsx`, `ApAging.tsx`, `BankReconciliation.tsx`, `BankReconciliationDetail.tsx`).
+  - Added Filter Reset buttons and permission-aware Print/Export actions across subledger and report pages.
+- Maintained 100% bilingual parity across `laravel/resources/js/locales/en.json` and `laravel/resources/js/locales/ar.json` with zero missing keys.
+- Extended `Phase20HandsOnAcceptanceTest` with 5 new feature test methods (13 tests / 267 assertions total) validating clean page rendering, paginator contract, dictionary parity, zero unsafe frontend controls, and complete financial Print/Export permission gates.
+- Updated `PRODUCT_ACCEPTANCE_DEFECT_LOG.md` registering items `DEF-UX-001` through `DEF-UX-005` as Retest Passed with zero open defects.
+- Executed verification gate: Pint passed, `Phase20HandsOnAcceptanceTest` (13 tests / 267 assertions passed), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions passed), `Phase15ProductHardeningTest` (192 tests / 26116 assertions passed), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build (0 errors).
+- Created `PHASE_20_SLICE_2_REPORT.md`.
+
+### Added - Phase 20 Slice 1 Defect Register and Walkthrough Baseline (2026-08-29)
+
+- Created reusable acceptance defect register `PRODUCT_ACCEPTANCE_DEFECT_LOG.md` in repository root with bilingual (Arabic/English) purpose, four severity definitions (Blocker, High, Medium, Low), six lifecycle status definitions (New, Confirmed, Fixed, Retest Passed, Deferred, Rejected), standardized 15-column defect register table template, baseline metrics, and formal deployment parking policy.
+- Implemented `Phase20HandsOnAcceptanceTest` in `laravel/tests/Feature/Phase20HandsOnAcceptanceTest.php` with 8 automated test methods (180 assertions) validating defect log schema, execution script integrity, seeder master data, walkthrough route accessibility for Super Admin, RBAC persona boundaries, guest redirection, anti-tenancy compliance, and secret cleanliness.
+- Executed verification gate: Pint code style passed, `Phase20HandsOnAcceptanceTest` (8 tests / 180 assertions passed), `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions passed), strict route authorization audit (457 routes scanned, 0 failing), and TypeScript typecheck (0 errors).
+- Created `PHASE_20_SLICE_1_REPORT.md`.
+
 ### Added - Phase 19 Slice 4 Final Accountant Acceptance Close-Out (2026-08-29)
 
 - Executed complete verification gate across migrations, Pint code style, `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions passed), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions passed), `SecurityHardeningTest` (38 tests / 969 assertions passed), `Phase15ProductHardeningTest` (192 tests / 26116 assertions passed), Concurrency testsuite (7 tests / 16 assertions passed), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and all source scans (anti-tenancy, unsafe UI controls, secrets).

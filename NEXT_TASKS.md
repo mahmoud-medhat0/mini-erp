@@ -5,22 +5,31 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 19 - Accountant Acceptance Execution and Gap Closure (COMPLETE - `PHASE_19_FINAL_VERIFICATION_REPORT.md`). Phase 18 is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 is COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
+Current status: Phase 20 - Hands-On Acceptance and Defect Closure (100% COMPLETE - `PHASE_20_FINAL_VERIFICATION_REPORT.md`). Phase 19 is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Phase 18 is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 is COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 19 Slice 4 (Final Accountant Acceptance Close-Out) is COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Executed complete verification gate across migrations, Pint code style, `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions passed), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions passed), `SecurityHardeningTest` (38 tests / 969 assertions passed), `Phase15ProductHardeningTest` (192 tests / 26116 assertions passed), Concurrency suite (7 tests / 16 assertions passed), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans (anti-tenancy, unsafe UI controls, secrets).
+Latest update: Phase 20 Slice 4 (Final Hands-On Acceptance Close-Out) is COMPLETE (`PHASE_20_FINAL_VERIFICATION_REPORT.md`). All 12 verification commands passed cleanly: Pint, `Phase20HandsOnAcceptanceTest` (14 tests / 289 assertions), `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), Concurrency testsuite (7 tests / 16 assertions), strict route security audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans (0 unsafe UI controls, 0 browser alerts, 0 tenancy leaks, 0 secret exposures).
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Milestones & Future Options
 
-- Phase 19 (Accountant Acceptance Execution and Gap Closure) is 100% COMPLETE:
-  - **Slice 1 COMPLETE**: Accountant acceptance data pack and idempotent seeder (`PHASE_19_SLICE_1_REPORT.md`).
-  - **Slice 2 COMPLETE**: End-to-end accountant workflow tests for P2P, O2C, inventory, VAT, returns, settlements, reports (`PHASE_19_SLICE_2_REPORT.md`).
-  - **Slice 3 COMPLETE**: Role/persona acceptance tests and execution scripts (`PHASE_19_SLICE_3_REPORT.md`).
-  - **Slice 4 COMPLETE**: Final Phase 19 close-out report, docs sync, and verification (`PHASE_19_FINAL_VERIFICATION_REPORT.md`).
+- Phase 20 (Hands-On Acceptance and Defect Closure) is 100% COMPLETE:
+  - **Slice 1 COMPLETE**: Defect register & walkthrough baseline (`PHASE_20_SLICE_1_REPORT.md`).
+  - **Slice 2 COMPLETE**: Accountant-facing UX friction and financial inspection (`PHASE_20_SLICE_2_REPORT.md`).
+  - **Slice 3 COMPLETE**: Validation feedback, permissions clarity, and action availability (`PHASE_20_SLICE_3_REPORT.md`).
+  - **Slice 4 COMPLETE**: Final Phase 20 close-out report, docs sync, and verification (`PHASE_20_FINAL_VERIFICATION_REPORT.md`).
+- Phase 19 (Accountant Acceptance Execution and Gap Closure) is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`).
 - Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`).
 - Phase 17 (Security and Access Governance) is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`).
-- Next immediate task: Owner/accountant hands-on sign-off using `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md` and `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`, or explicitly approved next product phase. Deployment remains parked.
+- Next immediate task: Owner and accountant hands-on sign-off using `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md`, `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`, and `PRODUCT_ACCEPTANCE_DEFECT_LOG.md`, or explicitly approved next product phase. Deployment remains parked.
+
+## Phase 20 Hands-On Acceptance and Defect Closure
+
+- **Master plan COMPLETE**: `PHASE_20_HANDS_ON_ACCEPTANCE_DEFECT_CLOSURE.md`.
+- **Slice 1 COMPLETE**: defect register & walkthrough baseline (`PHASE_20_SLICE_1_REPORT.md`).
+- **Slice 2 COMPLETE**: accountant-facing UX friction and financial inspection (`PHASE_20_SLICE_2_REPORT.md`).
+- **Slice 3 COMPLETE**: validation feedback, permissions clarity, and action availability (`PHASE_20_SLICE_3_REPORT.md`).
+- **Slice 4 COMPLETE**: final Phase 20 close-out report and verification (`PHASE_20_FINAL_VERIFICATION_REPORT.md`).
 
 ## Phase 19 Accountant Acceptance Execution and Gap Closure
 

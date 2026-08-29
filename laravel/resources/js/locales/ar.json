@@ -106,7 +106,8 @@
       "numberDetails": "تفاصيل الرقم",
       "sequenceDetails": "تفاصيل التسلسل",
       "exportCsv": "تصدير CSV",
-      "printReport": "طباعة التقرير"
+      "printReport": "طباعة التقرير",
+      "printVoucher": "طباعة السند"
     },
     "nav": {
       "dashboard": "لوحة التحكم",
@@ -807,6 +808,9 @@
       "statusReceived": "مستلمة",
       "statusDeposited": "مودعة",
       "statusIssued": "مصدر",
+      "statusCleared": "محصلة/مصروفة",
+      "statusBounced": "مرتدة",
+      "statusReturned": "معادة",
       "statusInProgress": "قيد التنفيذ",
       "statusUnknown": "غير معروفة",
       "checkingReadiness": "جاري التحقق من جاهزية الإغلاق...",

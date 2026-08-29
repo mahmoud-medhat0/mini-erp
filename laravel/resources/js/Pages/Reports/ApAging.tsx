@@ -5,6 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
 
@@ -51,17 +52,30 @@ type ApAgingProps = SharedPageProps & {
 
 export default function ApAging({ locale, report, suppliers, currencies, filters }: ApAgingProps) {
   const dict = getDictionary(locale);
+  const actionsDict = dict.app.actions;
+  const can = useCan();
+  const canExport = can('reports.export') && can('view_financials');
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date);
   const [supplierId, setSupplierId] = useState(filters.supplier_id || '');
   const [currency, setCurrency] = useState(filters.currency);
+
+  const hasActiveFilters = Boolean(supplierId || asOfDate !== filters.as_of_date);
 
   const handleFilter = () => {
     router.get('/reports/ap-aging', {
       as_of_date: asOfDate,
       supplier_id: supplierId,
       currency,
-    });
+    }, { preserveScroll: true });
+  };
+
+  const handleReset = () => {
+    setSupplierId('');
+    router.get('/reports/ap-aging', {
+      currency,
+    }, { preserveScroll: true });
   };
 
   const handleExport = () => {
@@ -77,9 +91,18 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
         title={dict.app.pages.reportsApAging.apAgingReport}
         description={dict.app.pages.reportsApAging.analysisOfOutstandingSupplierPayablesGrouped}
         actions={
-          <Button variant="secondary" onClick={handleExport}>
-            {dict.app.pages.reportsApAging.exportCsv}
-          </Button>
+          <div className="flex items-center gap-2">
+            {canPrint ? (
+              <Button variant="secondary" onClick={() => window.print()}>
+                {actionsDict.printReport}
+              </Button>
+            ) : null}
+            {canExport ? (
+              <Button variant="secondary" onClick={handleExport}>
+                {dict.app.pages.reportsApAging.exportCsv}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -115,9 +138,18 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
                 onChange={(val) => setCurrency(val || '')}
               />
             </div>
-            <div>
-              <Button onClick={handleFilter} className="w-full">
+            <div className="flex items-center gap-2">
+              <Button onClick={handleFilter} className="flex-1">
                 {dict.app.pages.reportsApAging.viewReport}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleReset}
+                disabled={!hasActiveFilters}
+                title={actionsDict.reset}
+                aria-label={actionsDict.reset}
+              >
+                {actionsDict.reset}
               </Button>
             </div>
           </div>
@@ -163,13 +195,13 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
         </div>
 
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-start text-xs">
             <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.supplier_2}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.reference}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.entryDate}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.agingBasis}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.supplier_2}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.reference}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.entryDate}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.agingBasis}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.current_2}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">1-30</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">31-60</th>

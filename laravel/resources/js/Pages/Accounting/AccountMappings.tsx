@@ -5,6 +5,7 @@ import AppLayout from '../../Components/AppLayout';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
@@ -54,6 +55,8 @@ function toMappingScope(value: string | null): MappingScope {
 export default function AccountMappings({ locale, mappingKeys, mappings, accounts, branches }: AccountMappingsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const can = useCan();
+  const canManageMappings = can('accounting.mappings') || can('settings.configure');
   const mappingKeyLabels = accDict.mappingKeys as Record<string, string>;
   const [scope, setScope] = useState<MappingScope>('global');
 
@@ -201,7 +204,7 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
               error={form.errors.account_id}
             />
 
-            <Button type="submit" disabled={form.processing || !form.data.key || !form.data.account_id || (scope === 'branch' && !form.data.branch_id)}>
+            <Button type="submit" disabled={!canManageMappings || form.processing || !form.data.key || !form.data.account_id || (scope === 'branch' && !form.data.branch_id)}>
               {form.processing ? accDict.saving : accDict.saveMapping}
             </Button>
 
@@ -270,9 +273,13 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
                     </td>
                     <td className={tableClasses.td}>
                       {mapping.branch_id ? (
-                        <Button type="button" variant="danger" onClick={() => deleteMapping(mapping)}>
-                          {accDict.delete}
-                        </Button>
+                        canManageMappings ? (
+                          <Button type="button" variant="danger" onClick={() => deleteMapping(mapping)}>
+                            {accDict.delete}
+                          </Button>
+                        ) : (
+                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                        )
                       ) : (
                         <span className="text-xs font-semibold text-[var(--text-muted)]">{accDict.protectedGlobalMapping}</span>
                       )}

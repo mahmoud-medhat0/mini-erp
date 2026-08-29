@@ -172,6 +172,7 @@ export default function SalesReturnsIndex({
     notes: '',
     lock_version: 1,
   });
+  const formErrors = errors as Record<string, string | undefined>;
 
   const getProductName = (prod?: { code: string; name: ProductName } | null): string => {
     if (!prod) return '';
@@ -475,7 +476,7 @@ export default function SalesReturnsIndex({
         title={dict.app.pages.salesSalesReturns.salesReturns_2}
         description={dict.app.pages.salesSalesReturns.manageCustomerSalesReturnsAndRestock}
         actions={
-          can('sales.create') ? (
+          canManageSalesReturns ? (
             <button
               type="button"
               onClick={openCreateModal}
@@ -757,6 +758,9 @@ export default function SalesReturnsIndex({
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">{dict.app.pages.salesSalesReturns.returnLines}</h4>
                 </div>
+                {formErrors.lines ? (
+                  <p className="text-xs text-red-500 mb-2 font-medium">{formErrors.lines}</p>
+                ) : null}
 
                 {lineItems.length === 0 ? (
                   <p className="text-xs text-[var(--text-muted)]">
@@ -852,6 +856,9 @@ export default function SalesReturnsIndex({
                   maxLength={255}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none resize-none"
                 />
+                {errors.reason ? (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{errors.reason}</p>
+                ) : null}
               </div>
 
               <div>

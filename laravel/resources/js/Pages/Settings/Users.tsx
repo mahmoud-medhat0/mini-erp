@@ -831,13 +831,15 @@ function DeleteUserButton({
 }) {
   const { delete: destroy, processing } = useForm({});
   const isSelf = String(userId) === String(currentUserId);
+  const [selfDeleteMessage, setSelfDeleteMessage] = useState<string | null>(isSelf ? dict.app.messages.cannotDeleteSelf : null);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSelf) {
-      alert(dict.app.messages.cannotDeleteSelf);
+      setSelfDeleteMessage(dict.app.messages.cannotDeleteSelf);
       return;
     }
+    setSelfDeleteMessage(null);
     const msg = dict.app.messages.confirmDeleteUser.replace('{name}', userName);
     if (confirm(msg)) {
       destroy(`/settings/users/${userId}`, { preserveScroll: true });
@@ -845,19 +847,26 @@ function DeleteUserButton({
   }
 
   return (
-    <form onSubmit={submit} className="inline-flex">
-      <button
-        type="submit"
-        disabled={processing || isSelf}
-        title={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
-        aria-label={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
-        className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
-    </form>
+    <div className="inline-flex flex-col items-end gap-1">
+      <form onSubmit={submit} className="inline-flex">
+        <button
+          type="submit"
+          disabled={processing || isSelf}
+          title={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
+          aria-label={isSelf ? dict.app.messages.cannotDeleteSelf : dict.app.actions.deleteUser}
+          className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </form>
+      {selfDeleteMessage ? (
+        <span className="max-w-36 text-end text-[10px] font-semibold text-amber-600 dark:text-amber-300" role="status">
+          {selfDeleteMessage}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

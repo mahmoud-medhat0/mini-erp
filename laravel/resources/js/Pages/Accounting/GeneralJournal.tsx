@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatDate } from '../../lib/accountingHelpers';
+import { Card, EmptyState, PageHeader, PaginationControls, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { formatPeriodLabel, formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { PaginationLink, JournalRow, SharedPageProps } from '../../Types';
 
 type GeneralJournalProps = SharedPageProps & {
@@ -18,6 +19,8 @@ type GeneralJournalProps = SharedPageProps & {
 export default function GeneralJournal({ locale, journals, periods = [], filters }: GeneralJournalProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const can = useCan();
+  const canCreateVoucher = can('accounting.create');
 
   const getStatusLabel = (status: string) => {
     const s = status.toLowerCase();
@@ -51,17 +54,19 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
         title={accDict.journal}
         description={accDict.journalDesc}
         actions={
-          <Link
-            href="/accounting/journal/create"
-            title={accDict.createVoucher}
-            aria-label={accDict.createVoucher}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-          >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>{accDict.createVoucher}</span>
-          </Link>
+          canCreateVoucher ? (
+            <Link
+              href="/accounting/journal/create"
+              title={accDict.createVoucher}
+              aria-label={accDict.createVoucher}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>{accDict.createVoucher}</span>
+            </Link>
+          ) : null
         }
       />
 
@@ -172,73 +177,91 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
         <EmptyState
           title={accDict.noJournals}
           description={accDict.noJournalsDesc}
+          action={
+            canCreateVoucher ? (
+              <Link
+                href="/accounting/journal/create"
+                title={accDict.createVoucher}
+                aria-label={accDict.createVoucher}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>{accDict.createVoucher}</span>
+              </Link>
+            ) : undefined
+          }
         />
       ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{accDict.voucherNumber}</th>
-                <th className={tableClasses.th}>{accDict.entryDate}</th>
-                <th className={tableClasses.th}>{accDict.description}</th>
-                <th className={tableClasses.th}>{accDict.reference}</th>
-                <th className={tableClasses.th}>{dict.app.fields.status}</th>
-                <th className={tableClasses.th}>{accDict.createdBy}</th>
-                <th className={tableClasses.th} />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {journals.data.map((j) => (
-                <tr key={j.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={tableClasses.td}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedJournal(j)}
-                      className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-                      title={dict.app.actions.numberDetails}
-                    >
-                      <svg className="size-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <span>{j.number ? j.number : accDict.draftBadge}</span>
-                    </button>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(j.entry_date)}</span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="font-bold text-xs text-[var(--text-primary)]">
-                      {j.description || accDict.manualJournal}
-                    </span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="font-mono text-xs text-[var(--text-secondary)]">{j.reference || accDict.notAvailable}</span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
-                      {getStatusLabel(j.status)}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="text-xs text-[var(--text-secondary)]">{j.createdBy?.name || accDict.systemActor}</span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <Link
-                      href={`/accounting/journal/${j.id}`}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-[var(--background)] transition-colors inline-flex items-center gap-1"
-                    >
-                      <span>{accDict.viewDetail}</span>
-                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </td>
+        <>
+          <div className={tableClasses.wrap}>
+            <table className={tableClasses.table}>
+              <thead>
+                <tr>
+                  <th className={tableClasses.th}>{accDict.voucherNumber}</th>
+                  <th className={tableClasses.th}>{accDict.entryDate}</th>
+                  <th className={tableClasses.th}>{accDict.description}</th>
+                  <th className={tableClasses.th}>{accDict.reference}</th>
+                  <th className={tableClasses.th}>{dict.app.fields.status}</th>
+                  <th className={tableClasses.th}>{accDict.createdBy}</th>
+                  <th className={tableClasses.th} />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {journals.data.map((j) => (
+                  <tr key={j.id} className="hover:bg-[var(--background)]/50 transition-colors">
+                    <td className={tableClasses.td}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedJournal(j)}
+                        className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                        title={dict.app.actions.numberDetails}
+                      >
+                        <svg className="size-3 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span>{j.number ? j.number : accDict.draftBadge}</span>
+                      </button>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="font-mono text-xs text-[var(--text-primary)]">{formatDate(j.entry_date)}</span>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="font-bold text-xs text-[var(--text-primary)]">
+                        {j.description || accDict.manualJournal}
+                      </span>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="font-mono text-xs text-[var(--text-secondary)]">{j.reference || accDict.notAvailable}</span>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
+                        {getStatusLabel(j.status)}
+                      </StatusBadge>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <span className="text-xs text-[var(--text-secondary)]">{j.createdBy?.name || accDict.systemActor}</span>
+                    </td>
+                    <td className={tableClasses.td}>
+                      <Link
+                        href={`/accounting/journal/${j.id}`}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-[var(--background)] transition-colors inline-flex items-center gap-1"
+                      >
+                        <span>{accDict.viewDetail}</span>
+                        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PaginationControls links={journals.links} />
+        </>
       )}
     </AppLayout>
   );

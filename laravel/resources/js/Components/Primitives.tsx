@@ -132,11 +132,20 @@ export function Button({
   );
 }
 
-export function EmptyState({ title, description }: { title: string; description?: string }) {
+export function EmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--surface)] px-5 py-10 text-center">
       <h2 className="m-0 text-base font-semibold text-[var(--text-primary)]">{title}</h2>
       {description ? <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--text-secondary)]">{description}</p> : null}
+      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
     </div>
   );
 }

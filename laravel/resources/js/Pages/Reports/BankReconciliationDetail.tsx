@@ -1,7 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader } from '../../Components/Primitives';
+import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary, interpolate } from '../../lib/i18n';
 
@@ -52,6 +53,8 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const can = useCan();
+  const canPrint = can('reports.print') && can('view_financials');
   const { reconciliation, summary } = detail;
 
   return (
@@ -62,9 +65,16 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
         title={interpolate(dict.app.pages.bankReconciliationDetail.reportTitle, { ref: reconciliation.statement_reference })}
         description={`${reconciliation.bank_account.code} - ${reconciliation.bank_account.name} (${reconciliation.date_from} → ${reconciliation.date_to})`}
         actions={
-          <Link href="/reports/bank-reconciliations" className="inline-flex items-center text-xs font-bold text-[var(--primary)] hover:underline">
-            {dict.app.pages.reportsBankReconciliationDetail.backToList}
-          </Link>
+          <div className="flex items-center gap-3">
+            {canPrint ? (
+              <Button variant="secondary" onClick={() => window.print()}>
+                {dict.app.actions.printReport}
+              </Button>
+            ) : null}
+            <Link href="/reports/bank-reconciliations" className="inline-flex items-center text-xs font-bold text-[var(--primary)] hover:underline">
+              {dict.app.pages.reportsBankReconciliationDetail.backToList}
+            </Link>
+          </div>
         }
       />
 
@@ -106,13 +116,13 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
             {dict.app.pages.reportsBankReconciliationDetail.bankStatementLinesMatchedSystemEntries}
           </div>
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-start text-xs">
             <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementDate}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.refDescription}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementDate}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.refDescription}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementAmount}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.matchedGlEntry}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.matchedGlEntry}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.glAmount}</th>
               </tr>
             </thead>

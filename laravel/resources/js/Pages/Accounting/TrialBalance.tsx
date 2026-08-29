@@ -1,9 +1,10 @@
 import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { AccountingAmount, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatAccountingAmount, getAccountTypeLabel, getLocalizedName, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps, TbRow } from '../../Types';
 
 type TrialBalanceProps = SharedPageProps & {
@@ -21,7 +22,12 @@ type TrialBalanceProps = SharedPageProps & {
 export default function TrialBalance({ locale, rows = [], totals, periods = [], filters, displayCurrency }: TrialBalanceProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
+  const can = useCan();
+  const canPrint = can('reports.print') && can('view_financials');
+
   const [periodId, setPeriodId] = useState(filters.period_id ?? '');
+  const hasActiveFilter = Boolean(periodId);
 
   const periodSelectOptions = [
     { value: '', label: accDict.allPeriodsCumulative },
@@ -37,6 +43,15 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
     }, { preserveScroll: true });
   }
 
+  function resetFilters() {
+    setPeriodId('');
+    router.get('/accounting/trial-balance', {}, { preserveScroll: true });
+  }
+
+  function handlePrint() {
+    window.print();
+  }
+
   return (
     <AppLayout active="accounting.trial_balance">
       <Head title={accDict.trialBalance} />
@@ -44,6 +59,22 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
       <PageHeader
         title={accDict.trialBalance}
         description={accDict.trialBalanceDesc}
+        actions={
+          canPrint ? (
+            <button
+              type="button"
+              onClick={handlePrint}
+              title={actionsDict.printReport}
+              aria-label={actionsDict.printReport}
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>{actionsDict.printReport}</span>
+            </button>
+          ) : undefined
+        }
       />
 
       <Card className="p-4 mb-6">
@@ -59,15 +90,27 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
             />
           </div>
 
-          <button
-            type="button"
-            onClick={applyFilter}
-            title={accDict.generateTrialBalance}
-            aria-label={accDict.generateTrialBalance}
-            className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-          >
-            {accDict.generateTrialBalance}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={applyFilter}
+              title={accDict.generateTrialBalance}
+              aria-label={accDict.generateTrialBalance}
+              className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+            >
+              {accDict.generateTrialBalance}
+            </button>
+            <Button
+              variant="secondary"
+              onClick={resetFilters}
+              disabled={!hasActiveFilter}
+              title={actionsDict.reset}
+              aria-label={actionsDict.reset}
+              className="px-4 py-2.5"
+            >
+              {actionsDict.reset}
+            </Button>
+          </div>
         </div>
       </Card>
 

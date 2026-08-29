@@ -5,6 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
 
@@ -34,11 +35,17 @@ type SupplierStatementProps = SharedPageProps & {
 export default function SupplierStatement({ locale, report, suppliers, currencies, filters }: SupplierStatementProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
+  const can = useCan();
+  const canExport = can('reports.export') && can('view_financials');
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [supplierId, setSupplierId] = useState(filters.supplier_id || '');
   const [dateFrom, setDateFrom] = useState(filters.date_from);
   const [dateTo, setDateTo] = useState(filters.date_to);
   const [currency, setCurrency] = useState(filters.currency);
+
+  const hasActiveFilters = Boolean(supplierId || dateFrom || dateTo);
 
   const handleFilter = () => {
     router.get('/reports/supplier-statement', {
@@ -46,7 +53,14 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
       date_from: dateFrom,
       date_to: dateTo,
       currency,
-    });
+    }, { preserveScroll: true });
+  };
+
+  const handleReset = () => {
+    setSupplierId('');
+    router.get('/reports/supplier-statement', {
+      currency,
+    }, { preserveScroll: true });
   };
 
   const handleExport = () => {
@@ -64,9 +78,18 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
         description={dict.app.pages.reportsSupplierStatement.detailedSubledgerStatementShowingOpeningBalance}
         actions={
           report ? (
-            <Button variant="secondary" onClick={handleExport}>
-              {dict.app.pages.reportsSupplierStatement.exportCsv}
-            </Button>
+            <div className="flex items-center gap-2">
+              {canPrint ? (
+                <Button variant="secondary" onClick={() => window.print()}>
+                  {actionsDict.printReport}
+                </Button>
+              ) : null}
+              {canExport ? (
+                <Button variant="secondary" onClick={handleExport}>
+                  {dict.app.pages.reportsSupplierStatement.exportCsv}
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
       />
@@ -97,9 +120,18 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
               </label>
               <DatePicker value={dateTo} onChange={(val) => setDateTo(val || '')} />
             </div>
-            <div>
-              <Button onClick={handleFilter} className="w-full">
+            <div className="flex items-center gap-2">
+              <Button onClick={handleFilter} className="flex-1">
                 {dict.app.pages.reportsSupplierStatement.viewReport}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleReset}
+                disabled={!hasActiveFilters}
+                title={actionsDict.reset}
+                aria-label={actionsDict.reset}
+              >
+                {actionsDict.reset}
               </Button>
             </div>
           </div>
@@ -135,13 +167,13 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
             </div>
 
             <Card className="overflow-hidden p-0">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-start text-xs">
                 <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
                   <tr>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.date}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.type}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.reference}</th>
-                    <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.description}</th>
+                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.date}</th>
+                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.type}</th>
+                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.reference}</th>
+                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.description}</th>
                     <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.debitPayment}</th>
                     <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.creditIncrease}</th>
                     <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsSupplierStatement.runningBalance}</th>

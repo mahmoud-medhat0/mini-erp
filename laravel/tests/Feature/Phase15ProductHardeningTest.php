@@ -3643,10 +3643,12 @@ class Phase15ProductHardeningTest extends TestCase
             'Sales/ReceivableSettlements.tsx' => [
                 'backTitle' => 'title={pageDict.backToCreditNotes}',
                 'backAria' => 'aria-label={pageDict.backToCreditNotes}',
+                'confirmCode' => 'confirmCode="REVERSE_RECEIVABLE_SETTLEMENT"',
             ],
             'Purchasing/PayableSettlements.tsx' => [
                 'backTitle' => 'title={pageDict.backToAdjustmentNotes}',
                 'backAria' => 'aria-label={pageDict.backToAdjustmentNotes}',
+                'confirmCode' => 'confirmCode="REVERSE_PAYABLE_SETTLEMENT"',
             ],
         ] as $relativePath => $case) {
             $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
@@ -3658,11 +3660,10 @@ class Phase15ProductHardeningTest extends TestCase
                 'aria-label={pageDict.confirmSettlement}',
                 'title={pageDict.reverse}',
                 'aria-label={pageDict.reverse}',
-                'title={pageDict.cancel}',
-                'aria-label={pageDict.cancel}',
-                'title={pageDict.confirmReversal}',
-                'aria-label={pageDict.confirmReversal}',
-                '{ preserveScroll: true }',
+                'SensitiveActionModal',
+                $case['confirmCode'],
+                'reasonRequired={true}',
+                'preserveScroll: true',
             ] as $fragment) {
                 $this->assertStringContainsString($fragment, $source, "{$relativePath} settlement actions must expose stable accessible names.");
             }

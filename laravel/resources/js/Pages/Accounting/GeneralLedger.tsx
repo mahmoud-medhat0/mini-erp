@@ -3,6 +3,7 @@ import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
 import { formatAccountingAmount, formatDate, formatPeriodLabel } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import { getDictionary } from '../../lib/i18n';
 import type { LedgerRow, SharedPageProps } from '../../Types';
 
@@ -26,6 +27,8 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], b
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const branchReportDict = dict.app.pages.branchOperationsReport;
+  const can = useCan();
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [accountId, setAccountId] = useState(filters.account_id ?? '');
   const [periodId, setPeriodId] = useState(filters.period_id ?? '');
@@ -68,14 +71,14 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], b
       account_id: accountId || undefined,
       period_id: periodId || undefined,
       branch_id: branchId || undefined,
-    });
+    }, { preserveScroll: true });
   }
 
   function resetFilters() {
     setAccountId('');
     setPeriodId('');
     setBranchId('');
-    router.get('/accounting/ledger');
+    router.get('/accounting/ledger', {}, { preserveScroll: true });
   }
 
   return (
@@ -85,6 +88,13 @@ export default function GeneralLedger({ locale, ledger, totals, accounts = [], b
       <PageHeader
         title={accDict.ledger}
         description={accDict.ledgerDesc}
+        actions={
+          canPrint ? (
+            <Button variant="secondary" onClick={() => window.print()}>
+              {dict.app.actions.printReport}
+            </Button>
+          ) : undefined
+        }
       />
 
       <Card className="p-4 mb-6">

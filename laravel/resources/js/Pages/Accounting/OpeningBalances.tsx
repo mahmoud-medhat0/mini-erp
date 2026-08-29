@@ -206,10 +206,10 @@ export default function OpeningBalances({
                   <th className={tableClasses.th}>{accDict.accountCode}</th>
                   <th className={tableClasses.th}>{accDict.accountName}</th>
                   <th className={tableClasses.th}>{accDict.typeAndNature}</th>
-                  <th className={`${tableClasses.th} text-right`}>
+                  <th className={`${tableClasses.th} text-end`}>
                     {accDict.openingDebitMinor}
                   </th>
-                  <th className={`${tableClasses.th} text-right`}>
+                  <th className={`${tableClasses.th} text-end`}>
                     {accDict.openingCreditMinor}
                   </th>
                 </tr>
@@ -230,24 +230,24 @@ export default function OpeningBalances({
                           {getAccountTypeLabel(acc.type, locale)} ({getAccountNatureLabel(acc.nature, locale)})
                         </span>
                       </td>
-                      <td className={`${tableClasses.td} text-right`}>
+                      <td className={`${tableClasses.td} text-end`}>
                         <input
                           type="number"
                           min="0"
                           disabled={isAlreadyPosted}
                           value={bal.debit_minor}
                           onChange={(e) => updateBalance(acc.id, 'debit_minor', parseInt(e.target.value) || 0)}
-                          className="w-36 text-right rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
+                          className="w-36 text-end rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
                         />
                       </td>
-                      <td className={`${tableClasses.td} text-right`}>
+                      <td className={`${tableClasses.td} text-end`}>
                         <input
                           type="number"
                           min="0"
                           disabled={isAlreadyPosted}
                           value={bal.credit_minor}
                           onChange={(e) => updateBalance(acc.id, 'credit_minor', parseInt(e.target.value) || 0)}
-                          className="w-36 text-right rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
+                          className="w-36 text-end rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 font-mono text-xs text-[var(--text-primary)] disabled:opacity-50"
                         />
                       </td>
                     </tr>

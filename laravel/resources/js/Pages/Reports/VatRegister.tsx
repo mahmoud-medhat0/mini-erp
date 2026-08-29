@@ -5,6 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
 
@@ -59,6 +60,10 @@ type VatRegisterProps = SharedPageProps & {
 
 export default function VatRegister({ locale, report, taxCodes, filters }: VatRegisterProps) {
   const dict = getDictionary(locale);
+  const actionsDict = dict.app.actions;
+  const can = useCan();
+  const canExport = (can('reports.export') || can('taxes.view')) && can('view_financials');
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [fromDate, setFromDate] = useState(filters.from_date || report.from_date);
   const [toDate, setToDate] = useState(filters.to_date || report.to_date);
@@ -76,7 +81,7 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
       to_date: toDate,
       type,
       tax_code_id: taxCodeId || undefined,
-    });
+    }, { preserveScroll: true });
   };
 
   const handleExport = () => {
@@ -101,8 +106,8 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
     }),
   ];
 
-  const thRightClass = "px-4 py-3 text-right font-medium text-xs text-[var(--text-secondary)] uppercase border-b border-[var(--border-color)]";
-  const tdRightClass = "px-4 py-3 text-right text-xs border-b border-[var(--border-color)]";
+  const thRightClass = "px-4 py-3 text-end font-medium text-xs text-[var(--text-secondary)] uppercase border-b border-[var(--border-color)]";
+  const tdRightClass = "px-4 py-3 text-end text-xs border-b border-[var(--border-color)]";
 
   return (
     <AppLayout active="reports.vat-register">
@@ -112,9 +117,18 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
         title={t.title}
         description={t.subtitle}
         actions={
-          <Button variant="secondary" onClick={handleExport}>
-            {t.exportCsv}
-          </Button>
+          <div className="flex items-center gap-2">
+            {canPrint ? (
+              <Button variant="secondary" onClick={() => window.print()}>
+                {actionsDict.printReport}
+              </Button>
+            ) : null}
+            {canExport ? (
+              <Button variant="secondary" onClick={handleExport}>
+                {t.exportCsv}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 

@@ -5,6 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
 
@@ -31,6 +32,10 @@ type ArGlReconciliationProps = SharedPageProps & {
 
 export default function ArGlReconciliation({ locale, report, currencies, filters }: ArGlReconciliationProps) {
   const dict = getDictionary(locale);
+  const actionsDict = dict.app.actions;
+  const can = useCan();
+  const canExport = can('reports.export') && can('view_financials');
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date);
   const [currency, setCurrency] = useState(filters.currency);
@@ -39,7 +44,7 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
     router.get('/reports/ar-gl-reconciliation', {
       as_of_date: asOfDate,
       currency,
-    });
+    }, { preserveScroll: true });
   };
 
   const handleExport = () => {
@@ -55,9 +60,18 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
         title={dict.app.pages.reportsArGlReconciliation.arToGlControlReconciliation}
         description={dict.app.pages.reportsArGlReconciliation.reconcilesTotalActiveCustomerSubledgerBalances}
         actions={
-          <Button variant="secondary" onClick={handleExport}>
-            {dict.app.pages.reportsArGlReconciliation.exportCsv}
-          </Button>
+          <div className="flex items-center gap-2">
+            {canPrint ? (
+              <Button variant="secondary" onClick={() => window.print()}>
+                {actionsDict.printReport}
+              </Button>
+            ) : null}
+            {canExport ? (
+              <Button variant="secondary" onClick={handleExport}>
+                {dict.app.pages.reportsArGlReconciliation.exportCsv}
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -134,11 +148,11 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
             {dict.app.pages.reportsArGlReconciliation.customerSubledgerBalanceBreakdown}
           </div>
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-start text-xs">
             <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerCode}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerName}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerCode}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerName}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.subledgerOpenBalance}</th>
               </tr>
             </thead>

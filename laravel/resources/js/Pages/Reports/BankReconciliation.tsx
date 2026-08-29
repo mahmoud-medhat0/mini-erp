@@ -4,6 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
 
@@ -37,15 +38,26 @@ type BankReconciliationReportProps = SharedPageProps & {
 
 export default function BankReconciliationReport({ locale, report, bankAccounts, filters }: BankReconciliationReportProps) {
   const dict = getDictionary(locale);
+  const actionsDict = dict.app.actions;
+  const can = useCan();
+  const canPrint = can('reports.print') && can('view_financials');
 
   const [bankAccountId, setBankAccountId] = useState(filters.bank_account_id || '');
   const [status, setStatus] = useState(filters.status || '');
+
+  const hasActiveFilters = Boolean(bankAccountId || status);
 
   const handleFilter = () => {
     router.get('/reports/bank-reconciliations', {
       bank_account_id: bankAccountId || undefined,
       status: status || undefined,
-    });
+    }, { preserveScroll: true });
+  };
+
+  const handleReset = () => {
+    setBankAccountId('');
+    setStatus('');
+    router.get('/reports/bank-reconciliations', {}, { preserveScroll: true });
   };
 
   return (
@@ -55,6 +67,13 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
       <PageHeader
         title={dict.app.pages.reportsBankReconciliation.bankReconciliationReport}
         description={dict.app.pages.reportsBankReconciliation.readOnlyOverviewAndAuditReports}
+        actions={
+          canPrint ? (
+            <Button variant="secondary" onClick={() => window.print()}>
+              {actionsDict.printReport}
+            </Button>
+          ) : undefined
+        }
       />
 
       <div className="space-y-6">
@@ -87,22 +106,31 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
                 onChange={(val) => setStatus(val || '')}
               />
             </div>
-            <div>
-              <Button onClick={handleFilter} className="w-full">
+            <div className="flex items-center gap-2">
+              <Button onClick={handleFilter} className="flex-1">
                 {dict.app.pages.reportsBankReconciliation.viewReconciliations}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={handleReset}
+                disabled={!hasActiveFilters}
+                title={actionsDict.reset}
+                aria-label={actionsDict.reset}
+              >
+                {actionsDict.reset}
               </Button>
             </div>
           </div>
         </Card>
 
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-start text-xs">
             <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
               <tr>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.bankAccount_2}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.statementRef}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.period}</th>
-                <th className="p-3 font-semibold text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.status_2}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.bankAccount_2}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.statementRef}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.period}</th>
+                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.status_2}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.matchedTotal}</th>
                 <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.difference}</th>
                 <th className="p-3 font-semibold text-center text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.actions}</th>

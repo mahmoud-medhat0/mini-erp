@@ -1,9 +1,11 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, SearchableSelect } from '../../Components/Primitives';
+import { Button, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import SensitiveActionModal from '../../Components/SensitiveActionModal';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
 type Supplier = {
@@ -72,10 +74,12 @@ export default function PayableSettlements({
 }: Props) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.payableSettlements;
+  const can = useCan();
+  const canManageSettlements = can('purchasing.adjustment_notes');
   const [selectedSupplierId, setSelectedSupplierId] = useState(filters.supplier_id || '');
   const [selectedSourceId, setSelectedSourceId] = useState(filters.source_entry_id || '');
   const [reversingId, setReversingId] = useState<string | null>(null);
-  const [reverseReason, setReverseReason] = useState('');
+  const [settleError, setSettleError] = useState<string | null>(null);
 
   const settleForm = useForm({
     source_payable_entry_id: selectedSourceEntry?.id || '',
@@ -86,9 +90,6 @@ export default function PayableSettlements({
     })),
   });
 
-  const reverseForm = useForm({
-    reason: '',
-  });
   const activeFilterCount = [filters.supplier_id, filters.source_entry_id].filter(Boolean).length;
 
   function handleFilterChange(suppId: string, sourceId: string) {
@@ -110,11 +111,16 @@ export default function PayableSettlements({
 
   function handleSettleSubmit(e: FormEvent) {
     e.preventDefault();
+    setSettleError(null);
+    if (!canManageSettlements) {
+      setSettleError(dict.app.actions.restricted);
+      return;
+    }
     if (!selectedSourceEntry) return;
 
     const validLines = settleForm.data.lines.filter((l) => l.amount_minor > 0);
     if (validLines.length === 0) {
-      alert(pageDict.positiveAmountRequired);
+      setSettleError(pageDict.positiveAmountRequired);
       return;
     }
 
@@ -124,22 +130,10 @@ export default function PayableSettlements({
         source_payable_entry_id: selectedSourceEntry.id,
         lines: validLines,
       },
-      { preserveScroll: true }
-    );
-  }
-
-  function handleReverseSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!reversingId || !reverseReason.trim()) return;
-
-    router.post(
-      `/purchasing/payable-settlements/${reversingId}/reverse`,
-      { confirm_action: 'REVERSE_PAYABLE_SETTLEMENT', reason: reverseReason },
       {
         preserveScroll: true,
-        onSuccess: () => {
-          setReversingId(null);
-          setReverseReason('');
+        onError: (errs) => {
+          if (errs.lines) setSettleError(errs.lines);
         },
       }
     );
@@ -229,6 +223,12 @@ export default function PayableSettlements({
               </div>
             </div>
 
+            {settleError ? (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-600 dark:text-red-400">
+                {settleError}
+              </div>
+            ) : null}
+
             <form onSubmit={handleSettleSubmit} className="space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {pageDict.stepAllocateDebit}
@@ -290,15 +290,19 @@ export default function PayableSettlements({
 
               {openTargetCredits.length > 0 ? (
                 <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={settleForm.processing}
-                    title={pageDict.confirmSettlement}
-                    aria-label={pageDict.confirmSettlement}
-                    className="rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition-all cursor-pointer"
-                  >
-                    {settleForm.processing ? pageDict.processingSettlement : pageDict.confirmSettlement}
-                  </button>
+                  {canManageSettlements ? (
+                    <button
+                      type="submit"
+                      disabled={settleForm.processing}
+                      title={pageDict.confirmSettlement}
+                      aria-label={pageDict.confirmSettlement}
+                      className="rounded-xl bg-blue-600 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 disabled:opacity-50 transition-all cursor-pointer"
+                    >
+                      {settleForm.processing ? pageDict.processingSettlement : pageDict.confirmSettlement}
+                    </button>
+                  ) : (
+                    <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                  )}
                 </div>
               ) : null}
             </form>
@@ -351,15 +355,19 @@ export default function PayableSettlements({
                       </td>
                       <td className="p-3 text-end">
                         {s.status === 'active' ? (
-                          <button
-                            type="button"
-                            onClick={() => setReversingId(s.id)}
-                            title={pageDict.reverse}
-                            aria-label={pageDict.reverse}
-                            className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-600 hover:bg-red-500/20 transition-all cursor-pointer"
-                          >
-                            {pageDict.reverse}
-                          </button>
+                          canManageSettlements ? (
+                            <button
+                              type="button"
+                              onClick={() => setReversingId(s.id)}
+                              title={pageDict.reverse}
+                              aria-label={pageDict.reverse}
+                              className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-600 hover:bg-red-500/20 transition-all cursor-pointer"
+                            >
+                              {pageDict.reverse}
+                            </button>
+                          ) : (
+                            <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+                          )
                         ) : (
                           <span className="text-[10px] text-[var(--text-muted)]">{pageDict.reversed}</span>
                         )}
@@ -372,53 +380,20 @@ export default function PayableSettlements({
           </div>
         </div>
 
-        {reversingId ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl space-y-4">
-              <h3 className="text-base font-bold text-[var(--text-primary)]">
-                {pageDict.reverseSettlement}
-              </h3>
-              <p className="text-xs text-[var(--text-muted)]">
-                {pageDict.reverseDescription}
-              </p>
-              <form onSubmit={handleReverseSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                    {pageDict.reversalReason} <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    value={reverseReason}
-                    onChange={(e) => setReverseReason(e.target.value)}
-                    placeholder={pageDict.reversalReasonPlaceholder}
-                    rows={3}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-xs text-[var(--text-primary)] focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setReversingId(null)}
-                    title={pageDict.cancel}
-                    aria-label={pageDict.cancel}
-                    className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
-                  >
-                    {pageDict.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={reverseForm.processing}
-                    title={pageDict.confirmReversal}
-                    aria-label={pageDict.confirmReversal}
-                    className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {reverseForm.processing ? pageDict.reversing : pageDict.confirmReversal}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        ) : null}
+        <SensitiveActionModal
+          isOpen={reversingId !== null}
+          onClose={() => setReversingId(null)}
+          onConfirm={(payload) => {
+            if (!reversingId) return;
+            router.post(`/purchasing/payable-settlements/${reversingId}/reverse`, payload, {
+              preserveScroll: true,
+              onSuccess: () => setReversingId(null),
+            });
+          }}
+          confirmCode="REVERSE_PAYABLE_SETTLEMENT"
+          reasonRequired={true}
+          locale={locale}
+        />
       </div>
     </AppLayout>
   );

@@ -184,6 +184,7 @@ export default function FinancialStatementMappings({
   const [activeTab, setActiveTab] = useState<'all' | 'balance_sheet' | 'income_statement'>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingLine, setEditingLine] = useState<StatementLineRow | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const [selectedUnmappedAccount, setSelectedUnmappedAccount] = useState<string>('');
   const [targetLineForAccount, setTargetLineForAccount] = useState<string>('');
@@ -208,6 +209,7 @@ export default function FinancialStatementMappings({
   function openCreateModal() {
     lineForm.reset();
     lineForm.clearErrors();
+    setPageError(null);
     setEditingLine(null);
     setShowAddModal(true);
   }
@@ -228,6 +230,7 @@ export default function FinancialStatementMappings({
       is_active: line.is_active,
     });
     lineForm.clearErrors();
+    setPageError(null);
     setEditingLine(line);
     setShowAddModal(true);
   }
@@ -261,16 +264,17 @@ export default function FinancialStatementMappings({
 
   function handleDeleteLine(line: StatementLineRow) {
     if (line.is_system) {
-      alert(accDict.cannotDeleteSystemLine);
+      setPageError(accDict.cannotDeleteSystemLine);
       return;
     }
     if (line.accounts && line.accounts.length > 0) {
-      alert(accDict.cannotDeleteInUseLine);
+      setPageError(accDict.cannotDeleteInUseLine);
       return;
     }
     if (!confirm(statementLineDeleteMessage(line))) {
       return;
     }
+    setPageError(null);
     router.delete(`/accounting/statement-mappings/lines/${line.id}`, {
       preserveScroll: true,
     });
@@ -337,6 +341,12 @@ export default function FinancialStatementMappings({
             ) : null
           }
         />
+
+        {pageError ? (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-semibold text-red-600 dark:text-red-400">
+            {pageError}
+          </div>
+        ) : null}
 
         {/* Tab Filters */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-4">

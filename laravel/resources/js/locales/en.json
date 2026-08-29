@@ -106,7 +106,8 @@
       "numberDetails": "Number Details",
       "sequenceDetails": "Sequence Details",
       "exportCsv": "Export CSV",
-      "printReport": "Print Report"
+      "printReport": "Print Report",
+      "printVoucher": "Print Voucher"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -807,6 +808,9 @@
       "statusReceived": "RECEIVED",
       "statusDeposited": "DEPOSITED",
       "statusIssued": "ISSUED",
+      "statusCleared": "CLEARED",
+      "statusBounced": "BOUNCED",
+      "statusReturned": "RETURNED",
       "statusInProgress": "IN PROGRESS",
       "statusUnknown": "UNKNOWN",
       "checkingReadiness": "Checking period close readiness...",
