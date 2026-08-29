@@ -34,6 +34,30 @@ class Phase6Slice5DepreciationRunTest extends TestCase
 
     private FinancialPeriod $period;
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function depreciationRunConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'STORE_FIXED_ASSET_DEPRECIATION_RUN',
+            'reason' => 'Automated fixed asset depreciation run test approval.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function reverseDepreciationRunConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'REVERSE_FIXED_ASSET_DEPRECIATION_RUN',
+            'reason' => 'Automated fixed asset depreciation reversal test approval.',
+        ]);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -92,9 +116,9 @@ class Phase6Slice5DepreciationRunTest extends TestCase
     public function test_successful_depreciation_run_posts_balanced_journal(): void
     {
         $response = $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $response->assertRedirect();
 
@@ -133,9 +157,9 @@ class Phase6Slice5DepreciationRunTest extends TestCase
     public function test_schedule_rows_are_linked_to_depreciation_run_and_journal(): void
     {
         $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $run = FixedAssetDepreciationRun::where('financial_period_id', $this->period->id)->firstOrFail();
 
@@ -152,9 +176,9 @@ class Phase6Slice5DepreciationRunTest extends TestCase
     public function test_posted_schedule_run_link_is_database_immutable(): void
     {
         $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         /** @var FixedAssetDepreciationSchedule $schedule */
         $schedule = FixedAssetDepreciationSchedule::where('fixed_asset_id', $this->asset->id)
@@ -173,9 +197,9 @@ class Phase6Slice5DepreciationRunTest extends TestCase
         $this->period->update(['status' => 'closed']);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $response->assertSessionHasErrors(['financial_period_id']);
 
@@ -185,17 +209,17 @@ class Phase6Slice5DepreciationRunTest extends TestCase
     public function test_idempotent_repeated_posting_does_not_duplicate_run_or_journal(): void
     {
         $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $runCountFirst = FixedAssetDepreciationRun::count();
         $journalCountFirst = JournalEntry::count();
 
         $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $this->assertEquals($runCountFirst, FixedAssetDepreciationRun::count());
         $this->assertEquals($journalCountFirst, JournalEntry::count());
@@ -208,9 +232,9 @@ class Phase6Slice5DepreciationRunTest extends TestCase
             ->delete();
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $response->assertSessionHasErrors(['account_mapping']);
 
@@ -221,14 +245,14 @@ class Phase6Slice5DepreciationRunTest extends TestCase
     public function test_reversing_depreciation_run_creates_reversing_journal_and_marks_schedules_reversed(): void
     {
         $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $run = FixedAssetDepreciationRun::where('financial_period_id', $this->period->id)->firstOrFail();
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets-depreciation-runs/{$run->id}/reverse");
+            ->post("/fixed-assets-depreciation-runs/{$run->id}/reverse", $this->reverseDepreciationRunConfirmation());
 
         $response->assertRedirect();
 
@@ -253,9 +277,9 @@ class Phase6Slice5DepreciationRunTest extends TestCase
         $this->asset->update(['status' => 'disposed']);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post('/fixed-assets-depreciation-runs', [
+            ->post('/fixed-assets-depreciation-runs', $this->depreciationRunConfirmation([
                 'financial_period_id' => $this->period->id,
-            ]);
+            ]));
 
         $response->assertSessionHasErrors(['financial_period_id']);
         $this->assertEquals(0, FixedAssetDepreciationRun::count());

@@ -3,6 +3,17 @@
 > **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 
+### Added - Go-Live Gate Preparation and Readiness Command (2026-08-30)
+
+- Added `php artisan ops:go-live-readiness` as a non-secret operational readiness command for local/staging/production checks, with optional strict mode, JSON output, and strict route audit integration.
+- Added `GoLiveReadinessCommandTest` covering local pass behavior without secret leakage and staging/production strict fail-closed behavior for unsafe environment configuration.
+- Created `spec/GO_LIVE_EXECUTION_LOG.md` documenting local release-candidate readiness results, runtime smoke checks, production fail-closed probe, and external staging/production actions still required.
+- Updated `spec/GO_LIVE_ACCEPTANCE.md`, `spec/DEPLOYMENT.md`, `spec/RUNTIME_PROCESSES.md`, and `spec/ENVIRONMENT_CHECKLIST.md` to include the executable go-live readiness gate.
+- Sanitized historical `app/.env.example` Next.js reference placeholders so it no longer contains example database credentials.
+- Verified local runtime smoke: scheduler registration, `tokens:gc --batch=100`, failed-job inspection, health route registration, no direct storage route, `HealthCheckTest`, Phase 8 readiness tests, readiness command tests (2 tests / 23 assertions), and staging/production fail-closed probes.
+- Aligned legacy Phase 5/6 feature tests with the current sensitive-action confirmation contract without weakening security controls. Verified Phase 3 through Phase 8 regression batch (407 tests / 3103 assertions, 3 skipped), Phase 10 through Phase 16 batch (184 tests / 1851 assertions), and acceptance suites through Phase 20.
+- Deployment remains parked until staging/production host inputs, backup/restore evidence, mail/storage/process-manager choices, HTTPS/domain setup, and owner sign-off are available.
+
 ### Added - Phase 20 Slice 4 Final Hands-On Acceptance Close-Out (2026-08-29)
 
 - Executed complete verification gate across migrations, Pint code style, `Phase20HandsOnAcceptanceTest` (14 tests / 289 assertions), `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), Concurrency testsuite (7 tests / 16 assertions), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and all source scans (anti-tenancy, unsafe UI controls, browser alerts, raw secrets). Over 29,100 regression assertions verified with zero failures.

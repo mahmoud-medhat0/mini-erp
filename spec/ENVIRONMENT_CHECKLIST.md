@@ -133,4 +133,4 @@
 
 1. **Secrets Isolation**: All credentials (`DB_PASSWORD`, `APP_KEY`, `MAIL_PASSWORD`, `AWS_SECRET_ACCESS_KEY`, `ERP_BOOTSTRAP_USER_PASSWORD`) must be injected into the server environment via system environment variables, Docker secrets, or systemd environment files. NEVER commit actual secret values into git repository files.
 2. **Template Completeness**: `laravel/.env.example` has been audited and updated to contain placeholder references for all supported configuration options (including `DB_SSLMODE` and `MAIL_ENCRYPTION`).
-3. **Validation Routine**: Run `php artisan config:show` or `php artisan env` during server deployment setup to confirm all environment variables are correctly parsed.
+3. **Validation Routine**: Run `php artisan config:show`, `php artisan env`, and `php artisan ops:go-live-readiness --target=staging --strict --include-route-audit` during server deployment setup to confirm all environment variables are correctly parsed without printing secret values.

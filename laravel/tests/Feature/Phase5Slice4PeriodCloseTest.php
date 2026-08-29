@@ -68,6 +68,30 @@ class Phase5Slice4PeriodCloseTest extends TestCase
 
     private UnitOfMeasure $uom;
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function closeConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'CLOSE_FINANCIAL_PERIOD',
+            'reason' => 'Automated period close test approval.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function reopenConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'REOPEN_FINANCIAL_PERIOD',
+            'reason' => 'Automated period reopen test approval.',
+        ]);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -272,9 +296,9 @@ class Phase5Slice4PeriodCloseTest extends TestCase
         $this->assertEquals('journal_entry', $readiness['blockers'][0]['entity_type']);
 
         $this->actingAs($this->closeUser);
-        $response = $this->post(route('accounting.periods.close', $this->period->id), [
+        $response = $this->post(route('accounting.periods.close', $this->period->id), $this->closeConfirmation([
             'close_note' => 'Attempting close with draft journal',
-        ]);
+        ]));
 
         $response->assertSessionHasErrors(['period', 'blockers']);
 
@@ -322,9 +346,9 @@ class Phase5Slice4PeriodCloseTest extends TestCase
         $this->assertEmpty($readiness['blockers']);
 
         $this->actingAs($this->closeUser);
-        $response = $this->post(route('accounting.periods.close', $this->period->id), [
+        $response = $this->post(route('accounting.periods.close', $this->period->id), $this->closeConfirmation([
             'close_note' => 'Closing January 2026 after full audit review.',
-        ]);
+        ]));
 
         $response->assertRedirect();
         $response->assertSessionHas('success');
@@ -346,9 +370,9 @@ class Phase5Slice4PeriodCloseTest extends TestCase
         ]);
 
         $this->actingAs($this->reopenUser);
-        $response = $this->post(route('accounting.periods.reopen', $this->period->id), [
+        $response = $this->post(route('accounting.periods.reopen', $this->period->id), $this->reopenConfirmation([
             'close_note' => 'Reopening for tax audit adjustment.',
-        ]);
+        ]));
 
         $response->assertRedirect();
         $response->assertSessionHas('success');

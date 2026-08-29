@@ -39,6 +39,15 @@ Product scope note:
 
 ## 2. Environment Sanity Checks
 
+Executable non-secret gate:
+
+```powershell
+php artisan ops:go-live-readiness --target=staging --strict --include-route-audit
+php artisan ops:go-live-readiness --target=production --strict --include-route-audit
+```
+
+The command must pass on the real target host before staging or production is treated as ready. It does not print secret values.
+
 Perform these checks on the target host without printing secret values:
 
 | Check | Acceptance |
@@ -249,6 +258,7 @@ Before production cutover:
 Reference:
 
 - `spec/BACKUP_RESTORE_DRILL.md`
+- `spec/GO_LIVE_EXECUTION_LOG.md`
 
 ---
 
@@ -297,6 +307,7 @@ Reference:
 
 Production cutover is **GO** only when all mandatory checks are true:
 
+- [ ] `ops:go-live-readiness --target=production --strict --include-route-audit` passes on the production host.
 - [ ] owner/operator decisions complete.
 - [ ] environment sanity checks pass.
 - [ ] deployment runbook reviewed.

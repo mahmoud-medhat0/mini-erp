@@ -5,11 +5,11 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current date/context: 2026-08-29. Phase 20 (Hands-On Acceptance and Defect Closure) is 100% COMPLETE (`PHASE_20_FINAL_VERIFICATION_REPORT.md`). Phase 19 (Accountant Acceptance Execution and Gap Closure) is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 (Security and Access Governance) is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE. Deployment execution remains parked until owner/operator cutover decisions are needed.
+Current date/context: 2026-08-30. Product development is release-candidate complete through Phase 20 (`PHASE_20_FINAL_VERIFICATION_REPORT.md`). Phase 19 (Accountant Acceptance Execution and Gap Closure) is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 (Security and Access Governance) is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE. Deployment execution remains parked until external staging/production host inputs and owner/operator sign-off are available.
 
-Latest update: Phase 20 Slice 4 (Final Hands-On Acceptance Close-Out) is COMPLETE (`PHASE_20_FINAL_VERIFICATION_REPORT.md`). All 12 verification commands passed cleanly: Pint, `Phase20HandsOnAcceptanceTest` (14 tests / 289 assertions), `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), Concurrency testsuite (7 tests / 16 assertions), strict route security audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans (0 unsafe UI controls, 0 browser alerts, 0 tenancy leaks, 0 secret exposures). Over 29,100 regression assertions passed with 0 failures.
+Latest update: 2026-08-30 Go-live gate preparation is COMPLETE locally. Added `ops:go-live-readiness` non-secret readiness command, `GoLiveReadinessCommandTest` (2 tests / 23 assertions), and `spec/GO_LIVE_EXECUTION_LOG.md`. Verified local readiness, scheduler token GC, queue failed-job inspection, health route, no direct private storage route, Phase 8 readiness checks, staging/production fail-closed behavior from local, and expanded batched regression after aligning legacy Phase 5/6 feature tests with the current sensitive-action confirmation contract. Phase 20 remains 100% COMPLETE.
 
-Next task: Owner and accountant hands-on sign-off using `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md`, `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`, and `PRODUCT_ACCEPTANCE_DEFECT_LOG.md`, or explicitly approved next product phase. Deployment remains parked.
+Next task: execute staging deployment dry-run and owner/accountant hands-on sign-off once target host, domain/HTTPS, production environment values, backup/restore access, queue/scheduler process manager, and mail/storage provider inputs are available. Deployment remains parked until those external gates pass.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -23,6 +23,9 @@ Use the current Laravel code and these documents first:
 - `PRODUCT_ACCEPTANCE_DEFECT_LOG.md`
 - `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`
 - `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md`
+- `spec/GO_LIVE_EXECUTION_LOG.md`
+- `spec/GO_LIVE_ACCEPTANCE.md`
+- `spec/DEPLOYMENT.md`
 - `PHASE_20_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_20_HANDS_ON_ACCEPTANCE_DEFECT_CLOSURE.md`
 - `PHASE_20_SLICE_3_REPORT.md`

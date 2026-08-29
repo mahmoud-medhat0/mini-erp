@@ -42,6 +42,30 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
 
     private FinancialPeriod $period;
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function disposalConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'STORE_FIXED_ASSET_DISPOSAL',
+            'reason' => 'Automated fixed asset disposal test approval.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function reverseDisposalConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'REVERSE_FIXED_ASSET_DISPOSAL',
+            'reason' => 'Automated fixed asset disposal reversal test approval.',
+        ]);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -206,11 +230,11 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         $depPostingService->postDepreciationRun($this->period->id, $this->authorizedUser->id);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets/{$this->asset->id}/disposals", [
+            ->post("/fixed-assets/{$this->asset->id}/disposals", $this->disposalConfirmation([
                 'disposal_date' => $this->period->end_date,
                 'disposal_type' => 'scrap',
                 'proceeds_minor' => 0,
-            ]);
+            ]));
 
         $response->assertRedirect();
 
@@ -241,11 +265,11 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         $depPostingService->postDepreciationRun($this->period->id, $this->authorizedUser->id);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets/{$this->asset->id}/disposals", [
+            ->post("/fixed-assets/{$this->asset->id}/disposals", $this->disposalConfirmation([
                 'disposal_date' => $this->period->end_date,
                 'disposal_type' => 'sale',
                 'proceeds_minor' => 1250000,
-            ]);
+            ]));
 
         $response->assertRedirect();
 
@@ -271,11 +295,11 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         $depPostingService->postDepreciationRun($this->period->id, $this->authorizedUser->id);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets/{$this->asset->id}/disposals", [
+            ->post("/fixed-assets/{$this->asset->id}/disposals", $this->disposalConfirmation([
                 'disposal_date' => $this->period->end_date,
                 'disposal_type' => 'sale',
                 'proceeds_minor' => 900000,
-            ]);
+            ]));
 
         $response->assertRedirect();
 
@@ -299,11 +323,11 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         $this->asset->update(['opening_accumulated_depreciation_minor' => 1200000]);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets/{$this->asset->id}/disposals", [
+            ->post("/fixed-assets/{$this->asset->id}/disposals", $this->disposalConfirmation([
                 'disposal_date' => $this->period->end_date,
                 'disposal_type' => 'scrap',
                 'proceeds_minor' => 0,
-            ]);
+            ]));
 
         $response->assertRedirect();
 
@@ -324,11 +348,11 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         $this->period->update(['status' => 'closed']);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets/{$this->asset->id}/disposals", [
+            ->post("/fixed-assets/{$this->asset->id}/disposals", $this->disposalConfirmation([
                 'disposal_date' => $this->period->end_date,
                 'disposal_type' => 'scrap',
                 'proceeds_minor' => 0,
-            ]);
+            ]));
 
         $response->assertSessionHasErrors();
         $this->assertEquals(0, FixedAssetDisposal::count());
@@ -339,11 +363,11 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         AccountingAccountMapping::where('key', 'fixed_asset_disposal_loss')->delete();
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets/{$this->asset->id}/disposals", [
+            ->post("/fixed-assets/{$this->asset->id}/disposals", $this->disposalConfirmation([
                 'disposal_date' => $this->period->end_date,
                 'disposal_type' => 'scrap',
                 'proceeds_minor' => 0,
-            ]);
+            ]));
 
         $response->assertSessionHasErrors();
         $this->assertEquals(0, FixedAssetDisposal::count());
@@ -412,7 +436,7 @@ class Phase6Slice6FixedAssetDisposalTest extends TestCase
         $disposal = $disposalService->postDisposal($this->asset->id, $this->period->end_date, 'scrap', 0, $this->authorizedUser->id);
 
         $response = $this->actingAs($this->authorizedUser)
-            ->post("/fixed-assets-disposals/{$disposal->id}/reverse");
+            ->post("/fixed-assets-disposals/{$disposal->id}/reverse", $this->reverseDisposalConfirmation());
 
         $response->assertRedirect();
 

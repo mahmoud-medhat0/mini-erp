@@ -37,6 +37,7 @@ Laravel's scheduler cannot run itself continuously; it depends on an external OS
 To verify scheduled task registration and upcoming execution times:
 ```powershell
 php artisan schedule:list
+php artisan ops:go-live-readiness --target=staging --strict
 ```
 
 - **Expected Scheduled Tasks:**
@@ -112,6 +113,7 @@ Failed queue jobs are automatically written to the PostgreSQL `failed_jobs` tabl
 ```powershell
 # 1. List failed jobs with ID, connection, queue, and failure timestamp
 php artisan queue:failed
+php artisan ops:go-live-readiness --target=staging --strict
 
 # 2. Retry a specific failed job by UUID / ID
 php artisan queue:retry <job_uuid>

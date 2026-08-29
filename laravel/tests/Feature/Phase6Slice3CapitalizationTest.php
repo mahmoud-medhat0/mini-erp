@@ -27,6 +27,30 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     private FixedAsset $draftAsset;
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function capitalizationConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'CAPITALIZE_FIXED_ASSET',
+            'reason' => 'Automated fixed asset capitalization test approval.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function reverseCapitalizationConfirmation(array $payload = []): array
+    {
+        return array_merge($payload, [
+            'confirm_action' => 'REVERSE_FIXED_ASSET_CAPITALIZATION',
+            'reason' => 'Automated fixed asset capitalization reversal test approval.',
+        ]);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -76,10 +100,10 @@ class Phase6Slice3CapitalizationTest extends TestCase
         $initialJournals = JournalEntry::count();
         $initialLedgers = LedgerEntry::count();
 
-        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'opening_already_capitalized',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $response->assertRedirect();
         $this->draftAsset->refresh();
@@ -94,10 +118,10 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     public function test_manual_capitalization_posts_balanced_journal_entry(): void
     {
-        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $response->assertRedirect();
         $this->draftAsset->refresh();
@@ -133,19 +157,19 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     public function test_manual_capitalization_is_idempotent(): void
     {
-        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $this->draftAsset->refresh();
         $firstJournalId = $this->draftAsset->journal_entry_id;
 
         // Re-post capitalization request
-        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $response->assertRedirect();
         $this->draftAsset->refresh();
@@ -156,15 +180,15 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     public function test_capitalized_asset_cannot_be_recapitalized_with_a_different_mode(): void
     {
-        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'opening_already_capitalized',
             'capitalization_date' => '2026-01-15',
-        ])->assertRedirect();
+        ]))->assertRedirect();
 
-        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $response->assertSessionHasErrors(['asset']);
         $this->draftAsset->refresh();
@@ -180,10 +204,10 @@ class Phase6Slice3CapitalizationTest extends TestCase
         $period = FinancialPeriod::where('start_date', '<=', '2026-01-15')->where('end_date', '>=', '2026-01-15')->firstOrFail();
         $period->update(['status' => 'closed', 'closed_at' => now()]);
 
-        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $response->assertSessionHasErrors();
         $this->draftAsset->refresh();
@@ -195,20 +219,20 @@ class Phase6Slice3CapitalizationTest extends TestCase
         $period = FinancialPeriod::where('start_date', '<=', '2026-01-15')->where('end_date', '>=', '2026-01-15')->firstOrFail();
         $period->update(['status' => 'closed', 'closed_at' => now()]);
 
-        $firstResponse = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $firstResponse = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $firstResponse->assertSessionHasErrors(['capitalization_date']);
         $this->assertEquals(0, JournalEntry::where('source_type', 'fixed_asset_capitalization')->where('source_id', $this->draftAsset->id)->count());
 
         $period->update(['status' => 'open', 'closed_at' => null]);
 
-        $retryResponse = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $retryResponse = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $retryResponse->assertRedirect();
         $this->draftAsset->refresh();
@@ -221,10 +245,10 @@ class Phase6Slice3CapitalizationTest extends TestCase
     {
         $this->draftAsset->update(['status' => 'active']);
 
-        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $response = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $response->assertSessionHasErrors(['asset']);
         $this->assertEquals(0, JournalEntry::where('source_type', 'fixed_asset_capitalization')->where('source_id', $this->draftAsset->id)->count());
@@ -232,10 +256,10 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     public function test_active_assets_cannot_be_edited_or_updated_through_register_routes(): void
     {
-        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'opening_already_capitalized',
             'capitalization_date' => '2026-01-15',
-        ])->assertRedirect();
+        ]))->assertRedirect();
 
         $this->actingAs($this->postUser)
             ->get("/fixed-assets/{$this->draftAsset->id}/edit")
@@ -256,15 +280,16 @@ class Phase6Slice3CapitalizationTest extends TestCase
 
     public function test_reversal_of_capitalization_resets_asset_to_draft(): void
     {
-        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", [
+        $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/capitalize", $this->capitalizationConfirmation([
             'capitalization_mode' => 'manual_capitalization',
             'capitalization_date' => '2026-01-15',
-        ]);
+        ]));
 
         $this->draftAsset->refresh();
         $this->assertEquals('active', $this->draftAsset->status);
 
-        $reverseResp = $this->actingAs($this->postUser)->post("/fixed-assets/{$this->draftAsset->id}/reverse-capitalization");
+        $reverseResp = $this->actingAs($this->postUser)
+            ->post("/fixed-assets/{$this->draftAsset->id}/reverse-capitalization", $this->reverseCapitalizationConfirmation());
         $reverseResp->assertRedirect();
 
         $this->draftAsset->refresh();

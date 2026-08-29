@@ -5,9 +5,9 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 20 - Hands-On Acceptance and Defect Closure (100% COMPLETE - `PHASE_20_FINAL_VERIFICATION_REPORT.md`). Phase 19 is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Phase 18 is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 is COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
+Current status: Product development is release-candidate complete through Phase 20 (`PHASE_20_FINAL_VERIFICATION_REPORT.md`). Go-live gate tooling is prepared (`spec/GO_LIVE_EXECUTION_LOG.md`). Deployment remains parked until external staging/production host inputs and owner sign-off are available.
 
-Latest update: Phase 20 Slice 4 (Final Hands-On Acceptance Close-Out) is COMPLETE (`PHASE_20_FINAL_VERIFICATION_REPORT.md`). All 12 verification commands passed cleanly: Pint, `Phase20HandsOnAcceptanceTest` (14 tests / 289 assertions), `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), Concurrency testsuite (7 tests / 16 assertions), strict route security audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans (0 unsafe UI controls, 0 browser alerts, 0 tenancy leaks, 0 secret exposures).
+Latest update: 2026-08-30 Go-live gate preparation is COMPLETE locally. Added `ops:go-live-readiness`, `GoLiveReadinessCommandTest` (2 tests / 23 assertions), and `spec/GO_LIVE_EXECUTION_LOG.md`. Verified local readiness, scheduler token GC, queue failed-job inspection, health route, private-storage routing, Phase 8 readiness, staging/production fail-closed checks, and expanded batched regression after aligning Phase 5/6 tests with the current sensitive-action confirmation contract. Phase 20 remains 100% COMPLETE.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
@@ -21,7 +21,14 @@ Do not use the old Next.js tenant/company-scope checklist as implementation guid
 - Phase 19 (Accountant Acceptance Execution and Gap Closure) is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`).
 - Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`).
 - Phase 17 (Security and Access Governance) is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`).
-- Next immediate task: Owner and accountant hands-on sign-off using `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md`, `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`, and `PRODUCT_ACCEPTANCE_DEFECT_LOG.md`, or explicitly approved next product phase. Deployment remains parked.
+- Next immediate task: staging deployment dry-run and owner/accountant hands-on sign-off once target host/domain/env/backup/mail/storage/process-manager inputs are available. Deployment remains parked until those gates pass.
+
+## Go-Live Gate Preparation
+
+- **Local gate COMPLETE**: `spec/GO_LIVE_EXECUTION_LOG.md`.
+- **Executable command added**: `php artisan ops:go-live-readiness --target=staging --strict --include-route-audit`.
+- **Production safety behavior verified**: `--target=staging --strict` and `--target=production --strict` fail closed from local because real target env/HTTPS/mail provider settings are not configured on this machine.
+- **External pending gates**: staging host, production host/env secrets, HTTPS/domain, backup/restore drill, scheduler trigger, queue worker supervision, mail provider, storage provider, live owner/accountant sign-off.
 
 ## Phase 20 Hands-On Acceptance and Defect Closure
 

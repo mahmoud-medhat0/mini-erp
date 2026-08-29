@@ -12,6 +12,7 @@ For step-by-step deployment and rollback operations, see:
 - `spec/BACKUP_RESTORE_DRILL.md`
 - `spec/RUNTIME_PROCESSES.md`
 - `spec/GO_LIVE_ACCEPTANCE.md`
+- `spec/GO_LIVE_EXECUTION_LOG.md`
 
 The old Next.js application under `app/` is historical reference only. Active runtime and deployment planning apply to `laravel/`.
 
@@ -114,6 +115,7 @@ Run from `laravel/` before release:
 ```powershell
 php artisan migrate --force
 php artisan migrate:status
+php artisan ops:go-live-readiness --target=staging --strict --include-route-audit
 vendor/bin/pint --test
 php artisan test
 php artisan test --testsuite=Concurrency
@@ -126,6 +128,12 @@ npm run build
 ```
 
 Phase-specific stress commands from completed modules should also be run when their modules were touched.
+
+On the final production host, run the non-secret operational gate after environment variables and runtime services are configured:
+
+```powershell
+php artisan ops:go-live-readiness --target=production --strict --include-route-audit
+```
 
 ## Release Notes
 
