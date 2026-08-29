@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { Card, PageHeader } from '../../../Components/Primitives';
+import { Card, PageHeader, SensitiveActionModal } from '../../../Components/Primitives';
 import { formatMoney } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -93,10 +94,10 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
     return status === 'posted' ? appDict.statusPosted : appDict.statusReversed;
   }
 
+  const [showReverseModal, setShowReverseModal] = useState(false);
+
   function handleReverse() {
-    if (confirm(appDict.confirmReverse)) {
-      router.post(`/fixed-assets-disposals/${disposal.id}/reverse`, {}, { preserveScroll: true });
-    }
+    setShowReverseModal(true);
   }
 
   const currency = disposal.asset?.currency || appDict.noCurrency;
@@ -284,6 +285,20 @@ export default function DisposalShow({ locale, disposal }: ShowProps) {
           </Card>
         )}
       </div>
+
+      <SensitiveActionModal
+        isOpen={showReverseModal}
+        onClose={() => setShowReverseModal(false)}
+        onConfirm={(payload) => {
+          router.post(`/fixed-assets-disposals/${disposal.id}/reverse`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setShowReverseModal(false),
+          });
+        }}
+        confirmCode="REVERSE_FIXED_ASSET_DISPOSAL"
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

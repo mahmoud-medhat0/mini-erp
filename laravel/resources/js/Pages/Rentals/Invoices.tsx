@@ -484,7 +484,8 @@ export default function RentalInvoicesIndex({
     }[actionName];
 
     if (confirm(confirmText)) {
-      router.post(`/rentals/invoices/${invoice.id}/${actionName}`, {}, { preserveScroll: true });
+      const payload = actionName === 'post' ? { confirm_action: 'POST_RENTAL_INVOICE' } : {};
+      router.post(`/rentals/invoices/${invoice.id}/${actionName}`, payload, { preserveScroll: true });
     }
   }
 

@@ -1,38 +1,39 @@
 # NEXT TASKS - Current Laravel Track
-# NEXT TASKS - Current Laravel Track
 
 > **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 16 - Projects, Cost Centers, and Budgeting is COMPLETE (All Slices 1 to 6 COMPLETE). Phase 17 - Security and Access Governance is PREPARED. Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
+Current status: Phase 17 - Security and Access Governance is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 - Projects, Cost Centers, and Budgeting is COMPLETE. Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 16 Slice 6 (Budget vs Actual Reports and Close-Out) is COMPLETE after local review. Implemented read-only Budget vs Actual report under `/budgeting/variance` with active/approved budget selection, financial period and date range scoping, posted-only ledger actuals aggregation, account normal balance handling (Debit vs Credit nature), deterministic dimensional tuple merging `(period, account, project, cost_center, currency)`, per-currency summary cards, integer basis points variance calculation, structured warning codes, streaming CSV export, Reports Hub integration, and feature test suite `Phase16Slice6BudgetVarianceCloseOutTest` (23 tests / 199 assertions). Phase 16 is 100% complete with 95 passing tests / 944 assertions.
+Latest update: Phase 17 Slice 6 (Final Security Close-Out, Source Scans, and Documentation Sync) is COMPLETE. All six Phase 17 slices are verified and documented. Verification gate passed across migrations, Pint, authentication, security hardening, attachments/notifications, Phase 15 product hardening, Phase 16 suites (including budget sensitive action confirmations), Concurrency suite, strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Milestones & Future Options
 
-- All core migration phases (Phase 1 through Phase 16) are 100% complete and verified.
-- Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE:
-  - **Slice 1 COMPLETE**: Project and Cost Center master-data foundation (`PHASE_16_SLICE_1_REPORT.md`).
-  - **Slice 2 COMPLETE**: Optional GL project/cost-center dimension columns and PostingEngine propagation (`PHASE_16_SLICE_2_REPORT.md`).
-  - **Slice 3 COMPLETE (Expenses)**: Dimension capture on direct Expenses lines and debit GL/ledger propagation (`PHASE_16_SLICE_3_REPORT.md`).
-  - **Slice 4 COMPLETE**: Project profitability and cost-center actual reports (`PHASE_16_SLICE_4_REPORT.md`).
-  - **Slice 5 COMPLETE**: Budget/version master data and monthly budget lines (`PHASE_16_SLICE_5_REPORT.md`).
-  - **Slice 6 COMPLETE**: Budget-vs-actual reports, CSV export, and Phase 16 close-out (`PHASE_16_FINAL_VERIFICATION_REPORT.md`).
-- Next steps: Execute `PHASE_17_SLICE_1_AGY_PROMPT.md` with `agy`, then run local Codex review before moving to Slice 2.
+- All core migration phases (Phase 1 through Phase 17) are 100% complete and verified.
+- Phase 17 (Security and Access Governance) is 100% COMPLETE:
+  - **Slice 1 COMPLETE**: Controlled bootstrap admin and first-user privilege seeding guard (`PHASE_17_SLICE_1_REPORT.md`).
+  - **Slice 2 COMPLETE**: Route authorization audit command and regression guard (`PHASE_17_SLICE_2_REPORT.md`).
+  - **Slice 3 COMPLETE**: Password policy and session safety configuration (`PHASE_17_SLICE_3_REPORT.md`).
+  - **Slice 4 COMPLETE**: Sensitive financial action confirmation and audit evidence (`PHASE_17_SLICE_4_REPORT.md`).
+  - **Slice 5 COMPLETE**: Attachment, notification, and private-delivery safety (`PHASE_17_SLICE_5_REPORT.md`).
+  - **Slice 6 COMPLETE**: Final security close-out, source scans, and documentation sync (`PHASE_17_FINAL_VERIFICATION_REPORT.md`).
+- Next steps: No automatic next implementation phase. Recommend owner/product review or an explicitly approved phase. Deployment remains parked.
 
 ## Phase 17 Security and Access Governance
 
-- **Master plan READY**: `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md`.
-- **Slice 1 READY**: controlled bootstrap admin and first-user privilege seeding guard (`PHASE_17_SLICE_1_AGY_PROMPT.md`).
-- **Slice 2 READY**: route authorization audit command/report (`PHASE_17_SLICE_2_AGY_PROMPT.md`).
-- **Slice 3 READY**: password policy and session safety configuration (`PHASE_17_SLICE_3_AGY_PROMPT.md`).
-- **Slice 4 READY**: sensitive financial action confirmation and audit evidence (`PHASE_17_SLICE_4_AGY_PROMPT.md`).
-- **Slice 5 READY**: attachment/notification/private-delivery safety (`PHASE_17_SLICE_5_AGY_PROMPT.md`).
-- **Slice 6 READY**: final security close-out and verification (`PHASE_17_SLICE_6_AGY_PROMPT.md`).
+- **Master plan COMPLETE**: `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md`.
+- **Slice 1 COMPLETE**: controlled bootstrap admin and first-user privilege seeding guard (`PHASE_17_SLICE_1_REPORT.md`).
+- **Slice 2 COMPLETE**: route authorization audit command/report (`PHASE_17_SLICE_2_REPORT.md`).
+- **Slice 3 COMPLETE**: password policy and session safety configuration (`PHASE_17_SLICE_3_REPORT.md`).
+- **Slice 4 COMPLETE**: sensitive financial action confirmation and audit evidence (`PHASE_17_SLICE_4_REPORT.md`).
+- **Slice 5 COMPLETE**: attachment/notification/private-delivery safety (`PHASE_17_SLICE_5_REPORT.md`).
+- **Slice 6 COMPLETE**: final security close-out and verification (`PHASE_17_FINAL_VERIFICATION_REPORT.md`).
+
+
 - Deployment process is parked until the owner/operator is ready for staging/production decisions.
 - Keep all future GL posting inside the existing PostingEngine and existing tax/subledger services.
 - Use `PHASE_16_PROJECTS_COST_CENTERS_BUDGETING.md`, `PRODUCT_EXTENSIBILITY_ROADMAP.md`, `NO_MULTI_TENANT_POLICY.md` as the product capability source of truth.

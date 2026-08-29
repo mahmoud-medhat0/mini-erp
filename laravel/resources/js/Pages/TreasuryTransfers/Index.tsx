@@ -235,7 +235,7 @@ export default function TreasuryTransfersIndex({
 
   const handlePost = (id: string) => {
     if (window.confirm(pageDict.confirmPost)) {
-      router.post(`/treasury-transfers/${id}/post`, {}, { preserveScroll: true });
+      router.post(`/treasury-transfers/${id}/post`, { confirm_action: 'POST_TREASURY_TRANSFER' }, { preserveScroll: true });
     }
   };
 

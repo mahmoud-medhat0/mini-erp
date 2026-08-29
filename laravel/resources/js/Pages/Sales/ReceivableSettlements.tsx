@@ -134,7 +134,7 @@ export default function ReceivableSettlements({
 
     router.post(
       `/sales/receivable-settlements/${reversingId}/reverse`,
-      { reason: reverseReason },
+      { confirm_action: 'REVERSE_RECEIVABLE_SETTLEMENT', reason: reverseReason },
       {
         preserveScroll: true,
         onSuccess: () => {

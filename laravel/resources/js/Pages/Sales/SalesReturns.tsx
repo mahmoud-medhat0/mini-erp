@@ -410,7 +410,8 @@ export default function SalesReturnsIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.salesSalesReturns.cancelThisSalesReturn;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/returns/${retId}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_SALES_RETURN' } : {};
+      router.post(`/sales/returns/${retId}/${action}`, payload, { preserveScroll: true });
     }
   };
 

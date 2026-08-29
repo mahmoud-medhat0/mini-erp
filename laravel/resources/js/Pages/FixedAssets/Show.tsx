@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -129,12 +129,15 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
   const appDict = dict.app.accounting;
 
   const [showCapitalizeModal, setShowCapitalizeModal] = useState(false);
+  const [showReverseCapModal, setShowReverseCapModal] = useState(false);
   const [generatingSchedule, setGeneratingSchedule] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
 
   const { data, setData, post, processing, errors, reset } = useForm({
     capitalization_mode: 'manual_capitalization' as 'opening_already_capitalized' | 'manual_capitalization',
     capitalization_date: asset.in_service_date || new Date().toISOString().split('T')[0],
+    confirm_action: 'CAPITALIZE_FIXED_ASSET',
+    reason: '',
   });
 
   const moveForm = useForm({
@@ -155,6 +158,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
 
   function handleCapitalize(e: FormEvent) {
     e.preventDefault();
+    if ((data.reason || '').trim().length < 3) return;
     post(`/fixed-assets/${asset.id}/capitalize`, {
       preserveScroll: true,
       onSuccess: () => {
@@ -165,11 +169,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
   }
 
   function handleReverseCapitalization() {
-    if (confirm(appDict.confirmReverseCapitalization)) {
-      router.post(`/fixed-assets/${asset.id}/reverse-capitalization`, {}, {
-        preserveScroll: true,
-      });
-    }
+    setShowReverseCapModal(true);
   }
 
   function handleGenerateSchedule() {
@@ -195,10 +195,13 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
     disposal_date: new Date().toISOString().split('T')[0],
     disposal_type: 'scrap',
     proceeds_minor: 0,
+    confirm_action: 'STORE_FIXED_ASSET_DISPOSAL',
+    reason: '',
   });
 
   function handlePostDisposal(e: FormEvent) {
     e.preventDefault();
+    if ((disposeForm.data.reason || '').trim().length < 3) return;
     disposeForm.post(`/fixed-assets/${asset.id}/disposals`, {
       preserveScroll: true,
       onSuccess: () => setShowDisposeModal(false),
@@ -686,6 +689,20 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 error={errors.capitalization_date}
               />
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {dict.app.sensitiveActions.reasonLabel} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={data.reason}
+                  onChange={(e) => setData('reason', e.target.value)}
+                  placeholder={dict.app.sensitiveActions.reasonPlaceholder}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  required
+                />
+              </div>
+
               <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
                 <button
                   type="button"
@@ -698,7 +715,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 </button>
                 <button
                   type="submit"
-                  disabled={processing}
+                  disabled={processing || (data.reason || '').trim().length < 3}
                   title={appDict.capitalizeAsset}
                   aria-label={appDict.capitalizeAsset}
                   className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50"
@@ -850,6 +867,20 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 </div>
               )}
 
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {dict.app.sensitiveActions.reasonLabel} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={disposeForm.data.reason}
+                  onChange={(e) => disposeForm.setData('reason', e.target.value)}
+                  placeholder={dict.app.sensitiveActions.reasonPlaceholder}
+                  className="w-full mt-1 rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
+                  required
+                />
+              </div>
+
               <p className="text-xs text-slate-500">
                 {disposalDict.confirmDisposal}
               </p>
@@ -866,7 +897,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 </button>
                 <button
                   type="submit"
-                  disabled={disposeForm.processing}
+                  disabled={disposeForm.processing || (disposeForm.data.reason || '').trim().length < 3}
                   title={disposalDict.postDisposal}
                   aria-label={disposalDict.postDisposal}
                   className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50"
@@ -878,6 +909,20 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
           </div>
         </div>
       )}
+
+      <SensitiveActionModal
+        isOpen={showReverseCapModal}
+        onClose={() => setShowReverseCapModal(false)}
+        onConfirm={(payload) => {
+          router.post(`/fixed-assets/${asset.id}/reverse-capitalization`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setShowReverseCapModal(false),
+          });
+        }}
+        confirmCode="REVERSE_FIXED_ASSET_CAPITALIZATION"
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

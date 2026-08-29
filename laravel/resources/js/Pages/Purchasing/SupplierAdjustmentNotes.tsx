@@ -272,7 +272,8 @@ export default function SupplierAdjustmentNotesIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierAdjustmentNotes.cancelThisAdjustmentNote;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_SUPPLIER_ADJUSTMENT_NOTE' } : {};
+      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, payload, { preserveScroll: true });
     }
   };
 

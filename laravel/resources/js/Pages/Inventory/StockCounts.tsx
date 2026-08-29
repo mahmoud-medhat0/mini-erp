@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -113,6 +113,7 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
   const [warehouseId, setWarehouseId] = useState(filters.warehouse_id || '');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<StockCount | null>(null);
+  const [postingCount, setPostingCount] = useState<StockCount | null>(null);
 
   const form = useForm<CountForm>({
     count_date: today(),
@@ -230,6 +231,11 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
   }
 
   function transition(count: StockCount, action: 'submit' | 'approve' | 'post' | 'cancel') {
+    if (action === 'post') {
+      setPostingCount(count);
+      return;
+    }
+
     const message = pageDict.confirmations[action as keyof typeof pageDict.confirmations];
     if (message && !confirm(message)) return;
 
@@ -364,6 +370,21 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
           </table>
         </div>
       )}
+
+      <SensitiveActionModal
+        isOpen={postingCount !== null}
+        onClose={() => setPostingCount(null)}
+        onConfirm={(payload) => {
+          if (!postingCount) return;
+          router.post(`/inventory/stock-counts/${postingCount.id}/post`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPostingCount(null),
+          });
+        }}
+        confirmCode="POST_STOCK_COUNT"
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

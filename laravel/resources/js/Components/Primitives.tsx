@@ -234,3 +234,4 @@ export const tableClasses = {
 
 export { default as SearchableSelect } from './SearchableSelect';
 export { default as ToggleSwitch } from './ToggleSwitch';
+export { default as SensitiveActionModal } from './SensitiveActionModal';

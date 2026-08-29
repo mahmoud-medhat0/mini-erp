@@ -44,6 +44,7 @@ export default function OpeningBalances({
 
   const postForm = useForm({
     fiscal_year_id: activeYearId,
+    confirm_action: 'POST_OPENING_BALANCES',
   });
 
   const isAlreadyPosted = Object.values(existingBalances).some((b) => b.status === 'posted');

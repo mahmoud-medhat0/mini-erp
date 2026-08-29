@@ -57,6 +57,17 @@
     }
   },
   "app": {
+    "sensitiveActions": {
+      "modalTitle": "تأكيد إجراء مالي حساس",
+      "confirmPrompt": "للمتابعة، يرجى تأكيد هذا الإجراء المالي الحساس.",
+      "reasonLabel": "سبب التبرير",
+      "reasonPlaceholder": "أدخل 3 أحرف على الأقل لشرح هذا الإجراء...",
+      "reasonRequiredError": "يجب إدخال سبب تبريري لا يقل عن 3 أحرف.",
+      "confirmButton": "تأكيد وتنفيذ",
+      "cancelButton": "إلغاء",
+      "confirmationCodeLabel": "رمز الإجراء",
+      "processing": "جاري المعالجة..."
+    },
     "actions": {
       "actionsTitle": "الإجراءات",
       "confirmDelete": "هل أنت متاكد من رغبتك في حذف هذا العنصر؟",

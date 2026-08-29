@@ -3,20 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Application\Attachments\AttachmentService;
+use App\Http\Requests\Attachments\ListAttachmentRequest;
+use App\Http\Requests\Attachments\StoreAttachmentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
 {
-    public function index(Request $request, AttachmentService $service): JsonResponse
+    public function index(ListAttachmentRequest $request, AttachmentService $service): JsonResponse
     {
-        $validated = $request->validate([
-            'entity_type' => ['required', 'string', 'max:100', Rule::in(array_keys(config('erp_attachments.entities', [])))],
-            'entity_id' => ['required', 'string', 'max:100'],
-        ]);
+        $validated = $request->validated();
 
         $attachments = $service->listForEntity(
             entityType: $validated['entity_type'],
@@ -27,14 +25,9 @@ class AttachmentController extends Controller
         return response()->json(['attachments' => $attachments]);
     }
 
-    public function store(Request $request, AttachmentService $service): JsonResponse|RedirectResponse
+    public function store(StoreAttachmentRequest $request, AttachmentService $service): JsonResponse|RedirectResponse
     {
-        $validated = $request->validate([
-            'entity_type' => ['required', 'string', 'max:100', Rule::in(array_keys(config('erp_attachments.entities', [])))],
-            'entity_id' => ['required', 'string', 'max:100'],
-            'file' => ['required', 'file', 'max:'.config('erp_attachments.max_size_kb', 10240)],
-            'name' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $attachment = $service->upload(
             file: $validated['file'],

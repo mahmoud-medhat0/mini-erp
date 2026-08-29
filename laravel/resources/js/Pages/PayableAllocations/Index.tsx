@@ -1,7 +1,7 @@
-﻿import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -68,6 +68,7 @@ export default function PayableAllocationsIndex({
   const canManagePayableAllocations = can('suppliers.allocations');
 
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
+  const [reversingId, setReversingId] = useState<string | null>(null);
 
   const { post, transform, processing } = useForm({});
 
@@ -136,9 +137,7 @@ export default function PayableAllocationsIndex({
   };
 
   const handleReverse = (id: string) => {
-    if (confirm(dict.app.pages.payableAllocations.areYouSureYouWantTo)) {
-      post(`/payable-allocations/${id}/reverse`, { preserveScroll: true });
-    }
+    setReversingId(id);
   };
 
   const paymentSelectOptions = payments.map((p) => ({
@@ -339,6 +338,21 @@ export default function PayableAllocationsIndex({
           </table>
         </div>
       )}
+
+      <SensitiveActionModal
+        isOpen={reversingId !== null}
+        onClose={() => setReversingId(null)}
+        onConfirm={(payload) => {
+          if (!reversingId) return;
+          router.post(`/payable-allocations/${reversingId}/reverse`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setReversingId(null),
+          });
+        }}
+        confirmCode="REVERSE_PAYABLE_ALLOCATION"
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

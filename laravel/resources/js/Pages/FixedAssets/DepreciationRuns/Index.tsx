@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../../Components/Primitives';
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -51,9 +51,13 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
   const canReverseDepreciationRuns = can.reverse;
 
   const [showPostModal, setShowPostModal] = useState(false);
+  const [reversingRun, setReversingRun] = useState<DepreciationRun | null>(null);
+  const [reverseProcessing, setReverseProcessing] = useState(false);
 
   const { data, setData, post, processing, errors } = useForm({
     financial_period_id: openPeriods[0]?.id || '',
+    reason: '',
+    confirm_action: 'STORE_FIXED_ASSET_DEPRECIATION_RUN',
   });
 
   function handlePostRun(e: FormEvent) {
@@ -64,9 +68,18 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
   }
 
   function handleReverseRun(run: DepreciationRun) {
-    if (!confirm(appDict.confirmReverseDepreciationRun)) return;
+    setReversingRun(run);
+  }
 
-    router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, {}, { preserveScroll: true });
+  function reverseRun(payload: { confirm_action: string; reason?: string }) {
+    if (!reversingRun) return;
+
+    setReverseProcessing(true);
+    router.post(`/fixed-assets-depreciation-runs/${reversingRun.id}/reverse`, payload, {
+      preserveScroll: true,
+      onSuccess: () => setReversingRun(null),
+      onFinish: () => setReverseProcessing(false),
+    });
   }
 
   function formatRunStatus(status: DepreciationRun['status']) {
@@ -231,6 +244,23 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
                   <p className="mt-1 text-xs text-rose-600">{errors.financial_period_id}</p>
                 )}
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {dict.app.sensitiveActions.reasonLabel}
+                </label>
+                <textarea
+                  value={data.reason}
+                  onChange={(event) => setData('reason', event.target.value)}
+                  placeholder={dict.app.sensitiveActions.reasonPlaceholder}
+                  rows={3}
+                  maxLength={1000}
+                  required
+                  className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                />
+                {errors.reason && (
+                  <p className="mt-1 text-xs text-rose-600">{errors.reason}</p>
+                )}
+              </div>
 
               <div className="flex justify-end gap-2 pt-2">
                 <button
@@ -256,6 +286,16 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
           </div>
         </div>
       )}
+
+      <SensitiveActionModal
+        isOpen={reversingRun !== null}
+        onClose={() => setReversingRun(null)}
+        onConfirm={reverseRun}
+        confirmCode="REVERSE_FIXED_ASSET_DEPRECIATION_RUN"
+        reasonRequired
+        isProcessing={reverseProcessing}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

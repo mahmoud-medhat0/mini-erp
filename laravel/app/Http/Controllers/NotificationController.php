@@ -12,8 +12,10 @@ class NotificationController extends Controller
 {
     public function index(Request $request, NotificationService $notifications): Response
     {
+        $userId = (int) $request->user()->getAuthIdentifier();
+
         return Inertia::render('Notifications', [
-            'items' => $notifications->queryForUser($request->user()->id)
+            'items' => $notifications->queryForUser($userId)
                 ->select([
                     'notification.id',
                     'notification.type',
@@ -35,16 +37,18 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function markRead(Request $request, string $id): RedirectResponse
+    public function markRead(Request $request, string $id, NotificationService $notifications): RedirectResponse
     {
-        app(NotificationService::class)->markRead($request->user()->id, $id);
+        $userId = (int) $request->user()->getAuthIdentifier();
+        $notifications->markRead($userId, $id);
 
         return back()->with('success', __('Notification marked as read.'));
     }
 
-    public function markAllRead(Request $request): RedirectResponse
+    public function markAllRead(Request $request, NotificationService $notifications): RedirectResponse
     {
-        app(NotificationService::class)->markAllRead($request->user()->id);
+        $userId = (int) $request->user()->getAuthIdentifier();
+        $notifications->markAllRead($userId);
 
         return back()->with('success', __('All notifications marked as read.'));
     }

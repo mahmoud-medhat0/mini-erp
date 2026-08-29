@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Settings;
 use App\Application\Settings\UserSettingsService;
 use App\Http\Controllers\Concerns\AuthorizesSettingsManagement;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\StoreUserRequest;
+use App\Http\Requests\Settings\UpdateUserRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,36 +25,22 @@ class UserSettingsController extends Controller
         return Inertia::render('Settings/Users', $this->userSettingsService->indexData());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreUserRequest $request): RedirectResponse
     {
         $this->authorizeManagement($request, 'users.configure');
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            'locale' => ['nullable', 'string', Rule::in(['en', 'ar'])],
-            'is_active' => ['nullable', 'boolean'],
-            'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where('guard_name', 'web')],
-        ]);
+        $validated = $request->validated();
 
         $this->userSettingsService->create($validated, $request->boolean('is_active', true), (int) $request->user()->id);
 
         return back()->with('success', __('User created successfully.'));
     }
 
-    public function update(Request $request, string $userId): RedirectResponse
+    public function update(UpdateUserRequest $request, string $userId): RedirectResponse
     {
         $this->authorizeManagement($request, 'users.configure');
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'password' => ['nullable', 'string', 'min:8'],
-            'locale' => ['nullable', 'string', Rule::in(['en', 'ar'])],
-            'is_active' => ['nullable', 'boolean'],
-            'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where('guard_name', 'web')],
-        ]);
+        $validated = $request->validated();
 
         $this->userSettingsService->update(
             $userId,

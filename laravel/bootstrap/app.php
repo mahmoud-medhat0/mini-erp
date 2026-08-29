@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureAllPermissions;
 use App\Http\Middleware\EnsureAnyPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RequireSensitiveActionConfirmation;
 use App\Http\Middleware\SetLocale;
 use App\Support\Concurrency\ConcurrencyConflictException;
 use App\Support\Concurrency\DuplicateOperationInProgressException;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission.any' => EnsureAnyPermission::class,
             'permission.all' => EnsureAllPermissions::class,
+            'sensitive.confirm' => RequireSensitiveActionConfirmation::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

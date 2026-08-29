@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AppLayout from '../../../Components/AppLayout';
 import { Button, Card, EmptyState, Modal, PageHeader, tableClasses } from '../../../Components/Primitives';
@@ -77,15 +77,17 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
   const isFiled = period.status === 'filed';
   const formatTaxMoney = (amountMinor: number) => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
 
-  const { data, setData, post, processing } = useForm({
+  const { data, setData, post, processing, errors } = useForm({
     notes: period.notes || '',
+    reason: period.notes || '',
+    confirm_action: 'FILE_TAX_RETURN',
   });
 
   const handleGenerateDraft = () => {
     router.post(`/taxes/periods/${period.id}/draft`);
   };
 
-  const handleFileReturn = (e: React.FormEvent) => {
+  const handleFileReturn = (e: FormEvent) => {
     e.preventDefault();
     if (!activeReturn) return;
     post(`/taxes/returns/${activeReturn.id}/file`, {
@@ -309,8 +311,9 @@ export default function TaxPeriodShow({ locale, period, latestReturn, filedRetur
               className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--border-color)] bg-[var(--card)] text-[var(--text-primary)]"
               rows={3}
               value={data.notes}
-              onChange={(e) => setData('notes', e.target.value)}
+              onChange={(e) => setData({ ...data, notes: e.target.value, reason: e.target.value })}
             />
+            {errors.reason ? <p className="mt-1 text-xs text-rose-600">{errors.reason}</p> : null}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

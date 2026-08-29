@@ -57,6 +57,17 @@
     }
   },
   "app": {
+    "sensitiveActions": {
+      "modalTitle": "Confirm Sensitive Action",
+      "confirmPrompt": "To proceed, please confirm this sensitive action.",
+      "reasonLabel": "Justification Reason",
+      "reasonPlaceholder": "Enter at least 3 characters explaining this action...",
+      "reasonRequiredError": "A justification reason of at least 3 characters is required.",
+      "confirmButton": "Confirm & Execute",
+      "cancelButton": "Cancel",
+      "confirmationCodeLabel": "Action Code",
+      "processing": "Processing..."
+    },
     "actions": {
       "actionsTitle": "Actions",
       "confirmDelete": "Are you sure you want to delete this item?",

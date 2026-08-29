@@ -307,7 +307,8 @@ export default function StockTransfersIndex({
 
   function postAction(transfer: StockTransfer, action: 'submit' | 'approve' | 'issue' | 'cancel', message: string) {
     if (!confirm(message)) return;
-    router.post(`/inventory/transfers/${transfer.id}/${action}`, {}, { preserveScroll: true });
+    const payload = action === 'issue' ? { confirm_action: 'ISSUE_STOCK_TRANSFER' } : {};
+    router.post(`/inventory/transfers/${transfer.id}/${action}`, payload, { preserveScroll: true });
   }
 
   function openReceivePanel(transfer: StockTransfer) {
@@ -327,6 +328,7 @@ export default function StockTransfersIndex({
     if (!confirm(pageDict.confirmReceive)) return;
 
     router.post(`/inventory/transfers/${transfer.id}/receive`, {
+      confirm_action: 'RECEIVE_STOCK_TRANSFER',
       receipt_date: today(),
       lines: [],
     }, { preserveScroll: true });
@@ -344,6 +346,7 @@ export default function StockTransfersIndex({
       .filter((line) => line.quantity_e6 > 0);
 
     router.post(`/inventory/transfers/${receivingTransfer.id}/receive`, {
+      confirm_action: 'RECEIVE_STOCK_TRANSFER',
       receipt_date: receiptDate,
       lines,
     }, {

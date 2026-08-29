@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
@@ -85,7 +85,7 @@ export default function SupplierOpeningBalancesIndex({
 
   const handlePost = (id: string) => {
     if (confirm(dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance)) {
-      post(`/supplier-opening-balances/${id}/post`, { preserveScroll: true });
+      router.post(`/supplier-opening-balances/${id}/post`, { confirm_action: 'POST_SUPPLIER_OPENING_BALANCE' }, { preserveScroll: true });
     }
   };
 

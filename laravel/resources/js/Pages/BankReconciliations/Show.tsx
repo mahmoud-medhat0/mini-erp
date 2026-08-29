@@ -1,8 +1,8 @@
-﻿import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -128,10 +128,10 @@ export default function BankReconciliationShow({
     router.post(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}/unmatch`, {}, { preserveScroll: true });
   };
 
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+
   const handleFinalize = () => {
-    if (confirm(dict.app.pages.bankReconciliationsShow.confirmFinalizeReconciliation)) {
-      router.post(`/bank-reconciliations/${reconciliation.id}/finalize`, {}, { preserveScroll: true });
-    }
+    setShowFinalizeModal(true);
   };
 
   const currency = reconciliation.bankAccount?.currency;
@@ -479,6 +479,21 @@ export default function BankReconciliationShow({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={showFinalizeModal}
+        onClose={() => setShowFinalizeModal(false)}
+        onConfirm={(payload) => {
+          router.post(`/bank-reconciliations/${reconciliation.id}/finalize`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setShowFinalizeModal(false),
+          });
+        }}
+        confirmCode="FINALIZE_BANK_RECONCILIATION"
+        message={dict.app.pages.bankReconciliationsShow.confirmFinalizeReconciliation}
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

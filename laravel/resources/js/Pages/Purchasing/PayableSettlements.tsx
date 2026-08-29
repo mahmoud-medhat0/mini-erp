@@ -134,7 +134,7 @@ export default function PayableSettlements({
 
     router.post(
       `/purchasing/payable-settlements/${reversingId}/reverse`,
-      { reason: reverseReason },
+      { confirm_action: 'REVERSE_PAYABLE_SETTLEMENT', reason: reverseReason },
       {
         preserveScroll: true,
         onSuccess: () => {

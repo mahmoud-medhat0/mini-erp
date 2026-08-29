@@ -38,8 +38,12 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
   const submitForm = useForm({});
   const approveForm = useForm({});
-  const postForm = useForm({});
-  const reverseForm = useForm({ reversal_period_id: reversalPeriodId });
+  const postForm = useForm({ confirm_action: 'POST_JOURNAL_ENTRY' });
+  const reverseForm = useForm({
+    reversal_period_id: reversalPeriodId,
+    confirm_action: 'REVERSE_JOURNAL_ENTRY',
+    reason: '',
+  });
 
   const totalDebit = journal.lines.reduce((s, l) => s + l.debit_minor, 0);
   const totalCredit = journal.lines.reduce((s, l) => s + l.credit_minor, 0);
@@ -219,7 +223,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               e.preventDefault();
               reverseForm.post(`/accounting/journal/${journal.id}/reverse`, { preserveScroll: true });
             }}
-            className="flex items-center gap-3"
+            className="flex flex-wrap items-center gap-3"
           >
             <div className="w-64">
               <SearchableSelect
@@ -233,12 +237,23 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               />
             </div>
 
+            <div className="flex-1 min-w-[200px]">
+              <input
+                type="text"
+                value={reverseForm.data.reason}
+                onChange={(e) => reverseForm.setData('reason', e.target.value)}
+                placeholder={dict.app.sensitiveActions.reasonPlaceholder}
+                required
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none transition-colors"
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={reverseForm.processing}
+              disabled={reverseForm.processing || (reverseForm.data.reason || '').trim().length < 3}
               title={accDict.reverseEntry}
               aria-label={accDict.reverseEntry}
-              className="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 transition-colors"
+              className="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {accDict.reverseEntry}
             </button>

@@ -46,7 +46,7 @@
 
 ---
 
-## 4. Security & Password Hashing
+## 4. Security & Password Hashing / Password Policy
 
 | Variable Name | Purpose | Required Environments | Value Category / Format | Owner/Operator Notes | Validation Method |
 |---|---|---|---|---|---|
@@ -54,19 +54,28 @@
 | `ARGON_MEMORY` | Memory cost limit for Argon2id hashing in kibibytes. | Local, Staging, Production | Integer KiB (`19456` = 19MB) | Tune according to server RAM allocation. | Test password hashing execution time. |
 | `ARGON_THREADS` | Thread concurrency count for Argon2id hashing. | Local, Staging, Production | Integer count (`1`) | Match available CPU core threads. | Test user login under load. |
 | `ARGON_TIME` | Time cost / iteration count for Argon2id hashing. | Local, Staging, Production | Integer count (`2`) | Controls computational complexity. | Verify login latency remains under 200ms. |
+| `ERP_PASSWORD_MIN_LENGTH` | Minimum character length for user passwords. | Local, Staging, Production | Integer length (`12`) | Default is 12 characters. | Attempt creating user with 11-character password. |
+| `ERP_PASSWORD_MAX_LENGTH` | Maximum character length for user passwords. | Local, Staging, Production | Integer length (`128`) | Default is 128 characters. | Verify password policy bounds validation. |
+| `ERP_PASSWORD_REQUIRE_MIXED_CASE` | Requires upper and lower case letters. | Local, Staging, Production | Boolean string (`true` / `false`) | Default is `true`. | Test user creation with all-lowercase password. |
+| `ERP_PASSWORD_REQUIRE_LETTERS` | Requires at least one letter. | Local, Staging, Production | Boolean string (`true` / `false`) | Default is `true`. | Test user creation with digits/symbols only. |
+| `ERP_PASSWORD_REQUIRE_NUMBERS` | Requires at least one numeric digit. | Local, Staging, Production | Boolean string (`true` / `false`) | Default is `true`. | Test user creation without numeric digits. |
+| `ERP_PASSWORD_REQUIRE_SYMBOLS` | Requires at least one special symbol. | Local, Staging, Production | Boolean string (`true` / `false`) | Default is `true`. | Test user creation without special symbols. |
+
 
 ---
 
-## 5. Bootstrap Seeding (Optional Release Setup)
+## 5. Bootstrap Seeding & Privilege Guard (Optional Release Setup)
 
 | Variable Name | Purpose | Required Environments | Value Category / Format | Owner/Operator Notes | Validation Method |
 |---|---|---|---|---|---|
-| `ERP_SEED_BOOTSTRAP_USER` | Enables automatic Super Admin user creation during seeding. | Local, Staging (Initial setup) | Boolean string (`true` / `false`) | Set to `false` in production after initial user creation. | Run `php artisan db:seed --class=UserSeeder`. |
+| `ERP_SEED_BOOTSTRAP_USER` | Enables automatic Super Admin user creation during seeding. | Local, Staging (Initial setup) | Boolean string (`true` / `false`) | Defaults to `true` on non-production and `false` in production. | Run `php artisan db:seed --class=BootstrapUserSeeder`. |
 | `ERP_BOOTSTRAP_USER_NAME` | Display name for initial bootstrap admin user. | Local, Staging | String (`"System Admin"`) | Used only during bootstrap seeding. | Check seeded user in `users` table. |
 | `ERP_BOOTSTRAP_USER_EMAIL` | Email address for initial bootstrap admin user. | Local, Staging | Email string (`admin@example.com`) | Valid corporate email address. | Attempt login with bootstrap email. |
 | `ERP_BOOTSTRAP_USER_PASSWORD` | Password for initial bootstrap admin user. | Local, Staging | Secret String | Temporary strong password; force change on first login. | Test initial admin user authentication. |
 | `ERP_BOOTSTRAP_USER_ASSIGN_ROLE` | Automatically assigns Super Admin role to bootstrap user. | Local, Staging | Boolean string (`true`) | Assigns non-tenant global Super Admin role. | Verify Spatie role assignment in DB. |
 | `ERP_BOOTSTRAP_USER_ROLE` | Spatie role name for bootstrap user. | Local, Staging | Role name (`SUPER_ADMIN`) | Must match allowlisted Spatie role. | Verify permission gates for bootstrap user. |
+| `ERP_ASSIGN_FIRST_USER_SUPER_ADMIN` | Controls whether `FirstUserSuperAdminSeeder` elevates the earliest existing user. | Optional (Disabled by default) | Boolean string (`false` / `true`) | Defaults to `false`. Fail-closed. | Run `FirstUserSuperAdminSeeder` in test/staging. |
+| `ERP_FIRST_USER_SUPER_ADMIN_PRODUCTION_CONFIRM` | Exact confirmation phrase required if `ERP_ASSIGN_FIRST_USER_SUPER_ADMIN` is enabled in `production`. | Production *(if explicitly enabled)* | Confirmation phrase (`"CONFIRM_ASSIGN_FIRST_USER_SUPER_ADMIN"`) | Required in production when enabled; throws `RuntimeException` if missing/mismatched. | Verify seeder aborts without exact match in production. |
 
 ---
 

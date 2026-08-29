@@ -103,7 +103,9 @@ class UserSettingsService
         if (isset($validated['locale'])) {
             $user->locale = $validated['locale'];
         }
-        $user->is_active = $isActive;
+        if ($hasIsActive) {
+            $user->is_active = $isActive;
+        }
 
         if ($filledPassword) {
             $user->password = Hash::make($validated['password']);

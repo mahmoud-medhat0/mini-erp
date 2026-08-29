@@ -296,7 +296,8 @@ export default function PurchaseReturnsIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingPurchaseReturns.cancelThisPurchaseReturn;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/returns/${retId}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_PURCHASE_RETURN' } : {};
+      router.post(`/purchasing/returns/${retId}/${action}`, payload, { preserveScroll: true });
     }
   };
 

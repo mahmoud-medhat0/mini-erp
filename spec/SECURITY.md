@@ -17,18 +17,32 @@ The Mini ERP is not currently a multi-tenant SaaS. Security must not rely on:
 - Spatie Teams
 - `currentCompany` or `currentBranch`
 
+
 If a relationship is not explicitly established by owner requirements or later owner decisions, classify it as `UNDEFINED - DO NOT ASSUME`.
 
-## Authentication
+## Authentication & Password Policy
 
 - Laravel session authentication.
 - CSRF protection on web mutations.
-- Passwords hashed through Laravel hashing configuration.
+- Passwords hashed through Laravel hashing configuration (`argon2id` / `bcrypt`), never stored in plaintext.
+- Password policy centralized in `config/security.php` (`password_policy`) and enforced via `PasswordPolicyRules`:
+  - `min_length`: default 12 (`ERP_PASSWORD_MIN_LENGTH`)
+  - `max_length`: default 128 (`ERP_PASSWORD_MAX_LENGTH`)
+  - `mixed_case`: default true (`ERP_PASSWORD_REQUIRE_MIXED_CASE`)
+  - `letters`: default true (`ERP_PASSWORD_REQUIRE_LETTERS`)
+  - `numbers`: default true (`ERP_PASSWORD_REQUIRE_NUMBERS`)
+  - `symbols`: default true (`ERP_PASSWORD_REQUIRE_SYMBOLS`)
+  - Network-isolated: zero external/reputation uncompromised checks (`Password::uncompromised()` banned).
+- FormRequest enforcement:
+  - `StoreUserRequest`: required password matching full security policy.
+  - `UpdateUserRequest`: optional/nullable password; when provided, must satisfy full policy; when omitted/empty, preserves existing hash.
 - Login throttling by email/IP.
-- Session regeneration after login.
-- Session invalidation after logout.
+- Session regeneration on login (`$request->session()->regenerate()`).
+- Session invalidation on logout (`Auth::logout()`, `$request->session()->invalidate()`, `$request->session()->regenerateToken()`).
 - Active-account check on login.
 - Active authenticated users are rechecked on protected web requests; inactive accounts are logged out before protected page access.
+- `BootstrapUserSeeder` default credentials (`Password123!`) comply with default password policy.
+
 
 ## Authorization
 
@@ -37,6 +51,13 @@ If a relationship is not explicitly established by owner requirements or later o
 - Use Spatie Permission plus Laravel Policies/Gates/domain authorization rules where appropriate.
 - Missing permissions default to deny.
 - Protected application routes must have explicit route-level authorization middleware (`can`, `permission.any`, or `permission.all`) unless the route is deliberately user/entity scoped in a service-level authorizer.
+- The `security:route-audit` Artisan command (`php artisan security:route-audit [--strict] [--json]`) automatically inspects all registered routes and enforces defensive route authorization categorization:
+  - `public`: no `auth` middleware and explicitly listed in `RouteAuthorizationAuditor::PUBLIC_ALLOWLIST` (`/up`, `/health`, `/locale`, and local Inertia development tooling routes).
+  - `guest`: guest auth routes such as login render/submit (`/login`).
+  - `explicitly_authorized`: auth route with middleware starting with `can:`, `permission.any:`, or `permission.all:`.
+  - `service_authorized_allowlist`: auth route intentionally allowed because service/controller authorizes by entity/user internally (`foundation`, `logout`, `notifications`, `notifications.read_all`, `notifications.read`, `attachments.index`, `attachments.store`, `attachments.show`, `attachments.destroy`).
+  - `failing`: auth route without explicit authorization middleware and not in the service-authorized allowlist, or unauthenticated route not in the public allowlist.
+- `--strict` mode returns non-zero exit code (1) if any failing route is detected.
 - Dashboard access requires `dashboard.view`.
 - Foundation diagnostics require `settings.configure` or `audit.view`.
 - Report exports require export permissions; financial exports also require `view_financials` where applicable.
@@ -48,11 +69,14 @@ If a relationship is not explicitly established by owner requirements or later o
 - Attachment access must be authorized through an explicit allowlisted entity registry and the referenced entity's server-side authorization rule.
 - Audit-log viewing requires `audit.view` or an explicitly allowed administrative permission.
 
-## RBAC
+## RBAC & Privilege Seeding
 
 - Spatie Permission is used with teams disabled.
 - Roles and permissions are global, not company-scoped.
 - `scope_json` on permission pivots is reserved/undefined and must not be interpreted as Company, Branch, or tenant scope until an owner decision defines it.
+- First-user Super Admin elevation (`FirstUserSuperAdminSeeder`) is fail-closed and disabled by default (`ERP_ASSIGN_FIRST_USER_SUPER_ADMIN=false`).
+- In `production`, first-user Super Admin assignment requires explicit enablement (`ERP_ASSIGN_FIRST_USER_SUPER_ADMIN=true`) plus the exact confirmation phrase (`ERP_FIRST_USER_SUPER_ADMIN_PRODUCTION_CONFIRM=CONFIRM_ASSIGN_FIRST_USER_SUPER_ADMIN`); execution throws a `RuntimeException` fail-closed if unconfirmed.
+- Every privilege assignment is audited via Spatie Activitylog (`first_user_super_admin.seed`).
 
 ## Attachments
 
@@ -81,6 +105,5 @@ If a relationship is not explicitly established by owner requirements or later o
 ## Current Gaps
 
 - Branch is an approved operational/reporting dimension for bounded workflows only; it is still not a tenant, Company child, login context, blanket authorization scope, or document-numbering scope.
-- Production admin/bootstrap process needs an explicit controlled mechanism; no implicit "first user" or "empty RBAC" privilege escalation is allowed.
 - Production scheduler execution still needs deployment wiring outside the codebase.
 - CSP is configurable but not enabled by default pending production browser smoke and asset policy approval.

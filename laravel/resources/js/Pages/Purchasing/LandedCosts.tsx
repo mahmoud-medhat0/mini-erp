@@ -322,7 +322,8 @@ export default function LandedCostsIndex({
     }[action];
 
     if (confirm(confirmMessage)) {
-      router.post(`/purchasing/landed-costs/${row.id}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_LANDED_COST' } : {};
+      router.post(`/purchasing/landed-costs/${row.id}/${action}`, payload, { preserveScroll: true });
     }
   }
 

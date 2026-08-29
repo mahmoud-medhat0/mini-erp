@@ -113,9 +113,16 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
   function submitCloseOrReopen(e: FormEvent) {
     e.preventDefault();
     if (!activeModalPeriod || !modalMode) return;
+    if (closeNote.trim().length < 3) return;
 
-    actionForm.setData('close_note', closeNote);
+    const confirmCode = modalMode === 'close' ? 'CLOSE_FINANCIAL_PERIOD' : 'REOPEN_FINANCIAL_PERIOD';
     const endpoint = `/accounting/periods/${activeModalPeriod.id}/${modalMode}`;
+
+    actionForm.transform(() => ({
+      close_note: closeNote.trim(),
+      confirm_action: confirmCode,
+      reason: closeNote.trim(),
+    }));
 
     actionForm.post(endpoint, {
       preserveScroll: true,
@@ -369,7 +376,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionForm.processing || (modalMode === 'close' && readiness !== null && !readiness.can_close)}
+                  disabled={actionForm.processing || closeNote.trim().length < 3 || (modalMode === 'close' && readiness !== null && !readiness.can_close)}
                   title={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
                   aria-label={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
                   className={`rounded-xl px-5 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50 ${

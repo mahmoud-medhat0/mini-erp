@@ -302,7 +302,8 @@ export default function CustomerCreditNotesIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerCreditNotes.cancelThisCreditNote;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/credit-notes/${note.id}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_CUSTOMER_CREDIT_NOTE' } : {};
+      router.post(`/sales/credit-notes/${note.id}/${action}`, payload, { preserveScroll: true });
     }
   };
 

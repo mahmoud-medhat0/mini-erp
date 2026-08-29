@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
@@ -104,7 +104,7 @@ export default function SupplierPaymentsIndex({
 
   const handlePost = (id: string) => {
     if (confirm(dict.app.pages.supplierPayments.confirmPostPayment)) {
-      post(`/supplier-payments/${id}/post`, { preserveScroll: true });
+      router.post(`/supplier-payments/${id}/post`, { confirm_action: 'POST_SUPPLIER_PAYMENT' }, { preserveScroll: true });
     }
   };
 

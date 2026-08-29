@@ -743,7 +743,11 @@ class Phase16Slice5BudgetFoundationTest extends TestCase
         ]);
 
         $this->actingAs($this->authorizedUser)
-            ->post("/budgeting/budgets/{$approvedBudget->id}/activate", ['lock_version' => 1])
+            ->post("/budgeting/budgets/{$approvedBudget->id}/activate", [
+                'lock_version' => 1,
+                'confirm_action' => 'ACTIVATE_BUDGET',
+                'reason' => 'Activating budget test with zero lines',
+            ])
             ->assertSessionHasErrors('lines');
     }
 
@@ -781,6 +785,8 @@ class Phase16Slice5BudgetFoundationTest extends TestCase
 
         $response = $this->actingAs($this->authorizedUser)->post("/budgeting/budgets/{$approvedBudgetB->id}/activate", [
             'lock_version' => 3,
+            'confirm_action' => 'ACTIVATE_BUDGET',
+            'reason' => 'Activating new budget revision',
         ]);
 
         $response->assertRedirect('/budgeting/budgets');
@@ -811,6 +817,8 @@ class Phase16Slice5BudgetFoundationTest extends TestCase
 
         $response = $this->actingAs($this->authorizedUser)->post("/budgeting/budgets/{$budget->id}/cancel", [
             'lock_version' => 1,
+            'confirm_action' => 'CANCEL_BUDGET',
+            'reason' => 'Cancelling draft budget record',
         ]);
 
         $response->assertRedirect('/budgeting/budgets');

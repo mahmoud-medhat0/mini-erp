@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -106,6 +106,8 @@ export default function PayrollRunsIndex({
   const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
+  const [postingRun, setPostingRun] = useState<PayrollRun | null>(null);
+  const [postRunProcessing, setPostRunProcessing] = useState(false);
 
   const branchOptions = useMemo(() => branches.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}` })), [branches, locale]);
   const currencyOptions = useMemo(() => currencies.map((item) => ({ value: item.code, label: `${item.code} - ${getLocalizedName(item.name, locale)}` })), [currencies, locale]);
@@ -147,6 +149,17 @@ export default function PayrollRunsIndex({
 
   function action(url: string) {
     router.post(url, {}, { preserveScroll: true });
+  }
+
+  function postPayrollRun(payload: { confirm_action: string; reason?: string }) {
+    if (!postingRun) return;
+
+    setPostRunProcessing(true);
+    router.post(`/payroll/runs/${postingRun.id}/post`, payload, {
+      preserveScroll: true,
+      onSuccess: () => setPostingRun(null),
+      onFinish: () => setPostRunProcessing(false),
+    });
   }
 
   const isPayrollRunLifecycleActionable = (run: PayrollRun) => ['draft', 'submitted', 'approved'].includes(run.status);
@@ -278,7 +291,7 @@ export default function PayrollRunsIndex({
                             <button type="button" onClick={() => action(`/payroll/runs/${run.id}/approve`)} title={shared.approve} aria-label={shared.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{shared.approve}</button>
                           ) : null}
                           {run.status === 'approved' && canPostPayrollRuns ? (
-                            <button type="button" onClick={() => action(`/payroll/runs/${run.id}/post`)} title={shared.post} aria-label={shared.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{shared.post}</button>
+                            <button type="button" onClick={() => setPostingRun(run)} title={shared.post} aria-label={shared.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{shared.post}</button>
                           ) : null}
                           {isPayrollRunLifecycleActionable(run) && canCancelPayrollRuns ? (
                             <button type="button" onClick={() => action(`/payroll/runs/${run.id}/cancel`)} title={shared.cancel} aria-label={shared.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{shared.cancel}</button>
@@ -339,6 +352,16 @@ export default function PayrollRunsIndex({
           </Card>
         </div>
       )}
+
+      <SensitiveActionModal
+        isOpen={postingRun !== null}
+        onClose={() => setPostingRun(null)}
+        onConfirm={postPayrollRun}
+        confirmCode="POST_PAYROLL_RUN"
+        reasonRequired
+        isProcessing={postRunProcessing}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

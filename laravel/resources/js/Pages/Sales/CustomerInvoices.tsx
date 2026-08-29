@@ -397,7 +397,8 @@ export default function CustomerInvoicesIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerInvoices.cancelThisInvoice;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/invoices/${invId}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_CUSTOMER_INVOICE' } : {};
+      router.post(`/sales/invoices/${invId}/${action}`, payload, { preserveScroll: true });
     }
   };
 

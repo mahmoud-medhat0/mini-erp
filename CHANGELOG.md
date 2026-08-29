@@ -5,6 +5,69 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added - Phase 17 Slice 6 Security Close-Out and Final Verification (2026-08-29)
+
+- Conducted final close-out verification across all Phase 17 security controls (first-user elevation guard, strict route authorization audit, configurable password policy, session safety, sensitive action confirmation, private attachment delivery, and notification user isolation).
+- Executed required targeted verification suites: `AuthenticationTest` (18 tests / 67 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `AttachmentAndNotificationTest` (21 tests / 75 assertions), `M9AttachmentsAndNotificationsTest` (13 tests / 52 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), `Phase16` (95 tests / 944 assertions), Concurrency testsuite (7 tests / 16 assertions), and `php artisan security:route-audit --strict` (457 routes scanned, 0 failing).
+- Updated `Phase16Slice5BudgetFoundationTest` to supply required sensitive action confirmation codes and justification reasons for budget activation and cancellation operations.
+- Performed complete source scans: verified clean anti-tenancy policy adherence, 0 unsafe frontend controls in Phase 17 TSX files, 0 writes to legacy `audit_log`, and 0 raw secrets in templates/documentation.
+- Created `PHASE_17_FINAL_VERIFICATION_REPORT.md` and marked Phase 17 100% COMPLETE.
+
+### Added - Phase 17 Slice 5 Attachment, Notification, and Private Delivery Safety Hardening (2026-08-29)
+
+- Hardened `AttachmentService` filename and display name sanitization, stripping path traversal sequences (`..`), null bytes (`\0`), directory separators (`/`, `\`), and control characters.
+- Enforced strict extension allowlists and an explicit `EXTENSION_MIME_MAP` compatibility validator, preventing extension and MIME spoofing.
+- Guaranteed private storage isolation by verifying `erp_attachments.disk` uses local private storage (`storage/app/private`) with direct framework serving (`FILESYSTEM_LOCAL_SERVE`) disabled.
+- Added `validateSafePath` preventing access outside the private `attachments/` storage root.
+- Streamed download responses with sanitized `Content-Disposition` filenames and `X-Content-Type-Options: nosniff`.
+- Secured attachment deletion inside a database transaction, verifying entity authorization before deletion and recording Spatie Activitylog audit evidence (`attachment.delete`) with complete metadata.
+- Extracted dedicated FormRequests `ListAttachmentRequest` and `StoreAttachmentRequest`, keeping `AttachmentController` thin and service-driven.
+- Hardened `NotificationService` with positive user ID validation, type and target reference normalization and length truncation, and user-scoped deterministic dedupe resolution.
+- Updated `NotificationController` to retrieve the user identifier strictly from the authenticated session, ignoring untrusted request payload `user_id` values.
+- Extended `AttachmentAndNotificationTest` (21 tests / 75 assertions) and `SecurityHardeningTest` (38 tests / 969 assertions) covering all attachment and notification security safeguards.
+
+### Added - Phase 17 Slice 4 Sensitive Financial Action Confirmation and Audit Evidence Hardening (2026-08-29)
+
+
+- Added centralized `SensitiveActionRegistry` and `RequireSensitiveActionConfirmation` middleware alias `sensitive.confirm`.
+- Protected 38 high-impact financial/irreversible route names with exact `confirm_action` validation.
+- Required normalized reasons on 21 reversal, close/reopen, finalize, filing, stock adjustment/count, payroll, budget, and fixed-asset actions.
+- Added Spatie Activitylog evidence event `sensitive_action.confirmed` with confirmation code, confirmed flag, reason, route name, actor ID, request ID, IP, and device.
+- Added reusable dictionary-backed `SensitiveActionModal` and updated protected Inertia route callers to send explicit confirmation payloads.
+- Updated `SecurityHardeningTest` and `Phase15ProductHardeningTest` to prevent empty payloads and unsafe UI patterns from returning on protected sensitive actions.
+- Verified Pint, targeted security and product hardening tests, Concurrency suite, route audit, TypeScript typecheck, Vite build, no-scope scans, and unsafe UI scans.
+
+### Added - Phase 17 Slice 3 Password Policy and Session Safety Configuration Hardening (2026-08-29)
+
+- Extended `config/security.php` with a centralized, configurable `password_policy` block (`min_length`, `max_length`, `mixed_case`, `letters`, `numbers`, `symbols`).
+- Created reusable password rule builder `App\Support\Security\PasswordPolicyRules` constructing `Illuminate\Validation\Rules\Password` instances without network-based uncompromised checks.
+- Refactored user management validation to dedicated FormRequests `App\Http\Requests\Settings\StoreUserRequest` and `App\Http\Requests\Settings\UpdateUserRequest`, keeping `UserSettingsController` thin.
+- Ensured user update handles optional/empty password input gracefully by preserving existing password hash, while strictly applying full policy on non-empty updates.
+- Verified `BootstrapUserSeeder` default credentials (`Password123!`) pass the new default password policy and authenticate properly.
+- Added non-secret password policy environment variable placeholders to `laravel/.env.example` and documented in `spec/ENVIRONMENT_CHECKLIST.md` and `spec/SECURITY.md`.
+- Expanded `tests/Feature/SecurityHardeningTest.php` (29 tests / 693 assertions total) with tests for min/max length rejection, letters/numbers/symbols/mixed-case requirements, plaintext avoidance, hash preservation on empty update, inactive-state preservation when `is_active` is omitted, weak update rejection, strong update hash mutation, and custom config thresholds.
+- Expanded `tests/Feature/AuthenticationTest.php` (18 tests / 67 assertions total) with session regeneration on login, session invalidation on logout, and bootstrap login validation.
+- Verified zero tenant/company/branch security scoping introduced.
+
+### Added - Phase 17 Slice 2 Route Authorization Audit Command and Regression Guard (2026-08-29)
+
+
+- Created read-only Artisan command `security:route-audit` (`App\Console\Commands\SecurityRouteAuditCommand`) supporting `--strict` (non-zero exit code on failure) and `--json` (machine-readable JSON output).
+- Created central route auditor `App\Support\Security\RouteAuthorizationAuditor` classifying all routes into `public`, `guest`, `explicitly_authorized`, `service_authorized_allowlist`, and `failing`.
+- Centralized service-authorized and public allowlists with documented non-empty reason strings.
+- Hardened route auditing so unlisted unauthenticated public routes are classified as `failing` instead of being trusted implicitly.
+- Extended `tests/Feature/SecurityHardeningTest.php` with 9 new tests (15 tests / 636 assertions total) covering standard command execution, `--strict` mode, `--json` structure validation, dynamic unauthorized route detection, unlisted public route detection, strict non-zero exit code handling, and allowlist reason completeness.
+- Updated `spec/SECURITY.md`, `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md`, `IMPLEMENTATION_STATUS.md`, `NEXT_TASKS.md`, and `CONTINUE_HERE.md`.
+
+### Added - Phase 17 Slice 1 Controlled Bootstrap Admin and First-User Privilege Seeding Guard (2026-08-29)
+
+- Updated `config/erp_auth.php` with a dedicated `first_user_super_admin` configuration block (`enabled`, `production_confirmation`, `required_production_confirmation`, `role`).
+- Hardened `Database\Seeders\FirstUserSuperAdminSeeder` to fail-closed and disabled by default (`ERP_ASSIGN_FIRST_USER_SUPER_ADMIN=false`).
+- Added production environment guard in `FirstUserSuperAdminSeeder` requiring exact matching confirmation phrase (`ERP_FIRST_USER_SUPER_ADMIN_PRODUCTION_CONFIRM=CONFIRM_ASSIGN_FIRST_USER_SUPER_ADMIN`), throwing `RuntimeException` fail-closed on unconfirmed or missing confirmation.
+- Documented environment variables in `laravel/.env.example` and `spec/ENVIRONMENT_CHECKLIST.md` without exposing secrets.
+- Updated `spec/SECURITY.md` to reflect explicit controlled first-user privilege seeding policy.
+- Added comprehensive unit/feature tests in `tests/Feature/AuthenticationTest.php` covering disabled default no-op, explicitly enabled first-user assignment, no-user no-op, missing role no-op, unconfirmed production exception, confirmed production execution, idempotent audit logging, and single-tenant integrity.
+
 ### Added - Phase 17 Security and Access Governance Prompts (2026-08-28)
 
 - Created `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md` as the defensive security hardening master plan.

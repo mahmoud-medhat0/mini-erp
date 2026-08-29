@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, Modal, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatMoney, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -121,6 +121,7 @@ export default function BudgetsIndex({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState<BudgetRow | null>(null);
   const [viewingBudget, setViewingBudget] = useState<BudgetRow | null>(null);
+  const [budgetSensitiveAction, setBudgetSensitiveAction] = useState<{ budget: BudgetRow; action: 'activate' | 'archive' | 'cancel' } | null>(null);
   const [search, setSearch] = useState(filters.search || '');
 
   const defaultYearId = fiscalYears[0]?.id || '';
@@ -360,33 +361,15 @@ export default function BudgetsIndex({
   }
 
   function handleActivate(budget: BudgetRow) {
-    if (window.confirm(pageDict.confirmActivateBudget.replace('{code}', budget.code))) {
-      router.post(
-        `/budgeting/budgets/${budget.id}/activate`,
-        { lock_version: budget.lock_version },
-        { preserveScroll: true },
-      );
-    }
+    setBudgetSensitiveAction({ budget, action: 'activate' });
   }
 
   function handleArchive(budget: BudgetRow) {
-    if (window.confirm(pageDict.confirmArchiveBudget.replace('{code}', budget.code))) {
-      router.post(
-        `/budgeting/budgets/${budget.id}/archive`,
-        { lock_version: budget.lock_version },
-        { preserveScroll: true },
-      );
-    }
+    setBudgetSensitiveAction({ budget, action: 'archive' });
   }
 
   function handleCancel(budget: BudgetRow) {
-    if (window.confirm(pageDict.confirmCancelBudget.replace('{code}', budget.code))) {
-      router.post(
-        `/budgeting/budgets/${budget.id}/cancel`,
-        { lock_version: budget.lock_version },
-        { preserveScroll: true },
-      );
-    }
+    setBudgetSensitiveAction({ budget, action: 'cancel' });
   }
 
   function handleDelete(budget: BudgetRow) {
@@ -1222,6 +1205,32 @@ export default function BudgetsIndex({
           </div>
         </Modal>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={budgetSensitiveAction !== null}
+        onClose={() => setBudgetSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!budgetSensitiveAction) return;
+          const { budget, action } = budgetSensitiveAction;
+          router.post(
+            `/budgeting/budgets/${budget.id}/${action}`,
+            { ...payload, lock_version: budget.lock_version },
+            {
+              preserveScroll: true,
+              onSuccess: () => setBudgetSensitiveAction(null),
+            },
+          );
+        }}
+        confirmCode={
+          budgetSensitiveAction?.action === 'activate'
+            ? 'ACTIVATE_BUDGET'
+            : budgetSensitiveAction?.action === 'archive'
+            ? 'ARCHIVE_BUDGET'
+            : 'CANCEL_BUDGET'
+        }
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

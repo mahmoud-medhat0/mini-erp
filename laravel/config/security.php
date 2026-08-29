@@ -11,4 +11,13 @@ return [
             ),
         ],
     ],
+
+    'password_policy' => [
+        'min_length' => (int) env('ERP_PASSWORD_MIN_LENGTH', 12),
+        'max_length' => (int) env('ERP_PASSWORD_MAX_LENGTH', 128),
+        'mixed_case' => filter_var(env('ERP_PASSWORD_REQUIRE_MIXED_CASE', true), FILTER_VALIDATE_BOOLEAN),
+        'letters' => filter_var(env('ERP_PASSWORD_REQUIRE_LETTERS', true), FILTER_VALIDATE_BOOLEAN),
+        'numbers' => filter_var(env('ERP_PASSWORD_REQUIRE_NUMBERS', true), FILTER_VALIDATE_BOOLEAN),
+        'symbols' => filter_var(env('ERP_PASSWORD_REQUIRE_SYMBOLS', true), FILTER_VALIDATE_BOOLEAN),
+    ],
 ];

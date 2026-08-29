@@ -473,7 +473,8 @@ export default function SupplierBillsIndex({
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierBills.cancelThisBill;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/bills/${billId}/${action}`, {}, { preserveScroll: true });
+      const payload = action === 'post' ? { confirm_action: 'POST_SUPPLIER_BILL' } : {};
+      router.post(`/purchasing/bills/${billId}/${action}`, payload, { preserveScroll: true });
     }
   };
 

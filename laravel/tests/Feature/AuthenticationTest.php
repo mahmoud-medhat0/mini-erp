@@ -135,8 +135,30 @@ class AuthenticationTest extends TestCase
         $this->assertFalse($user->hasRole('ERP_ADMIN'));
     }
 
-    public function test_first_user_super_admin_seeder_assigns_super_admin_to_the_first_user_only(): void
+    public function test_first_user_super_admin_seeder_does_not_assign_role_by_default(): void
     {
+        $firstUser = User::factory()->create(['email' => 'first@example.com']);
+        $secondUser = User::factory()->create(['email' => 'second@example.com']);
+
+        Role::query()->create([
+            'name' => 'SUPER_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        $this->seed(FirstUserSuperAdminSeeder::class);
+
+        $this->assertFalse($firstUser->fresh()->hasRole('SUPER_ADMIN'));
+        $this->assertFalse($secondUser->fresh()->hasRole('SUPER_ADMIN'));
+        $this->assertDatabaseMissing('activity_log', [
+            'event' => 'first_user_super_admin.seed',
+        ]);
+    }
+
+    public function test_first_user_super_admin_seeder_assigns_super_admin_to_the_first_user_only_when_explicitly_enabled(): void
+    {
+        config()->set('erp_auth.first_user_super_admin.enabled', true);
+
         $firstUser = User::factory()->create(['email' => 'first@example.com']);
         $secondUser = User::factory()->create(['email' => 'second@example.com']);
 
@@ -152,6 +174,166 @@ class AuthenticationTest extends TestCase
         $this->assertFalse($secondUser->fresh()->hasRole('SUPER_ADMIN'));
         $this->assertDatabaseHas('activity_log', [
             'event' => 'first_user_super_admin.seed',
+            'properties->entity_id' => (string) $firstUser->id,
+            'properties->after->assigned_role' => 'SUPER_ADMIN',
         ]);
+    }
+
+    public function test_first_user_super_admin_seeder_no_ops_when_no_users_exist(): void
+    {
+        config()->set('erp_auth.first_user_super_admin.enabled', true);
+
+        Role::query()->create([
+            'name' => 'SUPER_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        $this->seed(FirstUserSuperAdminSeeder::class);
+
+        $this->assertSame(0, User::query()->count());
+        $this->assertDatabaseMissing('activity_log', [
+            'event' => 'first_user_super_admin.seed',
+        ]);
+    }
+
+    public function test_first_user_super_admin_seeder_no_ops_when_role_does_not_exist(): void
+    {
+        config()->set('erp_auth.first_user_super_admin.enabled', true);
+
+        $user = User::factory()->create(['email' => 'first@example.com']);
+
+        $this->seed(FirstUserSuperAdminSeeder::class);
+
+        $this->assertCount(0, $user->fresh()->roles);
+        $this->assertDatabaseMissing('activity_log', [
+            'event' => 'first_user_super_admin.seed',
+        ]);
+    }
+
+    public function test_first_user_super_admin_seeder_throws_in_production_when_enabled_without_confirmation(): void
+    {
+        $this->app['env'] = 'production';
+        config()->set('erp_auth.first_user_super_admin.enabled', true);
+        config()->set('erp_auth.first_user_super_admin.production_confirmation', null);
+
+        $user = User::factory()->create(['email' => 'first@example.com']);
+
+        Role::query()->create([
+            'name' => 'SUPER_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Production first-user Super Admin assignment requires exact confirmation phrase match.');
+
+        try {
+            app(FirstUserSuperAdminSeeder::class)->run();
+        } finally {
+            $this->assertFalse($user->fresh()->hasRole('SUPER_ADMIN'));
+            $this->assertDatabaseMissing('activity_log', [
+                'event' => 'first_user_super_admin.seed',
+            ]);
+        }
+    }
+
+    public function test_first_user_super_admin_seeder_assigns_in_production_when_exact_confirmation_is_provided(): void
+    {
+        $this->app['env'] = 'production';
+        config()->set('erp_auth.first_user_super_admin.enabled', true);
+        config()->set('erp_auth.first_user_super_admin.production_confirmation', 'CONFIRM_ASSIGN_FIRST_USER_SUPER_ADMIN');
+        config()->set('erp_auth.first_user_super_admin.required_production_confirmation', 'CONFIRM_ASSIGN_FIRST_USER_SUPER_ADMIN');
+
+        $firstUser = User::factory()->create(['email' => 'first@example.com']);
+        $secondUser = User::factory()->create(['email' => 'second@example.com']);
+
+        Role::query()->create([
+            'name' => 'SUPER_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        app(FirstUserSuperAdminSeeder::class)->run();
+
+        $this->assertTrue($firstUser->fresh()->hasRole('SUPER_ADMIN'));
+        $this->assertFalse($secondUser->fresh()->hasRole('SUPER_ADMIN'));
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'first_user_super_admin.seed',
+            'properties->entity_id' => (string) $firstUser->id,
+            'properties->after->assigned_role' => 'SUPER_ADMIN',
+        ]);
+    }
+
+    public function test_first_user_super_admin_seeder_does_not_duplicate_audit_if_already_assigned(): void
+    {
+        config()->set('erp_auth.first_user_super_admin.enabled', true);
+
+        $role = Role::query()->create([
+            'name' => 'SUPER_ADMIN',
+            'guard_name' => 'web',
+            'is_template' => true,
+        ]);
+
+        $firstUser = User::factory()->create(['email' => 'first@example.com']);
+        $firstUser->assignRole($role);
+
+        $this->seed(FirstUserSuperAdminSeeder::class);
+
+        $this->assertDatabaseMissing('activity_log', [
+            'event' => 'first_user_super_admin.seed',
+        ]);
+    }
+
+    public function test_login_regenerates_session(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'admin@example.com',
+            'password' => 'Password123!',
+            'is_active' => true,
+        ]);
+
+        $this->get('/login');
+        $initialSessionId = session()->getId();
+
+        $this->post('/login', [
+            'email' => 'admin@example.com',
+            'password' => 'Password123!',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertNotSame($initialSessionId, session()->getId());
+    }
+
+    public function test_logout_invalidates_session_and_clears_authenticated_state(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/logout')
+            ->assertRedirect('/login');
+
+        $this->assertGuest();
+    }
+
+    public function test_bootstrap_user_seeder_default_password_passes_policy_and_authenticates(): void
+    {
+        config()->set('erp_auth.bootstrap_user.enabled', true);
+        config()->set('erp_auth.bootstrap_user.email', 'admin@mini-erp.local');
+        config()->set('erp_auth.bootstrap_user.password', 'Password123!');
+
+        $this->seed(BootstrapUserSeeder::class);
+
+        $user = User::query()->where('email', 'admin@mini-erp.local')->firstOrFail();
+
+        $this->assertTrue($user->is_active);
+        $this->assertTrue(Hash::check('Password123!', $user->password));
+
+        $this->post('/login', [
+            'email' => 'admin@mini-erp.local',
+            'password' => 'Password123!',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertAuthenticatedAs($user);
     }
 }

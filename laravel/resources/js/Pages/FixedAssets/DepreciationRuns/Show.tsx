@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { Card, PageHeader, StatusBadge } from '../../../Components/Primitives';
+import { Card, PageHeader, SensitiveActionModal, StatusBadge } from '../../../Components/Primitives';
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -46,10 +47,10 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
   const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
   const canReverseDepreciationRuns = can.reverse;
 
+  const [showReverseModal, setShowReverseModal] = useState(false);
+
   function handleReverse() {
-    if (confirm(appDict.confirmReverseDepreciationRun)) {
-      router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, {}, { preserveScroll: true });
-    }
+    setShowReverseModal(true);
   }
 
   function formatName(name?: { en: string; ar: string } | string | null): string {
@@ -191,6 +192,20 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
           </div>
         </Card>
       </div>
+
+      <SensitiveActionModal
+        isOpen={showReverseModal}
+        onClose={() => setShowReverseModal(false)}
+        onConfirm={(payload) => {
+          router.post(`/fixed-assets-depreciation-runs/${run.id}/reverse`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setShowReverseModal(false),
+          });
+        }}
+        confirmCode="REVERSE_FIXED_ASSET_DEPRECIATION_RUN"
+        reasonRequired={true}
+        locale={locale}
+      />
     </AppLayout>
   );
 }
