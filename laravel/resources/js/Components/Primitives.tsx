@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
 import { formatAccountingAmount } from '../lib/accountingHelpers';
+import type { PaginationLink } from '../Types';
 
 export function PageHeader({
   title,
@@ -231,6 +232,74 @@ export const tableClasses = {
   th: 'sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background)] px-4 py-3 text-start text-xs font-bold uppercase text-[var(--text-muted)]',
   td: 'border-b border-[var(--border)] px-4 py-3 align-middle text-[var(--text-primary)]',
 };
+
+export function decodePaginationLabel(label: string): string {
+  if (!label) return '';
+  return label
+    .replace(/&laquo;/g, '«')
+    .replace(/&raquo;/g, '»')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#039;/g, "'")
+    .replace(/&quot;/g, '"');
+}
+
+export function PaginationControls({
+  links,
+  total,
+  totalLabel,
+  className = '',
+}: {
+  links?: PaginationLink[] | null;
+  total?: number;
+  totalLabel?: string;
+  className?: string;
+}) {
+  if (!links || links.length <= 3) {
+    return null;
+  }
+
+  return (
+    <div className={`flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface)] mt-4 rounded-lg ${className}`}>
+      {total !== undefined && totalLabel ? (
+        <span className="text-xs text-[var(--text-muted)] font-mono">
+          {totalLabel} {total}
+        </span>
+      ) : (
+        <span />
+      )}
+      <div className="flex items-center gap-1">
+        {links.map((link, idx) => {
+          const safeLabel = decodePaginationLabel(link.label);
+
+          return link.url ? (
+            <Link
+              key={idx}
+              href={link.url}
+              preserveScroll
+              preserveState
+              className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                link.active
+                  ? 'bg-[var(--primary)] text-white border-transparent'
+                  : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)]'
+              }`}
+            >
+              {safeLabel}
+            </Link>
+          ) : (
+            <span
+              key={idx}
+              className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)] opacity-50"
+            >
+              {safeLabel}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export { default as SearchableSelect } from './SearchableSelect';
 export { default as ToggleSwitch } from './ToggleSwitch';

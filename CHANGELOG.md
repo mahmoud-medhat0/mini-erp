@@ -5,6 +5,39 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added - Phase 18 Slice 4 Final Product Acceptance, UI Polish, and Clean-Code Close-Out (2026-08-29)
+
+- Executed complete verification gate across migrations, Pint code style, `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions), `SecurityHardeningTest` (38 tests / 969 assertions), `Phase15ProductHardeningTest` (192 tests / 26114 assertions), Concurrency test suite (7 tests / 16 assertions), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and all source scans (anti-tenancy, unsafe UI controls, secrets).
+- Verified zero occurrences of unsafe HTML rendering (`dangerouslySetInnerHTML`), native `<select>`, `<option>`, `type="date"`, or `window.location.href` across all React pages and components.
+- Verified all 125 controllers under `laravel/app/Http/Controllers` are <= 150 lines (max 110 lines) with zero heavy queries, zero inline CSV loops, zero posting arithmetic, and zero inline business loops.
+- Created `PHASE_18_FINAL_VERIFICATION_REPORT.md` and marked Phase 18 100% COMPLETE. Deployment remains parked.
+
+### Added - Phase 18 Slice 3 Product Acceptance and Accountant Smoke Matrix (2026-08-29)
+
+- Created comprehensive bilingual `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md` in repository root covering 20 core business, accounting, operational, and security areas in English and Arabic with standardized acceptance table columns (Area, Scenario, Expected Result, Required Permission/Role, Test Data Needed, Owner Sign-Off Status) and official sign-off block for business owners, CFOs, lead accountants, and internal auditors.
+- Added automated acceptance matrix verification to `laravel/tests/Feature/Phase18ProductAcceptanceTest.php`, asserting presence of bilingual sections, required area headers, and standardized columns.
+- Implemented comprehensive browserless smoke test suite covering 75+ representative Inertia endpoints across all ERP modules (Dashboard, Settings, Accounting Core, AR/AP Subledgers, Treasury, Cheques, Catalog, Sales Orders/Delivery Notes/Invoices/Returns/Credit Notes, Purchase Orders/GRNs/Bills/Returns/Landed Costs, Inventory Balances/Warehouses/Transfers/Counts/Adjustments, Expenses/Prepaids/Accruals, Payroll, Rentals, Fixed Assets, Taxes/VAT, Projects/Cost Centers, Budgets/Variance, and all 25 Financial/Operational Reports).
+- Added guest route redirection regression tests verifying unauthorized unauthenticated requests redirect cleanly to `/login`.
+- Total `Phase18ProductAcceptanceTest` suite increased to 16 tests / 1264 assertions (passing cleanly).
+- Verified Pint code style, strict route authorization audit (457 routes, 0 failing), and TypeScript typecheck (0 errors).
+- Created `PHASE_18_SLICE_3_REPORT.md`.
+
+### Added - Phase 18 Slice 2 Controller Clean-Code Boundary Gate (2026-08-29)
+
+- Audited all 125 controllers under `laravel/app/Http/Controllers` against clean boundary constraints: verified all controllers are <= 150 physical lines (max 110 lines), zero `DB::table(` calls, zero raw table joins/aggregations, zero inline CSV row loops, zero posting math helpers, and complete orchestration delegation.
+- Confirmed service-authorized `AttachmentController` (63 lines) and `NotificationController` (56 lines) remain thin, session/entity authorized.
+- Added 5 automated clean-code boundary gate tests to `laravel/tests/Feature/Phase18ProductAcceptanceTest.php` (totaling 13 tests / 245 assertions).
+- Verified Pint code style, full `Phase15ProductHardeningTest` (192 tests / 26114 assertions), strict route authorization audit (457 routes scanned, 0 failing), and TypeScript typecheck (0 errors).
+- Created `PHASE_18_SLICE_2_REPORT.md`.
+
+### Added - Phase 18 Slice 1 Safe Pagination Rendering and UI Safety Cleanup (2026-08-29)
+
+- Added reusable safe HTML entity decoder `decodePaginationLabel` and reusable pagination component `PaginationControls` to `laravel/resources/js/Components/Primitives.tsx`.
+- Removed all `dangerouslySetInnerHTML` occurrences from `laravel/resources/js/Pages/Projects/Index.tsx` and `laravel/resources/js/Pages/CostCenters/Index.tsx`, safely rendering pagination links as plain text React nodes with `preserveScroll`, `preserveState`, and dictionary-backed total count.
+- Scanned all page components under `laravel/resources/js/Pages` and verified 0 occurrences of `dangerouslySetInnerHTML` remain anywhere in the application.
+- Added `Phase18ProductAcceptanceTest` (8 tests / 221 assertions) and updated `Phase16Slice1ProjectCostCenterTest` (12 tests / 148 assertions) guarding against `dangerouslySetInnerHTML`, native `<select>`, `<option>`, `type="date"`, `window.location.href`, and multi-tenancy terms.
+- Created `PHASE_18_SLICE_1_REPORT.md`.
+
 ### Added - Phase 17 Slice 6 Security Close-Out and Final Verification (2026-08-29)
 
 - Conducted final close-out verification across all Phase 17 security controls (first-user elevation guard, strict route authorization audit, configurable password policy, session safety, sensitive action confirmation, private attachment delivery, and notification user isolation).

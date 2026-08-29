@@ -410,7 +410,7 @@ class Phase16Slice1ProjectCostCenterTest extends TestCase
         $projectCode = file_get_contents($projectIndexFile);
         $costCenterCode = file_get_contents($costCenterIndexFile);
 
-        foreach (['<select', '<option', 'type="date"', "type='date'", 'window.location.href'] as $banned) {
+        foreach (['<select', '<option', 'type="date"', "type='date'", 'window.location.href', 'dangerouslySetInnerHTML'] as $banned) {
             $this->assertStringNotContainsString(
                 $banned,
                 $projectCode,

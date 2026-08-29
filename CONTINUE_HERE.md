@@ -5,11 +5,11 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current date/context: 2026-08-29. Phase 17 (Security and Access Governance) Slices 1, 2, 3, 4, 5 & 6 are 100% COMPLETE. Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE. Deployment execution remains parked until owner/operator cutover decisions are needed.
+Current date/context: 2026-08-29. Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 (Security and Access Governance) is 100% COMPLETE. Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE. Deployment execution remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 17 Slice 6 (Final Security Close-Out, Source Scans, and Documentation Sync) is COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). All security hardening controls, route audits, sensitive action confirmations, private attachment safeguards, and notification user isolation measures are verified and passing across the required targeted verification suites.
+Latest update: Phase 18 Slice 4 (Final Product Acceptance, UI Polish, and Clean-Code Close-Out) is COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Executed full verification suite: all 16 Phase 18 tests passed (1264 assertions), 38 Security Hardening tests passed (969 assertions), 192 Phase 15 product hardening tests passed (26114 assertions), Concurrency suite passed (7 tests / 16 assertions), strict route authorization audit passed (457 routes, 0 failing), Pint passed, TypeScript typecheck passed (0 errors), Vite production build passed, git diff check passed, and all source scans (anti-tenancy, unsafe UI controls, secrets) passed cleanly.
 
-Phase 17 is verified clean and COMPLETE. Next task: No automatic next implementation phase. Recommend owner/product review or an explicitly approved phase. Deployment remains parked.
+Phase 18 is verified clean and COMPLETE. Next task: Owner/accountant hands-on acceptance review (`PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`) or explicitly approved next product phase. Deployment remains parked.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -20,6 +20,17 @@ Use the current Laravel code and these documents first:
 - `README.md`
 - `IMPLEMENTATION_STATUS.md`
 - `NEXT_TASKS.md`
+- `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`
+- `PHASE_18_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_18_PRODUCT_ACCEPTANCE_UI_CLEAN_CODE.md`
+- `PHASE_18_SLICE_3_REPORT.md`
+- `PHASE_18_SLICE_2_REPORT.md`
+- `PHASE_18_SLICE_1_REPORT.md`
+- `PHASE_18_SLICE_1_AGY_PROMPT.md`
+- `PHASE_18_SLICE_2_AGY_PROMPT.md`
+- `PHASE_18_SLICE_3_AGY_PROMPT.md`
+- `PHASE_18_SLICE_4_AGY_PROMPT.md`
+- `PHASE_17_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md`
 - `PHASE_17_SLICE_1_REPORT.md`
 - `PHASE_17_SLICE_2_REPORT.md`

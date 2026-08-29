@@ -1,8 +1,8 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, Modal, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Button, Card, EmptyState, Modal, PageHeader, PaginationControls, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -302,37 +302,11 @@ export default function CostCentersIndex({ locale, costCenters, filters }: Props
       )}
 
       {/* Pagination Controls */}
-      {costCenters.links && costCenters.links.length > 3 ? (
-        <div className="flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface)] mt-4 rounded-lg">
-          <span className="text-xs text-[var(--text-muted)] font-mono">
-            {auditDict.totalRecords} {costCenters.total}
-          </span>
-          <div className="flex items-center gap-1">
-            {costCenters.links.map((link, idx) => (
-              link.url ? (
-                <Link
-                  key={idx}
-                  href={link.url}
-                  preserveScroll
-                  preserveState
-                  dangerouslySetInnerHTML={{ __html: link.label }}
-                  className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
-                    link.active
-                      ? 'bg-[var(--primary)] text-white border-transparent'
-                      : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)]'
-                  }`}
-                />
-              ) : (
-                <span
-                  key={idx}
-                  dangerouslySetInnerHTML={{ __html: link.label }}
-                  className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)] opacity-50"
-                />
-              )
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <PaginationControls
+        links={costCenters.links}
+        total={costCenters.total}
+        totalLabel={auditDict.totalRecords}
+      />
 
       {/* Create / Edit Modal */}
       <Modal

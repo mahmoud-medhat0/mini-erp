@@ -5,23 +5,29 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 17 - Security and Access Governance is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 - Projects, Cost Centers, and Budgeting is COMPLETE. Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
+Current status: Phase 18 - Product Acceptance, UI Polish, and Clean Code Gate is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`). Phase 16 is COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 17 Slice 6 (Final Security Close-Out, Source Scans, and Documentation Sync) is COMPLETE. All six Phase 17 slices are verified and documented. Verification gate passed across migrations, Pint, authentication, security hardening, attachments/notifications, Phase 15 product hardening, Phase 16 suites (including budget sensitive action confirmations), Concurrency suite, strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans.
+Latest update: Phase 18 Slice 4 (Final Product Acceptance, UI Polish, and Clean-Code Close-Out) is COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Executed full verification suite: all 16 Phase 18 tests passed (1264 assertions), 38 Security Hardening tests passed (969 assertions), 192 Phase 15 product hardening tests passed (26114 assertions), Concurrency suite passed (7 tests / 16 assertions), strict route authorization audit passed (457 routes, 0 failing), Pint passed, TypeScript typecheck passed (0 errors), Vite production build passed, git diff check passed, and all source scans (anti-tenancy, unsafe UI controls, secrets) passed cleanly.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Milestones & Future Options
 
-- All core migration phases (Phase 1 through Phase 17) are 100% complete and verified.
-- Phase 17 (Security and Access Governance) is 100% COMPLETE:
-  - **Slice 1 COMPLETE**: Controlled bootstrap admin and first-user privilege seeding guard (`PHASE_17_SLICE_1_REPORT.md`).
-  - **Slice 2 COMPLETE**: Route authorization audit command and regression guard (`PHASE_17_SLICE_2_REPORT.md`).
-  - **Slice 3 COMPLETE**: Password policy and session safety configuration (`PHASE_17_SLICE_3_REPORT.md`).
-  - **Slice 4 COMPLETE**: Sensitive financial action confirmation and audit evidence (`PHASE_17_SLICE_4_REPORT.md`).
-  - **Slice 5 COMPLETE**: Attachment, notification, and private-delivery safety (`PHASE_17_SLICE_5_REPORT.md`).
-  - **Slice 6 COMPLETE**: Final security close-out, source scans, and documentation sync (`PHASE_17_FINAL_VERIFICATION_REPORT.md`).
-- Next steps: No automatic next implementation phase. Recommend owner/product review or an explicitly approved phase. Deployment remains parked.
+- Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE:
+  - **Slice 1 COMPLETE**: Safe pagination rendering and UI safety cleanup (`PHASE_18_SLICE_1_REPORT.md`).
+  - **Slice 2 COMPLETE**: Controller clean-code boundary gate and verification (`PHASE_18_SLICE_2_REPORT.md`).
+  - **Slice 3 COMPLETE**: Product acceptance/accountant smoke matrix and browserless route smoke checks (`PHASE_18_SLICE_3_REPORT.md`).
+  - **Slice 4 COMPLETE**: Final Phase 18 close-out report, docs sync, and verification (`PHASE_18_FINAL_VERIFICATION_REPORT.md`).
+- Phase 17 (Security and Access Governance) is 100% COMPLETE (`PHASE_17_FINAL_VERIFICATION_REPORT.md`).
+- Next immediate task: Owner/accountant hands-on acceptance review (`PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`) or explicitly approved next product phase. Deployment remains parked.
+
+## Phase 18 Product Acceptance, UI Polish, and Clean Code Gate
+
+- **Master plan COMPLETE**: `PHASE_18_PRODUCT_ACCEPTANCE_UI_CLEAN_CODE.md`.
+- **Slice 1 COMPLETE**: safe pagination rendering and UI safety cleanup (`PHASE_18_SLICE_1_REPORT.md`).
+- **Slice 2 COMPLETE**: controller clean-code boundary gate (`PHASE_18_SLICE_2_REPORT.md`).
+- **Slice 3 COMPLETE**: product acceptance/accountant smoke matrix and browserless smoke tests (`PHASE_18_SLICE_3_REPORT.md`).
+- **Slice 4 COMPLETE**: final Phase 18 close-out report and verification (`PHASE_18_FINAL_VERIFICATION_REPORT.md`).
 
 ## Phase 17 Security and Access Governance
 
