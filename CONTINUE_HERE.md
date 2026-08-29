@@ -5,11 +5,11 @@
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current date/context: 2026-08-29. Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 (Security and Access Governance) is 100% COMPLETE. Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE. Deployment execution remains parked until owner/operator cutover decisions are needed.
+Current date/context: 2026-08-29. Phase 19 (Accountant Acceptance Execution and Gap Closure) is 100% COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Phase 18 (Product Acceptance, UI Polish, and Clean Code Gate) is 100% COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Phase 17 (Security and Access Governance) is 100% COMPLETE. Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE. Deployment execution remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 18 Slice 4 (Final Product Acceptance, UI Polish, and Clean-Code Close-Out) is COMPLETE (`PHASE_18_FINAL_VERIFICATION_REPORT.md`). Executed full verification suite: all 16 Phase 18 tests passed (1264 assertions), 38 Security Hardening tests passed (969 assertions), 192 Phase 15 product hardening tests passed (26114 assertions), Concurrency suite passed (7 tests / 16 assertions), strict route authorization audit passed (457 routes, 0 failing), Pint passed, TypeScript typecheck passed (0 errors), Vite production build passed, git diff check passed, and all source scans (anti-tenancy, unsafe UI controls, secrets) passed cleanly.
+Latest update: Phase 19 Slice 4 (Final Accountant Acceptance Close-Out) is COMPLETE (`PHASE_19_FINAL_VERIFICATION_REPORT.md`). Executed complete verification gate across migrations, Pint code style, `Phase19AccountantAcceptanceTest` (23 tests / 459 assertions passed), `Phase18ProductAcceptanceTest` (16 tests / 1264 assertions passed), `SecurityHardeningTest` (38 tests / 969 assertions passed), `Phase15ProductHardeningTest` (192 tests / 26116 assertions passed), Concurrency suite (7 tests / 16 assertions passed), strict route authorization audit (457 routes, 0 failing), TypeScript typecheck (0 errors), Vite production build, git diff check, and source scans (anti-tenancy, unsafe UI controls, secrets).
 
-Phase 18 is verified clean and COMPLETE. Next task: Owner/accountant hands-on acceptance review (`PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`) or explicitly approved next product phase. Deployment remains parked.
+Next task: Owner/accountant hands-on sign-off using `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md` and `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`, or explicitly approved next product phase. Deployment remains parked.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -21,6 +21,16 @@ Use the current Laravel code and these documents first:
 - `IMPLEMENTATION_STATUS.md`
 - `NEXT_TASKS.md`
 - `PRODUCT_ACCEPTANCE_SMOKE_MATRIX.md`
+- `OWNER_ACCEPTANCE_EXECUTION_SCRIPT.md`
+- `PHASE_19_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_19_ACCOUNTANT_ACCEPTANCE_EXECUTION.md`
+- `PHASE_19_SLICE_1_REPORT.md`
+- `PHASE_19_SLICE_1_AGY_PROMPT.md`
+- `PHASE_19_SLICE_2_REPORT.md`
+- `PHASE_19_SLICE_2_AGY_PROMPT.md`
+- `PHASE_19_SLICE_3_REPORT.md`
+- `PHASE_19_SLICE_3_AGY_PROMPT.md`
+- `PHASE_19_SLICE_4_AGY_PROMPT.md`
 - `PHASE_18_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_18_PRODUCT_ACCEPTANCE_UI_CLEAN_CODE.md`
 - `PHASE_18_SLICE_3_REPORT.md`

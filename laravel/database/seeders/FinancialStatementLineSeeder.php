@@ -144,14 +144,16 @@ class FinancialStatementLineSeeder extends Seeder
 
         // Auto-assign obvious starter accounts to statement lines if not assigned
         $assignments = [
-            'ASSET_CURRENT' => ['1010', '1020', '1100', '1200', '1300'],
-            'ASSET_NON_CURRENT' => ['1500', '1590'],
-            'LIABILITY_CURRENT' => ['2100', '2200', '2300', '2620'],
-            'EQUITY' => ['3000', '3900'],
+            'ASSET_CURRENT' => ['1010', '1020', '1100', '1110', '1200', '1300', '1400', '1500', '1800'],
+            'ASSET_NON_CURRENT' => ['1590', '1600', '1690', '1699'],
+            'LIABILITY_CURRENT' => ['2100', '2200', '2300', '2400', '2500', '2600', '2610', '2620'],
+            'EQUITY' => ['3000', '3100', '3200', '3900'],
             'REVENUE' => ['4100', '4300', '4310', '4320', '4330'],
             'CONTRA_REVENUE' => ['4200'],
-            'COGS' => ['5000', '5200', '5300', '5400'],
-            'EXPENSE_OPERATING' => ['5100'],
+            'COGS' => ['5000', '5200', '5300', '5400', '5500'],
+            'EXPENSE_OPERATING' => ['5100', '5250', '5600', '5700'],
+            'INCOME_OTHER' => ['4910', '4920'],
+            'EXPENSE_OTHER' => ['5910'],
         ];
 
         foreach ($assignments as $lineCode => $accountCodes) {
