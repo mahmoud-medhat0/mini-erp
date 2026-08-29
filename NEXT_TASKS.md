@@ -1,25 +1,41 @@
 # NEXT TASKS - Current Laravel Track
+# NEXT TASKS - Current Laravel Track
 
 > **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current status: Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Slice 190 replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` and extended the global Inertia guard to prevent native date inputs, native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination links from returning to Inertia pages. Deployment remains parked until owner/operator cutover decisions are needed.
+Current status: Phase 16 - Projects, Cost Centers, and Budgeting is COMPLETE (All Slices 1 to 6 COMPLETE). Phase 17 - Security and Access Governance is PREPARED. Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Deployment remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 15 Slices 1-190 are COMPLETE and the phase is closed. Slice 190 introduced native date-input coverage into the global page control/navigation/type regression guard and converted remaining page date fields to the shared `DatePicker`. `Phase15ProductHardeningTest` passed with 192 tests / 25644 assertions; Slice 188 keeps the standalone Pages button scanner at `TOTAL_FILES=0` and `TOTAL_MISSING=0`; Pint, full Pages native-control/pagination scan, no-scope scan, controller direct-query scan, TypeScript typecheck, and Vite build passed.
+Latest update: Phase 16 Slice 6 (Budget vs Actual Reports and Close-Out) is COMPLETE after local review. Implemented read-only Budget vs Actual report under `/budgeting/variance` with active/approved budget selection, financial period and date range scoping, posted-only ledger actuals aggregation, account normal balance handling (Debit vs Credit nature), deterministic dimensional tuple merging `(period, account, project, cost_center, currency)`, per-currency summary cards, integer basis points variance calculation, structured warning codes, streaming CSV export, Reports Hub integration, and feature test suite `Phase16Slice6BudgetVarianceCloseOutTest` (23 tests / 199 assertions). Phase 16 is 100% complete with 95 passing tests / 944 assertions.
 
 Do not use the old Next.js tenant/company-scope checklist as implementation guidance. The ERP is single-installation context unless a later owner decision explicitly defines otherwise.
 
 ## Next Milestones & Future Options
 
-- All core migration phases (Phase 1 through Phase 8) are 100% complete and verified.
-- Phase 9 is also complete. It is an operational cutover documentation track, not a new ERP business module.
+- All core migration phases (Phase 1 through Phase 16) are 100% complete and verified.
+- Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE:
+  - **Slice 1 COMPLETE**: Project and Cost Center master-data foundation (`PHASE_16_SLICE_1_REPORT.md`).
+  - **Slice 2 COMPLETE**: Optional GL project/cost-center dimension columns and PostingEngine propagation (`PHASE_16_SLICE_2_REPORT.md`).
+  - **Slice 3 COMPLETE (Expenses)**: Dimension capture on direct Expenses lines and debit GL/ledger propagation (`PHASE_16_SLICE_3_REPORT.md`).
+  - **Slice 4 COMPLETE**: Project profitability and cost-center actual reports (`PHASE_16_SLICE_4_REPORT.md`).
+  - **Slice 5 COMPLETE**: Budget/version master data and monthly budget lines (`PHASE_16_SLICE_5_REPORT.md`).
+  - **Slice 6 COMPLETE**: Budget-vs-actual reports, CSV export, and Phase 16 close-out (`PHASE_16_FINAL_VERIFICATION_REPORT.md`).
+- Next steps: Execute `PHASE_17_SLICE_1_AGY_PROMPT.md` with `agy`, then run local Codex review before moving to Slice 2.
+
+## Phase 17 Security and Access Governance
+
+- **Master plan READY**: `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md`.
+- **Slice 1 READY**: controlled bootstrap admin and first-user privilege seeding guard (`PHASE_17_SLICE_1_AGY_PROMPT.md`).
+- **Slice 2 READY**: route authorization audit command/report (`PHASE_17_SLICE_2_AGY_PROMPT.md`).
+- **Slice 3 READY**: password policy and session safety configuration (`PHASE_17_SLICE_3_AGY_PROMPT.md`).
+- **Slice 4 READY**: sensitive financial action confirmation and audit evidence (`PHASE_17_SLICE_4_AGY_PROMPT.md`).
+- **Slice 5 READY**: attachment/notification/private-delivery safety (`PHASE_17_SLICE_5_AGY_PROMPT.md`).
+- **Slice 6 READY**: final security close-out and verification (`PHASE_17_SLICE_6_AGY_PROMPT.md`).
 - Deployment process is parked until the owner/operator is ready for staging/production decisions.
-- Next product track:
-  - Phase 15 Product Hardening is closed. Open a new bounded phase/slice for the next product capability or UX initiative.
-  - Keep all future GL posting inside the existing PostingEngine and existing tax/subledger services.
-  - Use `PRODUCT_EXTENSIBILITY_ROADMAP.md`, `PHASE_14_RENTALS.md`, `PHASE_14_RENTALS_POLICY_DECISION.md`, `PHASE_14_RENTAL_BILLING_REPORT.md`, `PHASE_14_RENTALS_FOUNDATION_REPORT.md`, `PHASE_13_PAYROLL_FOUNDATION_REPORT.md`, `PHASE_12_PREPAID_ACCRUED_EXPENSES_REPORT.md`, `PHASE_11_EXPENSE_MANAGEMENT_REPORT.md`, `PHASE_10_BRANCH_WAREHOUSE_OPERATIONS.md`, and `PHASE_10_FINAL_REPORT.md` as the product capability source of truth.
+- Keep all future GL posting inside the existing PostingEngine and existing tax/subledger services.
+- Use `PHASE_16_PROJECTS_COST_CENTERS_BUDGETING.md`, `PRODUCT_EXTENSIBILITY_ROADMAP.md`, `NO_MULTI_TENANT_POLICY.md` as the product capability source of truth.
 
 ## Closed Phase 15 Product Hardening
 

@@ -90,6 +90,8 @@ class ReversalService
                             'line_no' => $line->line_no,
                             'account_id' => $line->account_id,
                             'branch_id' => $line->branch_id ?? $original->branch_id,
+                            'project_id' => $line->project_id,
+                            'cost_center_id' => $line->cost_center_id,
                             'memo' => __('Reversal line :memo', ['memo' => $line->memo ?? '']),
                             'debit_minor' => $line->credit_minor,
                             'credit_minor' => $line->debit_minor,

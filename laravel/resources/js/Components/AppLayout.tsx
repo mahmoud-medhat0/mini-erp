@@ -95,6 +95,8 @@ export type NavKey =
   | 'reports.stock-movements'
   | 'reports.branch-operations'
   | 'reports.branch-profitability'
+  | 'reports.project-profitability'
+  | 'reports.cost-center-actuals'
   | 'reports.rentals'
   | 'reports.balance_sheet'
   | 'reports.income_statement'
@@ -112,7 +114,11 @@ export type NavKey =
   | 'taxes.codes.index'
   | 'taxes.rates.index'
   | 'taxes.periods.index'
-  | 'taxes.periods.show';
+  | 'taxes.periods.show'
+  | 'projects.index'
+  | 'cost-centers.index'
+  | 'budgeting.budgets'
+  | 'budgeting.variance';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -122,6 +128,10 @@ type AppLayoutProps = {
 type NavPermission = string | string[];
 
 const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
+  'projects.index': 'projects.view',
+  'cost-centers.index': 'costCenters.view',
+  'budgeting.budgets': 'budgeting.view',
+  'budgeting.variance': 'budgeting.view',
   'accounting.index': 'accounting.view',
   'taxes.codes.index': 'taxes.view',
   'taxes.rates.index': 'taxes.view',
@@ -224,6 +234,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const [catalogExpanded, setCatalogExpanded] = useState(() => active.startsWith('catalog') || active.includes('product') || active.includes('uom'));
   const [inventoryExpanded, setInventoryExpanded] = useState(() => active.includes('inventory') || active.includes('warehouse') || active.includes('stock-'));
   const [fixedAssetsExpanded, setFixedAssetsExpanded] = useState(() => active.startsWith('fixed-asset'));
+  const [projectsCostCentersExpanded, setProjectsCostCentersExpanded] = useState(() => active.startsWith('projects') || active.startsWith('cost-center') || active.startsWith('budgeting'));
   const [reportsExpanded, setReportsExpanded] = useState(() => active.startsWith('reports'));
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
@@ -333,6 +344,12 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   };
 
   const navAllowed = (key: NavKey): boolean => {
+    if (key === 'budgeting.budgets') {
+      return can('budgeting.view') && can('view_financials');
+    }
+    if (key === 'budgeting.variance') {
+      return can('budgeting.view') && can('reports.view') && can('view_financials');
+    }
     const primary = NAV_PERMS[key];
     if (!primary) return true;
     if (hasNavPermission(primary)) return true;
@@ -357,6 +374,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
     can('products.view') || can('uom.view') || can('sales.view') || can('purchasing.view') || can('purchasing.landed_costs');
   const showInventoryGroup = can('inventory.view');
   const showFixedAssetsGroup = can('fixedAssets.view');
+  const showProjectsCostCentersGroup = can('projects.view') || can('costCenters.view') || (can('budgeting.view') && can('view_financials'));
   const showReportsGroup = can('reports.view');
 
   return (
@@ -1167,6 +1185,67 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                         { key: 'fixed-assets.depreciation-runs.index' as NavKey, href: '/fixed-assets-depreciation-runs', label: accDict.depreciationRuns },
                         { key: 'fixed-assets-disposals.index' as NavKey, href: '/fixed-assets-disposals', label: accDict.disposals },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={sidebarCollapsed ? subItem.label : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${active === subItem.key ? 'bg-[var(--primary)] text-white font-bold shadow-xs' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                        >
+                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Projects & Cost Centers Dropdown Group */}
+                <div className={`space-y-1 ${showProjectsCostCentersGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      active.startsWith('project') || active.startsWith('cost-center') || active.startsWith('budgeting')
+                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/projects"
+                      onClick={() => setMobileMenuOpen(false)}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.projectsCostCenters : undefined}
+                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('project') || active.startsWith('cost-center') || active.startsWith('budgeting') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.projectsCostCenters}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button
+                        type="button"
+                        onClick={() => setProjectsCostCentersExpanded(!projectsCostCentersExpanded)}
+                        title={dict.app.nav.layoutKeys.projectsCostCenters}
+                        aria-label={dict.app.nav.layoutKeys.projectsCostCenters}
+                        className="p-1 hover:text-white transition-colors cursor-pointer"
+                      >
+                        <svg className={`size-3.5 transition-transform duration-200 ${projectsCostCentersExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(projectsCostCentersExpanded || sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'projects.index' as NavKey, href: '/projects', label: dict.app.nav.layoutKeys.projects },
+                        { key: 'cost-centers.index' as NavKey, href: '/cost-centers', label: dict.app.nav.layoutKeys.costCenters },
+                        { key: 'budgeting.budgets' as NavKey, href: '/budgeting/budgets', label: dict.app.nav.layoutKeys.budgets },
+                        { key: 'budgeting.variance' as NavKey, href: '/budgeting/variance', label: dict.app.nav.layoutKeys.budgetVariance },
+                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}

@@ -15,6 +15,8 @@ type Supplier = { id: string; code: string; name: TranslatedName };
 type SettlementAccount = { id: string; code: string; name: TranslatedName; branch_id?: string | null; currency: string; branch?: Branch | null };
 type TaxCode = { id: string; code: string; name: TranslatedName };
 type ExpenseAccount = AccountOption & { currency?: string | null };
+type ProjectOption = { id: string; code: string; name: TranslatedName; is_active?: boolean };
+type CostCenterOption = { id: string; code: string; name: TranslatedName; is_active?: boolean };
 
 type ExpenseCategory = {
   id: string;
@@ -32,6 +34,8 @@ type ExpenseLine = {
   line_no: number;
   expense_category_id: string;
   expense_account_id: string;
+  project_id?: string | null;
+  cost_center_id?: string | null;
   description?: string | null;
   quantity_e6: number;
   unit_amount_minor: number;
@@ -42,6 +46,8 @@ type ExpenseLine = {
   gross_amount_minor: number;
   category?: ExpenseCategory | null;
   expense_account?: ExpenseAccount | null;
+  project?: ProjectOption | null;
+  costCenter?: CostCenterOption | null;
 };
 
 type ExpenseRow = {
@@ -74,6 +80,8 @@ type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type LineForm = {
   expense_category_id: string;
   expense_account_id: string;
+  project_id: string;
+  cost_center_id: string;
   description: string;
   quantity: string;
   unit_amount: string;
@@ -105,6 +113,8 @@ type Props = SharedPageProps & {
   branches: Branch[];
   currencies: CurrencyOption[];
   taxCodes: TaxCode[];
+  projects?: ProjectOption[];
+  costCenters?: CostCenterOption[];
   statuses: Array<ExpenseRow['status']>;
   settlementMethods: Array<ExpenseRow['settlement_method']>;
   filters: { search?: string; status?: string; branch_id?: string };
@@ -162,6 +172,8 @@ export default function ExpensesIndex({
   branches = [],
   currencies = [],
   taxCodes = [],
+  projects = [],
+  costCenters = [],
   statuses = [],
   settlementMethods = [],
   filters,
@@ -194,7 +206,7 @@ export default function ExpensesIndex({
     reference: '',
     description: '',
     lock_version: 1,
-    lines: [{ expense_category_id: '', expense_account_id: '', description: '', quantity: '1', unit_amount: '', tax_code_id: '' }],
+    lines: [{ expense_category_id: '', expense_account_id: '', project_id: '', cost_center_id: '', description: '', quantity: '1', unit_amount: '', tax_code_id: '' }],
   });
 
   const categoryOptions = useMemo(() => categories.map((category) => ({
@@ -208,6 +220,16 @@ export default function ExpensesIndex({
     label: `${account.code} - ${getLocalizedName(account.name, locale)}`,
     sublabel: account.currency || account.currency_code || undefined,
   })), [expenseAccounts, locale]);
+
+  const projectOptions = useMemo(() => projects.filter((p) => p.is_active !== false).map((project) => ({
+    value: project.id,
+    label: `${project.code} - ${getLocalizedName(project.name, locale)}`,
+  })), [projects, locale]);
+
+  const costCenterOptions = useMemo(() => costCenters.filter((c) => c.is_active !== false).map((costCenter) => ({
+    value: costCenter.id,
+    label: `${costCenter.code} - ${getLocalizedName(costCenter.name, locale)}`,
+  })), [costCenters, locale]);
 
   const supplierOptions = useMemo(() => suppliers.map((supplier) => ({
     value: supplier.id,
@@ -272,7 +294,7 @@ export default function ExpensesIndex({
   }
 
   function blankLine(): LineForm {
-    return { expense_category_id: '', expense_account_id: '', description: '', quantity: '1', unit_amount: '', tax_code_id: '' };
+    return { expense_category_id: '', expense_account_id: '', project_id: '', cost_center_id: '', description: '', quantity: '1', unit_amount: '', tax_code_id: '' };
   }
 
   function openCreate() {
@@ -314,6 +336,8 @@ export default function ExpensesIndex({
       lines: expense.lines.map((line) => ({
         expense_category_id: line.expense_category_id,
         expense_account_id: line.expense_account_id,
+        project_id: line.project_id || '',
+        cost_center_id: line.cost_center_id || '',
         description: line.description || '',
         quantity: quantityFromE6(line.quantity_e6),
         unit_amount: minorToAmount(line.unit_amount_minor),
@@ -359,6 +383,8 @@ export default function ExpensesIndex({
       lines: form.data.lines.map((line) => ({
         expense_category_id: line.expense_category_id,
         expense_account_id: line.expense_account_id || null,
+        project_id: line.project_id || null,
+        cost_center_id: line.cost_center_id || null,
         description: line.description || null,
         quantity_e6: parseQuantityToE6(line.quantity),
         unit_amount_minor: amountToMinor(line.unit_amount),
@@ -502,9 +528,11 @@ export default function ExpensesIndex({
 
               <div className="space-y-3">
                 {form.data.lines.map((line, index) => (
-                  <div key={index} className="grid gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-2 xl:grid-cols-6">
+                  <div key={index} className="grid gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-2 xl:grid-cols-4">
                     <SearchableSelect options={categoryOptions} value={line.expense_category_id || null} onChange={(value) => selectCategory(index, value)} label={pageDict.category} required />
                     <SearchableSelect options={accountOptions} value={line.expense_account_id || null} onChange={(value) => setLine(index, { expense_account_id: value || '' })} label={pageDict.expenseAccount} />
+                    <SearchableSelect options={projectOptions} value={line.project_id || null} onChange={(value) => setLine(index, { project_id: value || '' })} label={pageDict.project} placeholder={pageDict.selectProject} isClearable />
+                    <SearchableSelect options={costCenterOptions} value={line.cost_center_id || null} onChange={(value) => setLine(index, { cost_center_id: value || '' })} label={pageDict.costCenter} placeholder={pageDict.selectCostCenter} isClearable />
                     <label className="block">
                       <span className="mb-1 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.quantity}</span>
                       <input
@@ -528,7 +556,7 @@ export default function ExpensesIndex({
                     <div className="flex items-end">
                       <Button variant="secondary" onClick={() => removeLine(index)} disabled={form.data.lines.length === 1}>{pageDict.removeLine}</Button>
                     </div>
-                    <label className="block md:col-span-2 xl:col-span-6">
+                    <label className="block md:col-span-2 xl:col-span-4">
                       <span className="mb-1 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.lineDescription}</span>
                       <input
                         type="text"

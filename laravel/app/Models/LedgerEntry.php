@@ -21,6 +21,8 @@ class LedgerEntry extends Model
         'account_id',
         'financial_period_id',
         'branch_id',
+        'project_id',
+        'cost_center_id',
         'entry_date',
         'debit_minor',
         'credit_minor',
@@ -67,6 +69,16 @@ class LedgerEntry extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class, 'branch_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class, 'cost_center_id');
     }
 
     public function currencyRef(): BelongsTo

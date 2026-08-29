@@ -12,17 +12,21 @@ type JournalFormProps = SharedPageProps & {
   accounts: AccountOption[];
   currencies?: CurrencyOption[];
   branches?: { id: string; code: string; name: Record<string, string> | string; is_active: boolean }[];
+  projects?: { id: string; code: string; name: Record<string, string> | string; is_active: boolean }[];
+  costCenters?: { id: string; code: string; name: Record<string, string> | string; is_active: boolean }[];
 };
 
 type JournalLineDraft = {
   account_id: string;
   branch_id: string;
+  project_id: string;
+  cost_center_id: string;
   debit_minor: number;
   credit_minor: number;
   memo: string;
 };
 
-export default function JournalForm({ locale, periods = [], accounts = [], currencies = [], branches = [] }: JournalFormProps) {
+export default function JournalForm({ locale, periods = [], accounts = [], currencies = [], branches = [], projects = [], costCenters = [] }: JournalFormProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const branchReportDict = dict.app.pages.branchOperationsReport;
@@ -44,15 +48,15 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
     currency: currencies[0]?.code ?? '',
     branch_id: '',
     lines: [
-      { account_id: accounts[0]?.id ?? '', branch_id: '', debit_minor: 0, credit_minor: 0, memo: '' },
-      { account_id: accounts[1]?.id ?? '', branch_id: '', debit_minor: 0, credit_minor: 0, memo: '' },
+      { account_id: accounts[0]?.id ?? '', branch_id: '', project_id: '', cost_center_id: '', debit_minor: 0, credit_minor: 0, memo: '' },
+      { account_id: accounts[1]?.id ?? '', branch_id: '', project_id: '', cost_center_id: '', debit_minor: 0, credit_minor: 0, memo: '' },
     ],
   });
 
   const addLine = () => {
     setData('lines', [
       ...data.lines,
-      { account_id: accounts[0]?.id ?? '', branch_id: '', debit_minor: 0, credit_minor: 0, memo: '' },
+      { account_id: accounts[0]?.id ?? '', branch_id: '', project_id: '', cost_center_id: '', debit_minor: 0, credit_minor: 0, memo: '' },
     ]);
   };
 
@@ -97,6 +101,16 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
     value: branch.id,
     label: `${branch.code} - ${getLocalizedName(branch.name, locale)}`,
     sublabel: branch.is_active ? branchReportDict.active : branchReportDict.inactive,
+  }));
+
+  const projectSelectOptions = projects.filter((p) => p.is_active !== false).map((project) => ({
+    value: project.id,
+    label: `${project.code} - ${getLocalizedName(project.name, locale)}`,
+  }));
+
+  const costCenterSelectOptions = costCenters.filter((c) => c.is_active !== false).map((costCenter) => ({
+    value: costCenter.id,
+    label: `${costCenter.code} - ${getLocalizedName(costCenter.name, locale)}`,
   }));
 
   return (
@@ -301,7 +315,24 @@ export default function JournalForm({ locale, periods = [], accounts = [], curre
                     value={line.branch_id}
                     onChange={(val) => updateLine(idx, 'branch_id', val || '')}
                     placeholder={data.branch_id ? branchReportDict.inheritEntryBranch : branchReportDict.notAssigned}
+                    isClearable
                   />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <SearchableSelect
+                      options={projectSelectOptions}
+                      value={line.project_id}
+                      onChange={(val) => updateLine(idx, 'project_id', val || '')}
+                      placeholder={accDict.selectProject}
+                      isClearable
+                    />
+                    <SearchableSelect
+                      options={costCenterSelectOptions}
+                      value={line.cost_center_id}
+                      onChange={(val) => updateLine(idx, 'cost_center_id', val || '')}
+                      placeholder={accDict.selectCostCenter}
+                      isClearable
+                    />
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1 sm:hidden">

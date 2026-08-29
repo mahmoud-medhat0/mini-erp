@@ -18,10 +18,13 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BankReconciliationController;
+use App\Http\Controllers\Budgeting\BudgetController;
+use App\Http\Controllers\Budgeting\BudgetVarianceController;
 use App\Http\Controllers\CashAccountController;
 use App\Http\Controllers\Catalog\ProductCategoryController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Catalog\UnitOfMeasureController;
+use App\Http\Controllers\CostCenters\CostCenterController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerCreditNoteController;
 use App\Http\Controllers\CustomerInvoiceController;
@@ -54,6 +57,7 @@ use App\Http\Controllers\PayrollComponentController;
 use App\Http\Controllers\PayrollEmployeeController;
 use App\Http\Controllers\PayrollRunController;
 use App\Http\Controllers\PrepaidScheduleController;
+use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\ReceivableAllocationController;
@@ -75,12 +79,14 @@ use App\Http\Controllers\Reports\BranchProfitabilityReportController;
 use App\Http\Controllers\Reports\CashBookController;
 use App\Http\Controllers\Reports\CashFlowReportController;
 use App\Http\Controllers\Reports\ChequeRegisterReportController;
+use App\Http\Controllers\Reports\CostCenterActualsReportController;
 use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
 use App\Http\Controllers\Reports\DeliveryNoteReportController;
 use App\Http\Controllers\Reports\FixedAssetReportController;
 use App\Http\Controllers\Reports\GoodsReceiptReportController;
 use App\Http\Controllers\Reports\IncomeStatementReportController;
+use App\Http\Controllers\Reports\ProjectProfitabilityReportController;
 use App\Http\Controllers\Reports\PurchaseOrderReportController;
 use App\Http\Controllers\Reports\RentalOperationsReportController;
 use App\Http\Controllers\Reports\ReportsHubController;
@@ -322,6 +328,10 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/branch-operations', [BranchOperationalReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.branch-operations');
         Route::get('/branch-profitability', [BranchProfitabilityReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.branch-profitability');
         Route::get('/branch-profitability/export', [BranchProfitabilityReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.branch-profitability.export');
+        Route::get('/project-profitability', [ProjectProfitabilityReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.project-profitability');
+        Route::get('/project-profitability/export', [ProjectProfitabilityReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.project-profitability.export');
+        Route::get('/cost-center-actuals', [CostCenterActualsReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.cost-center-actuals');
+        Route::get('/cost-center-actuals/export', [CostCenterActualsReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.cost-center-actuals.export');
         Route::get('/rentals', [RentalOperationsReportController::class, 'index'])->middleware('can:view_financials')->name('reports.rentals');
         Route::get('/rentals/export', [RentalOperationsReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.rentals.export');
 
@@ -643,6 +653,34 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/taxes/periods/{id}', [TaxPeriodController::class, 'show'])->middleware('can:taxes.view')->name('taxes.periods.show');
     Route::post('/taxes/periods/{id}/draft', [TaxPeriodController::class, 'generateDraft'])->middleware('can:taxes.edit')->name('taxes.periods.draft');
     Route::post('/taxes/returns/{id}/file', [TaxPeriodController::class, 'fileReturn'])->middleware('can:taxes.file')->name('taxes.returns.file');
+
+    // Phase 16 Slice 1 Project & Cost Center Master Data Routes
+    Route::get('/projects', [ProjectController::class, 'index'])->middleware('can:projects.view')->name('projects.index');
+    Route::post('/projects', [ProjectController::class, 'store'])->middleware('can:projects.create')->name('projects.store');
+    Route::patch('/projects/{id}', [ProjectController::class, 'update'])->middleware('can:projects.edit')->name('projects.update');
+    Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->middleware('can:projects.delete')->name('projects.destroy');
+
+    Route::get('/cost-centers', [CostCenterController::class, 'index'])->middleware('can:costCenters.view')->name('cost-centers.index');
+    Route::post('/cost-centers', [CostCenterController::class, 'store'])->middleware('can:costCenters.create')->name('cost-centers.store');
+    Route::patch('/cost-centers/{id}', [CostCenterController::class, 'update'])->middleware('can:costCenters.edit')->name('cost-centers.update');
+    Route::delete('/cost-centers/{id}', [CostCenterController::class, 'destroy'])->middleware('can:costCenters.delete')->name('cost-centers.destroy');
+
+    // Phase 16 Slice 5 Budgeting Routes
+    Route::prefix('budgeting')->group(function (): void {
+        Route::get('/budgets', [BudgetController::class, 'index'])->middleware('permission.all:budgeting.view,view_financials')->name('budgeting.budgets.index');
+        Route::post('/budgets', [BudgetController::class, 'store'])->middleware('permission.all:budgeting.create,view_financials')->name('budgeting.budgets.store');
+        Route::patch('/budgets/{budget}', [BudgetController::class, 'update'])->middleware('permission.all:budgeting.edit,view_financials')->name('budgeting.budgets.update');
+        Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->middleware('permission.all:budgeting.delete,view_financials')->name('budgeting.budgets.destroy');
+        Route::post('/budgets/{budget}/submit', [BudgetController::class, 'submit'])->middleware('permission.all:budgeting.edit,view_financials')->name('budgeting.budgets.submit');
+        Route::post('/budgets/{budget}/approve', [BudgetController::class, 'approve'])->middleware('permission.all:budgeting.approve,view_financials')->name('budgeting.budgets.approve');
+        Route::post('/budgets/{budget}/activate', [BudgetController::class, 'activate'])->middleware('permission.all:budgeting.approve,view_financials')->name('budgeting.budgets.activate');
+        Route::post('/budgets/{budget}/archive', [BudgetController::class, 'archive'])->middleware('permission.all:budgeting.approve,view_financials')->name('budgeting.budgets.archive');
+        Route::post('/budgets/{budget}/cancel', [BudgetController::class, 'cancel'])->middleware('permission.all:budgeting.edit,view_financials')->name('budgeting.budgets.cancel');
+
+        // Phase 16 Slice 6 Budget vs Actual Variance Routes
+        Route::get('/variance', [BudgetVarianceController::class, 'index'])->middleware('permission.all:budgeting.view,reports.view,view_financials')->name('budgeting.variance.index');
+        Route::get('/variance/export', [BudgetVarianceController::class, 'exportCsv'])->middleware('permission.all:budgeting.export,reports.export,view_financials')->name('budgeting.variance.export');
+    });
 });
 
 Route::get('/health', HealthCheckController::class)->name('health');

@@ -9,5 +9,7 @@ readonly class DraftLine
         public int $debitMinor = 0,
         public int $creditMinor = 0,
         public ?string $memo = null,
+        public ?string $projectId = null,
+        public ?string $costCenterId = null,
     ) {}
 }

@@ -4,9 +4,11 @@ namespace App\Application\Accounting;
 
 use App\Models\Account;
 use App\Models\Branch;
+use App\Models\CostCenter;
 use App\Models\Currency;
 use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
+use App\Models\Project;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Arr;
@@ -39,7 +41,9 @@ class JournalPageData
      *     periods: EloquentCollection<int, FinancialPeriod>,
      *     accounts: EloquentCollection<int, Account>,
      *     currencies: EloquentCollection<int, Currency>,
-     *     branches: EloquentCollection<int, Branch>
+     *     branches: EloquentCollection<int, Branch>,
+     *     projects: EloquentCollection<int, Project>,
+     *     costCenters: EloquentCollection<int, CostCenter>
      * }
      */
     public function createData(): array
@@ -49,6 +53,8 @@ class JournalPageData
             'accounts' => Account::query()->where('is_active', true)->orderBy('code')->get(),
             'currencies' => Currency::query()->orderBy('code')->get(),
             'branches' => Branch::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'is_active']),
+            'projects' => Project::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'is_active']),
+            'costCenters' => CostCenter::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'is_active']),
         ];
     }
 
@@ -60,7 +66,19 @@ class JournalPageData
      */
     public function showData(JournalEntry $journalEntry): array
     {
-        $journalEntry->load(['branch', 'lines.account', 'lines.branch', 'period.fiscalYear', 'currencyRef', 'createdBy', 'postedBy', 'reversesEntry', 'reversalEntry']);
+        $journalEntry->load([
+            'branch',
+            'lines.account',
+            'lines.branch',
+            'lines.project',
+            'lines.costCenter',
+            'period.fiscalYear',
+            'currencyRef',
+            'createdBy',
+            'postedBy',
+            'reversesEntry',
+            'reversalEntry',
+        ]);
 
         return [
             'journal' => $journalEntry,

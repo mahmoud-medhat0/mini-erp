@@ -83,6 +83,8 @@ class ExpenseController extends Controller
             'lines' => [$isUpdate ? 'sometimes' : 'required', 'array', 'min:1'],
             'lines.*.expense_category_id' => ['required', 'uuid', 'exists:expense_category,id'],
             'lines.*.expense_account_id' => ['nullable', 'uuid', 'exists:account,id'],
+            'lines.*.project_id' => ['nullable', 'uuid', 'exists:project,id'],
+            'lines.*.cost_center_id' => ['nullable', 'uuid', 'exists:cost_center,id'],
             'lines.*.description' => ['nullable', 'string', 'max:255'],
             'lines.*.quantity_e6' => ['nullable', 'integer', 'min:1'],
             'lines.*.unit_amount_minor' => ['required', 'integer', 'min:1'],

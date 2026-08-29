@@ -53,6 +53,8 @@ class JournalController extends Controller
             'lines' => ['required', 'array', 'min:2'],
             'lines.*.account_id' => ['required', 'uuid', 'exists:account,id'],
             'lines.*.branch_id' => ['nullable', 'uuid', 'exists:branch,id'],
+            'lines.*.project_id' => ['nullable', 'uuid', 'exists:project,id'],
+            'lines.*.cost_center_id' => ['nullable', 'uuid', 'exists:cost_center,id'],
             'lines.*.debit_minor' => ['required', 'integer', 'min:0'],
             'lines.*.credit_minor' => ['required', 'integer', 'min:0'],
             'lines.*.memo' => ['nullable', 'string', 'max:255'],

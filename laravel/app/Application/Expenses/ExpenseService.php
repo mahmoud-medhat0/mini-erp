@@ -13,11 +13,13 @@ use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\Branch;
 use App\Models\CashAccount;
+use App\Models\CostCenter;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
 use App\Models\PayableEntry;
+use App\Models\Project;
 use App\Models\Supplier;
 use App\Support\Numbering\NumberSequenceAllocator;
 use Carbon\Carbon;
@@ -185,7 +187,7 @@ class ExpenseService
         return DB::transaction(function () use ($id, $actorId): Expense {
             /** @var Expense $expense */
             $expense = Expense::query()
-                ->with(['lines.category', 'lines.expenseAccount', 'supplier', 'cashAccount.glAccount', 'bankAccount.glAccount'])
+                ->with(['lines.category', 'lines.expenseAccount', 'lines.project', 'lines.costCenter', 'supplier', 'cashAccount.glAccount', 'bankAccount.glAccount'])
                 ->where('id', $id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -200,6 +202,15 @@ class ExpenseService
 
             if ($expense->lines->isEmpty()) {
                 throw ValidationException::withMessages(['lines' => [__('Cannot post an expense without lines.')]]);
+            }
+
+            foreach ($expense->lines as $line) {
+                if ($line->project_id !== null && (! $line->project || ! $line->project->is_active)) {
+                    throw ValidationException::withMessages(['lines' => [__('Selected expense project is inactive or missing.')]]);
+                }
+                if ($line->cost_center_id !== null && (! $line->costCenter || ! $line->costCenter->is_active)) {
+                    throw ValidationException::withMessages(['lines' => [__('Selected expense cost center is inactive or missing.')]]);
+                }
             }
 
             if ((int) $expense->tax_amount_minor > 0) {
@@ -248,19 +259,21 @@ class ExpenseService
             ]);
 
             $lineNo = 1;
-            foreach ($this->expenseLineTotalsByAccount($expense) as $accountId => $amountMinor) {
+            foreach ($this->expenseLineTotalsByAccountAndDimensions($expense) as $group) {
                 /** @var Account $account */
-                $account = Account::query()->findOrFail($accountId);
+                $account = Account::query()->findOrFail($group['account_id']);
                 $this->assertAccountCurrency($account, $expense->currency, 'Expense line account');
 
                 $journalEntry->lines()->create([
                     'line_no' => $lineNo++,
                     'account_id' => $account->id,
                     'branch_id' => $expense->branch_id,
+                    'project_id' => $group['project_id'],
+                    'cost_center_id' => $group['cost_center_id'],
                     'memo' => "Expense {$number}",
-                    'debit_minor' => $amountMinor,
+                    'debit_minor' => $group['amount_minor'],
                     'credit_minor' => 0,
-                    'debit_txn_minor' => $amountMinor,
+                    'debit_txn_minor' => $group['amount_minor'],
                     'credit_txn_minor' => 0,
                     'currency' => $expense->currency,
                     'fx_rate_e6' => $expense->fx_rate_e6,
@@ -466,9 +479,29 @@ class ExpenseService
                 $grossAmountMinor = (int) $taxResult['gross_minor'];
             }
 
+            $projectId = ! empty($line['project_id']) ? (string) $line['project_id'] : null;
+            if ($projectId !== null) {
+                /** @var Project|null $project */
+                $project = Project::query()->where('id', $projectId)->first();
+                if (! $project || ! $project->is_active) {
+                    throw ValidationException::withMessages(["lines.{$index}.project_id" => [__('Selected expense project is inactive or missing.')]]);
+                }
+            }
+
+            $costCenterId = ! empty($line['cost_center_id']) ? (string) $line['cost_center_id'] : null;
+            if ($costCenterId !== null) {
+                /** @var CostCenter|null $costCenter */
+                $costCenter = CostCenter::query()->where('id', $costCenterId)->first();
+                if (! $costCenter || ! $costCenter->is_active) {
+                    throw ValidationException::withMessages(["lines.{$index}.cost_center_id" => [__('Selected expense cost center is inactive or missing.')]]);
+                }
+            }
+
             $validated[] = [
                 'expense_category_id' => $category->id,
                 'expense_account_id' => $account->id,
+                'project_id' => $projectId,
+                'cost_center_id' => $costCenterId,
                 'description' => $line['description'] ?? null,
                 'quantity_e6' => $quantityE6,
                 'unit_amount_minor' => $unitAmountMinor,
@@ -571,18 +604,31 @@ class ExpenseService
     }
 
     /**
-     * @return array<string, int>
+     * @return array<int, array{account_id: string, project_id: ?string, cost_center_id: ?string, amount_minor: int}>
      */
-    private function expenseLineTotalsByAccount(Expense $expense): array
+    private function expenseLineTotalsByAccountAndDimensions(Expense $expense): array
     {
-        $totals = [];
+        $groups = [];
 
         foreach ($expense->lines as $line) {
             $accountId = (string) $line->expense_account_id;
-            $totals[$accountId] = ($totals[$accountId] ?? 0) + (int) $line->line_total_minor;
+            $projectId = $line->project_id ? (string) $line->project_id : null;
+            $costCenterId = $line->cost_center_id ? (string) $line->cost_center_id : null;
+            $key = "{$accountId}:".($projectId ?? 'none').':'.($costCenterId ?? 'none');
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'account_id' => $accountId,
+                    'project_id' => $projectId,
+                    'cost_center_id' => $costCenterId,
+                    'amount_minor' => 0,
+                ];
+            }
+
+            $groups[$key]['amount_minor'] += (int) $line->line_total_minor;
         }
 
-        return array_filter($totals, fn (int $amount): bool => $amount > 0);
+        return array_values(array_filter($groups, fn (array $group): bool => $group['amount_minor'] > 0));
     }
 
     private function assertRequiredAttachments(Expense $expense): void
@@ -693,6 +739,8 @@ class ExpenseService
             'period.fiscalYear',
             'lines.category',
             'lines.expenseAccount',
+            'lines.project',
+            'lines.costCenter',
             'lines.taxCode',
             'journalEntry',
             'payableEntry',

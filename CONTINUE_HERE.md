@@ -1,13 +1,16 @@
 # CONTINUE HERE - Mini ERP Laravel handoff
+# CONTINUE HERE - Mini ERP Laravel handoff
 
 > **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
 
 > **Branch-Capable Product Direction:** Owner direction on 2026-08-24 requires future support for multiple operational branches, branch transfers, and branch-aware workflows. This is not multi-tenancy. See `PRODUCT_EXTENSIBILITY_ROADMAP.md`.
 
 
-Current date/context: 2026-08-28. Phase 15 Product Hardening is COMPLETE / CLOSED. Slices 1-190 are COMPLETE. Slice 190 replaced remaining native `type="date"` page inputs with the shared RTL-aware `DatePicker` and extended the global Inertia guard to prevent native date inputs, native `<select>/<option>`, unsafe `window.location.href`, and loose `any`/`unknown` pagination links from returning to Inertia pages. Phase 8 and Phase 9 operational/deployment documentation remain COMPLETE, but deployment execution is parked until owner/operator cutover decisions are needed.
+Current date/context: 2026-08-28. Phase 16 (Projects, Cost Centers, and Budgeting) is 100% COMPLETE (Slices 1 to 6 COMPLETE). Phase 17 (Security and Access Governance) is PREPARED with Slice 1 ready for execution by `agy`. Deployment execution remains parked until owner/operator cutover decisions are needed.
 
-Latest update: Phase 15 Slices 1-190 are COMPLETE and the phase is closed. Slice 190 passed the global Inertia page control/navigation/type guard after enforcing shared controls, shared `DatePicker` date inputs, Inertia navigation, and typed pagination payloads across all page sources. `Phase15ProductHardeningTest` passed with 192 tests / 25644 assertions; Slice 188 also keeps the standalone Pages button scanner at `TOTAL_FILES=0` and `TOTAL_MISSING=0`; Pint, full Pages native-control/pagination scan, no-scope scan, global controller direct-query scan, TypeScript typecheck, and Vite build passed.
+Latest update: Phase 16 Slice 6 (Budget vs Actual Reports and Close-Out) is COMPLETE after local review. Implemented read-only Budget vs Actual report under `/budgeting/variance` with active/approved budget selection, financial period and date range scoping, posted-only ledger actuals aggregation, account normal balance handling (Debit vs Credit nature), deterministic dimensional tuple merging `(period, account, project, cost_center, currency)`, per-currency summary cards, integer basis points variance calculation, structured warning codes, streaming CSV export, Reports Hub integration, and feature test suite `Phase16Slice6BudgetVarianceCloseOutTest` (23 tests / 199 assertions). Phase 16 is 100% complete with 95 passing tests / 944 assertions.
+
+All Slices 1 to 6 of Phase 16 are verified clean. Next task: execute `PHASE_17_SLICE_1_AGY_PROMPT.md`, then review locally before Slice 2.
 
 The old Next.js app under `app/` remains historical reference only. Do not restore old tenant/company-scope behavior from it.
 
@@ -18,11 +21,18 @@ Use the current Laravel code and these documents first:
 - `README.md`
 - `IMPLEMENTATION_STATUS.md`
 - `NEXT_TASKS.md`
+- `PHASE_16_PROJECTS_COST_CENTERS_BUDGETING.md`
+- `PHASE_16_SLICE_1_REPORT.md`
+- `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md`
+- `PHASE_17_SLICE_1_AGY_PROMPT.md`
+- `PHASE_16_SLICE_2_REPORT.md`
+- `PHASE_16_SLICE_3_REPORT.md`
+- `PHASE_16_SLICE_4_REPORT.md`
+- `PHASE_16_SLICE_5_REPORT.md`
+- `PHASE_16_FINAL_VERIFICATION_REPORT.md`
+- `PHASE_16_SLICE_2_AGY_PROMPT.md`
 - `PHASE_15_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_15_PRODUCT_HARDENING_REPORT.md`
-- `PRODUCT_EXTENSIBILITY_ROADMAP.md`
-- `PHASE_14_RENTALS.md`
-- `PHASE_14_RENTALS_POLICY_DECISION.md`
 - `PHASE_14_SLICE_1_GEMINI_PROMPT.md`
 - `PHASE_14_FINAL_VERIFICATION_REPORT.md`
 - `PHASE_14_RENTAL_BILLING_REPORT.md`

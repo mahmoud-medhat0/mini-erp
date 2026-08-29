@@ -1,4 +1,4 @@
-﻿import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
@@ -344,6 +344,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               <th className={tableClasses.th}>{accDict.accountCode}</th>
               <th className={tableClasses.th}>{accDict.accountName}</th>
               <th className={tableClasses.th}>{branchReportDict.branch}</th>
+              <th className={tableClasses.th}>{accDict.project}</th>
+              <th className={tableClasses.th}>{accDict.costCenter}</th>
               <th className={tableClasses.th}>{accDict.lineMemo}</th>
               <th className={`${tableClasses.th} text-right`}>{accDict.debitMinor}</th>
               <th className={`${tableClasses.th} text-right`}>{accDict.creditMinor}</th>
@@ -371,6 +373,16 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                   </span>
                 </td>
                 <td className={tableClasses.td}>
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    {line.project ? `${line.project.code} - ${getName(line.project.name)}` : accDict.notAvailable}
+                  </span>
+                </td>
+                <td className={tableClasses.td}>
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    {line.costCenter ? `${line.costCenter.code} - ${getName(line.costCenter.name)}` : accDict.notAvailable}
+                  </span>
+                </td>
+                <td className={tableClasses.td}>
                   <span className="text-xs text-[var(--text-secondary)]">{line.memo || accDict.notAvailable}</span>
                 </td>
                 <td className={`${tableClasses.td} text-right font-mono text-xs font-bold text-blue-600 dark:text-blue-400`}>
@@ -384,7 +396,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           </tbody>
           <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
             <tr>
-              <td colSpan={5} className="p-3 text-right">{accDict.totalLabel}</td>
+              <td colSpan={7} className="p-3 text-right">{accDict.totalLabel}</td>
               <td className="p-3 text-right font-mono text-blue-600 dark:text-blue-400">{formatMoney(totalDebit, journal.currency)}</td>
               <td className="p-3 text-right font-mono text-emerald-600 dark:text-emerald-400">{formatMoney(totalCredit, journal.currency)}</td>
             </tr>

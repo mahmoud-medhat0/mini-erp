@@ -5,6 +5,82 @@
 
 All notable changes. Format: Keep a Changelog; SemVer per phase.
 
+### Added - Phase 17 Security and Access Governance Prompts (2026-08-28)
+
+- Created `PHASE_17_SECURITY_ACCESS_GOVERNANCE.md` as the defensive security hardening master plan.
+- Created `PHASE_17_SLICE_1_AGY_PROMPT.md` through `PHASE_17_SLICE_6_AGY_PROMPT.md` covering controlled admin bootstrap, route authorization audit, password/session safety, sensitive action confirmation, attachment/notification safety, and final security close-out.
+- Preserved the no multi-tenant policy, branch-as-operational-dimension-only rule, deployment parked status, dictionary-backed UI rule, and thin-controller requirement.
+
+### Added - Phase 16 Slice 6 Budget vs Actual Reports and Close-Out (2026-08-28)
+
+- Implemented read-only `BudgetVarianceReportService` computing deterministic comparisons between approved/active budget lines and posted GL ledger actuals scoped by financial period or date range, account, project, cost center, and currency.
+- Implemented exact integer minor units math and exact integer basis points variance percent: `variance_minor = actual_minor - budget_minor`, `variance_abs_minor = abs(variance_minor)`, `variance_percent_bps = budget_minor === 0 ? null : intdiv(abs(variance_minor) * 20000 + budget_minor, budget_minor * 2)`.
+- Applied account normal balance handling so `debit` nature accounts reflect `debit_minor - credit_minor` and `credit` nature accounts reflect `credit_minor - debit_minor`.
+- Implemented structured warning codes: `no_active_budget`, `budget_not_comparable`, `mixed_currencies`, `unbudgeted_actuals_present`, `budget_lines_without_actuals_present`.
+- Created `BudgetVarianceCsvExporter` streaming CSV responses using `CsvReportResponse` with raw minor units and basis points.
+- Created `BudgetVariancePageData` providing active/approved budget options, fiscal years with periods, accounts, projects, cost centers, currencies, and query filters.
+- Created `BudgetVarianceController` with `/budgeting/variance` (gated by `budgeting.view`, `reports.view`, `view_financials`) and `/budgeting/variance/export` (gated by `budgeting.export`, `reports.export`, `view_financials`).
+- Registered `budgeting.variance` in `routes/web.php`, `AppLayout.tsx` navigation keys and sidebar, and `Reports/Index.tsx` Financial Reports hub card.
+- Implemented React Inertia report page `Variance.tsx` with multi-dimension filter bar, multi-currency summary metric cards, localized warning banners, comparison table with row-type badges (`matched`, `budget_only`, `actual_only`), and CSV export action.
+- Added comprehensive bilingual dictionary translations in `resources/js/locales/en.json` and `resources/js/locales/ar.json` under `dict.app.pages.budgetVarianceReport`.
+- Created feature test suite `Phase16Slice6BudgetVarianceCloseOutTest.php` with 23 tests & 199 assertions covering permissions, budget scoping, tuple matching, draft exclusion, posted-only actuals, normal balance math, row classification, multi-currency isolation, zero GL mutations, CSV streaming, UI primitives, and anti-tenancy compliance.
+- Completed Phase 16 close-out: all 95 Phase 16 tests passed with 944 assertions, 192 Phase 15 product hardening tests passed, 7 Concurrency tests passed, Pint test passed, TypeScript typecheck passed (0 errors), Vite production build passed, concurrency stress commands passed, and token GC passed.
+
+### Added - Phase 16 Slice 5 Budget Version and Monthly Budget Line Foundation (2026-08-28)
+
+- Created migration `2026_08_28_040000_create_phase16_budget_tables.php` creating `budget` and `budget_line` tables with UUID PKs, strict foreign key constraints, composite unique index on `['fiscal_year_id', 'version_code']`, performance indexes, and PostgreSQL check constraints on `status` and `amount_minor >= 0`.
+- Added forward hardening migration `2026_08_28_041000_enforce_single_active_budget_per_fiscal_year.php` enforcing one active budget per fiscal year at the database level with a partial unique index.
+- Created Eloquent models `App\Models\Budget` and `App\Models\BudgetLine` with HasUuids, translatable names, strict integer amount casts, audit actor relations, and added reverse `HasMany` relations to `FiscalYear`, `FinancialPeriod`, `Account`, `Project`, and `CostCenter`.
+- Implemented `BudgetService` managing budget code uniqueness, version code per fiscal year uniqueness, duplicate line tuple validation `(financial_period_id, account_id, project_id, cost_center_id, currency)`, optimistic concurrency locking (`lock_version`), line amounts >= 0, status workflow lifecycle (`create`, `update`, `replaceLines`, `delete`, `submit`, `approve`, `activate` with atomic single-active-per-fiscal-year archiving, `archive`, `cancel`), and Spatie Activitylog audit logging.
+- Created `BudgetPageData` providing paginated budgets, active fiscal years, financial periods, accounts, projects, cost centers, currencies, statuses, and query filters.
+- Created `BudgetController` and registered budgeting web routes under `/budgeting/budgets` with `permission.all:budgeting.*,view_financials` middleware.
+- Implemented Inertia React page `Budgets.tsx` with budget list, multi-dimension filters, full monthly budget line editor with live currency totals and duplicate tuple detection, detail modal with lifecycle audit trail, and status transition action controls.
+- Added comprehensive bilingual dictionary translations in `resources/js/locales/en.json`, `ar.json`, and backend `lang/ar.json`.
+- Implemented feature test suite `Phase16Slice5BudgetFoundationTest.php` with 22 tests & 124 assertions covering schema, draft creation, code/version uniqueness, period validation, inactive dimension blockers, negative amount rejection, duplicate tuple rejection, draft update/line replacement, fiscal-year immutability, optimistic locking, submit/approve/activate/archive/cancel transitions, database-enforced single-active-per-fiscal-year rule, non-draft update/delete rejection, UI source guards, and RBAC permissions.
+
+### Added - Phase 16 Slice 4 Project and Cost Center Actual Reports (2026-08-28)
+
+- Added read-only `/reports/project-profitability` and `/reports/cost-center-actuals` pages plus CSV exports.
+- Implemented thin report controllers, ledger-only report services, and CSV exporters for project profitability and cost-center actuals.
+- Added per-currency summaries and mixed-currency warning behavior so different currencies are not combined into one money total.
+- Added unassigned project/cost-center review rows and cost-center account breakdowns for accounting traceability.
+- Updated Reports Hub and EN/AR dictionaries for the new pages.
+- Local review tightened currency validation to three-character registered currency codes and translated account type, account nature, and month labels in selectors and breakdown rows.
+- Verified `Phase16Slice4ProjectCostCenterReportsTest.php` with 14 tests / 204 assertions plus Slice 3 regression, Concurrency suite, Pint, TypeScript typecheck, Vite build, stress commands, and token GC.
+
+### Added - Phase 16 Slice 3 Expense Line Project and Cost Center Dimension Capture (2026-08-28)
+
+- Created migration `2026_08_28_030000_add_phase16_dimensions_to_expense_lines.php` adding nullable `project_id` and `cost_center_id` UUID columns to `expense_line`, with foreign keys (`restrictOnDelete`) and composite performance indexes.
+- Updated `App\Models\ExpenseLine` with `project_id` and `cost_center_id` fillables and `project()` / `costCenter()` belongs-to relations; added `expenseLines()` reverse has-many relations on `Project` and `CostCenter`.
+- Updated `ProjectService` and `CostCenterService` deletion guards to block deleting projects/cost-centers referenced by `expense_line` records.
+- Enhanced `ExpenseService` to validate that provided project and cost center dimensions are active on create, update, and post, and implemented grouped debit posting by account + dimensions to preserve separate debit journal lines for distinct project/cost-center combinations.
+- Updated `ExpenseController` with validation rules for `lines.*.project_id` and `lines.*.cost_center_id`, and updated `ExpensePageData` to eager load active dimension options and line relations.
+- Enhanced `Expenses/Index.tsx` with clearable `SearchableSelect` dropdowns for Project and Cost Center per expense line, fully backed by dictionary keys in `resources/js/locales/en.json` and `ar.json`.
+- Implemented feature test suite `Phase16Slice3ExpenseDimensionTest.php` with 11 tests & 119 assertions covering schema, line storage, ledger propagation, grouped debit lines, tax/settlement line non-tagging, inactive dimension blockers, delete prevention, Inertia props filtering, UI source scans, and scope compliance.
+
+### Added - Phase 16 Slice 2 GL Project and Cost Center Dimensions (2026-08-28)
+
+- Created migration `2026_08_28_020000_add_phase16_gl_dimensions_to_journal_and_ledger.php` adding nullable `project_id` and `cost_center_id` UUID columns to `journal_line` and `ledger_entry`, with foreign keys (`restrictOnDelete`) and composite performance indexes.
+- Updated `App\Domain\Accounting\DraftLine` and `App\Models\JournalLine` / `App\Models\LedgerEntry` Eloquent models with fillables, belongs-to relations, and reverse has-many relations on `App\Models\Project` and `App\Models\CostCenter`.
+- Updated `ProjectService` and `CostCenterService` with deletion guards blocking the deletion of projects/cost-centers referenced by journal lines or ledger entries.
+- Enhanced `JournalDraftService` to validate that provided project and cost-center dimensions are active during draft creation/update, storing dimension IDs on `JournalLine` and passing them to `DraftLine`.
+- Updated `PostingEngine` to validate active project/cost-center dimensions on journal lines before posting and copy `project_id` and `cost_center_id` to immutable `LedgerEntry` rows.
+- Updated `ReversalService` to preserve and mirror `project_id` and `cost_center_id` on reversal journal lines and reversal ledger entries.
+- Updated `JournalController` with validation rules for `lines.*.project_id` and `lines.*.cost_center_id`, and updated `JournalPageData` to eager load active dimension options and relations.
+- Enhanced React Inertia pages `JournalForm.tsx` (using clearable `SearchableSelect` per line) and `JournalDetail.tsx` (with Project and Cost Center columns), fully backed by dictionary keys in `resources/js/locales/en.json` and `ar.json`.
+- Implemented feature test suite `Phase16Slice2GlDimensionTest.php` with 13 tests & 152 assertions covering migration schema, line storage, ledger propagation, reversal mirroring, inactive dimension blockers during create/update/post, delete prevention, Inertia props filtering, UI source scans, and scope compliance.
+
+### Added - Phase 16 Slice 1 Project and Cost Center Master Data Foundation (2026-08-28)
+
+- Created standalone `project` and `cost_center` master data tables with UUID primary keys, translatable JSON `name`, `lock_version` concurrency locking, audit references (`created_by`, `updated_by`), and PostgreSQL check constraints.
+- Implemented Eloquent models `App\Models\Project` and `App\Models\CostCenter` with `HasUuids`, `HasTranslations`, `HasFactory`, and date/status casts.
+- Implemented `ProjectService`, `ProjectPageData`, `CostCenterService`, and `CostCenterPageData` with optimistic locking checks, unique code validation, and Spatie Activitylog audit recording via `AuditLogger`.
+- Implemented `ProjectController` and `CostCenterController` (each under 60 lines) with permission-guarded routes `/projects` and `/cost-centers`.
+- Registered `project` and `cost_center` in the attachment registry (`config/erp_attachments.php`).
+- Implemented React Inertia management pages `Projects/Index.tsx` and `CostCenters/Index.tsx` with shared UI primitives (`SearchableSelect`, `DatePicker`, `ToggleSwitch`, `Modal`, `Button`, `PageHeader`, `EmptyState`), strictly avoiding native `<select>/<option>`, `type="date"`, or unsafe redirects.
+- Added comprehensive EN and AR translations in `resources/js/locales/en.json` and `resources/js/locales/ar.json`.
+- Implemented feature test suite `Phase16Slice1ProjectCostCenterTest.php` with 12 tests & 146 assertions covering CRUD, optimistic concurrency locking, unique codes, status/category validation, attachments, audit logging, and RBAC permission gating.
+
 ### Changed - Phase 15 Product Hardening Slices 1-190 (2026-08-28)
 
 - Closed Phase 15 Product Hardening for the current product-hardening gate.

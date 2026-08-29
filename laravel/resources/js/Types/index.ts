@@ -403,11 +403,15 @@ export type JournalLineRow = {
   line_no?: number;
   account_id?: string;
   branch_id?: string | null;
+  project_id?: string | null;
+  cost_center_id?: string | null;
   account_code?: string;
   account_name_en?: string;
   account_name_ar?: string;
   account?: any;
   branch?: BranchRow | null;
+  project?: ProjectRow | null;
+  costCenter?: CostCenterRow | null;
   currency_code?: string;
   debit?: number;
   credit?: number;
@@ -440,6 +444,8 @@ export type LedgerRow = {
   id: string;
   journal_id?: string;
   branch_id?: string | null;
+  project_id?: string | null;
+  cost_center_id?: string | null;
   entry_number?: string;
   entry_date: string;
   account_id?: string;
@@ -458,6 +464,8 @@ export type LedgerRow = {
   memo?: string | null;
   account?: any;
   branch?: BranchRow | null;
+  project?: ProjectRow | null;
+  costCenter?: CostCenterRow | null;
   journalEntry?: any;
 };
 
@@ -507,4 +515,187 @@ export type PaginatedAuditLogs = {
   total: number;
   prev_page_url: string | null;
   next_page_url: string | null;
+};
+
+// --- Phase 16 Project & Cost Center Master Data Types ---
+export type ProjectStatus = 'active' | 'on_hold' | 'completed' | 'cancelled';
+
+export type ProjectRow = {
+  id: string;
+  code: string;
+  name: Record<string, string> | string;
+  description?: string | null;
+  status: ProjectStatus;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_billable: boolean;
+  is_active: boolean;
+  lock_version: number;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+export type CostCenterCategory = 'administrative' | 'sales' | 'operations' | 'finance' | 'other' | null;
+
+export type CostCenterRow = {
+  id: string;
+  code: string;
+  name: Record<string, string> | string;
+  description?: string | null;
+  category?: CostCenterCategory;
+  is_active: boolean;
+  lock_version: number;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+// --- Phase 16 Slice 5 Budgeting Types ---
+export type BudgetStatus = 'draft' | 'submitted' | 'approved' | 'active' | 'archived' | 'cancelled';
+
+export type BudgetLineRow = {
+  id: string;
+  budget_id: string;
+  financial_period_id: string;
+  account_id: string;
+  project_id?: string | null;
+  cost_center_id?: string | null;
+  currency: string;
+  amount_minor: number;
+  notes?: string | null;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  financial_period?: {
+    id: string;
+    month: number;
+    start_date?: string | null;
+    end_date?: string | null;
+    fiscal_year?: { id: string; year: number } | null;
+  };
+  account?: {
+    id: string;
+    code: string;
+    name: Record<string, string> | string;
+    type?: string;
+    nature?: string;
+    currency?: string;
+    is_active?: boolean;
+  };
+  project?: {
+    id: string;
+    code: string;
+    name: Record<string, string> | string;
+    status?: string;
+    is_active?: boolean;
+  } | null;
+  cost_center?: {
+    id: string;
+    code: string;
+    name: Record<string, string> | string;
+    category?: string | null;
+    is_active?: boolean;
+  } | null;
+  currency_ref?: {
+    code: string;
+    name: Record<string, string> | string;
+    symbol: string;
+  };
+};
+
+export type BudgetRow = {
+  id: string;
+  fiscal_year_id: string;
+  code: string;
+  version_code: string;
+  name: Record<string, string> | string;
+  description?: string | null;
+  status: BudgetStatus;
+  default_currency: string;
+  submitted_by?: number | string | null;
+  submitted_at?: string | null;
+  approved_by?: number | string | null;
+  approved_at?: string | null;
+  activated_by?: number | string | null;
+  activated_at?: string | null;
+  archived_by?: number | string | null;
+  archived_at?: string | null;
+  cancelled_by?: number | string | null;
+  cancelled_at?: string | null;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  lock_version: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+  fiscal_year?: {
+    id: string;
+    year: number;
+    name?: string;
+    status?: string;
+  };
+  submitter?: { id: number | string; name: string } | null;
+  approver?: { id: number | string; name: string } | null;
+  activator?: { id: number | string; name: string } | null;
+  archiver?: { id: number | string; name: string } | null;
+  canceller?: { id: number | string; name: string } | null;
+  creator?: { id: number | string; name: string } | null;
+  updater?: { id: number | string; name: string } | null;
+  lines?: BudgetLineRow[];
+};
+
+// --- Phase 16 Slice 6 Budget vs Actual Report Types ---
+export type BudgetVarianceRowType = 'matched' | 'budget_only' | 'actual_only';
+
+export type BudgetVarianceWarningCode =
+  | 'no_active_budget'
+  | 'budget_not_comparable'
+  | 'mixed_currencies'
+  | 'unbudgeted_actuals_present'
+  | 'budget_lines_without_actuals_present';
+
+export type BudgetVarianceRow = {
+  financial_period_id: string;
+  period_month: number;
+  period_start_date?: string | null;
+  period_end_date?: string | null;
+  fiscal_year_id: string;
+  account_id: string;
+  account_code: string;
+  account_name: Record<string, string> | string;
+  account_type: string;
+  account_nature: 'debit' | 'credit' | string;
+  project_id?: string | null;
+  project_code?: string | null;
+  project_name?: Record<string, string> | string | null;
+  cost_center_id?: string | null;
+  cost_center_code?: string | null;
+  cost_center_name?: Record<string, string> | string | null;
+  currency: string;
+  budget_minor: number;
+  actual_minor: number;
+  debit_minor: number;
+  credit_minor: number;
+  ledger_row_count: number;
+  variance_minor: number;
+  variance_abs_minor: number;
+  variance_percent_bps: number | null;
+  row_type: BudgetVarianceRowType;
+};
+
+export type BudgetVarianceCurrencySummary = {
+  currency: string;
+  budget_minor: number;
+  actual_minor: number;
+  debit_minor: number;
+  credit_minor: number;
+  variance_minor: number;
+  variance_abs_minor: number;
+  variance_percent_bps: number | null;
+  row_count: number;
+  matched_count: number;
+  budget_only_count: number;
+  actual_only_count: number;
 };

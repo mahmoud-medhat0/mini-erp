@@ -55,6 +55,11 @@ class FinancialPeriod extends Model
         return $this->hasMany(LedgerEntry::class, 'financial_period_id');
     }
 
+    public function budgetLines(): HasMany
+    {
+        return $this->hasMany(BudgetLine::class, 'financial_period_id');
+    }
+
     public function isOpen(): bool
     {
         return in_array($this->status, ['open', 'reopened'], true);

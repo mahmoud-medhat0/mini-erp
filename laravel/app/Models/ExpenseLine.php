@@ -18,6 +18,8 @@ class ExpenseLine extends Model
         'line_no',
         'expense_category_id',
         'expense_account_id',
+        'project_id',
+        'cost_center_id',
         'description',
         'quantity_e6',
         'unit_amount_minor',
@@ -53,6 +55,16 @@ class ExpenseLine extends Model
     public function expenseAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'expense_account_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class, 'cost_center_id');
     }
 
     public function taxCode(): BelongsTo

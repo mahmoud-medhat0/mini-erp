@@ -61,9 +61,9 @@ The ERP must be designed so these scenarios can be implemented without redesigni
 | Bank Account | bank/cashbook reporting | bank account exists | may optionally link to branch |
 | Fixed Asset Location | asset physical place | implemented 2026-08-25 | optional operational branch/location movement reference |
 | Custodian | employee/person responsible for asset | not implemented | optional; do not infer User = Employee |
-| Project | reporting dimension | not implemented | optional future operational dimension |
+| Project | reporting dimension | implemented 2026-08-28 | optional reporting/posting dimension; not tenant/security scope |
 | Department | reporting dimension | not implemented | optional future operational dimension |
-| Cost Center | reporting dimension | not implemented | optional future operational dimension |
+| Cost Center | reporting dimension | implemented 2026-08-28 | optional reporting/posting dimension; not tenant/security scope |
 
 ## Branch Transfer Accounting Principles
 
@@ -181,6 +181,6 @@ These are product capabilities, not implemented facts:
 - branch-scoped document numbering
 - automatic branch defaults per user
 - employee/custodian ownership
-- project/department/cost-center posting dimensions
+- department posting dimensions
 
 Do not implement any item above until a bounded slice explicitly approves the schema, service behavior, UI, permissions, tests, and rollback/correction behavior.

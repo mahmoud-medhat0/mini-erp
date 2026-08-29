@@ -71,7 +71,7 @@ class PostingEngine
                     }
 
                     // 4. Lock & Validate Lines and Accounts
-                    $lines = $lockedEntry->lines()->with('account')->orderBy('line_no')->get();
+                    $lines = $lockedEntry->lines()->with(['account', 'project', 'costCenter'])->orderBy('line_no')->get();
                     if ($lines->count() < 2) {
                         throw new InvalidArgumentException(__('Journal entry must contain at least 2 lines.'));
                     }
@@ -89,11 +89,27 @@ class PostingEngine
                             }
                         }
 
+                        if ($line->project_id !== null) {
+                            $project = $line->project;
+                            if (! $project || ! $project->is_active) {
+                                throw new InvalidArgumentException(__('Cannot post journal line with inactive project [:code].', ['code' => $project?->code ?? 'N/A']));
+                            }
+                        }
+
+                        if ($line->cost_center_id !== null) {
+                            $costCenter = $line->costCenter;
+                            if (! $costCenter || ! $costCenter->is_active) {
+                                throw new InvalidArgumentException(__('Cannot post journal line with inactive cost center [:code].', ['code' => $costCenter?->code ?? 'N/A']));
+                            }
+                        }
+
                         $draftLines[] = new DraftLine(
                             accountId: $account->id,
                             debitMinor: (int) $line->debit_minor,
                             creditMinor: (int) $line->credit_minor,
-                            memo: $line->memo
+                            memo: $line->memo,
+                            projectId: $line->project_id,
+                            costCenterId: $line->cost_center_id,
                         );
                     }
 
@@ -120,6 +136,8 @@ class PostingEngine
                             'account_id' => $line->account_id,
                             'financial_period_id' => $period->id,
                             'branch_id' => $line->branch_id ?? $lockedEntry->branch_id,
+                            'project_id' => $line->project_id,
+                            'cost_center_id' => $line->cost_center_id,
                             'entry_date' => $lockedEntry->entry_date,
                             'debit_minor' => $line->debit_minor,
                             'credit_minor' => $line->credit_minor,
@@ -147,7 +165,7 @@ class PostingEngine
                         'entry_date' => $lockedEntry->entry_date,
                     ]);
 
-                    return $lockedEntry->fresh(['branch', 'lines.account', 'lines.branch']);
+                    return $lockedEntry->fresh(['branch', 'lines.account', 'lines.branch', 'lines.project', 'lines.costCenter']);
                 });
 
                 return $postedEntry;

@@ -12,6 +12,7 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
   const can = useCan();
   const canViewFinancials = can('view_financials');
   const canViewFixedAssetReports = can('reports.view') && canViewFinancials;
+  const canViewBudgetVarianceReport = can('budgeting.view') && can('reports.view') && canViewFinancials;
 
   const reportGroups = [
     ...(canViewFinancials
@@ -162,6 +163,25 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
                 desc: dict.app.pages.branchProfitabilityReport.description,
                 href: '/reports/branch-profitability',
               },
+              {
+                name: dict.app.pages.projectProfitabilityReport.title,
+                desc: dict.app.pages.projectProfitabilityReport.description,
+                href: '/reports/project-profitability',
+              },
+              {
+                name: dict.app.pages.costCenterActualsReport.title,
+                desc: dict.app.pages.costCenterActualsReport.description,
+                href: '/reports/cost-center-actuals',
+              },
+              ...(canViewBudgetVarianceReport
+                ? [
+                    {
+                      name: dict.app.pages.budgetVarianceReport.title,
+                      desc: dict.app.pages.budgetVarianceReport.description,
+                      href: '/budgeting/variance',
+                    },
+                  ]
+                : []),
             ]
           : []),
       ],

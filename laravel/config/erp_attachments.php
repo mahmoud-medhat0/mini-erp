@@ -395,5 +395,23 @@ return [
                 'delete' => ['fixedAssets.delete', 'fixedAssets.edit'],
             ],
         ],
+        'project' => [
+            'table' => 'project',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['projects.view'],
+                'attach' => ['projects.edit', 'projects.create'],
+                'delete' => ['projects.delete', 'projects.edit'],
+            ],
+        ],
+        'cost_center' => [
+            'table' => 'cost_center',
+            'key' => 'id',
+            'permissions' => [
+                'view' => ['costCenters.view'],
+                'attach' => ['costCenters.edit', 'costCenters.create'],
+                'delete' => ['costCenters.delete', 'costCenters.edit'],
+            ],
+        ],
     ],
 ];

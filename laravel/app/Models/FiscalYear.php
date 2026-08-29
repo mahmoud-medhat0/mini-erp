@@ -35,4 +35,9 @@ class FiscalYear extends Model
     {
         return $this->hasMany(FinancialPeriod::class, 'fiscal_year_id')->orderBy('month');
     }
+
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class, 'fiscal_year_id');
+    }
 }

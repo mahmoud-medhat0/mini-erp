@@ -83,4 +83,9 @@ class Account extends Model
     {
         return $this->hasMany(LedgerEntry::class, 'account_id');
     }
+
+    public function budgetLines(): HasMany
+    {
+        return $this->hasMany(BudgetLine::class, 'account_id');
+    }
 }

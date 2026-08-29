@@ -7,9 +7,11 @@ use App\Domain\Accounting\AccountingKernel;
 use App\Domain\Accounting\DraftEntry;
 use App\Domain\Accounting\DraftLine;
 use App\Models\Account;
+use App\Models\CostCenter;
 use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
+use App\Models\Project;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -35,7 +37,7 @@ class JournalDraftService
      * Create a new draft journal entry with lines.
      *
      * @param  array<string, mixed>  $data
-     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null, branch_id?: string|null}>  $linesData
+     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null, branch_id?: string|null, project_id?: string|null, cost_center_id?: string|null}>  $linesData
      */
     public function createDraft(array $data, array $linesData, int $userId): JournalEntry
     {
@@ -70,12 +72,30 @@ class JournalDraftService
                     throw new InvalidArgumentException(__('Account :code is inactive.', ['code' => $account->code]));
                 }
 
+                $projectId = ! empty($lineData['project_id']) ? $lineData['project_id'] : null;
+                if ($projectId !== null) {
+                    $project = Project::find($projectId);
+                    if (! $project || ! $project->is_active) {
+                        throw new InvalidArgumentException(__('Selected project is inactive or missing.'));
+                    }
+                }
+
+                $costCenterId = ! empty($lineData['cost_center_id']) ? $lineData['cost_center_id'] : null;
+                if ($costCenterId !== null) {
+                    $costCenter = CostCenter::find($costCenterId);
+                    if (! $costCenter || ! $costCenter->is_active) {
+                        throw new InvalidArgumentException(__('Selected cost center is inactive or missing.'));
+                    }
+                }
+
                 JournalLine::create([
                     'id' => (string) Str::uuid(),
                     'journal_entry_id' => $entry->id,
                     'line_no' => $index + 1,
                     'account_id' => $account->id,
                     'branch_id' => $lineData['branch_id'] ?? $entry->branch_id,
+                    'project_id' => $projectId,
+                    'cost_center_id' => $costCenterId,
                     'memo' => $lineData['memo'] ?? null,
                     'debit_minor' => $lineData['debit_minor'],
                     'credit_minor' => $lineData['credit_minor'],
@@ -89,7 +109,9 @@ class JournalDraftService
                     accountId: $account->id,
                     debitMinor: (int) $lineData['debit_minor'],
                     creditMinor: (int) $lineData['credit_minor'],
-                    memo: $lineData['memo'] ?? null
+                    memo: $lineData['memo'] ?? null,
+                    projectId: $projectId,
+                    costCenterId: $costCenterId,
                 );
             }
 
@@ -105,7 +127,7 @@ class JournalDraftService
 
             AccountingKernel::assertBalanced($kernelEntry);
 
-            return $entry->fresh(['branch', 'lines.account', 'lines.branch']);
+            return $entry->fresh(['branch', 'lines.account', 'lines.branch', 'lines.project', 'lines.costCenter']);
         });
     }
 
@@ -113,7 +135,7 @@ class JournalDraftService
      * Update an existing draft journal entry.
      *
      * @param  array<string, mixed>  $data
-     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null, branch_id?: string|null}>  $linesData
+     * @param  list<array{account_id: string, debit_minor: int, credit_minor: int, memo?: string|null, branch_id?: string|null, project_id?: string|null, cost_center_id?: string|null}>  $linesData
      */
     public function updateDraft(JournalEntry $entry, array $data, array $linesData, int $userId): JournalEntry
     {
@@ -155,12 +177,30 @@ class JournalDraftService
                     throw new InvalidArgumentException(__('Account :code is inactive.', ['code' => $account->code]));
                 }
 
+                $projectId = ! empty($lineData['project_id']) ? $lineData['project_id'] : null;
+                if ($projectId !== null) {
+                    $project = Project::find($projectId);
+                    if (! $project || ! $project->is_active) {
+                        throw new InvalidArgumentException(__('Selected project is inactive or missing.'));
+                    }
+                }
+
+                $costCenterId = ! empty($lineData['cost_center_id']) ? $lineData['cost_center_id'] : null;
+                if ($costCenterId !== null) {
+                    $costCenter = CostCenter::find($costCenterId);
+                    if (! $costCenter || ! $costCenter->is_active) {
+                        throw new InvalidArgumentException(__('Selected cost center is inactive or missing.'));
+                    }
+                }
+
                 JournalLine::create([
                     'id' => (string) Str::uuid(),
                     'journal_entry_id' => $entry->id,
                     'line_no' => $index + 1,
                     'account_id' => $account->id,
                     'branch_id' => $lineData['branch_id'] ?? $entry->branch_id,
+                    'project_id' => $projectId,
+                    'cost_center_id' => $costCenterId,
                     'memo' => $lineData['memo'] ?? null,
                     'debit_minor' => $lineData['debit_minor'],
                     'credit_minor' => $lineData['credit_minor'],
@@ -174,7 +214,9 @@ class JournalDraftService
                     accountId: $account->id,
                     debitMinor: (int) $lineData['debit_minor'],
                     creditMinor: (int) $lineData['credit_minor'],
-                    memo: $lineData['memo'] ?? null
+                    memo: $lineData['memo'] ?? null,
+                    projectId: $projectId,
+                    costCenterId: $costCenterId,
                 );
             }
 
@@ -190,7 +232,7 @@ class JournalDraftService
 
             AccountingKernel::assertBalanced($kernelEntry);
 
-            return $entry->fresh(['branch', 'lines.account', 'lines.branch']);
+            return $entry->fresh(['branch', 'lines.account', 'lines.branch', 'lines.project', 'lines.costCenter']);
         });
     }
 

@@ -6,9 +6,11 @@ use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\Branch;
 use App\Models\CashAccount;
+use App\Models\CostCenter;
 use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
+use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\TaxCode;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -28,6 +30,8 @@ class ExpensePageData
      *     branches: EloquentCollection<int, Branch>,
      *     currencies: EloquentCollection<int, Currency>,
      *     taxCodes: EloquentCollection<int, TaxCode>,
+     *     projects: EloquentCollection<int, Project>,
+     *     costCenters: EloquentCollection<int, CostCenter>,
      *     statuses: array<int, string>,
      *     settlementMethods: array<int, string>,
      *     filters: array{search: string, status: string, branch_id: string}
@@ -40,7 +44,7 @@ class ExpensePageData
         $branchId = (string) ($filters['branch_id'] ?? '');
 
         $expenses = Expense::query()
-            ->with(['branch', 'supplier', 'cashAccount', 'bankAccount', 'lines.category', 'lines.expenseAccount'])
+            ->with(['branch', 'supplier', 'cashAccount', 'bankAccount', 'lines.category', 'lines.expenseAccount', 'lines.project', 'lines.costCenter'])
             ->when($status !== '' && in_array($status, ExpenseService::ALLOWED_STATUSES, true), fn ($query) => $query->where('status', $status))
             ->when($branchId !== '', fn ($query) => $query->where('branch_id', $branchId))
             ->when($search !== '', function ($query) use ($search): void {
@@ -66,6 +70,8 @@ class ExpensePageData
             'branches' => Branch::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'currencies' => Currency::query()->orderBy('code')->get(['code', 'name', 'symbol']),
             'taxCodes' => TaxCode::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'calculation_mode', 'recoverability_mode']),
+            'projects' => Project::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
+            'costCenters' => CostCenter::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'statuses' => ExpenseService::ALLOWED_STATUSES,
             'settlementMethods' => ExpenseService::SETTLEMENT_METHODS,
             'filters' => [

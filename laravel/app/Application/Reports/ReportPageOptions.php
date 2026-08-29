@@ -2,18 +2,54 @@
 
 namespace App\Application\Reports;
 
+use App\Models\Account;
 use App\Models\BankAccount;
 use App\Models\Branch;
 use App\Models\CashAccount;
+use App\Models\CostCenter;
 use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class ReportPageOptions
 {
+    /**
+     * @param  array<int, string>  $columns
+     * @return EloquentCollection<int, Project>
+     */
+    public function projects(array $columns = ['*']): EloquentCollection
+    {
+        return Project::query()
+            ->orderBy('code')
+            ->get($columns);
+    }
+
+    /**
+     * @param  array<int, string>  $columns
+     * @return EloquentCollection<int, CostCenter>
+     */
+    public function costCenters(array $columns = ['*']): EloquentCollection
+    {
+        return CostCenter::query()
+            ->orderBy('code')
+            ->get($columns);
+    }
+
+    /**
+     * @param  array<int, string>  $columns
+     * @return EloquentCollection<int, Account>
+     */
+    public function accounts(array $columns = ['*']): EloquentCollection
+    {
+        return Account::query()
+            ->orderBy('code')
+            ->get($columns);
+    }
+
     /**
      * @param  array<int, string>  $columns
      * @return EloquentCollection<int, Customer>
