@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -89,6 +89,14 @@ type TransferForm = {
   lines: TransferLineForm[];
 };
 
+type PendingSensitiveTransferAction = {
+  url: string;
+  confirmCode: 'ISSUE_STOCK_TRANSFER' | 'RECEIVE_STOCK_TRANSFER';
+  message: string;
+  payload?: Record<string, unknown>;
+  onSuccess?: () => void;
+};
+
 type StockTransfersProps = SharedPageProps & {
   transfers: PaginatedData<StockTransfer>;
   warehouses: Warehouse[];
@@ -161,6 +169,7 @@ export default function StockTransfersIndex({
   const [receivingTransfer, setReceivingTransfer] = useState<StockTransfer | null>(null);
   const [receiptDate, setReceiptDate] = useState(today());
   const [receiveQuantities, setReceiveQuantities] = useState<Record<string, string>>({});
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveTransferAction | null>(null);
 
   const transferForm = useForm<TransferForm>({
     transfer_date: today(),
@@ -306,9 +315,17 @@ export default function StockTransfersIndex({
   }
 
   function postAction(transfer: StockTransfer, action: 'submit' | 'approve' | 'issue' | 'cancel', message: string) {
+    if (action === 'issue') {
+      setPendingSensitiveAction({
+        url: `/inventory/transfers/${transfer.id}/issue`,
+        confirmCode: 'ISSUE_STOCK_TRANSFER',
+        message,
+      });
+      return;
+    }
+
     if (!confirm(message)) return;
-    const payload = action === 'issue' ? { confirm_action: 'ISSUE_STOCK_TRANSFER' } : {};
-    router.post(`/inventory/transfers/${transfer.id}/${action}`, payload, { preserveScroll: true });
+    router.post(`/inventory/transfers/${transfer.id}/${action}`, {}, { preserveScroll: true });
   }
 
   function openReceivePanel(transfer: StockTransfer) {
@@ -325,13 +342,15 @@ export default function StockTransfersIndex({
   }
 
   function receiveRemaining(transfer: StockTransfer) {
-    if (!confirm(pageDict.confirmReceive)) return;
-
-    router.post(`/inventory/transfers/${transfer.id}/receive`, {
-      confirm_action: 'RECEIVE_STOCK_TRANSFER',
-      receipt_date: today(),
-      lines: [],
-    }, { preserveScroll: true });
+    setPendingSensitiveAction({
+      url: `/inventory/transfers/${transfer.id}/receive`,
+      confirmCode: 'RECEIVE_STOCK_TRANSFER',
+      message: pageDict.confirmReceive,
+      payload: {
+        receipt_date: today(),
+        lines: [],
+      },
+    });
   }
 
   function receiveSelected(event: React.FormEvent) {
@@ -345,12 +364,14 @@ export default function StockTransfersIndex({
       }))
       .filter((line) => line.quantity_e6 > 0);
 
-    router.post(`/inventory/transfers/${receivingTransfer.id}/receive`, {
-      confirm_action: 'RECEIVE_STOCK_TRANSFER',
-      receipt_date: receiptDate,
-      lines,
-    }, {
-      preserveScroll: true,
+    setPendingSensitiveAction({
+      url: `/inventory/transfers/${receivingTransfer.id}/receive`,
+      confirmCode: 'RECEIVE_STOCK_TRANSFER',
+      message: pageDict.confirmReceive,
+      payload: {
+        receipt_date: receiptDate,
+        lines,
+      },
       onSuccess: () => setReceivingTransfer(null),
     });
   }
@@ -678,6 +699,27 @@ export default function StockTransfersIndex({
           </div>
         )}
       </div>
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, {
+            ...(pendingSensitiveAction.payload || {}),
+            ...payload,
+          }, {
+            preserveScroll: true,
+            onSuccess: () => {
+              pendingSensitiveAction.onSuccess?.();
+              setPendingSensitiveAction(null);
+            },
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'ISSUE_STOCK_TRANSFER'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

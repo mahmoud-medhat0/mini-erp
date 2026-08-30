@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -49,6 +49,7 @@ export default function SupplierOpeningBalancesIndex({
   const canPostOpeningBalance = can('suppliers.opening_balances') && can('view_financials');
 
   const [showModal, setShowModal] = useState(false);
+  const [postingBalanceId, setPostingBalanceId] = useState<string | null>(null);
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     supplier_id: '',
@@ -84,9 +85,7 @@ export default function SupplierOpeningBalancesIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance)) {
-      router.post(`/supplier-opening-balances/${id}/post`, { confirm_action: 'POST_SUPPLIER_OPENING_BALANCE' }, { preserveScroll: true });
-    }
+    setPostingBalanceId(id);
   };
 
   const supplierSelectOptions = suppliers.map((s) => ({
@@ -303,6 +302,21 @@ export default function SupplierOpeningBalancesIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={postingBalanceId !== null}
+        onClose={() => setPostingBalanceId(null)}
+        onConfirm={(payload) => {
+          if (!postingBalanceId) return;
+          router.post(`/supplier-opening-balances/${postingBalanceId}/post`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPostingBalanceId(null),
+          });
+        }}
+        confirmCode="POST_SUPPLIER_OPENING_BALANCE"
+        message={dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

@@ -21,8 +21,8 @@ class SupplierOpeningBalancePageData
                 ->orderBy('created_at', 'desc')
                 ->paginate(15),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('code')->get(),
-            'fiscalYears' => FiscalYear::query()->where('is_closed', false)->orderBy('year', 'desc')->get(),
-            'periods' => FinancialPeriod::query()->where('is_closed', false)->orderBy('start_date', 'asc')->get(),
+            'fiscalYears' => FiscalYear::query()->open()->orderBy('year', 'desc')->get(),
+            'periods' => FinancialPeriod::query()->with('fiscalYear')->openForPosting()->orderBy('start_date', 'asc')->get(),
             'currencies' => Currency::query()->orderBy('code')->get(),
         ];
     }

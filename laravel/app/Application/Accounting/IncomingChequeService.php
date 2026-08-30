@@ -33,6 +33,8 @@ class IncomingChequeService
     {
         $customerId = $data['customer_id'] ?? null;
         $chequeNumber = trim((string) ($data['cheque_number'] ?? ''));
+        $drawerBankName = trim((string) ($data['drawer_bank_name'] ?? $data['bank_name'] ?? ''));
+        $dueDate = $data['due_date'] ?? null;
         $currency = CurrencyInput::required($data['currency'] ?? null);
         $amountMinor = $data['amount_minor'] ?? 0;
 
@@ -41,6 +43,18 @@ class IncomingChequeService
         if ($chequeNumber === '') {
             throw ValidationException::withMessages([
                 'cheque_number' => [__('Physical cheque number is required.')],
+            ]);
+        }
+
+        if ($drawerBankName === '') {
+            throw ValidationException::withMessages([
+                'bank_name' => [__('Drawer bank name is required.')],
+            ]);
+        }
+
+        if (! is_string($dueDate) || trim($dueDate) === '') {
+            throw ValidationException::withMessages([
+                'due_date' => [__('Cheque due date is required.')],
             ]);
         }
 
@@ -54,7 +68,8 @@ class IncomingChequeService
         $cheque = IncomingCheque::query()->create([
             'customer_id' => $customerId,
             'cheque_number' => $chequeNumber,
-            'drawer_bank_name' => $data['drawer_bank_name'] ?? null,
+            'drawer_bank_name' => $drawerBankName,
+            'due_date' => $dueDate,
             'currency' => $currency,
             'amount_minor' => $amountMinor,
             'fx_rate_e6' => $data['fx_rate_e6'] ?? 1000000,

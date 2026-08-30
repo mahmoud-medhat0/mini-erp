@@ -61,6 +61,11 @@ class SupplierOpeningBalance extends Model
         return $this->belongsTo(FinancialPeriod::class, 'financial_period_id');
     }
 
+    public function financialPeriod(): BelongsTo
+    {
+        return $this->period();
+    }
+
     public function currencyRef(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency', 'code');

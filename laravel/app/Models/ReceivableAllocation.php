@@ -47,6 +47,11 @@ class ReceivableAllocation extends Model
         return $this->belongsTo(CustomerReceipt::class, 'customer_receipt_id');
     }
 
+    public function customerReceipt(): BelongsTo
+    {
+        return $this->receipt();
+    }
+
     public function receivableEntry(): BelongsTo
     {
         return $this->belongsTo(ReceivableEntry::class, 'receivable_entry_id');

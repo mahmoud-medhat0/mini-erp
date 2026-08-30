@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -83,6 +83,12 @@ type CustomerInvoiceRow = {
   }>;
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type CustomerInvoiceSourceLine = {
   id: string;
   product_id: string;
@@ -144,6 +150,7 @@ export default function CustomerInvoicesIndex({
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<CustomerInvoiceRow | null>(null);
   const [sourceMode, setSourceMode] = useState<'manual' | 'sales_order' | 'delivery_note'>('manual');
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -396,9 +403,17 @@ export default function CustomerInvoicesIndex({
     if (action === 'post') confirmMsg = dict.app.pages.salesCustomerInvoices.postThisInvoiceToArGl;
     if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerInvoices.cancelThisInvoice;
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/sales/invoices/${invId}/post`,
+        confirmCode: 'POST_CUSTOMER_INVOICE',
+        message: confirmMsg,
+      });
+      return;
+    }
+
     if (confirm(confirmMsg)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_CUSTOMER_INVOICE' } : {};
-      router.post(`/sales/invoices/${invId}/${action}`, payload, { preserveScroll: true });
+      router.post(`/sales/invoices/${invId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -890,6 +905,21 @@ export default function CustomerInvoicesIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_CUSTOMER_INVOICE'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

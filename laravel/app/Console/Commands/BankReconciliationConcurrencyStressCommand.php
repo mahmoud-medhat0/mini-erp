@@ -47,7 +47,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
                 'name' => 'FY-ReconStress-'.$stressYear,
                 'start_date' => "{$stressYear}-01-01",
                 'end_date' => "{$stressYear}-12-31",
-                'is_closed' => false,
+                'status' => 'open',
             ]);
 
             $period = FinancialPeriod::query()->create([

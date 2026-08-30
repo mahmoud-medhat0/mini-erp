@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,10 @@ class FiscalYear extends Model
     public $timestamps = false;
 
     protected $table = 'fiscal_year';
+
+    protected $appends = [
+        'name',
+    ];
 
     protected $fillable = [
         'year',
@@ -31,9 +36,28 @@ class FiscalYear extends Model
         ];
     }
 
+    public function getNameAttribute(): string
+    {
+        return 'FY '.$this->year;
+    }
+
     public function periods(): HasMany
     {
         return $this->hasMany(FinancialPeriod::class, 'fiscal_year_id')->orderBy('month');
+    }
+
+    public function isOpen(): bool
+    {
+        return $this->status === 'open';
+    }
+
+    /**
+     * @param  Builder<FiscalYear>  $query
+     * @return Builder<FiscalYear>
+     */
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query->where('status', 'open');
     }
 
     public function budgets(): HasMany

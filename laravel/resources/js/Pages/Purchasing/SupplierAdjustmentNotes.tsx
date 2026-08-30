@@ -2,7 +2,7 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -60,6 +60,12 @@ type AdjustmentNoteRow = {
   }>;
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type SupplierAdjustmentNotesProps = SharedPageProps & {
   supplierAdjustmentNotes: {
     data: AdjustmentNoteRow[];
@@ -94,6 +100,7 @@ export default function SupplierAdjustmentNotesIndex({
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<AdjustmentNoteRow | null>(null);
   const [lineItems, setLineItems] = useState<AdjustmentLineForm[]>([]);
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -271,9 +278,17 @@ export default function SupplierAdjustmentNotesIndex({
     if (action === 'post') confirmMsg = dict.app.pages.purchasingSupplierAdjustmentNotes.postThisAdjustmentNoteToApGl;
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierAdjustmentNotes.cancelThisAdjustmentNote;
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/purchasing/adjustment-notes/${noteId}/post`,
+        confirmCode: 'POST_SUPPLIER_ADJUSTMENT_NOTE',
+        message: confirmMsg,
+      });
+      return;
+    }
+
     if (confirm(confirmMsg)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_SUPPLIER_ADJUSTMENT_NOTE' } : {};
-      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, payload, { preserveScroll: true });
+      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -780,6 +795,21 @@ export default function SupplierAdjustmentNotesIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_SUPPLIER_ADJUSTMENT_NOTE'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

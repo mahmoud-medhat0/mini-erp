@@ -67,6 +67,11 @@ class SupplierPayment extends Model
         return $this->belongsTo(FinancialPeriod::class, 'financial_period_id');
     }
 
+    public function financialPeriod(): BelongsTo
+    {
+        return $this->period();
+    }
+
     public function cashAccount(): BelongsTo
     {
         return $this->belongsTo(CashAccount::class, 'cash_account_id');

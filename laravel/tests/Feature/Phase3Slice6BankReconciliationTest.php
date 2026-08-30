@@ -72,7 +72,7 @@ class Phase3Slice6BankReconciliationTest extends TestCase
             'name' => 'FY 2026',
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
-            'is_closed' => false,
+            'status' => 'open',
         ]);
 
         $this->period = FinancialPeriod::query()->create([

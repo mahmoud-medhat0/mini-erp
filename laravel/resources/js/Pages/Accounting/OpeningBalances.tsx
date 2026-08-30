@@ -1,7 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getAccountNatureLabel, getAccountTypeLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { AccountRow, OpeningBalanceRow, SharedPageProps } from '../../Types';
@@ -36,6 +36,7 @@ export default function OpeningBalances({
     });
     return initial;
   });
+  const [showPostConfirmation, setShowPostConfirmation] = useState(false);
 
   const saveForm = useForm({
     fiscal_year_id: activeYearId,
@@ -88,9 +89,7 @@ export default function OpeningBalances({
 
   function submitPost() {
     if (!isBalanced || isAlreadyPosted) return;
-    if (!confirm(accDict.confirmPostOpeningJournal)) return;
-
-    postForm.post('/accounting/opening-balances/post', { preserveScroll: true });
+    setShowPostConfirmation(true);
   }
 
   const fiscalYearOptions = fiscalYears.map((fy) => ({
@@ -270,6 +269,22 @@ export default function OpeningBalances({
           </div>
         </form>
       )}
+
+      <SensitiveActionModal
+        isOpen={showPostConfirmation}
+        onClose={() => setShowPostConfirmation(false)}
+        onConfirm={(payload) => {
+          postForm.setData('confirm_action', payload.confirm_action);
+          postForm.post('/accounting/opening-balances/post', {
+            preserveScroll: true,
+            onSuccess: () => setShowPostConfirmation(false),
+          });
+        }}
+        confirmCode="POST_OPENING_BALANCES"
+        message={accDict.confirmPostOpeningJournal}
+        isProcessing={postForm.processing}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

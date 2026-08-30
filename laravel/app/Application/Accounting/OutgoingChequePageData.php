@@ -21,7 +21,7 @@ class OutgoingChequePageData
         $supplierId = $filters['supplier_id'] ?? null;
 
         $query = OutgoingCheque::query()
-            ->with(['supplier', 'bankAccount', 'fiscalYear', 'financialPeriod']);
+            ->with(['supplier', 'bankAccount']);
 
         if ($status) {
             $query->where('status', $status);
@@ -38,8 +38,8 @@ class OutgoingChequePageData
                 ->withQueryString(),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('code')->get(),
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('code')->get(),
-            'fiscalYears' => FiscalYear::query()->where('is_closed', false)->orderBy('year', 'desc')->get(),
-            'periods' => FinancialPeriod::query()->where('is_closed', false)->orderBy('start_date', 'asc')->get(),
+            'fiscalYears' => FiscalYear::query()->open()->orderBy('year', 'desc')->get(),
+            'periods' => FinancialPeriod::query()->with('fiscalYear')->openForPosting()->orderBy('start_date', 'asc')->get(),
             'currencies' => Currency::query()->orderBy('code')->get(),
             'filters' => [
                 'status' => $status,

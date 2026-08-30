@@ -36,6 +36,7 @@ class RouteAuthorizationAuditor
     public const PUBLIC_ALLOWLIST = [
         'name:health' => 'Application health probe with no sensitive payload',
         'name:locale.update' => 'Locale preference update stores only a language choice in session',
+        'name:locale.prefixed_redirect' => 'Legacy locale-prefixed URL normalizer that redirects to the active authenticated route without exposing business data',
         'uri:up' => 'Laravel framework uptime probe with no sensitive payload',
         'uri:_inertia/devtools/entries' => 'Inertia development tooling route with no ERP business payload',
         'uri:_inertia/devtools/entries/{id}' => 'Inertia development tooling route with no ERP business payload',

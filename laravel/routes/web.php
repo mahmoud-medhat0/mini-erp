@@ -123,6 +123,22 @@ use App\Http\Controllers\WarehouseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/{locale}/{path?}', function (Request $request, string $locale, ?string $path = null) {
+    $request->session()->put('locale', $locale);
+    app()->setLocale($locale);
+
+    if ($request->user()) {
+        $request->user()->update(['locale' => $locale]);
+    }
+
+    $target = '/'.ltrim($path ?: 'dashboard', '/');
+    $query = $request->getQueryString();
+
+    return redirect()->to($target.($query ? '?'.$query : ''));
+})
+    ->where(['locale' => 'en|ar', 'path' => '.*'])
+    ->name('locale.prefixed_redirect');
+
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');

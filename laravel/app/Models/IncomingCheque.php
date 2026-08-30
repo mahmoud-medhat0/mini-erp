@@ -13,11 +13,16 @@ class IncomingCheque extends Model
 
     protected $table = 'incoming_cheque';
 
+    protected $appends = [
+        'bank_name',
+    ];
+
     protected $fillable = [
         'number',
         'customer_id',
         'cheque_number',
         'drawer_bank_name',
+        'due_date',
         'received_fiscal_year_id',
         'received_financial_period_id',
         'received_date',
@@ -63,6 +68,7 @@ class IncomingCheque extends Model
             'amount_minor' => 'integer',
             'fx_rate_e6' => 'integer',
             'lock_version' => 'integer',
+            'due_date' => 'date:Y-m-d',
             'received_date' => 'date',
             'deposited_date' => 'date',
             'cleared_date' => 'date',
@@ -77,9 +83,19 @@ class IncomingCheque extends Model
         return $this->belongsTo(Customer::class, 'customer_id');
     }
 
+    public function getBankNameAttribute(): ?string
+    {
+        return $this->drawer_bank_name;
+    }
+
     public function depositBankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class, 'deposit_bank_account_id');
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->depositBankAccount();
     }
 
     public function currencyRef(): BelongsTo

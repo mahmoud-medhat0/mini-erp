@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -110,6 +110,12 @@ type RentalInvoice = {
   journal_entry_id?: string | null;
   receivable_entry_id?: string | null;
   lines?: InvoiceLine[];
+};
+
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
 };
 type EditableLine = {
   line_type: string;
@@ -226,6 +232,7 @@ export default function RentalInvoicesIndex({
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RentalInvoice | null>(null);
   const [lineItems, setLineItems] = useState<EditableLine[]>([]);
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const form = useForm({
     rental_contract_id: contracts[0]?.id || '',
@@ -483,9 +490,17 @@ export default function RentalInvoicesIndex({
       cancel: pageDict.confirmCancel,
     }[actionName];
 
+    if (actionName === 'post') {
+      setPendingSensitiveAction({
+        url: `/rentals/invoices/${invoice.id}/post`,
+        confirmCode: 'POST_RENTAL_INVOICE',
+        message: confirmText,
+      });
+      return;
+    }
+
     if (confirm(confirmText)) {
-      const payload = actionName === 'post' ? { confirm_action: 'POST_RENTAL_INVOICE' } : {};
-      router.post(`/rentals/invoices/${invoice.id}/${actionName}`, payload, { preserveScroll: true });
+      router.post(`/rentals/invoices/${invoice.id}/${actionName}`, {}, { preserveScroll: true });
     }
   }
 
@@ -700,6 +715,21 @@ export default function RentalInvoicesIndex({
           </table>
         </div>
       )}
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_RENTAL_INVOICE'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -49,6 +49,7 @@ export default function CustomerOpeningBalancesIndex({
   const canPostOpeningBalance = can('customers.opening_balances') && can('view_financials');
 
   const [showModal, setShowModal] = useState(false);
+  const [postingBalanceId, setPostingBalanceId] = useState<string | null>(null);
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     customer_id: '',
@@ -84,9 +85,7 @@ export default function CustomerOpeningBalancesIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance)) {
-      router.post(`/customer-opening-balances/${id}/post`, { confirm_action: 'POST_CUSTOMER_OPENING_BALANCE' }, { preserveScroll: true });
-    }
+    setPostingBalanceId(id);
   };
 
   const customerSelectOptions = customers.map((c) => ({
@@ -303,6 +302,21 @@ export default function CustomerOpeningBalancesIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={postingBalanceId !== null}
+        onClose={() => setPostingBalanceId(null)}
+        onConfirm={(payload) => {
+          if (!postingBalanceId) return;
+          router.post(`/customer-opening-balances/${postingBalanceId}/post`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPostingBalanceId(null),
+          });
+        }}
+        confirmCode="POST_CUSTOMER_OPENING_BALANCE"
+        message={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

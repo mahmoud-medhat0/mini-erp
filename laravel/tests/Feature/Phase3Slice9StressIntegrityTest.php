@@ -59,7 +59,7 @@ class Phase3Slice9StressIntegrityTest extends TestCase
             'year' => 2026,
             'start_date' => '2026-01-01',
             'end_date' => '2026-12-31',
-            'is_closed' => false,
+            'status' => 'open',
         ]);
 
         $this->period = FinancialPeriod::create([

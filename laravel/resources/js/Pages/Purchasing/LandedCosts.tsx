@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -92,6 +92,12 @@ type LandedCostRow = {
   lines?: LandedCostLineRow[];
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type LineForm = {
   goods_receipt_line_id: string;
   selected: boolean;
@@ -146,6 +152,7 @@ export default function LandedCostsIndex({
   const [lineForms, setLineForms] = useState<LineForm[]>([]);
   const [searchFilter, setSearchFilter] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const { data, setData, processing, errors, reset } = useForm<{
     goods_receipt_id: string;
@@ -321,9 +328,17 @@ export default function LandedCostsIndex({
       cancel: t.cancelConfirm,
     }[action];
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/purchasing/landed-costs/${row.id}/post`,
+        confirmCode: 'POST_LANDED_COST',
+        message: confirmMessage,
+      });
+      return;
+    }
+
     if (confirm(confirmMessage)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_LANDED_COST' } : {};
-      router.post(`/purchasing/landed-costs/${row.id}/${action}`, payload, { preserveScroll: true });
+      router.post(`/purchasing/landed-costs/${row.id}/${action}`, {}, { preserveScroll: true });
     }
   }
 
@@ -652,6 +667,21 @@ export default function LandedCostsIndex({
           </div>
         )}
       </Card>
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_LANDED_COST'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

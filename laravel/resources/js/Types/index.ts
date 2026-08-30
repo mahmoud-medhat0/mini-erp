@@ -350,9 +350,9 @@ export type PeriodRow = {
   year?: number;
   period_number?: number;
   month: number;
+  name?: string;
   start_date: string;
   end_date: string;
-  is_closed?: boolean;
   status: string;
   closed_at?: string | null;
   closed_by?: number | string | null;
@@ -360,12 +360,13 @@ export type PeriodRow = {
 
 export type PeriodOption = {
   id: string;
+  name?: string;
   period_number?: number;
   month: number;
   year?: number;
   start_date: string;
   end_date: string;
-  is_closed?: boolean;
+  status?: string;
   fiscal_year?: {
     year: number;
   } | null;
@@ -374,7 +375,7 @@ export type PeriodOption = {
 export type FiscalYearRow = {
   id?: string;
   year: number;
-  is_closed?: boolean;
+  name?: string;
   status: string;
   total_periods?: number;
   closed_periods?: number;

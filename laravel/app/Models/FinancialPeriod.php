@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,11 @@ class FinancialPeriod extends Model
     public $timestamps = false;
 
     protected $table = 'financial_period';
+
+    protected $appends = [
+        'name',
+        'period_number',
+    ];
 
     protected $fillable = [
         'fiscal_year_id',
@@ -45,6 +51,19 @@ class FinancialPeriod extends Model
         return $this->belongsTo(FiscalYear::class, 'fiscal_year_id');
     }
 
+    public function getNameAttribute(): string
+    {
+        $year = $this->relationLoaded('fiscalYear') ? $this->fiscalYear?->year : null;
+        $prefix = $year ? "{$year} - " : '';
+
+        return "{$prefix}Month {$this->month}";
+    }
+
+    public function getPeriodNumberAttribute(): int
+    {
+        return (int) $this->month;
+    }
+
     public function journalEntries(): HasMany
     {
         return $this->hasMany(JournalEntry::class, 'financial_period_id');
@@ -63,5 +82,14 @@ class FinancialPeriod extends Model
     public function isOpen(): bool
     {
         return in_array($this->status, ['open', 'reopened'], true);
+    }
+
+    /**
+     * @param  Builder<FinancialPeriod>  $query
+     * @return Builder<FinancialPeriod>
+     */
+    public function scopeOpenForPosting(Builder $query): Builder
+    {
+        return $query->whereIn('status', ['open', 'reopened']);
     }
 }

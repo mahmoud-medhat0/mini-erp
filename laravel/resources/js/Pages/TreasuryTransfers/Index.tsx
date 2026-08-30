@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -73,6 +73,7 @@ export default function TreasuryTransfersIndex({
   const canPostTreasuryTransfers = (can('cash.post') || can('banks.post')) && can('view_financials');
   const [showModal, setShowModal] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<TreasuryTransferRow | null>(null);
+  const [postingTransferId, setPostingTransferId] = useState<string | null>(null);
 
   const defaultYear = fiscalYears.find((year) => year.status === 'open') ?? fiscalYears[0];
   const defaultPeriod = financialPeriods.find((period) => period.status === 'open' && period.fiscal_year_id === defaultYear?.id) ?? financialPeriods[0];
@@ -234,9 +235,7 @@ export default function TreasuryTransfersIndex({
   };
 
   const handlePost = (id: string) => {
-    if (window.confirm(pageDict.confirmPost)) {
-      router.post(`/treasury-transfers/${id}/post`, { confirm_action: 'POST_TREASURY_TRANSFER' }, { preserveScroll: true });
-    }
+    setPostingTransferId(id);
   };
 
   const handleCancel = (id: string) => {
@@ -450,6 +449,21 @@ export default function TreasuryTransfersIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={postingTransferId !== null}
+        onClose={() => setPostingTransferId(null)}
+        onConfirm={(payload) => {
+          if (!postingTransferId) return;
+          router.post(`/treasury-transfers/${postingTransferId}/post`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPostingTransferId(null),
+          });
+        }}
+        confirmCode="POST_TREASURY_TRANSFER"
+        message={pageDict.confirmPost}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

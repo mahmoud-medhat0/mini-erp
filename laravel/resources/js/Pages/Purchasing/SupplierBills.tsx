@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -83,6 +83,12 @@ type SupplierBillRow = {
   }>;
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type SupplierBillSourceLine = {
   id: string;
   product_id: string;
@@ -150,6 +156,7 @@ export default function SupplierBillsIndex({
   const [showModal, setShowModal] = useState(false);
   const [editingBill, setEditingBill] = useState<SupplierBillRow | null>(null);
   const [sourceMode, setSourceMode] = useState<'manual' | 'purchase_order' | 'goods_receipt'>('manual');
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -472,9 +479,17 @@ export default function SupplierBillsIndex({
     if (action === 'post') confirmMsg = dict.app.pages.purchasingSupplierBills.postThisBillToApGl;
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingSupplierBills.cancelThisBill;
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/purchasing/bills/${billId}/post`,
+        confirmCode: 'POST_SUPPLIER_BILL',
+        message: confirmMsg,
+      });
+      return;
+    }
+
     if (confirm(confirmMsg)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_SUPPLIER_BILL' } : {};
-      router.post(`/purchasing/bills/${billId}/${action}`, payload, { preserveScroll: true });
+      router.post(`/purchasing/bills/${billId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -985,6 +1000,21 @@ export default function SupplierBillsIndex({
           </div>
         )}
       </div>
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_SUPPLIER_BILL'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

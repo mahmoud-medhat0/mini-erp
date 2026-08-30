@@ -47,6 +47,11 @@ class PayableAllocation extends Model
         return $this->belongsTo(SupplierPayment::class, 'supplier_payment_id');
     }
 
+    public function supplierPayment(): BelongsTo
+    {
+        return $this->payment();
+    }
+
     public function payableEntry(): BelongsTo
     {
         return $this->belongsTo(PayableEntry::class, 'payable_entry_id');

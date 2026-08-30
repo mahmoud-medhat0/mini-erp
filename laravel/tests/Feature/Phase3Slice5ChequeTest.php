@@ -174,6 +174,7 @@ class Phase3Slice5ChequeTest extends TestCase
             'customer_id' => $customer->id,
             'cheque_number' => 'PHYS-100200',
             'drawer_bank_name' => 'HSBC',
+            'due_date' => '2026-01-15',
             'currency' => 'EGP',
             'amount_minor' => 350000,
         ], $this->user->id);
@@ -230,6 +231,8 @@ class Phase3Slice5ChequeTest extends TestCase
         $cheque = $service->createDraft([
             'customer_id' => $customer->id,
             'cheque_number' => 'PHYS-BOUNCE-1',
+            'drawer_bank_name' => 'HSBC',
+            'due_date' => '2026-01-15',
             'currency' => 'EGP',
             'amount_minor' => 200000,
         ], $this->user->id);
@@ -260,6 +263,8 @@ class Phase3Slice5ChequeTest extends TestCase
         $cheque = $service->createDraft([
             'customer_id' => $customer->id,
             'cheque_number' => 'PHYS-POST-CLEAR',
+            'drawer_bank_name' => 'HSBC',
+            'due_date' => '2026-01-15',
             'currency' => 'EGP',
             'amount_minor' => 100000,
         ], $this->user->id);
@@ -287,6 +292,7 @@ class Phase3Slice5ChequeTest extends TestCase
             'supplier_id' => $supplier->id,
             'bank_account_id' => $this->bankAccount->id,
             'cheque_number' => 'PHYS-OUT-7788',
+            'due_date' => '2026-01-15',
             'currency' => 'EGP',
             'amount_minor' => 450000,
         ], $this->user->id);
@@ -329,6 +335,7 @@ class Phase3Slice5ChequeTest extends TestCase
             'supplier_id' => $supplier->id,
             'bank_account_id' => $this->bankAccount->id,
             'cheque_number' => 'PHYS-CANCEL-99',
+            'due_date' => '2026-01-15',
             'currency' => 'EGP',
             'amount_minor' => 300000,
         ], $this->user->id);

@@ -53,9 +53,9 @@ class BankReconciliationService
 
             /** @var FinancialPeriod $period */
             $period = FinancialPeriod::query()->where('id', $financialPeriodId)->lockForUpdate()->firstOrFail();
-            if ($period->is_closed) {
+            if (! $period->isOpen()) {
                 throw ValidationException::withMessages([
-                    'financial_period_id' => [__('Financial period is closed.')],
+                    'financial_period_id' => [__('Financial period is not open. Current status: [:status].', ['status' => $period->status])],
                 ]);
             }
 

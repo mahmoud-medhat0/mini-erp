@@ -34,6 +34,7 @@ class OutgoingChequeService
         $supplierId = $data['supplier_id'] ?? null;
         $bankAccountId = $data['bank_account_id'] ?? null;
         $chequeNumber = trim((string) ($data['cheque_number'] ?? ''));
+        $dueDate = $data['due_date'] ?? null;
         $currency = CurrencyInput::required($data['currency'] ?? null);
         $amountMinor = $data['amount_minor'] ?? 0;
 
@@ -61,6 +62,12 @@ class OutgoingChequeService
             ]);
         }
 
+        if (! is_string($dueDate) || trim($dueDate) === '') {
+            throw ValidationException::withMessages([
+                'due_date' => [__('Cheque due date is required.')],
+            ]);
+        }
+
         if (! is_int($amountMinor) || $amountMinor <= 0) {
             throw ValidationException::withMessages([
                 'amount_minor' => [__('Amount must be a positive integer.')],
@@ -73,6 +80,7 @@ class OutgoingChequeService
             'bank_account_id' => $bankAccountId,
             'cheque_number' => $chequeNumber,
             'payee_name' => $data['payee_name'] ?? null,
+            'due_date' => $dueDate,
             'currency' => $currency,
             'amount_minor' => $amountMinor,
             'fx_rate_e6' => $data['fx_rate_e6'] ?? 1000000,

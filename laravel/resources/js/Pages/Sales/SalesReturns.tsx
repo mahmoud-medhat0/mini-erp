@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -112,6 +112,12 @@ type SalesReturnRow = {
   }>;
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type SalesReturnsProps = SharedPageProps & {
   salesReturns: {
     data: SalesReturnRow[];
@@ -159,6 +165,7 @@ export default function SalesReturnsIndex({
   const [sourceMode, setSourceMode] = useState<'delivery_note' | 'invoice'>('delivery_note');
   const [lineItems, setLineItems] = useState<ReturnLineForm[]>([]);
   const [fetchingLines, setFetchingLines] = useState(false);
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -410,9 +417,17 @@ export default function SalesReturnsIndex({
     if (action === 'post') confirmMsg = dict.app.pages.salesSalesReturns.postThisSalesReturnToInventoryGl;
     if (action === 'cancel') confirmMsg = dict.app.pages.salesSalesReturns.cancelThisSalesReturn;
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/sales/returns/${retId}/post`,
+        confirmCode: 'POST_SALES_RETURN',
+        message: confirmMsg,
+      });
+      return;
+    }
+
     if (confirm(confirmMsg)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_SALES_RETURN' } : {};
-      router.post(`/sales/returns/${retId}/${action}`, payload, { preserveScroll: true });
+      router.post(`/sales/returns/${retId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -895,6 +910,21 @@ export default function SalesReturnsIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_SALES_RETURN'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

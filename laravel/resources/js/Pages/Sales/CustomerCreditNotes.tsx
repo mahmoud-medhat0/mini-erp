@@ -2,7 +2,7 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -72,6 +72,12 @@ type CreditNoteRow = {
   }>;
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type CustomerCreditNotesProps = SharedPageProps & {
   customerCreditNotes: {
     data: CreditNoteRow[];
@@ -105,6 +111,7 @@ export default function CustomerCreditNotesIndex({
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<CreditNoteRow | null>(null);
   const [lineItems, setLineItems] = useState<CreditLineForm[]>([]);
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -301,9 +308,17 @@ export default function CustomerCreditNotesIndex({
     if (action === 'post') confirmMsg = dict.app.pages.salesCustomerCreditNotes.postThisCreditNoteToArGl;
     if (action === 'cancel') confirmMsg = dict.app.pages.salesCustomerCreditNotes.cancelThisCreditNote;
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/sales/credit-notes/${note.id}/post`,
+        confirmCode: 'POST_CUSTOMER_CREDIT_NOTE',
+        message: confirmMsg,
+      });
+      return;
+    }
+
     if (confirm(confirmMsg)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_CUSTOMER_CREDIT_NOTE' } : {};
-      router.post(`/sales/credit-notes/${note.id}/${action}`, payload, { preserveScroll: true });
+      router.post(`/sales/credit-notes/${note.id}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -799,6 +814,21 @@ export default function CustomerCreditNotesIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_CUSTOMER_CREDIT_NOTE'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

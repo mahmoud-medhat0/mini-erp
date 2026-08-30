@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -65,6 +65,7 @@ export default function SupplierPaymentsIndex({
 
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
+  const [postingPaymentId, setPostingPaymentId] = useState<string | null>(null);
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     supplier_id: '',
@@ -103,9 +104,7 @@ export default function SupplierPaymentsIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(dict.app.pages.supplierPayments.confirmPostPayment)) {
-      router.post(`/supplier-payments/${id}/post`, { confirm_action: 'POST_SUPPLIER_PAYMENT' }, { preserveScroll: true });
-    }
+    setPostingPaymentId(id);
   };
 
   const supplierSelectOptions = suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` }));
@@ -375,6 +374,21 @@ export default function SupplierPaymentsIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={postingPaymentId !== null}
+        onClose={() => setPostingPaymentId(null)}
+        onConfirm={(payload) => {
+          if (!postingPaymentId) return;
+          router.post(`/supplier-payments/${postingPaymentId}/post`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPostingPaymentId(null),
+          });
+        }}
+        confirmCode="POST_SUPPLIER_PAYMENT"
+        message={dict.app.pages.supplierPayments.confirmPostPayment}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

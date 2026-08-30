@@ -75,6 +75,6 @@ class BankReconciliationPageData
      */
     private function openPeriods(): Collection
     {
-        return FinancialPeriod::query()->where('is_closed', false)->orderBy('start_date', 'asc')->get();
+        return FinancialPeriod::query()->with('fiscalYear')->openForPosting()->orderBy('start_date', 'asc')->get();
     }
 }

@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -65,6 +65,7 @@ export default function CustomerReceiptsIndex({
 
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
+  const [postingReceiptId, setPostingReceiptId] = useState<string | null>(null);
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     customer_id: '',
@@ -103,9 +104,7 @@ export default function CustomerReceiptsIndex({
   };
 
   const handlePost = (id: string) => {
-    if (confirm(dict.app.pages.customerReceipts.confirmPostReceipt)) {
-      router.post(`/customer-receipts/${id}/post`, { confirm_action: 'POST_CUSTOMER_RECEIPT' }, { preserveScroll: true });
-    }
+    setPostingReceiptId(id);
   };
 
   const customerSelectOptions = customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
@@ -375,6 +374,21 @@ export default function CustomerReceiptsIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={postingReceiptId !== null}
+        onClose={() => setPostingReceiptId(null)}
+        onConfirm={(payload) => {
+          if (!postingReceiptId) return;
+          router.post(`/customer-receipts/${postingReceiptId}/post`, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPostingReceiptId(null),
+          });
+        }}
+        confirmCode="POST_CUSTOMER_RECEIPT"
+        message={dict.app.pages.customerReceipts.confirmPostReceipt}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

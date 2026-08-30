@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -81,6 +81,12 @@ type PurchaseReturnRow = {
   }>;
 };
 
+type PendingSensitiveAction = {
+  url: string;
+  confirmCode: string;
+  message: string;
+};
+
 type PurchaseReturnsProps = SharedPageProps & {
   purchaseReturns: {
     data: PurchaseReturnRow[];
@@ -117,6 +123,7 @@ export default function PurchaseReturnsIndex({
   const [showModal, setShowModal] = useState(false);
   const [editingReturn, setEditingReturn] = useState<PurchaseReturnRow | null>(null);
   const [lineItems, setLineItems] = useState<ReturnLineForm[]>([]);
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -295,9 +302,17 @@ export default function PurchaseReturnsIndex({
     if (action === 'post') confirmMsg = dict.app.pages.purchasingPurchaseReturns.postThisPurchaseReturnToInventoryGl;
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingPurchaseReturns.cancelThisPurchaseReturn;
 
+    if (action === 'post') {
+      setPendingSensitiveAction({
+        url: `/purchasing/returns/${retId}/post`,
+        confirmCode: 'POST_PURCHASE_RETURN',
+        message: confirmMsg,
+      });
+      return;
+    }
+
     if (confirm(confirmMsg)) {
-      const payload = action === 'post' ? { confirm_action: 'POST_PURCHASE_RETURN' } : {};
-      router.post(`/purchasing/returns/${retId}/${action}`, payload, { preserveScroll: true });
+      router.post(`/purchasing/returns/${retId}/${action}`, {}, { preserveScroll: true });
     }
   };
 
@@ -678,6 +693,21 @@ export default function PurchaseReturnsIndex({
           </div>
         </div>
       ) : null}
+
+      <SensitiveActionModal
+        isOpen={pendingSensitiveAction !== null}
+        onClose={() => setPendingSensitiveAction(null)}
+        onConfirm={(payload) => {
+          if (!pendingSensitiveAction) return;
+          router.post(pendingSensitiveAction.url, payload, {
+            preserveScroll: true,
+            onSuccess: () => setPendingSensitiveAction(null),
+          });
+        }}
+        confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_PURCHASE_RETURN'}
+        message={pendingSensitiveAction?.message}
+        locale={locale}
+      />
     </AppLayout>
   );
 }

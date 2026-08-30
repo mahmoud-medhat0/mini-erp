@@ -2,7 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
-import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatDate, formatMoney, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -41,6 +41,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
   const canReverseJournal = (can('accounting.reverse') || can('settings.configure')) && can('view_financials');
   const [showReverseModal, setShowReverseModal] = useState(false);
   const [showNumberModal, setShowNumberModal] = useState(false);
+  const [showPostConfirmation, setShowPostConfirmation] = useState(false);
   const [reversalPeriodId, setReversalPeriodId] = useState(openPeriods[0]?.id ?? '');
 
   const submitForm = useForm({});
@@ -56,9 +57,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
   const totalCredit = journal.lines.reduce((s, l) => s + l.credit_minor, 0);
 
   const handlePostJournal = () => {
-    if (!confirm(accDict.confirmPostJournal)) return;
-
-    postForm.post(`/accounting/journal/${journal.id}/post`, { preserveScroll: true });
+    setShowPostConfirmation(true);
   };
 
   const getName = (nameObj?: Record<string, string> | string | null) => {
@@ -449,6 +448,22 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           locale={locale === 'ar' ? 'ar' : 'en'}
         />
       </div>
+
+      <SensitiveActionModal
+        isOpen={showPostConfirmation}
+        onClose={() => setShowPostConfirmation(false)}
+        onConfirm={(payload) => {
+          postForm.setData('confirm_action', payload.confirm_action);
+          postForm.post(`/accounting/journal/${journal.id}/post`, {
+            preserveScroll: true,
+            onSuccess: () => setShowPostConfirmation(false),
+          });
+        }}
+        confirmCode="POST_JOURNAL_ENTRY"
+        message={accDict.confirmPostJournal}
+        isProcessing={postForm.processing}
+        locale={locale}
+      />
     </AppLayout>
   );
 }
