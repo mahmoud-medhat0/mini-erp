@@ -1,5 +1,6 @@
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
+import TourGuide from '../../Components/TourGuide';
 import { changeLocale, getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
 
@@ -63,7 +64,7 @@ export default function Login() {
           <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
 
           {/* Top Brand Header */}
-          <div className="relative z-10 flex items-center gap-3">
+          <div data-tour="login-brand" className="relative z-10 flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-xl bg-blue-600/90 text-white shadow-lg shadow-blue-500/30 backdrop-blur-md ring-1 ring-white/20">
               <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -78,7 +79,7 @@ export default function Login() {
           </div>
 
           {/* Center Showcase Content */}
-          <div className="relative z-10 max-w-lg space-y-6">
+          <div data-tour="login-features" className="relative z-10 max-w-lg space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-medium text-blue-200 backdrop-blur-md ring-1 ring-white/15">
               <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
               {t.heroTag}
@@ -138,7 +139,15 @@ export default function Login() {
               <span className="font-bold tracking-tight text-[var(--text-primary)]">Mini ERP</span>
             </div>
 
-            <div className="ml-auto flex items-center gap-2">
+            <div data-tour="login-preferences" className="ml-auto flex items-center gap-2">
+              <TourGuide
+                copy={dict.app.tour}
+                locale={currentLocale}
+                pageKey="Auth/Login"
+                sectionKey="login"
+                variant="login"
+              />
+
               {/* Locale Switcher */}
               <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 shadow-sm">
                 <button
@@ -199,7 +208,7 @@ export default function Login() {
           </div>
 
           {/* Form Container */}
-          <div className="mx-auto my-auto w-full max-w-md py-8">
+          <div data-tour="login-form" className="mx-auto my-auto w-full max-w-md py-8">
             <div className="mb-8 text-start">
               <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
                 {t.heading}
