@@ -340,10 +340,6 @@ class FixedAssetRegisterService
 
     private function generateAssetNumber(): string
     {
-        $seq = $this->numberSequenceAllocator->nextValue('fixed_asset');
-        $year = now()->format('Y');
-        $padded = str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
-
-        return "FA-{$year}-{$padded}";
+        return $this->numberSequenceAllocator->nextNumber('fixed_asset', 'FA');
     }
 }

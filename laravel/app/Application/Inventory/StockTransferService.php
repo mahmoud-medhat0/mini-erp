@@ -14,7 +14,6 @@ use App\Models\StockTransferReceiptLine;
 use App\Models\UnitOfMeasure;
 use App\Models\Warehouse;
 use App\Support\Numbering\NumberSequenceAllocator;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -137,8 +136,7 @@ class StockTransferService
             $before = $this->freshTransfer($transfer)->toArray();
             $number = $transfer->number;
             if (! $number) {
-                $year = Carbon::parse($transfer->transfer_date)->format('Y');
-                $number = 'ST-'.$year.'-'.str_pad((string) $this->numberAllocator->nextValue('stock.transfer'), 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('stock.transfer', 'ST', $transfer->transfer_date);
             }
 
             $transfer->update([

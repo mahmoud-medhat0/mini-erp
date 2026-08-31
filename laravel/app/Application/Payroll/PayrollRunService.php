@@ -123,9 +123,7 @@ class PayrollRunService
 
             $number = $run->number;
             if (! $number) {
-                $year = Carbon::parse($run->payroll_date)->format('Y');
-                $sequence = $this->numberAllocator->nextValue('payroll.run');
-                $number = 'PAY-'.$year.'-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('payroll.run', 'PAY', $run->payroll_date);
             }
 
             $before = $run->toArray();

@@ -300,16 +300,29 @@
       }
     },
     "dashboard": {
-      "description": "Accounting workspace for vouchers, ledgers, reports, and operational follow-up.",
-      "noKpisTitle": "Accounting control center",
-      "noKpisDescription": "Use posted journals, immutable ledger movements, period controls, and reports to review the business position.",
-      "liveDb": "Live DB",
-      "migrationReady": "Ready",
+      "description": "A permission-aware operational summary of key figures, daily tasks, and your latest notifications.",
+      "noKpisTitle": "Operational pulse",
+      "noKpisDescription": "Measured system signals for periods, journals, branches, and ledger balance.",
+      "liveDb": "Latest snapshot",
+      "migrationReady": "Measured data",
       "ledgerState": "Ledger State",
       "ledgerBalanced": "Balanced Σ Dr = Σ Cr",
-      "securityEngine": "Security Engine",
-      "databaseEngine": "Database Engine",
+      "ledgerNeedsReview": "Needs review",
+      "openPeriods": "Open periods",
+      "pendingJournals": "Journals in progress",
+      "activeBranches": "Active branches",
+      "latestPosting": "Latest posting",
+      "noPosting": "No posted journals yet",
+      "baseCurrency": "Base currency",
+      "notConfigured": "Not configured",
+      "operationalSnapshot": "Current operational snapshot",
+      "operationalSnapshotDescription": "These figures come from the system and are shown according to your permissions.",
+      "latestNotifications": "Latest notifications",
+      "latestNotificationsDescription": "Your account notifications, newest first.",
+      "noReference": "No reference",
+      "unavailableTime": "Time unavailable",
       "quickActions": "Quick Actions",
+      "quickActionsDescription": "Management links available to your current role.",
       "businessProfile": "Business Profile",
       "referenceBranches": "Reference Branches",
       "accountingWorkspace": "Accounting Workspace",
@@ -336,27 +349,52 @@
     },
     "settings": {
       "title": "Settings",
-      "description": "Foundation records currently available in the Laravel migration.",
+      "description": "Manage business data, branches, numbering, users, and approval rules from one place.",
       "sections": {
         "company": {
-          "title": "Companies",
-          "description": "Business company records and base currencies."
+          "title": "Business profile",
+          "description": "Legal identity, contact details, base currency, and fiscal-year starting month."
         },
         "branches": {
           "title": "Branches",
-          "description": "Branch reference records and operational status."
+          "description": "Manage operating locations, branch codes, and each branch's active status."
         },
         "numbering": {
-          "title": "Numbering",
-          "description": "Document sequence configuration backed by PostgreSQL."
+          "title": "Document numbering",
+          "description": "Configure prefixes, sequences, and reset policies for each document."
         },
         "branchApprovalRules": {
           "title": "Branch Approval Rules",
-          "description": "Optional operational approval rules for branch-aware documents."
+          "description": "Define the permissions required to approve sensitive branch operations."
         },
         "users": {
           "title": "Users and roles",
-          "description": "Native Laravel users, Spatie roles, and permissions."
+          "description": "Manage accounts, active status, roles, and granted permissions."
+        }
+      },
+      "overview": {
+        "controlCenter": "System setup center",
+        "heroTitle": "Organized setup for faster, clearer daily operations",
+        "heroDescription": "Review foundation readiness, open the exact area you need, and monitor active records without jumping through multiple screens.",
+        "readiness": "Foundation readiness",
+        "readinessHint": ":complete of :total essential steps complete",
+        "activeBranches": "Active branches",
+        "numberSequences": "Numbering sequences",
+        "activeUsers": "Active users",
+        "activeApprovalRules": "Active approval rules",
+        "ready": "Ready",
+        "needsSetup": "Needs setup",
+        "openSection": "Open section",
+        "auditLog": "Audit log",
+        "groups": {
+          "business": {
+            "title": "Operational foundations",
+            "description": "Business data, branches, and document sequences used by daily operations."
+          },
+          "governance": {
+            "title": "Users and governance",
+            "description": "Control access, approvals, and accountability with a clear structure."
+          }
         }
       },
       "company": {

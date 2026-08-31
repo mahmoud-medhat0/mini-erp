@@ -300,16 +300,29 @@
       }
     },
     "dashboard": {
-      "description": "مساحة عمل محاسبية للقيود ودفتر الأستاذ والتقارير والمتابعة اليومية.",
-      "noKpisTitle": "مركز التحكم المحاسبي",
-      "noKpisDescription": "راجع القيود المرحلة، وحركات الأستاذ غير القابلة للتعديل، وضوابط الفترات، والتقارير لمتابعة موقف النشاط.",
-      "liveDb": "بيانات حية",
-      "migrationReady": "جاهز",
+      "description": "ملخص تشغيلي مخصص لصلاحياتك يجمع الأرقام المهمة والمهام اليومية وآخر الإشعارات.",
+      "noKpisTitle": "نبض التشغيل",
+      "noKpisDescription": "مؤشرات فعلية من قاعدة البيانات لمتابعة الفترات والقيود والفروع وحالة اتزان الأستاذ.",
+      "liveDb": "آخر لقطة",
+      "migrationReady": "بيانات فعلية",
       "ledgerState": "حالة الميزان",
       "ledgerBalanced": "متوازن Σ Dr = Σ Cr",
-      "securityEngine": "نظام الحماية",
-      "databaseEngine": "قاعدة البيانات",
+      "ledgerNeedsReview": "يحتاج مراجعة",
+      "openPeriods": "الفترات المفتوحة",
+      "pendingJournals": "قيود قيد الإجراء",
+      "activeBranches": "الفروع النشطة",
+      "latestPosting": "آخر ترحيل",
+      "noPosting": "لا توجد قيود مرحلة بعد",
+      "baseCurrency": "عملة الأساس",
+      "notConfigured": "غير مهيأة",
+      "operationalSnapshot": "ملخص التشغيل الآن",
+      "operationalSnapshotDescription": "الأرقام المعروضة تأتي من النظام وتظهر وفق صلاحيات حسابك.",
+      "latestNotifications": "آخر الإشعارات",
+      "latestNotificationsDescription": "تنبيهات حسابك فقط، مرتبة من الأحدث.",
+      "noReference": "بدون مرجع",
+      "unavailableTime": "الوقت غير متاح",
       "quickActions": "اختصارات الإدارة",
+      "quickActionsDescription": "روابط الإدارة التي يسمح بها دورك الحالي.",
       "businessProfile": "ملف النشاط",
       "referenceBranches": "فروع مرجعية",
       "accountingWorkspace": "مساحة العمل المحاسبية",
@@ -336,27 +349,52 @@
     },
     "settings": {
       "title": "الإعدادات",
-      "description": "سجلات الأساس المتاحة حاليًا في مسار ترحيل Laravel.",
+      "description": "إدارة بيانات النشاط والفروع والترقيم والمستخدمين وقواعد الاعتماد من مكان واحد.",
       "sections": {
         "company": {
-          "title": "الشركات",
-          "description": "سجلات الشركات وعملات الأساس."
+          "title": "بيانات النشاط",
+          "description": "الاسم القانوني وبيانات التواصل والعملة الأساسية وبداية السنة المالية."
         },
         "branches": {
           "title": "الفروع",
-          "description": "سجلات مرجعية للفروع وحالة التشغيل."
+          "description": "إدارة مواقع التشغيل وأكواد الفروع وحالة كل فرع."
         },
         "numbering": {
-          "title": "الترقيم",
-          "description": "إعدادات تسلسل المستندات المدعومة بـ PostgreSQL."
+          "title": "ترقيم المستندات",
+          "description": "ضبط البادئات والتسلسلات وسياسات إعادة الترقيم لكل مستند."
         },
         "branchApprovalRules": {
           "title": "قواعد اعتماد الفروع",
-          "description": "قواعد اختيارية لاعتماد المستندات التشغيلية المرتبطة بالفروع."
+          "description": "تحديد الصلاحيات المطلوبة لاعتماد عمليات الفروع الحساسة."
         },
         "users": {
           "title": "المستخدمون والأدوار",
-          "description": "مستخدمو Laravel وأدوار Spatie والصلاحيات."
+          "description": "إدارة الحسابات وحالتها والأدوار والصلاحيات الممنوحة."
+        }
+      },
+      "overview": {
+        "controlCenter": "مركز إعداد النظام",
+        "heroTitle": "إعداد منظم يجعل التشغيل اليومي أسرع وأوضح",
+        "heroDescription": "راجع جاهزية البيانات الأساسية، وافتح القسم المطلوب مباشرة، وتابع العناصر النشطة بدون التنقل بين شاشات كثيرة.",
+        "readiness": "جاهزية الأساسيات",
+        "readinessHint": ":complete من :total خطوات أساسية مكتملة",
+        "activeBranches": "الفروع النشطة",
+        "numberSequences": "تسلسلات الترقيم",
+        "activeUsers": "المستخدمون النشطون",
+        "activeApprovalRules": "قواعد الاعتماد النشطة",
+        "ready": "جاهز",
+        "needsSetup": "يحتاج إعدادًا",
+        "openSection": "فتح القسم",
+        "auditLog": "سجل التدقيق",
+        "groups": {
+          "business": {
+            "title": "أساسيات التشغيل",
+            "description": "بيانات النشاط والفروع وتسلسلات المستندات التي يعتمد عليها العمل اليومي."
+          },
+          "governance": {
+            "title": "المستخدمون والحوكمة",
+            "description": "التحكم في الوصول والاعتمادات ومراجعة المسؤوليات بوضوح."
+          }
         }
       },
       "company": {

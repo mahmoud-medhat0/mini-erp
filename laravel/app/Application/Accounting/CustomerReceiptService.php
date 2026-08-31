@@ -16,7 +16,6 @@ use App\Models\JournalLine;
 use App\Models\ReceivableEntry;
 use App\Support\Concurrency\DatabaseIdempotencyStore;
 use App\Support\Numbering\NumberSequenceAllocator;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -155,9 +154,7 @@ class CustomerReceiptService
                     // 5. Allocate Receipt Number if missing
                     $number = $receipt->number;
                     if (empty($number)) {
-                        $seq = $this->sequenceAllocator->nextValue('customer.receipt');
-                        $year = Carbon::parse($receipt->receipt_date)->format('Y');
-                        $number = 'REC-'.$year.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                        $number = $this->sequenceAllocator->nextNumber('customer.receipt', 'REC', $receipt->receipt_date);
                     }
 
                     // 6. Create Approved Journal Entry

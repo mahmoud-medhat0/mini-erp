@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 
 import AppLayout from '../Components/AppLayout';
@@ -114,7 +114,11 @@ function MarkAllReadButton({ label }: { label: string }) {
 
 export default function Notifications({ items, locale }: NotificationsProps) {
   const dict = getDictionary(locale);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  const { url } = usePage();
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>(() => {
+    const requested = new URLSearchParams(url.split('?')[1] ?? '').get('tab');
+    return requested === 'unread' || requested === 'read' ? requested : 'all';
+  });
 
   const formatter = new Intl.DateTimeFormat(dict.app.pages.notifications.enUs, {
     dateStyle: 'medium',
@@ -141,9 +145,11 @@ export default function Notifications({ items, locale }: NotificationsProps) {
       />
 
       {/* Tabs Filter Bar */}
-      <div className="flex border-b border-[var(--border)] mb-6 gap-2">
+      <div className="flex border-b border-[var(--border)] mb-6 gap-2" role="tablist" aria-label={dict.app.nav.notifications}>
         <button
           type="button"
+          role="tab"
+          aria-selected={filter === 'all'}
           onClick={() => setFilter('all')}
           title={dict.app.notifications.all}
           aria-label={dict.app.notifications.all}
@@ -161,6 +167,8 @@ export default function Notifications({ items, locale }: NotificationsProps) {
 
         <button
           type="button"
+          role="tab"
+          aria-selected={filter === 'unread'}
           onClick={() => setFilter('unread')}
           title={dict.app.notifications.unread}
           aria-label={dict.app.notifications.unread}
@@ -172,7 +180,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
         >
           <span>{dict.app.notifications.unread}</span>
           {unreadCount > 0 ? (
-            <span className="rounded-full bg-blue-500 text-white px-2 py-0.5 text-[10px] font-mono font-bold animate-pulse">
+            <span className="rounded-full bg-blue-500 text-white px-2 py-0.5 text-[10px] font-mono font-bold motion-safe:animate-pulse">
               {unreadCount}
             </span>
           ) : (
@@ -184,6 +192,8 @@ export default function Notifications({ items, locale }: NotificationsProps) {
 
         <button
           type="button"
+          role="tab"
+          aria-selected={filter === 'read'}
           onClick={() => setFilter('read')}
           title={dict.app.notifications.read}
           aria-label={dict.app.notifications.read}
@@ -229,16 +239,18 @@ export default function Notifications({ items, locale }: NotificationsProps) {
                         <span className="font-bold text-sm text-[var(--text-primary)]">{formattedType}</span>
 
                         {!item.read ? (
-                          <span className="size-2 rounded-full bg-blue-500 animate-pulse" title={dict.app.notifications.unread} />
+                          <span className="size-2 rounded-full bg-blue-500 motion-safe:animate-pulse" title={dict.app.notifications.unread} />
                         ) : null}
 
                         <span className="font-mono text-xs text-[var(--text-muted)] bg-[var(--background)] border border-[var(--border)] px-2 py-0.5 rounded-md truncate max-w-xs">
-                          {item.targetRef}
+                          {item.targetRef || dict.app.dashboard.noReference}
                         </span>
                       </div>
 
                       <span className="text-xs text-[var(--text-muted)] font-medium">
-                        {formatter.format(new Date(item.at))}
+                        {item.at && !Number.isNaN(new Date(item.at).getTime())
+                          ? formatter.format(new Date(item.at))
+                          : dict.app.dashboard.unavailableTime}
                       </span>
                     </div>
                   </div>

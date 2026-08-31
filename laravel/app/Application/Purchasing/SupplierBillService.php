@@ -391,9 +391,7 @@ class SupplierBillService
             // Allocate bill number sequence if missing
             $number = $bill->number;
             if (! $number) {
-                $orderYear = Carbon::parse($bill->bill_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('supplier.bill');
-                $number = 'BILL-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('supplier.bill', 'BILL', $bill->bill_date);
             }
 
             $subtotalMinor = (int) ($bill->subtotal_minor ?: $bill->lines->sum('line_total_minor'));

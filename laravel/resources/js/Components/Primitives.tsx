@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 import { formatAccountingAmount } from '../lib/accountingHelpers';
 import type { PaginationLink } from '../Types';
@@ -26,9 +26,16 @@ export function PageHeader({
   );
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = '',
+  ...props
+}: {
+  children: ReactNode;
+  className?: string;
+} & Omit<HTMLAttributes<HTMLElement>, 'className'>) {
   return (
-    <section className={`rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm ${className}`}>
+    <section {...props} className={`rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-sm ${className}`}>
       {children}
     </section>
   );

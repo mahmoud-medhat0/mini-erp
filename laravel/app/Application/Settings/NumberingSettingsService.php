@@ -3,6 +3,8 @@
 namespace App\Application\Settings;
 
 use App\Domain\Audit\AuditLogger;
+use App\Domain\Numbering\DocumentNumberFormatter;
+use App\Domain\Numbering\NumberSequenceConfig;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -10,7 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class NumberingSettingsService
 {
-    public function __construct(private readonly AuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+        private readonly DocumentNumberFormatter $numberFormatter,
+    ) {}
 
     /**
      * @return Collection<int, array<string, mixed>>
@@ -26,6 +31,7 @@ class NumberingSettingsService
                 'number_sequence.include_year',
                 'number_sequence.padding',
                 'number_sequence.reset_policy',
+                'number_sequence.last_reset_period',
                 'number_sequence.next_value',
             ])
             ->orderBy('number_sequence.doc_type')
@@ -38,7 +44,7 @@ class NumberingSettingsService
                 'includeYear' => (bool) $sequence->include_year,
                 'padding' => (int) $sequence->padding,
                 'resetPolicy' => $sequence->reset_policy,
-                'nextValue' => (int) $sequence->next_value,
+                'nextValue' => $this->effectiveNextValue($sequence),
                 'preview' => $this->previewNumber($sequence),
             ])
             ->values();
@@ -82,7 +88,7 @@ class NumberingSettingsService
                 throw ValidationException::withMessages(['key' => __('Numbering keys cannot be changed after creation.')]);
             }
 
-            if ((int) $validated['next_value'] < (int) $sequence->next_value) {
+            if ((int) $validated['next_value'] < $this->effectiveNextValue($sequence)) {
                 throw ValidationException::withMessages(['next_value' => __('Cannot reduce next number below current sequence state.')]);
             }
 
@@ -107,18 +113,43 @@ class NumberingSettingsService
             'include_year' => $includeYear,
             'padding' => (int) $validated['padding'],
             'reset_policy' => $validated['reset_policy'],
+            'last_reset_period' => $this->resetPeriod((string) $validated['reset_policy']),
             'next_value' => (int) $validated['next_value'],
         ];
     }
 
     private function previewNumber(object $sequence): string
     {
-        $parts = array_filter([
-            (string) $sequence->prefix,
-            (bool) $sequence->include_year ? now()->year : null,
-            str_pad((string) max(1, (int) $sequence->next_value), (int) $sequence->padding, '0', STR_PAD_LEFT),
-        ], static fn ($part): bool => $part !== null && $part !== '');
+        return $this->numberFormatter->format(
+            new NumberSequenceConfig(
+                docType: (string) $sequence->doc_type,
+                prefix: (string) $sequence->prefix,
+                includeYear: (bool) $sequence->include_year,
+                padding: max(1, (int) $sequence->padding),
+                resetPolicy: (string) $sequence->reset_policy,
+            ),
+            $this->effectiveNextValue($sequence),
+            ['year' => now()->year, 'month' => now()->month],
+        );
+    }
 
-        return implode('-', $parts);
+    private function resetPeriod(string $resetPolicy): string
+    {
+        return match ($resetPolicy) {
+            'monthly' => now()->format('Y-m'),
+            'yearly' => now()->format('Y'),
+            default => 'never',
+        };
+    }
+
+    private function effectiveNextValue(object $sequence): int
+    {
+        $currentPeriod = $this->resetPeriod((string) $sequence->reset_policy);
+
+        if ($sequence->last_reset_period !== null && $sequence->last_reset_period !== $currentPeriod) {
+            return 1;
+        }
+
+        return max(1, (int) $sequence->next_value);
     }
 }

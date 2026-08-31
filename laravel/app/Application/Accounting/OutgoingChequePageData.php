@@ -11,6 +11,11 @@ use App\Models\Supplier;
 
 class OutgoingChequePageData
 {
+    public function period(string $periodId): FinancialPeriod
+    {
+        return FinancialPeriod::query()->whereKey($periodId)->firstOrFail();
+    }
+
     /**
      * @param  array<string, mixed>  $filters
      * @return array<string, mixed>

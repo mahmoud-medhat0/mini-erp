@@ -137,8 +137,7 @@ class OutgoingChequeService
 
                     $number = $cheque->number;
                     if (! $number) {
-                        $seq = $this->numberSequenceAllocator->nextValue('outgoing_cheque');
-                        $number = sprintf('OCHQ-%s-%05d', substr($issuedDate, 0, 4), $seq);
+                        $number = $this->numberSequenceAllocator->nextNumber('outgoing_cheque', 'OCHQ', $issuedDate);
                     }
 
                     // Journal Entry: Dr AP Control, Cr Cheques Payable

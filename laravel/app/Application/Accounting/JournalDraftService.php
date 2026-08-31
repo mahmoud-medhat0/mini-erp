@@ -140,6 +140,11 @@ class JournalDraftService
     public function updateDraft(JournalEntry $entry, array $data, array $linesData, int $userId): JournalEntry
     {
         return DB::transaction(function () use ($entry, $data, $linesData, $userId): JournalEntry {
+            $entry = JournalEntry::query()
+                ->whereKey($entry->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
             if ($entry->status !== 'draft') {
                 throw new InvalidArgumentException(__('Only draft entries can be edited.'));
             }
@@ -238,33 +243,47 @@ class JournalDraftService
 
     public function submit(JournalEntry $entry, int $userId): JournalEntry
     {
-        if (! in_array($entry->status, ['draft', 'submitted'], true)) {
-            throw new InvalidArgumentException(__('Only draft entries can be submitted.'));
-        }
+        return DB::transaction(function () use ($entry, $userId): JournalEntry {
+            $lockedEntry = JournalEntry::query()
+                ->whereKey($entry->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $entry->update([
-            'status' => 'submitted',
-            'submitted_by' => $userId,
-            'submitted_at' => now(),
-            'updated_by' => $userId,
-        ]);
+            if (! in_array($lockedEntry->status, ['draft', 'submitted'], true)) {
+                throw new InvalidArgumentException(__('Only draft entries can be submitted.'));
+            }
 
-        return $entry;
+            $lockedEntry->update([
+                'status' => 'submitted',
+                'submitted_by' => $userId,
+                'submitted_at' => now(),
+                'updated_by' => $userId,
+            ]);
+
+            return $lockedEntry;
+        });
     }
 
     public function approve(JournalEntry $entry, int $userId): JournalEntry
     {
-        if (! in_array($entry->status, ['draft', 'submitted', 'approved'], true)) {
-            throw new InvalidArgumentException(__('Entry cannot be approved in status: :status', ['status' => $entry->status]));
-        }
+        return DB::transaction(function () use ($entry, $userId): JournalEntry {
+            $lockedEntry = JournalEntry::query()
+                ->whereKey($entry->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $entry->update([
-            'status' => 'approved',
-            'approved_by' => $userId,
-            'approved_at' => now(),
-            'updated_by' => $userId,
-        ]);
+            if (! in_array($lockedEntry->status, ['draft', 'submitted', 'approved'], true)) {
+                throw new InvalidArgumentException(__('Entry cannot be approved in status: :status', ['status' => $lockedEntry->status]));
+            }
 
-        return $entry;
+            $lockedEntry->update([
+                'status' => 'approved',
+                'approved_by' => $userId,
+                'approved_at' => now(),
+                'updated_by' => $userId,
+            ]);
+
+            return $lockedEntry;
+        });
     }
 }

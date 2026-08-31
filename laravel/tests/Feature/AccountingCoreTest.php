@@ -137,6 +137,83 @@ class AccountingCoreTest extends TestCase
         ]);
     }
 
+    public function test_stale_journal_actions_cannot_downgrade_or_edit_a_posted_entry(): void
+    {
+        $draftService = app(JournalDraftService::class);
+        $postingEngine = app(PostingEngine::class);
+
+        $entry = $draftService->createDraft(
+            [
+                'entry_date' => '2026-01-15',
+                'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
+                'description' => 'Concurrency guard journal',
+            ],
+            [
+                ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
+                ['account_id' => $this->revenueAccount->id, 'debit_minor' => 0, 'credit_minor' => 10000],
+            ],
+            $this->user->id
+        );
+        $staleEntry = $entry->fresh();
+
+        $postingEngine->post($entry, $this->user->id);
+
+        foreach ([
+            fn () => $draftService->submit($staleEntry, $this->user->id),
+            fn () => $draftService->approve($staleEntry, $this->user->id),
+            fn () => $draftService->updateDraft(
+                $staleEntry,
+                [
+                    'entry_date' => '2026-01-15',
+                    'financial_period_id' => $this->period->id,
+                    'currency' => 'EGP',
+                    'description' => 'Stale overwrite',
+                ],
+                [
+                    ['account_id' => $this->cashAccount->id, 'debit_minor' => 5000, 'credit_minor' => 0],
+                    ['account_id' => $this->revenueAccount->id, 'debit_minor' => 0, 'credit_minor' => 5000],
+                ],
+                $this->user->id
+            ),
+        ] as $staleAction) {
+            try {
+                $staleAction();
+                $this->fail('A stale journal action unexpectedly changed a posted entry.');
+            } catch (InvalidArgumentException) {
+                $this->assertSame('posted', $entry->fresh()->status);
+            }
+        }
+
+        $this->assertSame('Concurrency guard journal', $entry->fresh()->description);
+        $this->assertDatabaseCount('ledger_entry', 2);
+    }
+
+    public function test_journal_submit_and_approve_use_the_authoritative_locked_state(): void
+    {
+        $draftService = app(JournalDraftService::class);
+        $entry = $draftService->createDraft(
+            [
+                'entry_date' => '2026-01-15',
+                'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
+            ],
+            [
+                ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
+                ['account_id' => $this->revenueAccount->id, 'debit_minor' => 0, 'credit_minor' => 10000],
+            ],
+            $this->user->id
+        );
+        $staleDraft = $entry->fresh();
+
+        $submitted = $draftService->submit($entry, $this->user->id);
+        $approved = $draftService->approve($staleDraft, $this->user->id);
+
+        $this->assertSame('submitted', $submitted->status);
+        $this->assertSame('approved', $approved->status);
+        $this->assertSame('approved', $entry->fresh()->status);
+    }
+
     public function test_posted_ledger_entries_preserve_transaction_currency_amounts(): void
     {
         $draftService = app(JournalDraftService::class);

@@ -136,14 +136,27 @@ class Phase3Slice8ReportsTest extends TestCase
             'status' => 'active',
         ]);
 
-        CustomerOpeningBalance::create([
+        $openingBalance = CustomerOpeningBalance::create([
             'customer_id' => $customer->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'financial_period_id' => $this->period->id,
             'amount_minor' => 100000,
             'currency' => 'EGP',
             'entry_date' => '2026-01-01',
+            'reference' => 'AR-OB-001',
             'status' => 'posted',
+        ]);
+
+        ReceivableEntry::create([
+            'customer_id' => $customer->id,
+            'journal_entry_id' => $this->journalEntry->id,
+            'financial_period_id' => $this->period->id,
+            'source_type' => 'customer_opening_balance',
+            'source_id' => $openingBalance->id,
+            'entry_date' => '2026-01-01',
+            'currency' => 'EGP',
+            'debit_minor' => 100000,
+            'credit_minor' => 0,
         ]);
 
         ReceivableEntry::create([
@@ -158,7 +171,7 @@ class Phase3Slice8ReportsTest extends TestCase
             'credit_minor' => 0,
         ]);
 
-        CustomerReceipt::create([
+        $receipt = CustomerReceipt::create([
             'number' => 'REC-2026-00001',
             'customer_id' => $customer->id,
             'fiscal_year_id' => $this->fiscalYear->id,
@@ -172,6 +185,18 @@ class Phase3Slice8ReportsTest extends TestCase
             'status' => 'posted',
         ]);
 
+        ReceivableEntry::create([
+            'customer_id' => $customer->id,
+            'journal_entry_id' => $this->journalEntry->id,
+            'financial_period_id' => $this->period->id,
+            'source_type' => 'customer_receipt',
+            'source_id' => $receipt->id,
+            'entry_date' => '2026-02-15',
+            'currency' => 'EGP',
+            'debit_minor' => 0,
+            'credit_minor' => 30000,
+        ]);
+
         $response = $this->actingAs($this->adminUser)->get('/reports/customer-statement?customer_id='.$customer->id.'&date_from=2026-01-01&date_to=2026-02-28');
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -180,6 +205,19 @@ class Phase3Slice8ReportsTest extends TestCase
             ->where('report.closing_balance_minor', 120000)
             ->where('report.total_debit_minor', 150000)
             ->where('report.total_credit_minor', 30000)
+            ->has('report.lines', 3)
+            ->where('report.lines.0.type', 'Opening Balance')
+            ->where('report.lines.0.reference', 'AR-OB-001')
+            ->where('report.lines.2.type', 'Customer Receipt')
+            ->where('report.lines.2.reference', 'REC-2026-00001')
+        );
+
+        $priorPeriodResponse = $this->actingAs($this->adminUser)->get('/reports/customer-statement?customer_id='.$customer->id.'&date_from=2026-03-01&date_to=2026-03-31');
+        $priorPeriodResponse->assertStatus(200);
+        $priorPeriodResponse->assertInertia(fn ($page) => $page
+            ->where('report.opening_balance_minor', 120000)
+            ->where('report.closing_balance_minor', 120000)
+            ->has('report.lines', 0)
         );
 
         $csvResponse = $this->actingAs($this->adminUser)->get('/reports/customer-statement/export?customer_id='.$customer->id.'&date_from=2026-01-01&date_to=2026-02-28');
@@ -196,14 +234,27 @@ class Phase3Slice8ReportsTest extends TestCase
             'status' => 'active',
         ]);
 
-        SupplierOpeningBalance::create([
+        $openingBalance = SupplierOpeningBalance::create([
             'supplier_id' => $supplier->id,
             'fiscal_year_id' => $this->fiscalYear->id,
             'financial_period_id' => $this->period->id,
             'amount_minor' => 200000,
             'currency' => 'EGP',
             'entry_date' => '2026-01-01',
+            'reference' => 'AP-OB-001',
             'status' => 'posted',
+        ]);
+
+        PayableEntry::create([
+            'supplier_id' => $supplier->id,
+            'journal_entry_id' => $this->journalEntry->id,
+            'financial_period_id' => $this->period->id,
+            'source_type' => 'supplier_opening_balance',
+            'source_id' => $openingBalance->id,
+            'entry_date' => '2026-01-01',
+            'currency' => 'EGP',
+            'debit_minor' => 0,
+            'credit_minor' => 200000,
         ]);
 
         PayableEntry::create([
@@ -218,7 +269,7 @@ class Phase3Slice8ReportsTest extends TestCase
             'credit_minor' => 80000,
         ]);
 
-        SupplierPayment::create([
+        $payment = SupplierPayment::create([
             'number' => 'PAY-2026-00001',
             'supplier_id' => $supplier->id,
             'fiscal_year_id' => $this->fiscalYear->id,
@@ -232,6 +283,18 @@ class Phase3Slice8ReportsTest extends TestCase
             'status' => 'posted',
         ]);
 
+        PayableEntry::create([
+            'supplier_id' => $supplier->id,
+            'journal_entry_id' => $this->journalEntry->id,
+            'financial_period_id' => $this->period->id,
+            'source_type' => 'supplier_payment',
+            'source_id' => $payment->id,
+            'entry_date' => '2026-02-10',
+            'currency' => 'EGP',
+            'debit_minor' => 50000,
+            'credit_minor' => 0,
+        ]);
+
         $response = $this->actingAs($this->adminUser)->get('/reports/supplier-statement?supplier_id='.$supplier->id.'&date_from=2026-01-01&date_to=2026-02-28');
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -239,6 +302,19 @@ class Phase3Slice8ReportsTest extends TestCase
             ->where('report.closing_balance_minor', 230000)
             ->where('report.total_debit_minor', 50000)
             ->where('report.total_credit_minor', 280000)
+            ->has('report.lines', 3)
+            ->where('report.lines.0.type', 'Opening Balance')
+            ->where('report.lines.0.reference', 'AP-OB-001')
+            ->where('report.lines.2.type', 'Supplier Payment')
+            ->where('report.lines.2.reference', 'PAY-2026-00001')
+        );
+
+        $priorPeriodResponse = $this->actingAs($this->adminUser)->get('/reports/supplier-statement?supplier_id='.$supplier->id.'&date_from=2026-03-01&date_to=2026-03-31');
+        $priorPeriodResponse->assertStatus(200);
+        $priorPeriodResponse->assertInertia(fn ($page) => $page
+            ->where('report.opening_balance_minor', 230000)
+            ->where('report.closing_balance_minor', 230000)
+            ->has('report.lines', 0)
         );
 
         $csvResponse = $this->actingAs($this->adminUser)->get('/reports/supplier-statement/export?supplier_id='.$supplier->id.'&date_from=2026-01-01&date_to=2026-02-28');

@@ -88,7 +88,7 @@ class AccountingConcurrencyStressCommand extends Command
             $this->info("Testing {$iterations} sequential JV sequence allocations...");
             $allocatedNumbers = [];
             for ($i = 0; $i < $iterations; $i++) {
-                $allocatedNumbers[] = 'JV-'.date('Y').'-'.str_pad((string) $allocator->nextValue('accounting.journal'), 5, '0', STR_PAD_LEFT);
+                $allocatedNumbers[] = $allocator->nextNumber('accounting.journal', 'JV');
             }
 
             if (count(array_unique($allocatedNumbers)) !== $iterations) {

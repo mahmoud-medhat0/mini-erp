@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\OutgoingChequePageData;
 use App\Application\Accounting\OutgoingChequeService;
-use App\Models\FinancialPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -46,7 +45,7 @@ class OutgoingChequeController extends Controller
             'issued_date' => ['required', 'date'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->issue($id, (string) $period->fiscal_year_id, $period->id, $validated['issued_date'], (int) $request->user()->id);
 
         return back()->with('success', __('Outgoing cheque issued successfully.'));
@@ -59,7 +58,7 @@ class OutgoingChequeController extends Controller
             'cleared_date' => ['required', 'date'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->clear($id, (string) $period->fiscal_year_id, $period->id, $validated['cleared_date'], (int) $request->user()->id);
 
         return back()->with('success', __('Outgoing cheque cleared successfully.'));
@@ -73,7 +72,7 @@ class OutgoingChequeController extends Controller
             'return_reason' => ['required', 'string', 'min:3', 'max:1000'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->returnBeforeClear($id, (string) $period->fiscal_year_id, $period->id, $validated['returned_date'], $validated['return_reason'], (int) $request->user()->id);
 
         return back()->with('success', __('Outgoing cheque returned successfully.'));
@@ -87,14 +86,9 @@ class OutgoingChequeController extends Controller
             'cancel_reason' => ['required', 'string', 'min:3', 'max:1000'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->cancelBeforeClear($id, (string) $period->fiscal_year_id, $period->id, $validated['cancelled_date'], $validated['cancel_reason'], (int) $request->user()->id);
 
         return back()->with('success', __('Outgoing cheque cancelled successfully.'));
-    }
-
-    private function period(string $id): FinancialPeriod
-    {
-        return FinancialPeriod::query()->where('id', $id)->firstOrFail();
     }
 }

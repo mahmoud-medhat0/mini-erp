@@ -8,6 +8,7 @@ use App\Models\SupplierOpeningBalance;
 use App\Models\SupplierPayment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SupplierStatementReportService
 {
@@ -20,88 +21,37 @@ class SupplierStatementReportService
         $supplier = Supplier::query()->findOrFail($supplierId);
         $targetCurrency = $this->currencyResolver->resolve($currency);
 
-        // 1. Calculate opening balance before dateFrom (Opening Balance + Payable Entries - Supplier Payments)
-        $obPrior = (int) SupplierOpeningBalance::query()
-            ->where('supplier_id', $supplierId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->where('entry_date', '<', $dateFrom)
-            ->sum('amount_minor');
-
-        $payEntriesPrior = (int) PayableEntry::query()
+        // PayableEntry is the canonical AP subledger. Posted opening balances,
+        // payments, bills, and adjustments each create exactly one such entry.
+        $openingBalanceMinor = (int) PayableEntry::query()
             ->where('supplier_id', $supplierId)
             ->where('currency', $targetCurrency)
             ->where('entry_date', '<', $dateFrom)
             ->sum(DB::raw('credit_minor - debit_minor'));
 
-        $paymentsPrior = (int) SupplierPayment::query()
-            ->where('supplier_id', $supplierId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->where('payment_date', '<', $dateFrom)
-            ->sum('amount_minor');
-
-        $openingBalanceMinor = $obPrior + $payEntriesPrior - $paymentsPrior;
-
-        // 2. Fetch movement lines inside dateFrom..dateTo
-        $movements = new Collection;
-
-        // Posted Opening Balances within range
-        $obs = SupplierOpeningBalance::query()
-            ->where('supplier_id', $supplierId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->whereBetween('entry_date', [$dateFrom, $dateTo])
-            ->get();
-
-        foreach ($obs as $ob) {
-            $movements->push([
-                'date' => $ob->entry_date,
-                'type' => 'Opening Balance',
-                'reference' => $ob->reference ?? 'OB-'.$ob->id,
-                'description' => $ob->description ?? 'Supplier Opening Balance',
-                'debit_minor' => 0,
-                'credit_minor' => (int) $ob->amount_minor,
-                'created_at' => $ob->created_at,
-            ]);
-        }
-
-        // Payable Entries within range
+        // Source documents are used only to enrich the human-readable reference;
+        // their monetary amounts must never be added beside the subledger entry.
         $payEntries = PayableEntry::query()
+            ->with('journalEntry:id,number,reference')
             ->where('supplier_id', $supplierId)
             ->where('currency', $targetCurrency)
             ->whereBetween('entry_date', [$dateFrom, $dateTo])
             ->get();
+        $sourceReferences = $this->sourceReferences($payEntries);
+        $movements = new Collection;
 
         foreach ($payEntries as $pe) {
             $movements->push([
                 'date' => $pe->entry_date,
-                'type' => 'Payable Entry',
-                'reference' => 'PE-'.$pe->id,
+                'type' => $this->typeLabel($pe->source_type),
+                'reference' => $sourceReferences[$pe->source_type.':'.$pe->source_id]
+                    ?? $pe->journalEntry?->reference
+                    ?? $pe->journalEntry?->number
+                    ?? 'PE-'.$pe->id,
                 'description' => $pe->description ?? 'Payable Entry',
                 'debit_minor' => (int) $pe->debit_minor,
                 'credit_minor' => (int) $pe->credit_minor,
                 'created_at' => $pe->created_at,
-            ]);
-        }
-
-        // Supplier Payments within range
-        $payments = SupplierPayment::query()
-            ->where('supplier_id', $supplierId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->whereBetween('payment_date', [$dateFrom, $dateTo])
-            ->get();
-
-        foreach ($payments as $pm) {
-            $movements->push([
-                'date' => $pm->payment_date,
-                'type' => 'Supplier Payment',
-                'reference' => $pm->number,
-                'description' => $pm->description ?? 'Supplier Payment',
-                'debit_minor' => (int) $pm->amount_minor,
-                'credit_minor' => 0,
-                'created_at' => $pm->created_at,
             ]);
         }
 
@@ -145,5 +95,43 @@ class SupplierStatementReportService
             'total_credit_minor' => $totalCredit,
             'closing_balance_minor' => $runningBalance,
         ];
+    }
+
+    /**
+     * Resolve references for source documents whose native reference is clearer
+     * than a subledger UUID. Amounts still come exclusively from PayableEntry.
+     *
+     * @param  Collection<int, PayableEntry>  $entries
+     * @return array<string, string>
+     */
+    private function sourceReferences(Collection $entries): array
+    {
+        $references = [];
+
+        SupplierOpeningBalance::query()
+            ->whereKey($entries->where('source_type', 'supplier_opening_balance')->pluck('source_id')->filter()->unique())
+            ->get(['id', 'reference'])
+            ->each(function (SupplierOpeningBalance $balance) use (&$references): void {
+                $references['supplier_opening_balance:'.$balance->id] = $balance->reference ?: 'OB-'.$balance->id;
+            });
+
+        SupplierPayment::query()
+            ->whereKey($entries->where('source_type', 'supplier_payment')->pluck('source_id')->filter()->unique())
+            ->get(['id', 'number', 'reference'])
+            ->each(function (SupplierPayment $payment) use (&$references): void {
+                $references['supplier_payment:'.$payment->id] = $payment->number ?: ($payment->reference ?: 'PAY-'.$payment->id);
+            });
+
+        return $references;
+    }
+
+    private function typeLabel(?string $sourceType): string
+    {
+        return match ($sourceType) {
+            'supplier_opening_balance', 'opening_balance' => 'Opening Balance',
+            'supplier_payment' => 'Supplier Payment',
+            null, '' => 'Payable Entry',
+            default => Str::headline($sourceType),
+        };
     }
 }

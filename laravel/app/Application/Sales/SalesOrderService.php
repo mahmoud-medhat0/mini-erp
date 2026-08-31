@@ -217,9 +217,7 @@ class SalesOrderService
             $before = $salesOrder->toArray();
 
             if (! $salesOrder->number) {
-                $orderYear = Carbon::parse($salesOrder->order_date)->format('Y');
-                $seq = $this->numberSequenceAllocator->nextValue('sales.order');
-                $salesOrder->number = 'SO-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $salesOrder->number = $this->numberSequenceAllocator->nextNumber('sales.order', 'SO', $salesOrder->order_date);
             }
 
             $salesOrder->status = 'confirmed';

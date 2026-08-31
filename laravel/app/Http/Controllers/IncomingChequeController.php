@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\IncomingChequePageData;
 use App\Application\Accounting\IncomingChequeService;
-use App\Models\FinancialPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -46,7 +45,7 @@ class IncomingChequeController extends Controller
             'received_date' => ['required', 'date'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->receive($id, (string) $period->fiscal_year_id, $period->id, $validated['received_date'], (int) $request->user()->id);
 
         return back()->with('success', __('Incoming cheque received successfully.'));
@@ -72,7 +71,7 @@ class IncomingChequeController extends Controller
             'cleared_date' => ['required', 'date'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->clear($id, (string) $period->fiscal_year_id, $period->id, $validated['cleared_date'], $validated['bank_account_id'] ?? null, (int) $request->user()->id);
 
         return back()->with('success', __('Incoming cheque cleared successfully.'));
@@ -86,7 +85,7 @@ class IncomingChequeController extends Controller
             'bounce_reason' => ['required', 'string', 'min:3', 'max:1000'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->bounceBeforeClear($id, (string) $period->fiscal_year_id, $period->id, $validated['bounced_date'], $validated['bounce_reason'], (int) $request->user()->id);
 
         return back()->with('success', __('Incoming cheque bounced successfully.'));
@@ -100,14 +99,9 @@ class IncomingChequeController extends Controller
             'return_reason' => ['required', 'string', 'min:3', 'max:1000'],
         ]);
 
-        $period = $this->period($validated['financial_period_id']);
+        $period = $this->pageData->period($validated['financial_period_id']);
         $this->service->returnBeforeClear($id, (string) $period->fiscal_year_id, $period->id, $validated['returned_date'], $validated['return_reason'], (int) $request->user()->id);
 
         return back()->with('success', __('Incoming cheque returned successfully.'));
-    }
-
-    private function period(string $id): FinancialPeriod
-    {
-        return FinancialPeriod::query()->where('id', $id)->firstOrFail();
     }
 }

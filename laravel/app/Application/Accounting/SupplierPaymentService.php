@@ -16,7 +16,6 @@ use App\Models\Supplier;
 use App\Models\SupplierPayment;
 use App\Support\Concurrency\DatabaseIdempotencyStore;
 use App\Support\Numbering\NumberSequenceAllocator;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -155,9 +154,7 @@ class SupplierPaymentService
                     // 5. Allocate Payment Number if missing
                     $number = $payment->number;
                     if (empty($number)) {
-                        $seq = $this->sequenceAllocator->nextValue('supplier.payment');
-                        $year = Carbon::parse($payment->payment_date)->format('Y');
-                        $number = 'PAY-'.$year.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                        $number = $this->sequenceAllocator->nextNumber('supplier.payment', 'PAY', $payment->payment_date);
                     }
 
                     // 6. Create Approved Journal Entry

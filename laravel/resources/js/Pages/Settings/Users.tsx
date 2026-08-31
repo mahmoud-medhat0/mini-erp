@@ -217,15 +217,16 @@ function UserFormModal({
             isClearable={false}
           />
 
-          {/* Role */}
-          <SearchableSelect
-            label={dict.app.fields.role}
-            options={roleOptions}
-            value={data.role_id}
-            onChange={(val) => setData('role_id', val ?? '')}
-            isSearchable={true}
-            isClearable={true}
-          />
+          {!user ? (
+            <SearchableSelect
+              label={dict.app.fields.role}
+              options={roleOptions}
+              value={data.role_id}
+              onChange={(val) => setData('role_id', val ?? '')}
+              isSearchable={true}
+              isClearable={true}
+            />
+          ) : null}
 
           {/* Active Status Toggle */}
           <div className="pt-5 sm:col-span-2">

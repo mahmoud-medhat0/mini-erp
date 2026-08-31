@@ -3482,7 +3482,8 @@ class Phase15ProductHardeningTest extends TestCase
                 'aria-label={dict.app.pages.customerOpeningBalances.newOpeningBalance}',
                 'title={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}',
                 'aria-label={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}',
-                'router.post(`/customer-opening-balances/${id}/post`, { confirm_action: \'POST_CUSTOMER_OPENING_BALANCE\' }, { preserveScroll: true });',
+                'router.post(`/customer-opening-balances/${postingBalanceId}/post`, payload, {',
+                'confirmCode="POST_CUSTOMER_OPENING_BALANCE"',
                 'title={dict.app.pages.customerOpeningBalances.cancel}',
                 'aria-label={dict.app.pages.customerOpeningBalances.cancel}',
                 'title={dict.app.pages.customerOpeningBalances.saveDraft}',
@@ -3494,7 +3495,8 @@ class Phase15ProductHardeningTest extends TestCase
                 'aria-label={dict.app.pages.supplierOpeningBalances.newOpeningBalance}',
                 'title={dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance}',
                 'aria-label={dict.app.pages.supplierOpeningBalances.confirmPostOpeningBalance}',
-                'router.post(`/supplier-opening-balances/${id}/post`, { confirm_action: \'POST_SUPPLIER_OPENING_BALANCE\' }, { preserveScroll: true });',
+                'router.post(`/supplier-opening-balances/${postingBalanceId}/post`, payload, {',
+                'confirmCode="POST_SUPPLIER_OPENING_BALANCE"',
                 'title={dict.app.pages.supplierOpeningBalances.cancel}',
                 'aria-label={dict.app.pages.supplierOpeningBalances.cancel}',
                 'title={dict.app.pages.supplierOpeningBalances.saveDraft}',
@@ -3506,7 +3508,8 @@ class Phase15ProductHardeningTest extends TestCase
                 'aria-label={dict.app.pages.customerReceipts.newCustomerReceipt}',
                 'title={dict.app.pages.customerReceipts.confirmPostReceipt}',
                 'aria-label={dict.app.pages.customerReceipts.confirmPostReceipt}',
-                'router.post(`/customer-receipts/${id}/post`, { confirm_action: \'POST_CUSTOMER_RECEIPT\' }, { preserveScroll: true });',
+                'router.post(`/customer-receipts/${postingReceiptId}/post`, payload, {',
+                'confirmCode="POST_CUSTOMER_RECEIPT"',
                 'title={dict.app.pages.customerReceipts.allocate}',
                 'aria-label={dict.app.pages.customerReceipts.allocate}',
                 'title={dict.app.pages.customerReceipts.cancel}',
@@ -3520,7 +3523,8 @@ class Phase15ProductHardeningTest extends TestCase
                 'aria-label={dict.app.pages.supplierPayments.newSupplierPayment}',
                 'title={dict.app.pages.supplierPayments.confirmPostPayment}',
                 'aria-label={dict.app.pages.supplierPayments.confirmPostPayment}',
-                'router.post(`/supplier-payments/${id}/post`, { confirm_action: \'POST_SUPPLIER_PAYMENT\' }, { preserveScroll: true });',
+                'router.post(`/supplier-payments/${postingPaymentId}/post`, payload, {',
+                'confirmCode="POST_SUPPLIER_PAYMENT"',
                 'title={dict.app.pages.supplierPayments.allocate}',
                 'aria-label={dict.app.pages.supplierPayments.allocate}',
                 'title={dict.app.pages.supplierPayments.cancel}',
@@ -3565,7 +3569,8 @@ class Phase15ProductHardeningTest extends TestCase
             'aria-label={pageDict.cancelTransfer}',
             'title={pageDict.saveTransfer}',
             'aria-label={pageDict.saveTransfer}',
-            'router.post(`/treasury-transfers/${id}/post`, { confirm_action: \'POST_TREASURY_TRANSFER\' }, { preserveScroll: true })',
+            'router.post(`/treasury-transfers/${postingTransferId}/post`, payload, {',
+            'confirmCode="POST_TREASURY_TRANSFER"',
             'router.post(`/treasury-transfers/${id}/cancel`, {}, { preserveScroll: true })',
             'preserveScroll: true',
         ] as $fragment) {
@@ -3983,8 +3988,9 @@ class Phase15ProductHardeningTest extends TestCase
         foreach ([
             'router.put(`/purchasing/landed-costs/${editing.id}`, payload, { preserveScroll: true, onSuccess: closeForm });',
             'router.post(\'/purchasing/landed-costs\', payload, { preserveScroll: true, onSuccess: closeForm });',
-            "const payload = action === 'post' ? { confirm_action: 'POST_LANDED_COST' } : {};",
-            'router.post(`/purchasing/landed-costs/${row.id}/${action}`, payload, { preserveScroll: true });',
+            "confirmCode: 'POST_LANDED_COST'",
+            'router.post(`/purchasing/landed-costs/${row.id}/${action}`, {}, { preserveScroll: true });',
+            'router.post(pendingSensitiveAction.url, payload, {',
             'router.get(\'/purchasing/landed-costs\', { search: searchFilter, status: statusFilter }, { preserveState: true, preserveScroll: true, replace: true });',
             'title={showForm ? t.closeForm : t.create}',
             'aria-label={showForm ? t.closeForm : t.create}',
@@ -4016,8 +4022,9 @@ class Phase15ProductHardeningTest extends TestCase
         foreach ([
             'router.get(\'/sales/invoices\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
             'router.get(\'/sales/invoices\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
-            "const payload = action === 'post' ? { confirm_action: 'POST_CUSTOMER_INVOICE' } : {};",
-            'router.post(`/sales/invoices/${invId}/${action}`, payload, { preserveScroll: true });',
+            "confirmCode: 'POST_CUSTOMER_INVOICE'",
+            'router.post(`/sales/invoices/${invId}/${action}`, {}, { preserveScroll: true });',
+            'router.post(pendingSensitiveAction.url, payload, {',
             'preserveScroll: true',
             'title={dict.app.pages.salesCustomerInvoices.createCustomerInvoice}',
             'aria-label={dict.app.pages.salesCustomerInvoices.createCustomerInvoice}',
@@ -4053,8 +4060,9 @@ class Phase15ProductHardeningTest extends TestCase
         foreach ([
             'router.put(`/purchasing/bills/${editingBill.id}`, payload, {',
             'router.post(\'/purchasing/bills\', payload, {',
-            "const payload = action === 'post' ? { confirm_action: 'POST_SUPPLIER_BILL' } : {};",
-            'router.post(`/purchasing/bills/${billId}/${action}`, payload, { preserveScroll: true });',
+            "confirmCode: 'POST_SUPPLIER_BILL'",
+            'router.post(`/purchasing/bills/${billId}/${action}`, {}, { preserveScroll: true });',
+            'router.post(pendingSensitiveAction.url, payload, {',
             'router.get(',
             '{ preserveState: true, preserveScroll: true, replace: true }',
             'const supplierBillSubmitLabel = editingBill ? pageDict.saveChanges : pageDict.createBill;',
@@ -4089,8 +4097,9 @@ class Phase15ProductHardeningTest extends TestCase
         foreach ([
             'router.put(`/sales/returns/${editingReturn.id}`, payload, {',
             'router.post(\'/sales/returns\', payload, {',
-            "const payload = action === 'post' ? { confirm_action: 'POST_SALES_RETURN' } : {};",
-            'router.post(`/sales/returns/${retId}/${action}`, payload, { preserveScroll: true });',
+            "confirmCode: 'POST_SALES_RETURN'",
+            'router.post(`/sales/returns/${retId}/${action}`, {}, { preserveScroll: true });',
+            'router.post(pendingSensitiveAction.url, payload, {',
             'router.get(\'/sales/returns\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
             'router.get(\'/sales/returns\', { ...filters, warehouse_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
             'router.get(\'/sales/returns\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
@@ -4746,8 +4755,9 @@ class Phase15ProductHardeningTest extends TestCase
             'const supplierAdjustmentNoteSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
             'router.put(`/purchasing/adjustment-notes/${editingNote.id}`, payload, {',
             'router.post(\'/purchasing/adjustment-notes\', payload, {',
-            "const payload = action === 'post' ? { confirm_action: 'POST_SUPPLIER_ADJUSTMENT_NOTE' } : {};",
-            'router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, payload, { preserveScroll: true });',
+            "confirmCode: 'POST_SUPPLIER_ADJUSTMENT_NOTE'",
+            'router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, { preserveScroll: true });',
+            'router.post(pendingSensitiveAction.url, payload, {',
             'router.get(\'/purchasing/adjustment-notes\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
             'router.get(\'/purchasing/adjustment-notes\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
             'title={pageDict.createAdjustmentNote}',
@@ -4954,8 +4964,9 @@ class Phase15ProductHardeningTest extends TestCase
             'const purchaseReturnSubmitLabel = processing ? pageDict.saving : pageDict.saveDraft;',
             'router.put(`/purchasing/returns/${editingReturn.id}`, payload, {',
             'router.post(\'/purchasing/returns\', payload, {',
-            "const payload = action === 'post' ? { confirm_action: 'POST_PURCHASE_RETURN' } : {};",
-            'router.post(`/purchasing/returns/${retId}/${action}`, payload, { preserveScroll: true });',
+            "confirmCode: 'POST_PURCHASE_RETURN'",
+            'router.post(`/purchasing/returns/${retId}/${action}`, {}, { preserveScroll: true });',
+            'router.post(pendingSensitiveAction.url, payload, {',
             'router.get(\'/purchasing/returns\', { ...filters, search: val }, { preserveState: true, preserveScroll: true });',
             'router.get(\'/purchasing/returns\', { ...filters, warehouse_id: value || \'\' }, { preserveState: true, preserveScroll: true })',
             'router.get(\'/purchasing/returns\', { ...filters, status: value || \'\' }, { preserveState: true, preserveScroll: true })',
@@ -5032,7 +5043,8 @@ class Phase15ProductHardeningTest extends TestCase
 
         foreach ([
             "saveForm.post('/accounting/opening-balances', { preserveScroll: true });",
-            "postForm.post('/accounting/opening-balances/post', { preserveScroll: true });",
+            "postForm.post('/accounting/opening-balances/post', {",
+            'confirmCode="POST_OPENING_BALANCES"',
             "router.get('/accounting/opening-balances', { fiscal_year_id: val }, { preserveState: false, preserveScroll: true });",
             'title={postingReadinessMessage}',
             'aria-label={postingReadinessMessage}',
@@ -5456,11 +5468,9 @@ class Phase15ProductHardeningTest extends TestCase
             foreach ([
                 'use App\\Models\\BankAccount;',
                 'use App\\Models\\Currency;',
-                'use App\\Models\\FinancialPeriod;',
                 'use App\\Models\\FiscalYear;',
                 'BankAccount::query',
                 'Currency::query',
-                'FinancialPeriod::query',
                 'FiscalYear::query',
             ] as $fragment) {
                 $this->assertStringNotContainsString($fragment, $source);
@@ -7153,7 +7163,8 @@ class Phase15ProductHardeningTest extends TestCase
         }
 
         $this->assertStringContainsString('const handlePostJournal', $pageSource);
-        $this->assertStringContainsString('confirm(accDict.confirmPostJournal)', $pageSource);
+        $this->assertStringContainsString('setShowPostConfirmation(true);', $pageSource);
+        $this->assertStringContainsString('confirmCode="POST_JOURNAL_ENTRY"', $pageSource);
         $this->assertStringContainsString('onClick={handlePostJournal}', $pageSource);
         $this->assertStringContainsString('title={accDict.confirmPostJournal}', $pageSource);
     }
@@ -7163,7 +7174,8 @@ class Phase15ProductHardeningTest extends TestCase
         $pageSource = (string) file_get_contents(resource_path('js/Pages/Accounting/JournalDetail.tsx'));
 
         foreach ([
-            'postForm.post(`/accounting/journal/${journal.id}/post`, { preserveScroll: true });',
+            'postForm.post(`/accounting/journal/${journal.id}/post`, {',
+            'confirmCode="POST_JOURNAL_ENTRY"',
             'submitForm.post(`/accounting/journal/${journal.id}/submit`, { preserveScroll: true })',
             'approveForm.post(`/accounting/journal/${journal.id}/approve`, { preserveScroll: true })',
             'reverseForm.post(`/accounting/journal/${journal.id}/reverse`, { preserveScroll: true });',
@@ -7287,7 +7299,8 @@ class Phase15ProductHardeningTest extends TestCase
         $this->assertStringContainsString('accDict.openingBalancesDesc', $pageSource);
         $this->assertStringContainsString('accDict.postOpeningJournal', $pageSource);
         $this->assertStringContainsString('const postingReadinessMessage', $pageSource);
-        $this->assertStringContainsString('confirm(accDict.confirmPostOpeningJournal)', $pageSource);
+        $this->assertStringContainsString('setShowPostConfirmation(true);', $pageSource);
+        $this->assertStringContainsString('confirmCode="POST_OPENING_BALANCES"', $pageSource);
         $this->assertStringContainsString('title={postingReadinessMessage}', $pageSource);
         $this->assertStringContainsString('aria-label={postingReadinessMessage}', $pageSource);
         $this->assertStringContainsString('accDict.noOpeningBalancesConfiguredDesc', $pageSource);

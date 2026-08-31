@@ -14,7 +14,6 @@ use App\Models\JournalEntry;
 use App\Models\JournalLine;
 use App\Support\Concurrency\DatabaseIdempotencyStore;
 use App\Support\Numbering\NumberSequenceAllocator;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -85,9 +84,7 @@ class FixedAssetDepreciationPostingService
                     $expenseAccount = $this->accountMappingService->getAccount('depreciation_expense');
                     $accumulatedAccount = $this->accountMappingService->getAccount('accumulated_depreciation');
 
-                    $runSeq = $this->numberSequenceAllocator->nextValue('fixed_asset_depreciation_run');
-                    $runYear = Carbon::parse($period->end_date)->format('Y');
-                    $runNumber = sprintf('DEP-%s-%05d', $runYear, $runSeq);
+                    $runNumber = $this->numberSequenceAllocator->nextNumber('fixed_asset_depreciation_run', 'DEP', $period->end_date);
 
                     $sourceId = (string) Str::uuid();
 

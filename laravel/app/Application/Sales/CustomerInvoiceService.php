@@ -380,9 +380,7 @@ class CustomerInvoiceService
             // Allocate invoice number sequence if missing
             $number = $invoice->number;
             if (! $number) {
-                $orderYear = Carbon::parse($invoice->invoice_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('customer.invoice');
-                $number = 'INV-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('customer.invoice', 'INV', $invoice->invoice_date);
             }
 
             $subtotalMinor = (int) ($invoice->subtotal_minor ?: $invoice->lines->sum('line_total_minor'));

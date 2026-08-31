@@ -328,9 +328,7 @@ class CustomerCreditNoteService
 
             $number = $note->number;
             if (! $number) {
-                $orderYear = Carbon::parse($creditDate)->format('Y');
-                $seq = $this->numberAllocator->nextValue('customer.credit_note');
-                $number = 'CN-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('customer.credit_note', 'CN', $creditDate);
             }
 
             $before = $note->toArray();

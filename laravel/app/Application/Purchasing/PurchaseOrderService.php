@@ -194,9 +194,7 @@ class PurchaseOrderService
 
             $number = $purchaseOrder->number;
             if (! $number) {
-                $orderYear = Carbon::parse($purchaseOrder->order_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('purchase.order');
-                $number = 'PO-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('purchase.order', 'PO', $purchaseOrder->order_date);
             }
 
             $purchaseOrder->update([

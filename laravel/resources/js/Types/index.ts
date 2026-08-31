@@ -16,10 +16,10 @@ export type AttachmentItem = {
 export type NotificationRow = {
   id: string;
   type: string;
-  target_ref?: string;
-  targetRef?: string;
+  target_ref?: string | null;
+  targetRef?: string | null;
   read: boolean;
-  at: string;
+  at: string | null;
 };
 
 export type PaginationLink = {

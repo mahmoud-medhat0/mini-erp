@@ -66,8 +66,7 @@ class PostingEngine
                     // 3. Allocate number if missing
                     $allocatedNumber = $lockedEntry->number;
                     if (empty($allocatedNumber)) {
-                        $seq = $this->sequenceAllocator->nextValue('accounting.journal');
-                        $allocatedNumber = 'JV-'.date('Y').'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                        $allocatedNumber = $this->sequenceAllocator->nextNumber('accounting.journal', 'JV', $lockedEntry->entry_date);
                     }
 
                     // 4. Lock & Validate Lines and Accounts

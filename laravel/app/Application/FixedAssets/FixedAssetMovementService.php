@@ -50,8 +50,7 @@ class FixedAssetMovementService
             }
 
             $before = $asset->toArray();
-            $sequence = $this->numberSequenceAllocator->nextValue('fixed_asset_movement');
-            $number = sprintf('FAM-%s-%05d', Carbon::parse($movementDate)->format('Y'), $sequence);
+            $number = $this->numberSequenceAllocator->nextNumber('fixed_asset_movement', 'FAM', $movementDate);
 
             /** @var FixedAssetMovement $movement */
             $movement = FixedAssetMovement::query()->create([

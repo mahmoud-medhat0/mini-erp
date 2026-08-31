@@ -30,7 +30,7 @@ class BranchSettingsController extends Controller
             'code' => ['required', 'string', 'max:50', 'unique:branch,code'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['required', 'string', 'max:255'],
-            'is_active' => ['nullable'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $this->service->create($validated, $request->boolean('is_active', true), $request->user()->id);
@@ -46,11 +46,16 @@ class BranchSettingsController extends Controller
             'code' => ['required', 'string', 'max:50', Rule::unique('branch', 'code')->ignore($branchId)],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ar' => ['required', 'string', 'max:255'],
-            'is_active' => ['nullable'],
+            'is_active' => ['sometimes', 'boolean'],
             'lock_version' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $this->service->update($branchId, $validated, $request->boolean('is_active'), $request->user()->id);
+        $this->service->update(
+            $branchId,
+            $validated,
+            $request->has('is_active') ? $request->boolean('is_active') : null,
+            $request->user()->id
+        );
 
         return back()->with('success', __('Branch saved.'));
     }

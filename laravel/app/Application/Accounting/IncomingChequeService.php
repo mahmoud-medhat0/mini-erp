@@ -129,8 +129,7 @@ class IncomingChequeService
                     // Number allocation
                     $number = $cheque->number;
                     if (! $number) {
-                        $seq = $this->numberSequenceAllocator->nextValue('incoming_cheque');
-                        $number = sprintf('ICHQ-%s-%05d', substr($receivedDate, 0, 4), $seq);
+                        $number = $this->numberSequenceAllocator->nextNumber('incoming_cheque', 'ICHQ', $receivedDate);
                     }
 
                     // Create Journal Entry (Dr Cheques Under Collection, Cr AR Control)

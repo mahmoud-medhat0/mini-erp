@@ -17,7 +17,9 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ProductCategorySeeder;
 use Database\Seeders\UnitOfMeasureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -168,6 +170,18 @@ class Phase4Slice2SalesOrderTest extends TestCase
 
     public function test_confirm_allocates_number_sequence_and_is_idempotent(): void
     {
+        DB::table('number_sequence')->insert([
+            'id' => (string) Str::uuid(),
+            'key' => 'sales.order',
+            'doc_type' => 'SalesOrder',
+            'prefix' => 'ORDER-',
+            'include_year' => false,
+            'padding' => 3,
+            'reset_policy' => 'never',
+            'last_reset_period' => 'never',
+            'next_value' => 42,
+        ]);
+
         /** @var SalesOrderService $service */
         $service = app(SalesOrderService::class);
 
@@ -189,8 +203,11 @@ class Phase4Slice2SalesOrderTest extends TestCase
         $confirmedOrder1 = $service->confirm($order->id, $this->adminUser->id);
 
         $this->assertEquals('confirmed', $confirmedOrder1->status);
-        $this->assertNotNull($confirmedOrder1->number);
-        $this->assertStringStartsWith('SO-2026-', $confirmedOrder1->number);
+        $this->assertSame('ORDER-042', $confirmedOrder1->number);
+        $this->assertDatabaseHas('number_sequence', [
+            'key' => 'sales.order',
+            'next_value' => 43,
+        ]);
 
         // Idempotency replay check
         $confirmedOrder2 = $service->confirm($order->id, $this->adminUser->id);

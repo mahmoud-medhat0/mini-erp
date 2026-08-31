@@ -213,9 +213,7 @@ class GoodsReceiptService
 
             $number = $goodsReceipt->number;
             if (! $number) {
-                $orderYear = Carbon::parse($goodsReceipt->receipt_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('goods.receipt');
-                $number = 'GRN-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('goods.receipt', 'GRN', $goodsReceipt->receipt_date);
             }
 
             $goodsReceipt->update([

@@ -152,7 +152,7 @@ Route::middleware('auth')->group(function (): void {
     Route::redirect('/', '/dashboard')->name('foundation');
     Route::get('/foundation', FoundationController::class)->middleware('permission.any:settings.configure,audit.view')->name('foundation.diagnostics');
     Route::get('/dashboard', DashboardController::class)->middleware('can:dashboard.view')->name('dashboard');
-    Route::get('/settings', SettingsHomeController::class)->middleware('permission.any:settings.view,settings.configure')->name('settings');
+    Route::get('/settings', SettingsHomeController::class)->middleware('permission.any:settings.view,settings.configure,settings.company,settings.branches,settings.numbering,users.configure,approvals.configure,audit.view')->name('settings');
     Route::get('/settings/company', [CompanySettingsController::class, 'index'])->middleware('permission.any:settings.company,settings.configure')->name('settings.company');
     Route::post('/settings/company', [CompanySettingsController::class, 'store'])->middleware('permission.any:settings.company,settings.configure')->name('settings.company.store');
     Route::patch('/settings/company/{companyId?}', [CompanySettingsController::class, 'update'])->middleware('permission.any:settings.company,settings.configure')->name('settings.company.update');
