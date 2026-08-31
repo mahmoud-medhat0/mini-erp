@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Application\Accounting\CustomerOpeningBalancePageData;
+use App\Application\Accounting\CustomerOpeningBalanceService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CustomerOpeningBalanceController extends Controller
+{
+    public function __construct(
+        private readonly CustomerOpeningBalancePageData $pageData,
+        private readonly CustomerOpeningBalanceService $service,
+    ) {}
+
+    public function index(Request $request): Response
+    {
+        return Inertia::render('CustomerOpeningBalances/Index', $this->pageData->indexData());
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'customer_id' => ['required', 'string', 'uuid', 'exists:customer,id'],
+            'fiscal_year_id' => ['required', 'string', 'uuid', 'exists:fiscal_year,id'],
+            'financial_period_id' => ['required', 'string', 'uuid', 'exists:financial_period,id'],
+            'entry_date' => ['required', 'date'],
+            'due_date' => ['nullable', 'date'],
+            'reference' => ['nullable', 'string', 'max:100'],
+            'description' => ['nullable', 'string'],
+            'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],
+            'amount_minor' => ['required', 'integer', 'min:1'],
+            'fx_rate_e6' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $this->service->create($validated, $request->user()?->id);
+
+        return back()->with('success', __('Customer opening balance created as draft.'));
+    }
+
+    public function post(Request $request, string $id): RedirectResponse
+    {
+        $this->service->post($id, $request->user()?->id);
+
+        return back()->with('success', __('Customer opening balance posted successfully.'));
+    }
+}

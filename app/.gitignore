@@ -13,3 +13,6 @@ coverage/
 prisma/*.db
 .turbo/
 tsconfig.tsbuildinfo
+next-env.d.ts
+AGENTS.md
+CLAUDE.md

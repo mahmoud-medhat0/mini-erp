@@ -18,6 +18,7 @@ model Company {
   nameEn         String
   nameAr         String
   baseCurrency   String   @default("EGP")
+  settingsJson   Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -228,6 +229,8 @@ model Attachment {
   entityId   String
   fileRef    String
   name       String
+  mime       String   @default("application/octet-stream")
+  size       Int      @default(0)
   uploadedBy String
   at         DateTime @default(now())
 

@@ -17,9 +17,21 @@ class MemCompanyRepo implements CompanyRepository {
   roles: { companyId: string; userId: string; roleName: string }[] = [];
   private seq = 0;
 
-  async createCompany(input: { nameEn: string; nameAr: string; settings: CompanySettings }) {
+  async createCompany(input: {
+    nameEn: string;
+    nameAr: string;
+    settings: CompanySettings;
+    ownerUserId: string;
+    firstBranch?: { code: string; nameEn: string; nameAr: string };
+  }) {
     const c: Company = { id: `co${++this.seq}`, nameEn: input.nameEn, nameAr: input.nameAr, settings: input.settings };
     this.companies.push(c);
+    this.memberships.push({ companyId: c.id, userId: input.ownerUserId });
+    this.roles.push({ companyId: c.id, userId: input.ownerUserId, roleName: 'COMPANY_ADMIN' });
+    if (input.firstBranch) {
+      const b: Branch = { id: `b${++this.seq}`, companyId: c.id, ...input.firstBranch };
+      this.branches.push(b);
+    }
     return c;
   }
   async getCompany(id: string) {
@@ -38,22 +50,22 @@ class MemCompanyRepo implements CompanyRepository {
   async branchCodeExists(companyId: string, code: string) {
     return this.branches.some((b) => b.companyId === companyId && b.code === code);
   }
-  async addMembership(companyId: string, userId: string) {
-    this.memberships.push({ companyId, userId });
-  }
-  async assignRole(companyId: string, userId: string, roleName: string) {
-    this.roles.push({ companyId, userId, roleName });
-  }
 }
 
 describe('Company onboarding', () => {
   it('creates a company with validated settings + owner admin membership/role', async () => {
     const repo = new MemCompanyRepo();
     const svc = new CompanyService(repo);
-    const c = await svc.createCompany({ nameEn: 'Acme', nameAr: 'أكمي', ownerUserId: 'u1' });
+    const c = await svc.createCompany({
+      nameEn: 'Acme',
+      nameAr: 'أكمي',
+      ownerUserId: 'u1',
+      firstBranch: { code: 'HQ', nameEn: 'Head Office', nameAr: 'المركز الرئيسي' },
+    });
     expect(c.settings.baseCurrency).toBe('EGP');
     expect(repo.memberships).toEqual([{ companyId: c.id, userId: 'u1' }]);
     expect(repo.roles[0]).toMatchObject({ companyId: c.id, userId: 'u1', roleName: 'COMPANY_ADMIN' });
+    expect(repo.branches[0]).toMatchObject({ companyId: c.id, code: 'HQ' });
   });
 
   it('requires EN + AR names', async () => {

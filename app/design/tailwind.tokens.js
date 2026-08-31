@@ -5,9 +5,7 @@
    Drop into tailwind.config.{js,ts} under theme.extend.
    Direction-aware spacing: prefer ms-/me-/ps-/pe-/inset-* (logical) over ml-/mr-.
    ============================================================================ */
-const withOpacity = (v) => `rgb(from var(${v}) r g b / <alpha-value>)`;
-
-module.exports = {
+const tokens = {
   colors: {
     background:        "var(--background)",
     surface:           "var(--surface)",
@@ -69,6 +67,8 @@ module.exports = {
   ringColor: { DEFAULT: "var(--focus-ring)" },
   transitionTimingFunction: { ds: "var(--ease)" },
 };
+
+export default tokens;
 
 /* tailwind.config.ts usage:
    import tokens from "./foundation/tailwind.tokens";

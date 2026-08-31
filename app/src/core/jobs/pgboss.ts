@@ -40,14 +40,20 @@ export async function startWorker(
 
   for (const def of defs) {
     runner.register(def);
-    await boss.work(def.name, { newJobCheckIntervalSeconds: 5 }, async (job) => {
-      const attempt = (job as unknown as { retryCount?: number }).retryCount ?? 0;
-      await runner.execute(def.name, job.data, {
-        jobId: job.id,
-        attempt: attempt + 1,
-        idempotencyKey: (job.data as { idempotencyKey?: string })?.idempotencyKey,
-      });
-    });
+    // pg-boss v10 delivers a batch (Job[]); includeMetadata exposes retryCount.
+    await boss.work<{ idempotencyKey?: string }>(
+      def.name,
+      { pollingIntervalSeconds: 5, includeMetadata: true },
+      async (jobs) => {
+        for (const job of jobs) {
+          await runner.execute(def.name, job.data, {
+            jobId: job.id,
+            attempt: (job.retryCount ?? 0) + 1,
+            idempotencyKey: job.data?.idempotencyKey,
+          });
+        }
+      },
+    );
   }
 
   return {

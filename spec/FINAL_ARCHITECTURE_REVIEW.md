@@ -1,5 +1,8 @@
 # FINAL ARCHITECTURE REVIEW — Pre-Implementation Gate
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 **Purpose:** independent verification, hardening, and consolidation of the ERP architecture before any Phase-1 code. Covers all 26 review points (brief §45), locks the §47 decisions, adds the infrastructure areas the prior spec set did not cover (deployment, DR/backup, observability, performance, security model, testing), and states a clear go/no-go.
 
 **Verdict up front:** the specification baseline is **sound and internally consistent** after the corrections in §26 below. The additions here are **infrastructure & operational** (previously absent) plus a handful of accounting-integrity refinements. **Phase 1 is safe to start** once the two Phase-1-gating decisions (multi-currency base config, approval-flow model) are acknowledged — both are locked below with sensible defaults, so there is **no hard blocker**.

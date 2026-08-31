@@ -1,5 +1,8 @@
 # REPORT CATALOG
 
+> **No Multi-Tenant Policy:** Active Laravel ERP is single-installation only. Do not add or infer tenant/company ownership, branch tenancy/security ownership, currentCompany/currentBranch context, company_id, tenant_id, Spatie Teams scope, or blanket branch_id scope. Explicit branch operational references are allowed only by bounded owner-approved slices. See root `NO_MULTI_TENANT_POLICY.md`.
+
+
 Engine: MASTER_ERP_SPEC B9. Every report supports (where applicable) date range, fiscal period, branch, project, cost center, account, customer, supplier, warehouse, status, currency, comparison period, search, sort, group, **drill-down to source**, export (XLSX/CSV/PDF), print (light theme: company header, title, filters, generated timestamp, currency, totals, page numbers), and full AR/EN + RTL/LTR. All financial reports read **posted data only**. Labels are localized (`title_en/ar`).
 
 ## Accounting

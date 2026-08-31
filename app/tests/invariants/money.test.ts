@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { money, fromMajorString, add, subtract, allocate, formatMoney, sumMoney, zero } from '../../src/core/money';
+import { money, fromMajorString, add, allocate, formatMoney, sumMoney } from '../../src/core/money';
 import { CurrencyMismatchError } from '../../src/core/errors';
 
 describe('Money — exactness (no float)', () => {

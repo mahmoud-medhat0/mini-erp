@@ -30,14 +30,24 @@ export interface Branch {
   nameAr: string;
 }
 
+export interface FirstBranchInput {
+  code: string;
+  nameEn: string;
+  nameAr: string;
+}
+
 export interface CompanyRepository {
-  createCompany(input: { nameEn: string; nameAr: string; settings: CompanySettings }): Promise<Company>;
+  createCompany(input: {
+    nameEn: string;
+    nameAr: string;
+    settings: CompanySettings;
+    ownerUserId: string;
+    firstBranch?: FirstBranchInput;
+  }): Promise<Company>;
   getCompany(companyId: string): Promise<Company | null>;
   updateSettings(companyId: string, settings: CompanySettings): Promise<Company>;
   createBranch(companyId: string, input: { code: string; nameEn: string; nameAr: string }): Promise<Branch>;
   branchCodeExists(companyId: string, code: string): Promise<boolean>;
-  addMembership(companyId: string, userId: string): Promise<void>;
-  assignRole(companyId: string, userId: string, roleName: string, scope?: unknown): Promise<void>;
 }
 
 export const DEFAULT_SETTINGS: CompanySettings = {
@@ -57,24 +67,35 @@ export function validateSettings(s: CompanySettings): void {
     throw new ValidationError('fiscalYearStartMonth must be 1-12');
 }
 
+export function validateBranchInput(input: FirstBranchInput): void {
+  if (!/^[A-Za-z0-9_-]{1,16}$/.test(input.code)) throw new ValidationError('Invalid branch code');
+  if (!input.nameEn?.trim() || !input.nameAr?.trim()) throw new ValidationError('Branch name (EN and AR) is required');
+}
+
 export class CompanyService {
   constructor(private readonly repo: CompanyRepository) {}
 
-  /** Create a company, seed its first admin membership + SUPER_ADMIN role. */
+  /** Create a company and atomically provision owner membership, roles, and optional first branch. */
   async createCompany(input: {
     nameEn: string;
     nameAr: string;
     ownerUserId: string;
+    firstBranch?: FirstBranchInput;
     settings?: Partial<CompanySettings>;
   }): Promise<Company> {
     if (!input.nameEn?.trim() || !input.nameAr?.trim())
       throw new ValidationError('Company name (EN and AR) is required');
+    if (!input.ownerUserId?.trim()) throw new ValidationError('Owner user is required');
+    if (input.firstBranch) validateBranchInput(input.firstBranch);
     const settings = { ...DEFAULT_SETTINGS, ...input.settings };
     validateSettings(settings);
-    const company = await this.repo.createCompany({ nameEn: input.nameEn, nameAr: input.nameAr, settings });
-    await this.repo.addMembership(company.id, input.ownerUserId);
-    await this.repo.assignRole(company.id, input.ownerUserId, 'COMPANY_ADMIN', { companyId: company.id });
-    return company;
+    return this.repo.createCompany({
+      nameEn: input.nameEn,
+      nameAr: input.nameAr,
+      settings,
+      ownerUserId: input.ownerUserId,
+      firstBranch: input.firstBranch,
+    });
   }
 
   async updateSettings(ctx: TenantContext, settings: CompanySettings): Promise<Company> {
@@ -86,8 +107,7 @@ export class CompanyService {
     ctx: TenantContext,
     input: { code: string; nameEn: string; nameAr: string },
   ): Promise<Branch> {
-    if (!/^[A-Za-z0-9_-]{1,16}$/.test(input.code)) throw new ValidationError('Invalid branch code');
-    if (!input.nameEn?.trim() || !input.nameAr?.trim()) throw new ValidationError('Branch name (EN and AR) is required');
+    validateBranchInput(input);
     if (await this.repo.branchCodeExists(ctx.companyId, input.code))
       throw new ValidationError(`Branch code already exists: ${input.code}`);
     return this.repo.createBranch(ctx.companyId, input);
