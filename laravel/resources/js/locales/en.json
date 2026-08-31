@@ -227,6 +227,78 @@
       "unknownUser": "Unknown user",
       "unknownEmail": "No email available"
     },
+    "tour": {
+      "start": "Tour Guide",
+      "dialogLabel": "Interactive page tour",
+      "close": "Close tour",
+      "previous": "Previous",
+      "next": "Next",
+      "finish": "Finish",
+      "stepCounter": "Step :current of :total",
+      "fallbackPageTitle": "this page",
+      "steps": {
+        "page": {
+          "title": "Page overview",
+          "description": "You are on :page. :section"
+        },
+        "actions": {
+          "title": "Page actions",
+          "description": "Use these controls to create records or run the actions available to your role. Sensitive operations may require an extra confirmation."
+        },
+        "filters": {
+          "title": "Filters and data entry",
+          "description": "Enter the required values or narrow the displayed results here. Clear or reset filters to return to the full list."
+        },
+        "records": {
+          "title": "Records and results",
+          "description": "Review the page records here. Tables may include status badges, amounts, source links, pagination, and role-based row actions."
+        },
+        "workspace": {
+          "title": "Main workspace",
+          "description": "This area contains the page's main cards, metrics, shortcuts, or workflow details. Available content follows your permissions."
+        },
+        "navigation": {
+          "title": "Module navigation",
+          "description": "Use the sidebar to move between ERP modules. Only sections allowed by your permissions are shown."
+        },
+        "topbar": {
+          "title": "Global tools",
+          "description": "The top bar gives you the tour, notifications, language and theme controls, system status, and your user menu."
+        }
+      },
+      "login": {
+        "brandTitle": "Welcome to Mini ERP",
+        "brandDescription": "Mini ERP brings accounting and daily operations together in one permission-controlled workspace.",
+        "formTitle": "Secure sign in",
+        "formDescription": "Enter the email and password assigned by your administrator. The Remember me option keeps the session available on this device.",
+        "preferencesTitle": "Language and appearance",
+        "preferencesDescription": "Switch between Arabic and English, choose light or dark mode, or follow your device theme.",
+        "featuresTitle": "What the system covers",
+        "featuresDescription": "The overview highlights the financial controls, audit trail, and operational modules available after sign in."
+      },
+      "sections": {
+        "login": "Sign in securely, then the system shows only the modules and actions permitted for your account.",
+        "dashboard": "The dashboard summarizes the accounting workspace, operational indicators, shortcuts, and recent activity.",
+        "accounting": "Accounting covers the chart of accounts, journals, posting, ledgers, periods, currencies, mappings, and opening balances.",
+        "receivables": "Customers and receivables cover customer records, opening balances, receipts, allocations, settlements, and balances due.",
+        "payables": "Suppliers and payables cover supplier records, opening balances, payments, allocations, settlements, and balances owed.",
+        "expenses": "Expense workflows cover categories, operational expenses, prepaid schedules, accrual schedules, approvals, and posting.",
+        "payroll": "Payroll covers employees, earning and deduction components, recurring assignments, payroll runs, approvals, and posting.",
+        "rentals": "Rentals cover rentable items, contracts, handovers, returns and inspections, charges, invoices, and item status changes.",
+        "treasury": "Treasury covers cash and bank accounts, transfers, incoming and outgoing cheques, and bank reconciliation.",
+        "sales": "Sales and catalog workflows cover products, customers, orders, deliveries, invoices, returns, credit notes, and revision history.",
+        "purchasing": "Purchasing covers supplier orders, goods receipts, landed costs, supplier bills, returns, adjustment notes, and settlements.",
+        "inventory": "Inventory covers warehouses, balances, transfers, stock counts, adjustments, and their approval and posting lifecycles.",
+        "fixedAssets": "Fixed assets cover categories, locations, the asset register, capitalization, depreciation, movements, and disposals.",
+        "reports": "Reports provide financial, subledger, operational, tax, branch, project, rental, and fixed-asset views with permission-aware export tools.",
+        "taxes": "Tax workflows cover codes, rates, tax periods, VAT drafts and filing, registers, summaries, and GL reconciliation.",
+        "projects": "Projects, cost centers, and budgeting provide analysis dimensions, budget versions, approvals, activation, and variance reporting.",
+        "settings": "Administration covers company data, branches, numbering, users, roles, permissions, approval rules, and the audit log.",
+        "notifications": "Notifications surface important system events and can be reviewed individually or marked as read together.",
+        "diagnostics": "System diagnostics help administrators review application and database readiness.",
+        "general": "This workspace follows the same permission, audit, validation, and period-control rules used across Mini ERP."
+      }
+    },
     "dashboard": {
       "description": "Accounting workspace for vouchers, ledgers, reports, and operational follow-up.",
       "noKpisTitle": "Accounting control center",

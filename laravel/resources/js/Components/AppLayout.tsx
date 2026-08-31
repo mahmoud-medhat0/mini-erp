@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { changeLocale, getDictionary } from '../lib/i18n';
 import { useCan } from '../lib/permissions';
 import type { SharedPageProps } from '../Types/page';
+import TourGuide from './TourGuide';
 
 export type NavKey =
   | 'dashboard'
@@ -218,7 +219,8 @@ const NAV_PERMS_FALLBACK: Partial<Record<NavKey, NavPermission>> = {
 };
 
 export default function AppLayout({ active, children }: AppLayoutProps) {
-  const { props } = usePage<SharedPageProps>();
+  const page = usePage<SharedPageProps>();
+  const { props } = page;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -390,6 +392,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
 
         {/* Collapsible Sidebar Container */}
         <aside
+          data-tour="sidebar"
           className={`fixed inset-y-0 start-0 z-50 flex flex-col border-e border-[var(--border)] bg-[var(--surface)] transition-all duration-300 ease-in-out lg:static ${
             sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
           } ${
@@ -1492,7 +1495,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
         {/* Main Content Viewport */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top Bar Header */}
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/90 px-4 sm:px-6 backdrop-blur-md">
+          <header data-tour="topbar" className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/90 px-4 sm:px-6 backdrop-blur-md">
             {/* Mobile Menu Button + Workspace Context */}
             <div className="flex items-center gap-3">
               <button
@@ -1527,6 +1530,13 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
 
             {/* Top Right Controls */}
             <div className="flex items-center gap-2.5">
+              <TourGuide
+                copy={dict.app.tour}
+                locale={locale}
+                pageKey={page.component}
+                sectionKey={active}
+              />
+
               {/* Notification Bell Dropdown */}
               <div className="relative">
                 <button
@@ -1700,7 +1710,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
           </header>
 
           {/* Page Content Container */}
-          <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <main data-tour="page-content" className="flex-1 p-4 sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl">{children}</div>
           </main>
         </div>
