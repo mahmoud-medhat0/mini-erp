@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Application\Reports\CsvReportResponse;
 use App\Application\Reports\PartnerStatementCsvExporter;
+use App\Http\Requests\Reports\ChequeRegisterDataTableRequest;
+use App\Http\Requests\Reports\RentalOperationsDataTableRequest;
+use App\Http\Requests\Reports\VatRegisterDataTableRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -170,6 +173,46 @@ class ReportInputHardeningTest extends TestCase
                 ->getJson($path.'?'.http_build_query([...$query, 'length' => 999]))
                 ->assertUnprocessable()
                 ->assertJsonValidationErrors('length');
+        }
+    }
+
+    /**
+     * Every column a DataTable component requests must be allowlisted by its
+     * FormRequest. A mismatch returns 422 and leaves the table stuck on its
+     * loading indicator — a defect that only shows up in a real browser, so it
+     * is pinned here where it is cheap to catch.
+     */
+    public function test_datatable_components_only_request_allowlisted_columns(): void
+    {
+        $pairs = [
+            'RentalOperationsDataTable.tsx' => RentalOperationsDataTableRequest::class,
+            'VatRegisterDataTable.tsx' => VatRegisterDataTableRequest::class,
+            'ChequeRegisterDataTable.tsx' => ChequeRegisterDataTableRequest::class,
+        ];
+
+        foreach ($pairs as $component => $requestClass) {
+            $path = resource_path('js/Components/'.$component);
+            $this->assertFileExists($path);
+
+            preg_match_all("/\{\s*data:\s*'([a-z0-9_]+)'/i", (string) file_get_contents($path), $matches);
+            $requested = array_unique($matches[1] ?? []);
+            $this->assertNotEmpty($requested, "No columns parsed from {$component}.");
+
+            $reflection = new \ReflectionMethod($requestClass, 'allowedColumns');
+            $reflection->setAccessible(true);
+            $allowed = $reflection->invoke(new $requestClass);
+
+            $unlisted = array_values(array_diff($requested, $allowed));
+            $this->assertSame(
+                [],
+                $unlisted,
+                sprintf(
+                    '%s requests columns not allowlisted by %s: %s',
+                    $component,
+                    class_basename($requestClass),
+                    implode(', ', $unlisted)
+                )
+            );
         }
     }
 

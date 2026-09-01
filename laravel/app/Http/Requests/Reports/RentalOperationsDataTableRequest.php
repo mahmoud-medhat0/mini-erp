@@ -97,6 +97,8 @@ class RentalOperationsDataTableRequest extends FormRequest
             'total_billed_minor',
             'open_invoice_total_minor',
             'pending_damage_minor',
+            // Rendered by the table but never ordered or searched on.
+            'latest_journal_number',
         ];
     }
 }

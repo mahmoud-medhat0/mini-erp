@@ -4,12 +4,13 @@ import AppLayout from '../../Components/AppLayout';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import { getLocalizedName } from '../../lib/accountingHelpers';
+import type { PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
 
 type SupplierRow = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   status: 'active' | 'inactive';
   email?: string | null;
   phone?: string | null;
@@ -66,7 +67,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
     setEditingSupplier(supplier);
     setData({
       code: supplier.code,
-      name: supplier.name,
+      name: getLocalizedName(supplier.name, locale),
       status: supplier.status,
       email: supplier.email || '',
       phone: supplier.phone || '',
@@ -189,7 +190,7 @@ export default function SuppliersIndex({ locale, suppliers, filters }: Suppliers
               {suppliers.data.map((supplier) => (
                 <tr key={supplier.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{supplier.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{supplier.name}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(supplier.name, locale)}</td>
                   <td className={tableClasses.td}>{supplier.phone || accDict.notAvailable}</td>
                   <td className={tableClasses.td}>{supplier.email || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{supplier.tax_number || accDict.notAvailable}</td>

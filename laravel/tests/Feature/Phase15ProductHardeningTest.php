@@ -5862,7 +5862,9 @@ class Phase15ProductHardeningTest extends TestCase
             ],
             app_path('Http/Controllers/Accounting/ExchangeRateController.php') => [
                 'constructor' => 'ExchangeRatePageData $pageData',
-                'delegation' => '$this->pageData->indexData()',
+                // The controller passes a validated search term through, so match
+                // the delegation call rather than an empty argument list.
+                'delegation' => '$this->pageData->indexData(',
                 'forbidden' => [
                     'use App\\Models\\Company;',
                     'use App\\Models\\Currency;',

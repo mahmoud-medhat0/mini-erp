@@ -4,25 +4,26 @@ import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import { getLocalizedName } from '../../lib/accountingHelpers';
+import type { PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
 
 type UnitOfMeasureOption = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   symbol: string;
 };
 
 type ProductCategoryOption = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
 };
 
 type ProductRow = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   description?: string | null;
   type: 'stock' | 'service' | 'non_stock';
   unit_of_measure_id: string;
@@ -111,7 +112,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
     setEditingProduct(product);
     setData({
       code: product.code,
-      name: product.name,
+      name: getLocalizedName(product.name, locale),
       description: product.description || '',
       type: product.type,
       unit_of_measure_id: product.unit_of_measure_id,
@@ -146,7 +147,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
   };
 
   const handleDelete = (product: ProductRow) => {
-    if (confirm(pageDict.confirmDeleteProduct.replace('{name}', product.name || product.code))) {
+    if (confirm(pageDict.confirmDeleteProduct.replace('{name}', getLocalizedName(product.name, locale) || product.code))) {
       destroy(`/catalog/products/${product.id}`, { preserveScroll: true });
     }
   };
@@ -216,19 +217,19 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
   const uomOptions = useMemo(
     () => uoms.map((uom) => ({
       value: uom.id,
-      label: `${uom.name} (${uom.code})`,
+      label: `${getLocalizedName(uom.name, locale)} (${uom.code})`,
       sublabel: uom.symbol,
     })),
-    [uoms],
+    [uoms, locale],
   );
 
   const categoryOptions = useMemo(
     () => categories.map((category) => ({
       value: category.id,
-      label: `${category.name} (${category.code})`,
+      label: `${getLocalizedName(category.name, locale)} (${category.code})`,
       sublabel: category.code,
     })),
-    [categories],
+    [categories, locale],
   );
 
   const categoryFilterOptions = useMemo(
@@ -336,14 +337,14 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                 {products.data.map((prod) => (
                   <tr key={prod.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>{prod.code}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{prod.name}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(prod.name, locale)}</td>
                     <td className={tableClasses.td}>
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${getTypeBadgeClass(prod.type)}`}>
                         {getTypeLabel(prod.type)}
                       </span>
                     </td>
-                    <td className={tableClasses.td}>{prod.unit_of_measure?.name || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{prod.category?.name || accDict.notAvailable}</td>
+                    <td className={tableClasses.td}>{getLocalizedName(prod.unit_of_measure?.name, locale) || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{getLocalizedName(prod.category?.name, locale) || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={prod.status === 'active' ? 'ok' : 'muted'}>
                         {prod.status === 'active' ? pageDict.active_3 : pageDict.inactive_3}
