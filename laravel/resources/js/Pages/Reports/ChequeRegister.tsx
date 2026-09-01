@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
+import ChequeRegisterDataTable from '../../Components/ChequeRegisterDataTable';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
@@ -21,19 +22,6 @@ type ChequeRegisterProps = SharedPageProps & {
       date_to: string | null;
       currency: string;
     };
-    items: Array<{
-      id: string;
-      direction: 'incoming' | 'outgoing';
-      cheque_number: string;
-      party_name: string;
-      party_code: string;
-      bank_account_name: string;
-      due_date: string;
-      currency: string;
-      amount_minor: number;
-      status: string;
-      notes: string | null;
-    }>;
     total_amount_minor: number;
     incoming_total_minor: number;
     outgoing_total_minor: number;
@@ -109,20 +97,6 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
   const handleExport = () => {
     const url = `/reports/cheque-register/export?direction=${direction}&status=${status}&customer_id=${customerId}&supplier_id=${supplierId}&bank_account_id=${bankAccountId}&date_from=${dateFrom}&date_to=${dateTo}&currency=${currency}`;
     window.open(url, '_blank');
-  };
-
-  const getChequeStatusLabel = (st: string) => {
-    const s = st.toLowerCase();
-    const map: Record<string, string> = {
-      received: accDict.statusReceived,
-      deposited: accDict.statusDeposited,
-      issued: accDict.statusIssued,
-      cleared: accDict.statusCleared,
-      bounced: accDict.statusBounced,
-      returned: accDict.statusReturned,
-      cancelled: accDict.statusCancelled,
-    };
-    return map[s] || st.toUpperCase();
   };
 
   return (
@@ -211,6 +185,7 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsChequeRegister.allStatuses },
+                  { value: 'draft', label: accDict.statusDraft },
                   { value: 'received', label: accDict.statusReceived },
                   { value: 'deposited', label: accDict.statusDeposited },
                   { value: 'issued', label: accDict.statusIssued },
@@ -278,48 +253,29 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
         </div>
 
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-start text-xs">
-            <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
-              <tr>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.directionParty}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.chequeNo}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.dueDate}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.bankAccount_3}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.status_2}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsChequeRegister.amount}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {report.items.map((item) => (
-                <tr key={`${item.direction}-${item.id}`} className="hover:bg-[var(--background)]/30">
-                  <td className="p-3">
-                    <span className={`inline-block px-1.5 py-0.5 text-[10px] font-bold rounded me-2 ${item.direction === 'incoming' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                      {item.direction.toUpperCase()}
-                    </span>
-                    <span className="font-semibold">{item.party_code} - {item.party_name}</span>
-                  </td>
-                  <td className="p-3 font-mono font-bold">{item.cheque_number}</td>
-                  <td className="p-3 font-mono">{item.due_date}</td>
-                  <td className="p-3 text-[var(--text-secondary)]">{item.bank_account_name}</td>
-                  <td className="p-3">
-                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-700 border border-slate-300">
-                      {getChequeStatusLabel(item.status)}
-                    </span>
-                  </td>
-                  <td className="p-3 text-end font-mono font-bold">
-                    {formatMoney(item.amount_minor, item.currency)}
-                  </td>
-                </tr>
-              ))}
-              {report.items.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-[var(--text-muted)]">
-                    {dict.app.pages.reportsChequeRegister.noChequesFoundMatchingTheSpecified}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <ChequeRegisterDataTable
+            key={`${filters.direction}-${filters.status || 'all'}-${filters.customer_id || 'all'}-${filters.supplier_id || 'all'}-${filters.bank_account_id || 'all'}-${filters.date_from || 'start'}-${filters.date_to || 'end'}-${filters.currency}`}
+            filters={filters}
+            labels={{
+              directionParty: dict.app.pages.reportsChequeRegister.directionParty,
+              chequeNumber: dict.app.pages.reportsChequeRegister.chequeNo,
+              dueDate: dict.app.pages.reportsChequeRegister.dueDate,
+              bankAccount: dict.app.pages.reportsChequeRegister.bankAccount_3,
+              status: dict.app.pages.reportsChequeRegister.status_2,
+              amount: dict.app.pages.reportsChequeRegister.amount,
+              statuses: {
+                draft: accDict.statusDraft,
+                received: accDict.statusReceived,
+                deposited: accDict.statusDeposited,
+                issued: accDict.statusIssued,
+                cleared: accDict.statusCleared,
+                bounced: accDict.statusBounced,
+                returned: accDict.statusReturned,
+                cancelled: accDict.statusCancelled,
+              },
+            }}
+            locale={locale}
+          />
         </Card>
       </div>
     </AppLayout>

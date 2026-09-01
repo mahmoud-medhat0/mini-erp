@@ -55,7 +55,8 @@ class ReceivableEntrySettlementPageData
             'existingSettlements' => ReceivableEntrySettlement::query()
                 ->with(['customer', 'sourceReceivableEntry', 'targetReceivableEntry', 'creator', 'reverser'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'customers' => Customer::query()->where('status', 'active')->orderBy('name')->get(),
             'filters' => [
                 'customer_id' => $customerId,

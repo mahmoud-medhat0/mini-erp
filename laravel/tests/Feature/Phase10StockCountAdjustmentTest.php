@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Application\Accounting\PeriodService;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Application\Inventory\StockAdjustmentService;
 use App\Application\Inventory\StockCountService;
@@ -240,6 +241,47 @@ class Phase10StockCountAdjustmentTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame(-3000, $movement->value_delta_minor);
+    }
+
+    public function test_unposted_stock_count_and_adjustment_block_period_close_readiness(): void
+    {
+        $adjustment = app(StockAdjustmentService::class)->create([
+            'adjustment_date' => '2026-01-13',
+            'warehouse_id' => $this->warehouse->id,
+            'currency' => 'EGP',
+            'reason' => 'Pending close review',
+            'lines' => [[
+                'product_id' => $this->product->id,
+                'quantity_delta_e6' => 1000000,
+                'unit_cost_minor' => 1000,
+            ]],
+        ], $this->user->id);
+
+        $count = app(StockCountService::class)->create([
+            'count_date' => '2026-01-14',
+            'warehouse_id' => $this->warehouse->id,
+            'currency' => 'EGP',
+            'notes' => 'Pending physical count',
+            'lines' => [[
+                'product_id' => $this->product->id,
+                'counted_quantity_e6' => 0,
+            ]],
+        ], $this->user->id);
+
+        $readiness = app(PeriodService::class)->checkCloseReadiness($this->period);
+        $blockers = collect($readiness['blockers']);
+
+        $this->assertFalse($readiness['can_close']);
+        $this->assertTrue($blockers->contains(
+            fn (array $blocker): bool => $blocker['entity_type'] === 'stock_adjustment'
+                && $blocker['id'] === $adjustment->id
+                && $blocker['reason_code'] === 'unposted_stock_adjustment'
+        ));
+        $this->assertTrue($blockers->contains(
+            fn (array $blocker): bool => $blocker['entity_type'] === 'stock_count'
+                && $blocker['id'] === $count->id
+                && $blocker['reason_code'] === 'unposted_stock_count'
+        ));
     }
 
     public function test_stock_count_and_adjustment_pages_render(): void

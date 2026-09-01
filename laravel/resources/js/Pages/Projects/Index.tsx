@@ -182,7 +182,7 @@ export default function ProjectsIndex({ locale, projects, filters }: Props) {
   }
 
   return (
-    <AppLayout active="projects.index">
+    <AppLayout active="projects.index" pagination="manual">
       <Head title={pageDict.headTitle} />
 
       <PageHeader

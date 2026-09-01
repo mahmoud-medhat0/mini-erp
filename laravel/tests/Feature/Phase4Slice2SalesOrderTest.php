@@ -17,7 +17,9 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ProductCategorySeeder;
 use Database\Seeders\UnitOfMeasureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
@@ -168,6 +170,18 @@ class Phase4Slice2SalesOrderTest extends TestCase
 
     public function test_confirm_allocates_number_sequence_and_is_idempotent(): void
     {
+        DB::table('number_sequence')->insert([
+            'id' => (string) Str::uuid(),
+            'key' => 'sales.order',
+            'doc_type' => 'SalesOrder',
+            'prefix' => 'ORDER-',
+            'include_year' => false,
+            'padding' => 3,
+            'reset_policy' => 'never',
+            'last_reset_period' => 'never',
+            'next_value' => 42,
+        ]);
+
         /** @var SalesOrderService $service */
         $service = app(SalesOrderService::class);
 
@@ -189,13 +203,167 @@ class Phase4Slice2SalesOrderTest extends TestCase
         $confirmedOrder1 = $service->confirm($order->id, $this->adminUser->id);
 
         $this->assertEquals('confirmed', $confirmedOrder1->status);
-        $this->assertNotNull($confirmedOrder1->number);
-        $this->assertStringStartsWith('SO-2026-', $confirmedOrder1->number);
+        $this->assertSame('ORDER-042', $confirmedOrder1->number);
+        $confirmedVersion = $confirmedOrder1->lock_version;
+        $confirmationAuditCount = Activity::query()
+            ->where('properties->entity_type', 'sales_order')
+            ->where('properties->entity_id', $order->id)
+            ->where('description', 'sales_order.confirm')
+            ->count();
+        $this->assertDatabaseHas('number_sequence', [
+            'key' => 'sales.order',
+            'next_value' => 43,
+        ]);
 
         // Idempotency replay check
         $confirmedOrder2 = $service->confirm($order->id, $this->adminUser->id);
         $this->assertEquals($confirmedOrder1->number, $confirmedOrder2->number);
         $this->assertEquals('confirmed', $confirmedOrder2->status);
+        $this->assertSame($confirmedVersion, $confirmedOrder2->lock_version);
+        $this->assertSame($confirmationAuditCount, Activity::query()
+            ->where('properties->entity_type', 'sales_order')
+            ->where('properties->entity_id', $order->id)
+            ->where('description', 'sales_order.confirm')
+            ->count());
+        $this->assertDatabaseHas('number_sequence', [
+            'key' => 'sales.order',
+            'next_value' => 43,
+        ]);
+    }
+
+    public function test_stale_update_request_is_rejected_without_overwriting_authoritative_data(): void
+    {
+        /** @var SalesOrderService $service */
+        $service = app(SalesOrderService::class);
+
+        $order = $service->create([
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'notes' => 'Original note',
+            'lines' => [
+                [
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => 1000000,
+                    'unit_price_minor' => 500,
+                ],
+            ],
+        ], $this->adminUser->id);
+
+        $staleVersion = $order->lock_version;
+
+        DB::table('sales_order')->where('id', $order->id)->update([
+            'notes' => 'Saved by the authoritative request',
+            'lock_version' => $staleVersion + 1,
+        ]);
+
+        try {
+            $service->update($order->id, [
+                'customer_id' => $this->customer->id,
+                'order_date' => '2026-08-22',
+                'currency' => 'USD',
+                'notes' => 'Stale overwrite attempt',
+                'lock_version' => $staleVersion,
+                'lines' => [
+                    [
+                        'product_id' => $this->product->id,
+                        'unit_of_measure_id' => $this->uom->id,
+                        'quantity_e6' => 2000000,
+                        'unit_price_minor' => 500,
+                    ],
+                ],
+            ], $this->adminUser->id);
+
+            $this->fail('A stale Sales Order update should be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lock_version', $exception->errors());
+        }
+
+        $authoritativeOrder = $order->fresh('lines');
+
+        $this->assertSame('Saved by the authoritative request', $authoritativeOrder->notes);
+        $this->assertSame($staleVersion + 1, $authoritativeOrder->lock_version);
+        $this->assertSame(1000000, $authoritativeOrder->lines->firstOrFail()->quantity_e6);
+    }
+
+    public function test_current_update_request_succeeds_and_advances_the_authoritative_version(): void
+    {
+        /** @var SalesOrderService $service */
+        $service = app(SalesOrderService::class);
+
+        $order = $service->create([
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'notes' => 'Original note',
+            'lines' => [
+                [
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => 1000000,
+                    'unit_price_minor' => 500,
+                ],
+            ],
+        ], $this->adminUser->id);
+
+        $updated = $service->update($order->id, [
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'notes' => 'Updated note',
+            'lock_version' => $order->lock_version,
+            'lines' => [
+                [
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => 2000000,
+                    'unit_price_minor' => 500,
+                ],
+            ],
+        ], $this->adminUser->id);
+
+        $this->assertSame('Updated note', $updated->notes);
+        $this->assertSame($order->lock_version + 1, $updated->lock_version);
+        $this->assertSame(1000, $updated->total_minor);
+        $this->assertSame(2000000, $updated->lines->firstOrFail()->quantity_e6);
+    }
+
+    public function test_stale_draft_model_cannot_confirm_an_order_cancelled_by_another_request(): void
+    {
+        /** @var SalesOrderService $service */
+        $service = app(SalesOrderService::class);
+
+        $staleDraft = $service->create([
+            'customer_id' => $this->customer->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'lines' => [
+                [
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => 1000000,
+                    'unit_price_minor' => 500,
+                ],
+            ],
+        ], $this->adminUser->id);
+
+        $cancelled = $service->cancel($staleDraft->id, $this->adminUser->id);
+
+        try {
+            $service->confirm($staleDraft->id, $this->adminUser->id);
+            $this->fail('A stale draft model must not override the authoritative cancelled state.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('status', $exception->errors());
+        }
+
+        $authoritativeOrder = $staleDraft->fresh();
+
+        $this->assertSame('cancelled', $authoritativeOrder->status);
+        $this->assertSame($cancelled->lock_version, $authoritativeOrder->lock_version);
+        $this->assertNull($authoritativeOrder->number);
+        $this->assertNull($authoritativeOrder->confirmed_at);
+        $this->assertDatabaseMissing('number_sequence', ['key' => 'sales.order']);
     }
 
     public function test_cancel_changes_status_for_draft_or_submitted(): void

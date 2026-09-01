@@ -8,6 +8,10 @@ import type { NumberingFormData, SequenceRow, SharedPageProps } from '../../Type
 
 type NumberingProps = SharedPageProps & {
   sequences: SequenceRow[];
+  numberingContext: {
+    year: number;
+    month: number;
+  };
 };
 
 function resetPolicyOptions(dict: ReturnType<typeof getDictionary>) {
@@ -27,10 +31,12 @@ function resetPolicyLabel(policy: string | null | undefined, dict: ReturnType<ty
 function NumberingFormModal({
   sequence,
   dict,
+  numberingContext,
   onClose,
 }: {
   sequence?: SequenceRow;
   dict: ReturnType<typeof getDictionary>;
+  numberingContext: NumberingProps['numberingContext'];
   onClose: () => void;
 }) {
   const { data, setData, post, patch, processing, errors, reset } = useForm<NumberingFormData>({
@@ -63,9 +69,14 @@ function NumberingFormModal({
   }
 
   // Calculate live format preview
-  const currentYear = new Date().getFullYear();
+  const currentYear = numberingContext.year;
+  const currentMonth = String(numberingContext.month).padStart(2, '0');
   const paddedVal = String(data.next_value).padStart(Math.max(1, Math.min(12, data.padding)), '0');
-  const livePreview = `${data.prefix}${data.include_year ? `${currentYear}-` : ''}${paddedVal}`;
+  const normalizedPrefix = data.prefix.trim().replace(/^-+|-+$/g, '');
+  const period = data.include_year
+    ? (data.reset_policy === 'monthly' ? `${currentYear}-${currentMonth}` : String(currentYear))
+    : '';
+  const livePreview = [normalizedPrefix, period, paddedVal].filter(Boolean).join('-');
 
   return (
     <Card className="mb-6 border-blue-500/20 bg-[var(--surface)] p-6 shadow-xl">
@@ -330,7 +341,7 @@ function SequenceDetailModal({
   );
 }
 
-export default function Numbering({ sequences, locale }: NumberingProps) {
+export default function Numbering({ sequences, numberingContext, locale }: NumberingProps) {
   const dict = getDictionary(locale);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSequenceId, setEditingSequenceId] = useState<string | null>(null);
@@ -366,6 +377,7 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
       {showAddForm ? (
         <NumberingFormModal
           dict={dict}
+          numberingContext={numberingContext}
           onClose={() => setShowAddForm(false)}
         />
       ) : null}
@@ -480,6 +492,7 @@ export default function Numbering({ sequences, locale }: NumberingProps) {
               <NumberingFormModal
                 sequence={sequences.find((s) => s.id === editingSequenceId)}
                 dict={dict}
+                numberingContext={numberingContext}
                 onClose={() => setEditingSequenceId(null)}
               />
             </div>

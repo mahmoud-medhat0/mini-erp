@@ -254,9 +254,7 @@ class LandedCostAllocationService
 
             $number = $allocation->number;
             if (! $number) {
-                $year = Carbon::parse($allocation->allocation_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('purchasing.landed_cost');
-                $number = 'LC-'.$year.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('purchasing.landed_cost', 'LC', $allocation->allocation_date);
             }
 
             $before = $allocation->toArray();
@@ -481,9 +479,7 @@ class LandedCostAllocationService
 
             $number = $allocation->number;
             if (! $number) {
-                $year = Carbon::parse($allocation->allocation_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('purchasing.landed_cost');
-                $number = 'LC-'.$year.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('purchasing.landed_cost', 'LC', $allocation->allocation_date);
             }
 
             $before = $allocation->toArray();

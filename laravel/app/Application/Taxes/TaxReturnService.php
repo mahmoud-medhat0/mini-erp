@@ -43,8 +43,8 @@ class TaxReturnService
                 ->where('status', 'draft')
                 ->first();
 
-            $seq = $this->numberAllocator->nextValue('tax_return');
-            $number = $existingDraft?->number ?? ('TRN-'.date('Y').'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT));
+            $number = $existingDraft?->number
+                ?? $this->numberAllocator->nextNumber('tax_return', 'TRN', $period->end_date);
 
             $outputTaxMinor = (int) $summaryData['summary']['total_output_tax_minor'];
             $inputTaxMinor = (int) $summaryData['summary']['total_input_tax_minor'];

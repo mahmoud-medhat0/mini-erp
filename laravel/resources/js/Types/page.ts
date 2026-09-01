@@ -1,9 +1,9 @@
 export type NotificationItem = {
   id: string;
   type: string;
-  targetRef: string;
+  targetRef: string | null;
   read: boolean;
-  at: string;
+  at: string | null;
 };
 
 export type SharedPageProps = {

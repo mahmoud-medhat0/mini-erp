@@ -226,9 +226,7 @@ class ExpenseService
 
             $number = $expense->number;
             if (! $number) {
-                $year = Carbon::parse($expense->expense_date)->format('Y');
-                $sequence = $this->numberAllocator->nextValue('expenses.expense');
-                $number = 'EXP-'.$year.'-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('expenses.expense', 'EXP', $expense->expense_date);
             }
 
             $creditAccount = $this->resolveSettlementCreditAccount($expense);

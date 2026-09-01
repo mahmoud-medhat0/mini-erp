@@ -6,8 +6,10 @@ use App\Domain\Audit\AuditLogger;
 use App\Models\Branch;
 use App\Models\User;
 use App\Support\Concurrency\OptimisticLock;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class BranchSettingsService
@@ -65,7 +67,7 @@ class BranchSettingsService
     /**
      * @param  array<string, mixed>  $validated
      */
-    public function update(string $branchId, array $validated, bool $isActive, int $actorId): void
+    public function update(string $branchId, array $validated, ?bool $isActive, int $actorId): void
     {
         $before = (array) DB::table('branch')->where('id', $branchId)->first();
 
@@ -74,8 +76,11 @@ class BranchSettingsService
         $payload = [
             'code' => $validated['code'],
             'name' => $this->branchNameJson($validated),
-            'is_active' => $isActive,
         ];
+
+        if ($isActive !== null) {
+            $payload['is_active'] = $isActive;
+        }
 
         if (isset($validated['lock_version'])) {
             $this->optimisticLock->update('branch', ['id' => $branchId], (int) $validated['lock_version'], $payload);
@@ -92,7 +97,13 @@ class BranchSettingsService
 
         abort_if(! $branch, 404);
 
-        DB::table('branch')->where('id', $branchId)->delete();
+        try {
+            DB::table('branch')->where('id', $branchId)->delete();
+        } catch (QueryException) {
+            throw ValidationException::withMessages([
+                'branch' => __('This branch is already used by operational or accounting records. Deactivate it instead of deleting it.'),
+            ]);
+        }
 
         $this->auditLogger->record($actorId, 'branch.delete', 'branch', $branchId, before: (array) $branch);
     }

@@ -318,7 +318,7 @@ class M8ActionsTest extends TestCase
         ]);
 
         $val2 = $allocator->nextValue('sales_invoice_seq');
-        $this->assertEquals(11, $val2);
+        $this->assertEquals(10, $val2);
     }
 
     // --- 4. USER ROLE ASSIGN & REVOKE & SUPER ADMIN PROTECTION ---

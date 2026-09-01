@@ -46,8 +46,8 @@ class FinancialPeriodController extends Controller
 
         $validated = $request->validate([
             'year' => ['required', 'integer', 'min:2000', 'max:2100', 'unique:fiscal_year,year'],
-            'start_date' => ['required', 'date'],
-            'end_date' => ['required', 'date', 'after:start_date'],
+            'start_date' => ['required', 'date_format:Y-m-d'],
+            'end_date' => ['required', 'date_format:Y-m-d', 'after:start_date'],
         ], [
             'year.unique' => __('Fiscal year :year already exists.', ['year' => $request->input('year')]),
             'year.required' => __('Fiscal year is required.'),
@@ -56,11 +56,7 @@ class FinancialPeriodController extends Controller
             'end_date.after' => __('End date must be after start date.'),
         ]);
 
-        try {
-            $this->periodService->createFiscalYear($validated['year'], $validated['start_date'], $validated['end_date']);
-        } catch (\InvalidArgumentException $e) {
-            return redirect()->back()->withErrors(['year' => __('Fiscal year :year already exists.', ['year' => $validated['year']])]);
-        }
+        $this->periodService->createFiscalYear($validated['year'], $validated['start_date'], $validated['end_date']);
 
         return redirect()->back()->with('success', __('Fiscal Year created with 12 monthly periods.'));
     }

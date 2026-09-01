@@ -3,8 +3,9 @@ import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
+import { StockMovementsDataTable } from '../../Components/OperationalReportDataTables';
 import ReportFilterPanel from '../../Components/ReportFilterPanel';
-import { Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, MetricCard, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
@@ -158,28 +159,6 @@ export default function StockMovementsReport({ locale, reportData, filters, prod
     router.get('/reports/stock-movements', {}, { preserveState: true, preserveScroll: true });
   }
 
-  function movementTone(movement: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' {
-    if (movement === 'receipt' || movement === 'transfer_in') return 'ok';
-    if (movement === 'issue' || movement === 'transfer_out' || movement === 'scrap') return 'warning';
-    if (movement === 'adjustment') return 'info';
-
-    return 'muted';
-  }
-
-  function movementLabel(movement: string): string {
-    const labels: Record<string, string> = {
-      receipt: pageDict.receipt,
-      issue: pageDict.issue,
-      reversal: pageDict.reversal,
-      scrap: pageDict.scrap,
-      transfer_out: pageDict.transferOut,
-      transfer_in: pageDict.transferIn,
-      adjustment: pageDict.adjustment,
-    };
-
-    return labels[movement] || movement;
-  }
-
   return (
     <AppLayout active="reports.stock-movements">
       <Head title={pageDict.headTitle} />
@@ -256,74 +235,14 @@ export default function StockMovementsReport({ locale, reportData, filters, prod
           />
         </div>
 
-        {reportData.rows.length === 0 ? (
-          <EmptyState title={pageDict.emptyTitle} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.date}</th>
-                  <th className={tableClasses.th}>{pageDict.type}</th>
-                  <th className={tableClasses.th}>{pageDict.warehouse}</th>
-                  <th className={tableClasses.th}>{pageDict.source}</th>
-                  <th className={tableClasses.th}>{pageDict.product}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.qtyDelta}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.valueDelta}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.postBalance}</th>
-                  <th className={tableClasses.th}>{pageDict.journal}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-[var(--background)]">
-                    <td className={tableClasses.td}>{row.movement_date}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={movementTone(row.movement_type)}>{movementLabel(row.movement_type)}</StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-48 flex-col gap-1">
-                        <span className="font-mono text-xs font-bold">{row.warehouse_code || pageDict.notAssigned}</span>
-                        <span className="text-xs text-[var(--text-secondary)]">
-                          {getLocalizedName(row.warehouse_name, locale) || pageDict.notAssigned}
-                        </span>
-                        <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-                          {row.branch_code ? `${pageDict.branch}: ${row.branch_code} - ${getLocalizedName(row.branch_name, locale)}` : pageDict.notAssigned}
-                        </span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="font-mono text-xs text-[var(--text-secondary)]">{row.source_type}</span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="font-semibold">{row.product_code}</span>
-                      <span className="ms-2 text-xs text-[var(--text-secondary)]">{getLocalizedName(row.product_name, locale)}</span>
-                    </td>
-                    <td className={`${tableClasses.td} text-end font-mono font-bold ${row.quantity_delta_e6 >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {row.quantity_delta_e6 >= 0 ? '+' : ''}{formatQuantityE6(row.quantity_delta_e6)} {row.uom_code}
-                    </td>
-                    <td className={`${tableClasses.td} text-end font-mono font-bold ${row.value_delta_minor >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                      {row.value_delta_minor >= 0 ? '+' : ''}{formatMoney(row.value_delta_minor, row.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>
-                      {formatQuantityE6(row.balance_quantity_e6)} {row.uom_code}
-                      <span className="ms-2 text-[var(--text-secondary)]">
-                        {formatMoney(row.balance_valuation_amount_minor, row.currency)}
-                      </span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {row.journal_entry_number ? (
-                        <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">{row.journal_entry_number}</span>
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)]">{accDict.notAvailable}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Card>
+          <StockMovementsDataTable
+            filters={filters}
+            labels={pageDict}
+            locale={locale}
+            notAvailable={accDict.notAvailable}
+          />
+        </Card>
       </div>
     </AppLayout>
   );

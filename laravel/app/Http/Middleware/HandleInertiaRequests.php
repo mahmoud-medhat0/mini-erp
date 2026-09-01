@@ -73,7 +73,7 @@ class HandleInertiaRequests extends Middleware
                             'type' => $n->type,
                             'targetRef' => $n->target_ref,
                             'read' => (bool) $n->read,
-                            'at' => (string) $n->at,
+                            'at' => $n->at === null ? null : (string) $n->at,
                         ])
                         ->all()
                     : [],

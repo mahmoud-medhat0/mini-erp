@@ -19,7 +19,8 @@ class CustomerOpeningBalancePageData
             'balances' => CustomerOpeningBalance::query()
                 ->with(['customer', 'fiscalYear', 'financialPeriod'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'customers' => Customer::query()->where('status', 'active')->orderBy('code')->get(),
             'fiscalYears' => FiscalYear::query()->open()->orderBy('year', 'desc')->get(),
             'periods' => FinancialPeriod::query()->with('fiscalYear')->openForPosting()->orderBy('start_date', 'asc')->get(),

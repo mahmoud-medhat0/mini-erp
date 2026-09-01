@@ -13,7 +13,6 @@ use App\Models\StockAdjustmentLine;
 use App\Models\StockBalance;
 use App\Models\Warehouse;
 use App\Support\Numbering\NumberSequenceAllocator;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -150,8 +149,7 @@ class StockAdjustmentService
             $number = $adjustment->number;
 
             if (! $number) {
-                $year = Carbon::parse($adjustment->adjustment_date)->format('Y');
-                $number = 'ADJ-'.$year.'-'.str_pad((string) $this->numberAllocator->nextValue('stock.adjustment'), 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('stock.adjustment', 'ADJ', $adjustment->adjustment_date);
             }
 
             $adjustment->update([

@@ -11,7 +11,6 @@ use App\Models\StockCount;
 use App\Models\StockCountLine;
 use App\Models\Warehouse;
 use App\Support\Numbering\NumberSequenceAllocator;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -133,8 +132,7 @@ class StockCountService
             $number = $count->number;
 
             if (! $number) {
-                $year = Carbon::parse($count->count_date)->format('Y');
-                $number = 'SC-'.$year.'-'.str_pad((string) $this->numberAllocator->nextValue('stock.count'), 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('stock.count', 'SC', $count->count_date);
             }
 
             $count->update([

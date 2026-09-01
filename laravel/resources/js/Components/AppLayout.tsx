@@ -1,10 +1,11 @@
-import { Link, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 
 import { changeLocale, getDictionary } from '../lib/i18n';
 import { useCan } from '../lib/permissions';
 import type { SharedPageProps } from '../Types/page';
 import TourGuide from './TourGuide';
+import UniversalPagination from './UniversalPagination';
 
 export type NavKey =
   | 'dashboard'
@@ -124,11 +125,143 @@ export type NavKey =
 type AppLayoutProps = {
   active: NavKey;
   children: ReactNode;
+  pagination?: 'auto' | 'manual' | 'none';
 };
+
+type FlashTone = 'success' | 'error';
+
+type FlashNotice = {
+  id: string;
+  message: string;
+  tone: FlashTone;
+};
+
+function buildFlashNotices(
+  flash: SharedPageProps['flash'] | null | undefined,
+  idPrefix: string,
+): FlashNotice[] {
+  const notices: FlashNotice[] = [];
+
+  if (typeof flash?.success === 'string' && flash.success.trim() !== '') {
+    notices.push({ id: `${idPrefix}-success`, message: flash.success, tone: 'success' });
+  }
+
+  if (typeof flash?.error === 'string' && flash.error.trim() !== '') {
+    notices.push({ id: `${idPrefix}-error`, message: flash.error, tone: 'error' });
+  }
+
+  return notices;
+}
+
+function FlashFeedback({
+  notice,
+  dismissLabel,
+  onDismiss,
+  onManualDismiss,
+}: {
+  notice: FlashNotice;
+  dismissLabel: string;
+  onDismiss: (id: string) => void;
+  onManualDismiss: (id: string, restoreFocus: boolean) => void;
+}) {
+  const dismissTimer = useRef<number | null>(null);
+  const isError = notice.tone === 'error';
+  const autoDismissAfter = isError ? 10_000 : 6_000;
+
+  const clearDismissTimer = useCallback(() => {
+    if (dismissTimer.current !== null) {
+      window.clearTimeout(dismissTimer.current);
+      dismissTimer.current = null;
+    }
+  }, []);
+
+  const scheduleDismiss = useCallback(() => {
+    clearDismissTimer();
+    dismissTimer.current = window.setTimeout(() => onDismiss(notice.id), autoDismissAfter);
+  }, [autoDismissAfter, clearDismissTimer, notice.id, onDismiss]);
+
+  useEffect(() => {
+    scheduleDismiss();
+
+    return clearDismissTimer;
+  }, [clearDismissTimer, scheduleDismiss]);
+
+  return (
+    <div
+      data-flash-feedback
+      data-flash-tone={notice.tone}
+      role={isError ? 'alert' : 'status'}
+      aria-live={isError ? 'assertive' : 'polite'}
+      aria-atomic="true"
+      onMouseEnter={clearDismissTimer}
+      onMouseLeave={scheduleDismiss}
+      onFocusCapture={clearDismissTimer}
+      onBlurCapture={(event) => {
+        const nextFocus = event.relatedTarget;
+        if (!(nextFocus instanceof Node) || !event.currentTarget.contains(nextFocus)) {
+          scheduleDismiss();
+        }
+      }}
+      className={`pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-xl shadow-slate-950/15 backdrop-blur-xl motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 ${
+        isError
+          ? 'border-red-500/30 bg-red-50/95 text-red-900 dark:bg-red-950/95 dark:text-red-100'
+          : 'border-emerald-500/30 bg-emerald-50/95 text-emerald-900 dark:bg-emerald-950/95 dark:text-emerald-100'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${
+          isError
+            ? 'bg-red-600 text-white dark:bg-red-500'
+            : 'bg-emerald-600 text-white dark:bg-emerald-500'
+        }`}
+      >
+        {isError ? (
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+        ) : (
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </span>
+
+      <p dir="auto" className="m-0 min-w-0 flex-1 break-words pt-1 text-sm font-semibold leading-6">
+        {notice.message}
+      </p>
+
+      <button
+        data-flash-dismiss
+        type="button"
+        aria-label={dismissLabel}
+        title={dismissLabel}
+        onClick={(event) => onManualDismiss(notice.id, event.detail === 0)}
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-current opacity-70 transition hover:bg-black/5 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:hover:bg-white/10"
+      >
+        <span aria-hidden="true" className="text-xl leading-none">&times;</span>
+      </button>
+    </div>
+  );
+}
 
 type NavPermission = string | string[];
 
 const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
+  settings: [
+    'settings.view',
+    'settings.configure',
+    'settings.company',
+    'settings.branches',
+    'settings.numbering',
+    'users.configure',
+    'approvals.configure',
+    'audit.view',
+  ],
+  'settings.company': ['settings.company', 'settings.configure'],
+  'settings.branches': ['settings.branches', 'settings.configure'],
+  'settings.numbering': ['settings.numbering', 'settings.configure'],
+  'settings.users': ['users.configure', 'settings.configure'],
   'projects.index': 'projects.view',
   'cost-centers.index': 'costCenters.view',
   'budgeting.budgets': 'budgeting.view',
@@ -218,9 +351,14 @@ const NAV_PERMS_FALLBACK: Partial<Record<NavKey, NavPermission>> = {
   'settings.branch_approval_rules': 'settings.configure',
 };
 
-export default function AppLayout({ active, children }: AppLayoutProps) {
+export default function AppLayout({ active, children, pagination = 'auto' }: AppLayoutProps) {
   const page = usePage<SharedPageProps>();
   const { props } = page;
+  const mainContentRef = useRef<HTMLElement>(null);
+  const flashSequence = useRef(0);
+  const [flashNotices, setFlashNotices] = useState<FlashNotice[]>(() =>
+    buildFlashNotices(props.flash, 'flash-initial'),
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -248,6 +386,24 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const accDict = dict.app.accounting;
   const taxesDict = dict.app.taxes;
   const { post, processing } = useForm({});
+
+  const dismissFlash = useCallback((id: string) => {
+    setFlashNotices((current) => current.filter((notice) => notice.id !== id));
+  }, []);
+
+  const dismissFlashManually = useCallback((id: string, restoreFocus: boolean) => {
+    dismissFlash(id);
+
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => mainContentRef.current?.focus({ preventScroll: true }));
+    }
+  }, [dismissFlash]);
+
+  useEffect(() => router.on('success', (event) => {
+    const nextProps = event.detail.page.props as { flash?: SharedPageProps['flash'] };
+    flashSequence.current += 1;
+    setFlashNotices(buildFlashNotices(nextProps.flash, `flash-${flashSequence.current}`));
+  }), []);
 
   // Real live health check pinging backend /health endpoint
   useEffect(() => {
@@ -378,9 +534,25 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
   const showFixedAssetsGroup = can('fixedAssets.view');
   const showProjectsCostCentersGroup = can('projects.view') || can('costCenters.view') || (can('budgeting.view') && can('view_financials'));
   const showReportsGroup = can('reports.view');
+  const showAdministrationGroup = navAllowed('settings');
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200">
+      <div
+        data-flash-region
+        className="pointer-events-none fixed end-4 top-20 z-[70] flex w-[min(calc(100vw-2rem),28rem)] flex-col gap-3"
+      >
+        {flashNotices.map((notice) => (
+          <FlashFeedback
+            key={notice.id}
+            notice={notice}
+            dismissLabel={isRtl ? 'إغلاق الرسالة' : 'Dismiss message'}
+            onDismiss={dismissFlash}
+            onManualDismiss={dismissFlashManually}
+          />
+        ))}
+      </div>
+
       <div className="flex min-h-screen flex-col lg:flex-row">
         {/* Mobile backdrop overlay */}
         {mobileMenuOpen ? (
@@ -1334,6 +1506,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                 </div>
 
                 {/* 2. Administration & Settings Dropdown Group */}
+                {showAdministrationGroup ? (
                 <div className="space-y-1">
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
@@ -1454,6 +1627,7 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
                     </div>
                   ) : null}
                 </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1710,8 +1884,20 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
           </header>
 
           {/* Page Content Container */}
-          <main data-tour="page-content" className="flex-1 p-4 sm:p-6 lg:p-8">
-            <div className="mx-auto max-w-7xl">{children}</div>
+          <main
+            ref={mainContentRef}
+            data-tour="page-content"
+            tabIndex={-1}
+            className="flex-1 p-4 focus:outline-none sm:p-6 lg:p-8"
+          >
+            <div className="mx-auto max-w-7xl">
+              {children}
+              <UniversalPagination
+                locale={locale}
+                mode={pagination}
+                pageProps={props as unknown as Record<string, unknown>}
+              />
+            </div>
           </main>
         </div>
       </div>

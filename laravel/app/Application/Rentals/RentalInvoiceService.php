@@ -765,10 +765,7 @@ class RentalInvoiceService
 
     private function number(string $key, string $prefix, mixed $date): string
     {
-        $year = Carbon::parse($date)->format('Y');
-        $sequence = $this->numberAllocator->nextValue($key);
-
-        return $prefix.'-'.$year.'-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+        return $this->numberAllocator->nextNumber($key, $prefix, $date);
     }
 
     private function requiredUuid(mixed $value, string $field): string

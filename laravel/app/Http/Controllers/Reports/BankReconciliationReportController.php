@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Reports;
 use App\Application\Reports\BankReconciliationReportService;
 use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Reports\ReportFilterRequest;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,7 +16,7 @@ class BankReconciliationReportController extends Controller
         private readonly ReportPageOptions $options,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ReportFilterRequest $request): Response
     {
         $bankAccountId = $request->query('bank_account_id');
         $status = $request->query('status');

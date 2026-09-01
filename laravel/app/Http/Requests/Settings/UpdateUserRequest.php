@@ -30,6 +30,7 @@ class UpdateUserRequest extends FormRequest
             'locale' => ['nullable', 'string', Rule::in(['en', 'ar'])],
             'is_active' => ['nullable', 'boolean'],
             'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where('guard_name', 'web')],
+            'replace_role' => ['nullable', 'boolean'],
         ];
     }
 }

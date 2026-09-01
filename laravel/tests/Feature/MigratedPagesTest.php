@@ -66,17 +66,27 @@ class MigratedPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
-                ->where('counts.accounts', 0)
-                ->where('counts.postedJournals', 0)
-                ->where('counts.ledgerEntries', 0)
-                ->where('counts.unreadNotifications', 1)
+                ->missing('counts.accounts')
+                ->missing('counts.postedJournals')
+                ->missing('counts.ledgerEntries')
+                ->where('notifications.unreadCount', 1)
+                ->where('health.activeBranches', 1)
+                ->where('health.companyName', 'Demo Company')
                 ->missing('counts.companies')
                 ->missing('counts.branches')
                 ->etc());
 
         $this->get('/settings')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Settings/Index')->etc());
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Settings/Index')
+                ->where('overview.companyRecords', 1)
+                ->where('overview.activeBranches', 1)
+                ->where('overview.numberSequences', 1)
+                ->where('overview.activeUsers', 1)
+                ->where('overview.completedEssentials', 4)
+                ->where('overview.totalEssentials', 4)
+                ->etc());
 
         $this->get('/settings/company')
             ->assertOk()
@@ -111,8 +121,35 @@ class MigratedPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Notifications')
-                ->where('items.0.targetRef', 'demo:1')
+                ->where('items.data.0.targetRef', 'demo:1')
                 ->where('notifications.unreadCount', 1)
+                ->etc());
+    }
+
+    public function test_settings_hub_supports_scoped_administrators_without_leaking_other_section_counts(): void
+    {
+        $this->withoutVite();
+
+        Permission::findOrCreate('settings.company', 'web');
+        $user = User::factory()->create();
+        $user->givePermissionTo('settings.company');
+        Company::query()->create([
+            'id' => (string) Str::uuid(),
+            'name' => ['en' => 'Scoped Company', 'ar' => 'شركة محدودة'],
+        ]);
+
+        $this->actingAs($user)
+            ->get('/settings')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Settings/Index')
+                ->where('overview.companyRecords', 1)
+                ->where('overview.activeBranches', null)
+                ->where('overview.numberSequences', null)
+                ->where('overview.activeUsers', null)
+                ->where('overview.activeApprovalRules', null)
+                ->where('overview.completedEssentials', 1)
+                ->where('overview.totalEssentials', 1)
                 ->etc());
     }
 

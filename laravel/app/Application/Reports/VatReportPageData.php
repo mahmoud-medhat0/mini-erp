@@ -9,7 +9,7 @@ use App\Models\TaxCode;
 class VatReportPageData
 {
     public function __construct(
-        private readonly VatRegisterReportService $registerService,
+        private readonly VatRegisterDataTableService $registerDataTableService,
         private readonly VatSummaryReportService $summaryService,
         private readonly VatToGlReconciliationService $reconciliationService,
     ) {}
@@ -20,7 +20,7 @@ class VatReportPageData
      */
     public function register(array $filters): array
     {
-        $report = $this->registerService->generate($filters);
+        $report = $this->registerDataTableService->summary($filters);
         $report['currency'] = $this->baseCurrency();
 
         return [

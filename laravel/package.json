@@ -5,9 +5,12 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "e2e": "playwright test",
+        "e2e:ui": "playwright test --ui"
     },
     "devDependencies": {
+        "@playwright/test": "^1.62.1",
         "@tailwindcss/vite": "^4.0.0",
         "@types/react": "^19.2.18",
         "@types/react-dom": "^19.2.4",
@@ -23,6 +26,9 @@
     },
     "dependencies": {
         "@inertiajs/react": "^3.7.0",
+        "datatables.net-dt": "^3.0.3",
+        "datatables.net-react": "^1.0.2",
+        "datatables.net-responsive-dt": "^4.0.2",
         "react": "^19.2.8",
         "react-dom": "^19.2.8"
     }

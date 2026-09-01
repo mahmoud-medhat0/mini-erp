@@ -435,9 +435,7 @@ class SalesReturnService
 
             $number = $salesReturn->number;
             if (! $number) {
-                $orderYear = Carbon::parse($returnDate)->format('Y');
-                $seq = $this->numberAllocator->nextValue('sales.return');
-                $number = 'SR-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('sales.return', 'SR', $returnDate);
             }
 
             $salesReturn->number = $number;

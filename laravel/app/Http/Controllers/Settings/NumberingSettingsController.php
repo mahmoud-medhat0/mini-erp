@@ -21,6 +21,10 @@ class NumberingSettingsController extends Controller
     {
         return Inertia::render('Settings/Numbering', [
             'sequences' => $this->numberingSettingsService->sequences(),
+            'numberingContext' => [
+                'year' => now()->year,
+                'month' => now()->month,
+            ],
         ]);
     }
 
@@ -53,10 +57,10 @@ class NumberingSettingsController extends Controller
             'key' => ['required', 'string', 'max:100'],
             'doc_type' => ['required', 'string', 'max:100'],
             'prefix' => ['required', 'string', 'max:20'],
-            'include_year' => ['nullable'],
+            'include_year' => ['required', 'boolean'],
             'padding' => ['required', 'integer', 'min:1', 'max:12'],
             'reset_policy' => ['required', 'string', Rule::in(['never', 'yearly', 'monthly'])],
-            'next_value' => ['required', 'integer', 'min:0'],
+            'next_value' => ['required', 'integer', 'min:1'],
         ]);
     }
 }

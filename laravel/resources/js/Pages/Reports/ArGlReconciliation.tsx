@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
+import ArApReconciliationDataTable from '../../Components/ArApReconciliationDataTable';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
@@ -19,12 +20,6 @@ type ArGlReconciliationProps = SharedPageProps & {
     gl_total_minor: number;
     difference_minor: number;
     is_reconciled: boolean;
-    customer_breakdown: Array<{
-      customer_id: string;
-      customer_code: string;
-      customer_name: string;
-      subledger_balance_minor: number;
-    }>;
   };
   currencies: Array<{ code: string }>;
   filters: { as_of_date: string; currency: string };
@@ -148,33 +143,18 @@ export default function ArGlReconciliation({ locale, report, currencies, filters
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
             {dict.app.pages.reportsArGlReconciliation.customerSubledgerBalanceBreakdown}
           </div>
-          <table className="w-full text-start text-xs">
-            <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
-              <tr>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerCode}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.customerName}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsArGlReconciliation.subledgerOpenBalance}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {report.customer_breakdown.map((row) => (
-                <tr key={row.customer_id} className="hover:bg-[var(--background)]/30">
-                  <td className="p-3 font-mono font-bold">{row.customer_code}</td>
-                  <td className="p-3 font-medium">{row.customer_name}</td>
-                  <td className="p-3 text-end font-mono font-bold">
-                    {formatMoney(row.subledger_balance_minor, report.currency)}
-                  </td>
-                </tr>
-              ))}
-              {report.customer_breakdown.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="p-6 text-center text-[var(--text-muted)]">
-                    {dict.app.pages.reportsArGlReconciliation.noOpenCustomerSubledgerBalances}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <ArApReconciliationDataTable
+            currency={report.currency}
+            endpoint="/reports/ar-gl-reconciliation/data"
+            filters={{ as_of_date: filters.as_of_date, currency: filters.currency }}
+            labels={{
+              balance: dict.app.pages.reportsArGlReconciliation.subledgerOpenBalance,
+              code: dict.app.pages.reportsArGlReconciliation.customerCode,
+              name: dict.app.pages.reportsArGlReconciliation.customerName,
+            }}
+            locale={locale}
+            tableId="ar-gl-reconciliation-data-table"
+          />
         </Card>
       </div>
     </AppLayout>

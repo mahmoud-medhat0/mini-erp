@@ -21,7 +21,8 @@ class SupplierPaymentPageData
             'payments' => SupplierPayment::query()
                 ->with(['supplier', 'cashAccount', 'bankAccount', 'fiscalYear', 'financialPeriod'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('code')->get(),
             'cashAccounts' => CashAccount::query()->where('is_active', true)->orderBy('code')->get(),
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('code')->get(),

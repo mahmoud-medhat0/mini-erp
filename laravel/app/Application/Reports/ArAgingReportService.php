@@ -2,9 +2,8 @@
 
 namespace App\Application\Reports;
 
-use App\Models\ReceivableAllocation;
 use App\Models\ReceivableEntry;
-use App\Models\ReceivableEntrySettlement;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 class ArAgingReportService
@@ -17,11 +16,36 @@ class ArAgingReportService
     {
         $targetCurrency = $this->currencyResolver->resolve($currency);
         $asOf = Carbon::parse($asOfDate)->startOfDay();
+        $asOfEnd = $asOf->copy()->endOfDay();
+        $cutoff = $asOf->copy()->addDay();
 
         $query = ReceivableEntry::query()
             ->with('customer')
+            ->withSum(['allocations as allocated_as_of_minor' => function (Builder $query) use ($cutoff): void {
+                $query
+                    ->where('allocated_at', '<', $cutoff)
+                    ->where(function (Builder $lifecycle) use ($cutoff): void {
+                        $lifecycle->where(function (Builder $active): void {
+                            $active->where('status', 'active')->whereNull('reversed_at');
+                        })->orWhere(function (Builder $reversed) use ($cutoff): void {
+                            $reversed->where('status', 'reversed')->where('reversed_at', '>=', $cutoff);
+                        });
+                    });
+            }], 'amount_minor')
+            ->withSum(['targetSettlements as settled_as_of_minor' => function (Builder $query) use ($cutoff): void {
+                $query
+                    ->where('settled_at', '<', $cutoff)
+                    ->where(function (Builder $lifecycle) use ($cutoff): void {
+                        $lifecycle->where(function (Builder $active): void {
+                            $active->where('status', 'active')->whereNull('reversed_at');
+                        })->orWhere(function (Builder $reversed) use ($cutoff): void {
+                            $reversed->where('status', 'reversed')->where('reversed_at', '>=', $cutoff);
+                        });
+                    });
+            }], 'amount_minor')
             ->where('currency', $targetCurrency)
-            ->where('entry_date', '<=', $asOfDate.' 23:59:59');
+            ->where('entry_date', '<=', $asOfEnd)
+            ->whereColumn('debit_minor', '>', 'credit_minor');
 
         if ($customerId) {
             $query->where('customer_id', $customerId);
@@ -45,17 +69,8 @@ class ArAgingReportService
                 continue;
             }
 
-            $allocatedSum = (int) ReceivableAllocation::query()
-                ->where('receivable_entry_id', $entry->id)
-                ->where('status', 'active')
-                ->where('created_at', '<=', $asOfDate.' 23:59:59')
-                ->sum('amount_minor');
-
-            $settledSum = (int) ReceivableEntrySettlement::query()
-                ->where('target_receivable_entry_id', $entry->id)
-                ->where('status', 'active')
-                ->where('settled_at', '<=', Carbon::parse($asOfDate)->endOfDay())
-                ->sum('amount_minor');
+            $allocatedSum = (int) ($entry->allocated_as_of_minor ?? 0);
+            $settledSum = (int) ($entry->settled_as_of_minor ?? 0);
 
             $unappliedMinor = $origNet - $allocatedSum - $settledSum;
 

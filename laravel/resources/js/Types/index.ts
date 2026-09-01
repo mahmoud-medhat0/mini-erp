@@ -1,5 +1,14 @@
 export * from './page';
 
+/**
+ * Multilingual master-data name as delivered by Spatie Translatable.
+ *
+ * The backend sends `{ en, ar }` for translatable columns. Rendering that object
+ * directly in JSX throws React error #31 and blanks the whole page, so always
+ * pass these through `getLocalizedName(value, locale)` before display.
+ */
+export type TranslatedName = Record<string, string> | string | null;
+
 // --- Attachment & Notification Types ---
 export type AttachmentItem = {
   id: string;
@@ -16,10 +25,10 @@ export type AttachmentItem = {
 export type NotificationRow = {
   id: string;
   type: string;
-  target_ref?: string;
-  targetRef?: string;
+  target_ref?: string | null;
+  targetRef?: string | null;
   read: boolean;
-  at: string;
+  at: string | null;
 };
 
 export type PaginationLink = {

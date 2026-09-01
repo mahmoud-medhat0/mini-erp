@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\TreasuryTransferService;
 use App\Application\MasterData\BankAccountService;
 use App\Application\MasterData\CashAccountService;
@@ -20,6 +21,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
+use InvalidArgumentException;
 use Tests\TestCase;
 
 class Phase10TreasuryTransferTest extends TestCase
@@ -179,6 +181,39 @@ class Phase10TreasuryTransferTest extends TestCase
         $again = app(TreasuryTransferService::class)->post($transfer->id, $this->user->id);
         $this->assertSame($posted->journal_entry_id, $again->journal_entry_id);
         $this->assertSame(2, LedgerEntry::query()->where('journal_entry_id', $journal->id)->count());
+    }
+
+    public function test_draft_treasury_transfer_blocks_period_close(): void
+    {
+        $transfer = app(TreasuryTransferService::class)->create([
+            'transfer_date' => '2026-01-18',
+            'source_type' => 'cash',
+            'source_cash_account_id' => $this->cashAccount->id,
+            'destination_type' => 'bank',
+            'destination_bank_account_id' => $this->bankAccount->id,
+            'currency' => 'EGP',
+            'amount_minor' => 25000,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'financial_period_id' => $this->period->id,
+            'reference' => 'CLOSE-BLOCKER-TRF',
+        ], $this->user->id);
+
+        $periodService = app(PeriodService::class);
+        $readiness = $periodService->checkCloseReadiness($this->period);
+
+        $this->assertFalse($readiness['can_close']);
+        $this->assertTrue(collect($readiness['blockers'])->contains(
+            fn (array $blocker): bool => $blocker['entity_type'] === 'treasury_transfer'
+                && $blocker['id'] === $transfer->id
+                && $blocker['reason_code'] === 'unposted_treasury_transfer'
+        ));
+
+        try {
+            $periodService->closePeriod($this->period, $this->user->id);
+            $this->fail('A period with a draft treasury transfer must not close.');
+        } catch (InvalidArgumentException) {
+            $this->assertSame('open', $this->period->fresh()->status);
+        }
     }
 
     public function test_treasury_transfer_rejects_same_source_and_destination_account(): void

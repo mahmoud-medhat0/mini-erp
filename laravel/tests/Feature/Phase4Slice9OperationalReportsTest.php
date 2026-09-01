@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Application\Reports\CustomerInvoiceReportService;
+use App\Application\Reports\OperationalReportDataTableService;
 use App\Application\Reports\PurchaseOrderReportService;
 use App\Application\Reports\SalesOrderReportService;
 use App\Application\Reports\StockMovementReportService;
@@ -97,6 +98,13 @@ class Phase4Slice9OperationalReportsTest extends TestCase
             '/reports/customer-invoices',
             '/reports/supplier-bills',
             '/reports/stock-movements',
+            '/reports/sales-orders/data?draw=1&start=0&length=10',
+            '/reports/purchase-orders/data?draw=1&start=0&length=10',
+            '/reports/delivery-notes/data?draw=1&start=0&length=10',
+            '/reports/goods-receipts/data?draw=1&start=0&length=10',
+            '/reports/customer-invoices/data?draw=1&start=0&length=10',
+            '/reports/supplier-bills/data?draw=1&start=0&length=10',
+            '/reports/stock-movements/data?draw=1&start=0&length=10',
         ];
 
         foreach ($routes as $route) {
@@ -121,6 +129,217 @@ class Phase4Slice9OperationalReportsTest extends TestCase
             $response = $this->actingAs($this->adminUser)->get($route);
             $response->assertStatus(200);
             $response->assertInertia(fn ($page) => $page->component($component));
+        }
+    }
+
+    public function test_all_seven_operational_report_datatable_endpoints_return_server_side_payloads(): void
+    {
+        $routes = [
+            '/reports/sales-orders/data',
+            '/reports/purchase-orders/data',
+            '/reports/delivery-notes/data',
+            '/reports/goods-receipts/data',
+            '/reports/customer-invoices/data',
+            '/reports/supplier-bills/data',
+            '/reports/stock-movements/data',
+        ];
+
+        foreach ($routes as $route) {
+            $this->actingAs($this->adminUser)
+                ->getJson($route.'?draw=1&start=0&length=10')
+                ->assertOk()
+                ->assertJsonStructure([
+                    'draw',
+                    'recordsTotal',
+                    'recordsFiltered',
+                    'data',
+                ]);
+        }
+    }
+
+    public function test_operational_datatable_validates_filters_and_page_size(): void
+    {
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/stock-movements/data?product_id=invalid&date_from=31-08-2026&length=-1')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['product_id', 'date_from', 'length']);
+    }
+
+    public function test_operational_datatable_rejects_cross_report_and_malformed_order_columns(): void
+    {
+        $crossReportColumn = http_build_query([
+            'draw' => 1,
+            'start' => 0,
+            'length' => 10,
+            'columns' => [[
+                'data' => 'movement_date',
+                'name' => 'movement_date',
+                'searchable' => 'true',
+                'orderable' => 'true',
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]],
+            'order' => [['column' => 0, 'dir' => 'asc']],
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/sales-orders/data?'.$crossReportColumn)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['columns.0.data', 'columns.0.name']);
+
+        $outOfRangeOrder = http_build_query([
+            'draw' => 2,
+            'start' => 0,
+            'length' => 10,
+            'columns' => [[
+                'data' => 'order_number',
+                'name' => 'number',
+                'searchable' => 'true',
+                'orderable' => 'true',
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]],
+            'order' => [['column' => 11, 'dir' => 'desc']],
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/sales-orders/data?'.$outOfRangeOrder)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['order.0.column']);
+
+        $tamperedCapability = http_build_query([
+            'draw' => 3,
+            'start' => 0,
+            'length' => 10,
+            'columns' => [[
+                'data' => 'customer_name',
+                'name' => 'customer_name',
+                'searchable' => 'true',
+                'orderable' => 'true',
+                'search' => ['value' => '', 'regex' => 'false'],
+            ]],
+            'order' => [['column' => 0, 'dir' => 'asc']],
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/sales-orders/data?'.$tamperedCapability)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['columns.0.orderable', 'order.0.column']);
+    }
+
+    public function test_sales_order_datatable_searches_and_paginates_on_the_server(): void
+    {
+        foreach (range(1, 12) as $index) {
+            SalesOrder::query()->create([
+                'number' => $index === 12 ? 'SO-SEARCH-TARGET' : sprintf('SO-PAGE-%03d', $index),
+                'customer_id' => $this->customer->id,
+                'order_date' => '2026-08-22',
+                'status' => 'confirmed',
+                'currency' => 'EGP',
+                'subtotal_minor' => 1000,
+                'total_minor' => 1000,
+                'created_by' => $this->adminUser->id,
+                'updated_by' => $this->adminUser->id,
+                'lock_version' => 1,
+            ]);
+        }
+
+        $dataTableQuery = http_build_query([
+            'draw' => 4,
+            'start' => 0,
+            'length' => 10,
+            'search' => ['value' => '', 'regex' => 'false'],
+            'columns' => [
+                [
+                    'data' => 'order_number',
+                    'name' => 'number',
+                    'searchable' => 'true',
+                    'orderable' => 'true',
+                    'search' => ['value' => '', 'regex' => 'false'],
+                ],
+                [
+                    'data' => 'order_date',
+                    'name' => 'order_date',
+                    'searchable' => 'true',
+                    'orderable' => 'true',
+                    'search' => ['value' => '', 'regex' => 'false'],
+                ],
+            ],
+            'order' => [['column' => 1, 'dir' => 'desc']],
+        ]);
+
+        $page = $this->actingAs($this->adminUser)
+            ->getJson('/reports/sales-orders/data?'.$dataTableQuery);
+
+        $page->assertOk()
+            ->assertJsonPath('draw', 4)
+            ->assertJsonPath('recordsTotal', 12)
+            ->assertJsonCount(10, 'data');
+
+        $secondPageQuery = http_build_query(array_replace_recursive(
+            [
+                'draw' => 5,
+                'start' => 10,
+                'length' => 10,
+            ],
+            [
+                'search' => ['value' => '', 'regex' => 'false'],
+                'columns' => [
+                    [
+                        'data' => 'order_number',
+                        'name' => 'number',
+                        'searchable' => 'true',
+                        'orderable' => 'true',
+                        'search' => ['value' => '', 'regex' => 'false'],
+                    ],
+                    [
+                        'data' => 'order_date',
+                        'name' => 'order_date',
+                        'searchable' => 'true',
+                        'orderable' => 'true',
+                        'search' => ['value' => '', 'regex' => 'false'],
+                    ],
+                ],
+                'order' => [['column' => 1, 'dir' => 'desc']],
+            ],
+        ));
+
+        $secondPage = $this->actingAs($this->adminUser)
+            ->getJson('/reports/sales-orders/data?'.$secondPageQuery)
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $actualIds = collect($page->json('data'))
+            ->concat($secondPage->json('data'))
+            ->pluck('id')
+            ->all();
+        $expectedIds = SalesOrder::query()
+            ->orderByDesc('order_date')
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame($expectedIds, $actualIds, 'Server-side pagination must use a stable ID tie-breaker.');
+        $this->assertCount(12, array_unique($actualIds));
+
+        $search = $this->actingAs($this->adminUser)
+            ->getJson('/reports/sales-orders/data?draw=6&start=0&length=10&search%5Bvalue%5D=so-search-target');
+
+        $search->assertOk()
+            ->assertJsonPath('recordsTotal', 12)
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.order_number', 'SO-SEARCH-TARGET');
+
+        foreach (['confirmed', 'egp', '2026-08-22', 'report customer'] as $index => $visibleSearch) {
+            $query = http_build_query([
+                'draw' => 10 + $index,
+                'start' => 0,
+                'length' => 25,
+                'search' => ['value' => $visibleSearch, 'regex' => 'false'],
+            ]);
+
+            $this->actingAs($this->adminUser)
+                ->getJson('/reports/sales-orders/data?'.$query)
+                ->assertOk()
+                ->assertJsonPath('recordsFiltered', 12);
         }
     }
 
@@ -159,6 +378,13 @@ class Phase4Slice9OperationalReportsTest extends TestCase
         $this->assertEquals(10000, $result['summary']['total_amount_minor']);
         $this->assertCount(1, $result['rows']);
         $this->assertEquals('SO-2026-00001', $result['rows'][0]['order_number']);
+
+        $summary = app(OperationalReportDataTableService::class)->salesOrderSummary(
+            $this->operationalFilters(['customer_id' => $this->customer->id]),
+        );
+        $this->assertSame(1, $summary['total_orders_count']);
+        $this->assertSame(2000000, $summary['total_quantity_e6']);
+        $this->assertSame(10000, $summary['total_amount_minor']);
     }
 
     public function test_purchase_order_report_service_calculates_totals_and_filters(): void
@@ -196,6 +422,13 @@ class Phase4Slice9OperationalReportsTest extends TestCase
         $this->assertEquals(15000, $result['summary']['total_amount_minor']);
         $this->assertCount(1, $result['rows']);
         $this->assertEquals('PO-2026-00001', $result['rows'][0]['order_number']);
+
+        $summary = app(OperationalReportDataTableService::class)->purchaseOrderSummary(
+            $this->operationalFilters(['supplier_id' => $this->supplier->id]),
+        );
+        $this->assertSame(1, $summary['total_orders_count']);
+        $this->assertSame(3000000, $summary['total_quantity_e6']);
+        $this->assertSame(15000, $summary['total_amount_minor']);
     }
 
     public function test_customer_invoice_report_includes_journal_and_receivable_links(): void
@@ -282,6 +515,12 @@ class Phase4Slice9OperationalReportsTest extends TestCase
         $this->assertEquals(20000, $result['summary']['total_amount_minor']);
         $this->assertEquals('JV-2026-00001', $result['rows'][0]['journal_entry_number']);
         $this->assertEquals($receivable->id, $result['rows'][0]['receivable_entry_id']);
+
+        $summary = app(OperationalReportDataTableService::class)->customerInvoiceSummary(
+            $this->operationalFilters(['customer_id' => $this->customer->id]),
+        );
+        $this->assertSame(1, $summary['total_invoices_count']);
+        $this->assertSame(20000, $summary['total_amount_minor']);
     }
 
     public function test_stock_movement_report_service_reads_immutable_ledger(): void
@@ -309,6 +548,26 @@ class Phase4Slice9OperationalReportsTest extends TestCase
         $this->assertEquals(5000000, $result['summary']['total_quantity_delta_e6']);
         $this->assertEquals(25000, $result['summary']['total_value_delta_minor']);
         $this->assertEquals($sm->id, $result['rows'][0]['id']);
+
+        $summary = app(OperationalReportDataTableService::class)->stockMovementSummary(
+            $this->operationalFilters(['product_id' => $this->product->id]),
+        );
+        $this->assertSame(1, $summary['total_movements_count']);
+        $this->assertSame(5000000, $summary['total_quantity_delta_e6']);
+        $this->assertSame(25000, $summary['total_value_delta_minor']);
+
+        $searchQuery = http_build_query([
+            'draw' => 21,
+            'start' => 0,
+            'length' => 10,
+            'search' => ['value' => 'prd-rep-1', 'regex' => 'false'],
+        ]);
+
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/stock-movements/data?'.$searchQuery)
+            ->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.id', $sm->id);
     }
 
     public function test_operational_reports_perform_zero_database_mutations(): void
@@ -330,5 +589,25 @@ class Phase4Slice9OperationalReportsTest extends TestCase
         $this->assertEquals($poCountBefore, PurchaseOrder::count());
         $this->assertEquals($journalCountBefore, JournalEntry::count());
         $this->assertEquals($smCountBefore, StockMovementLedger::count());
+    }
+
+    /**
+     * @param  array<string, string|null>  $overrides
+     * @return array<string, string|null>
+     */
+    private function operationalFilters(array $overrides = []): array
+    {
+        return array_replace([
+            'date_from' => null,
+            'date_to' => null,
+            'status' => null,
+            'customer_id' => null,
+            'supplier_id' => null,
+            'product_id' => null,
+            'warehouse_id' => null,
+            'currency' => null,
+            'movement_type' => null,
+            'search' => null,
+        ], $overrides);
     }
 }

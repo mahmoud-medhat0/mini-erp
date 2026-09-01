@@ -127,7 +127,7 @@ class TreasuryTransferService
             $destination = $this->resolveEndpoint($transfer->toArray(), 'destination', lock: true);
             $this->assertCompatibleEndpoints($source, $destination, $transfer->toArray());
 
-            $number = $transfer->number ?: $this->nextNumber();
+            $number = $transfer->number ?: $this->nextNumber($transfer->transfer_date);
             $journal = $this->createJournal($transfer, $number, $source['gl_account_id'], $destination['gl_account_id'], (int) $actorId);
             $postedJournal = $this->postingEngine->post($journal, (int) $actorId, allowControlAccounts: true);
 
@@ -323,11 +323,9 @@ class TreasuryTransferService
         }
     }
 
-    private function nextNumber(): string
+    private function nextNumber(mixed $date): string
     {
-        $seq = $this->sequenceAllocator->nextValue('treasury.transfer');
-
-        return 'TRF-'.date('Y').'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+        return $this->sequenceAllocator->nextNumber('treasury.transfer', 'TRF', $date);
     }
 
     private function relations(): array

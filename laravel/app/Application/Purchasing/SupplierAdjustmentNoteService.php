@@ -432,9 +432,7 @@ class SupplierAdjustmentNoteService
 
             $number = $note->number;
             if (! $number) {
-                $year = Carbon::parse($note->adjustment_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('supplier.adjustment_note');
-                $number = 'SAN-'.$year.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('supplier.adjustment_note', 'SAN', $note->adjustment_date);
             }
 
             $before = $note->toArray();

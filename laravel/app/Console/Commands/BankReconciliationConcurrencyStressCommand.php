@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Application\Accounting\BankReconciliationService;
 use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\BankAccount;
@@ -22,7 +23,7 @@ use Illuminate\Support\Str;
 
 class BankReconciliationConcurrencyStressCommand extends Command
 {
-    use ResolvesStressCurrency;
+    use GuardsStressExecution, ResolvesStressCurrency;
 
     protected $signature = 'accounting:bank-reconciliation-concurrency-stress {--workers=50}';
 
@@ -30,6 +31,10 @@ class BankReconciliationConcurrencyStressCommand extends Command
 
     public function handle(BankReconciliationService $reconService, BaseCurrencyResolver $baseCurrencyResolver): int
     {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $workerCount = (int) $this->option('workers');
 
@@ -126,6 +131,7 @@ class BankReconciliationConcurrencyStressCommand extends Command
 
         $actorId = $fixture['user_id'];
         $stressYear = $fixture['stress_year'];
+        $this->reportStressRunTag($stressYear);
 
         // Scenario 1: Duplicate Match Pressure
         $this->info("Simulating {$workerCount} concurrent match attempts for the same candidate ledger entry..");

@@ -47,7 +47,7 @@ class UserSettingsController extends Controller
             $validated,
             $request->has('is_active'),
             $request->boolean('is_active', true),
-            $request->has('role_id'),
+            $request->boolean('replace_role') && $request->has('role_id'),
             $request->filled('password'),
             (int) $request->user()->id
         );

@@ -11,6 +11,7 @@ use App\Application\Accounting\ReceivableAllocationService;
 use App\Application\Accounting\SupplierOpeningBalanceService;
 use App\Application\Accounting\SupplierPaymentService;
 use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\CashAccount;
@@ -30,7 +31,7 @@ use Throwable;
 
 class AllocationConcurrencyStressCommand extends Command
 {
-    use ResolvesStressCurrency;
+    use GuardsStressExecution, ResolvesStressCurrency;
 
     protected $signature = 'accounting:allocation-concurrency-stress {--workers=50}';
 
@@ -45,6 +46,10 @@ class AllocationConcurrencyStressCommand extends Command
         SupplierPaymentService $paymentService,
         BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $workers = max(2, min((int) $this->option('workers'), 250));
         $this->info("Running Allocation Concurrency Stress Test on DB driver: [{$driver}] with [{$workers}] concurrent workers...");
@@ -62,6 +67,7 @@ class AllocationConcurrencyStressCommand extends Command
             $user = User::query()->first() ?? User::factory()->create();
             $currency = $this->resolveStressCurrency($baseCurrencyResolver);
             $suffix = Str::upper(Str::random(8));
+            $this->reportStressRunTag($suffix);
             $yearNum = random_int(2300, 8999);
 
             while (DB::table('fiscal_year')->where('year', $yearNum)->exists()) {

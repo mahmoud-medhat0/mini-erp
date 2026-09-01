@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
+import { BankBookDataTable } from '../../Components/CashBankBookDataTables';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
@@ -16,17 +17,6 @@ type BankBookProps = SharedPageProps & {
     date_from: string;
     date_to: string;
     opening_balance_minor: number;
-    entries: Array<{
-      ledger_entry_id: string;
-      entry_date: string;
-      journal_number: string;
-      description: string;
-      debit_minor: number;
-      credit_minor: number;
-      signed_movement_minor: number;
-      balance_after_minor: number;
-      is_reconciled: boolean;
-    }>;
     period_debit_minor: number;
     period_credit_minor: number;
     period_movement_minor: number;
@@ -166,59 +156,26 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
             </div>
 
             <Card className="overflow-hidden p-0">
-              <table className="w-full text-start text-xs">
-                <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
-                  <tr>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.date}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.journalRef}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.description}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.reconStatus}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.depositIn}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.withdrawalOut}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankBook.runningBalance}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-color)]">
-                  <tr className="bg-[var(--background)]/50 font-bold">
-                    <td colSpan={6} className="p-3">{dict.app.pages.reportsBankBook.openingBalancePriorToRange}</td>
-                    <td className="p-3 text-end">{formatMoney(report.opening_balance_minor, report.currency)}</td>
-                  </tr>
-                  {report.entries.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[var(--background)]/30">
-                      <td className="p-3">{item.entry_date}</td>
-                      <td className="p-3 font-mono">{item.journal_number}</td>
-                      <td className="p-3 text-[var(--text-secondary)]">{item.description}</td>
-                      <td className="p-3">
-                        {item.is_reconciled ? (
-                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                            {dict.app.pages.reportsBankBook.matched}
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-600 border border-slate-300">
-                            {dict.app.pages.reportsBankBook.unmatched}
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-end font-mono">
-                        {item.debit_minor > 0 ? formatMoney(item.debit_minor, report.currency) : accDict.zeroAmount}
-                      </td>
-                      <td className="p-3 text-end font-mono">
-                        {item.credit_minor > 0 ? formatMoney(item.credit_minor, report.currency) : accDict.zeroAmount}
-                      </td>
-                      <td className="p-3 text-end font-mono font-bold">
-                        {formatMoney(item.balance_after_minor, report.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                  {report.entries.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-6 text-center text-[var(--text-muted)]">
-                        {dict.app.pages.reportsBankBook.noBankMovementsFoundForThe}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+              <BankBookDataTable
+                key={`${filters.bank_account_id}-${filters.date_from}-${filters.date_to}`}
+                accountId={report.bank_account.id}
+                currency={report.currency}
+                dateFrom={report.date_from}
+                dateTo={report.date_to}
+                labels={{
+                  date: dict.app.pages.reportsBankBook.date,
+                  journalRef: dict.app.pages.reportsBankBook.journalRef,
+                  description: dict.app.pages.reportsBankBook.description,
+                  reconciliation: dict.app.pages.reportsBankBook.reconStatus,
+                  matched: dict.app.pages.reportsBankBook.matched,
+                  unmatched: dict.app.pages.reportsBankBook.unmatched,
+                  debit: dict.app.pages.reportsBankBook.depositIn,
+                  credit: dict.app.pages.reportsBankBook.withdrawalOut,
+                  runningBalance: dict.app.pages.reportsBankBook.runningBalance,
+                  zeroAmount: accDict.zeroAmount,
+                }}
+                locale={locale}
+              />
             </Card>
           </div>
         ) : (

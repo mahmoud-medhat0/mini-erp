@@ -74,21 +74,24 @@ class PurchaseOrderService
 
     public function update(string $id, array $data, ?int $actorId = null): PurchaseOrder
     {
-        /** @var PurchaseOrder $purchaseOrder */
-        $purchaseOrder = PurchaseOrder::query()->with(['lines'])->findOrFail($id);
+        return DB::transaction(function () use ($id, $data, $actorId): PurchaseOrder {
+            /** @var PurchaseOrder $purchaseOrder */
+            $purchaseOrder = PurchaseOrder::query()
+                ->with(['lines'])
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($purchaseOrder->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => [__('Only draft purchase orders can be updated.')]]);
-        }
+            if ($purchaseOrder->status !== 'draft') {
+                throw ValidationException::withMessages(['status' => [__('Only draft purchase orders can be updated.')]]);
+            }
 
-        if (isset($data['lock_version']) && (int) $data['lock_version'] !== $purchaseOrder->lock_version) {
-            throw ValidationException::withMessages(['lock_version' => [__('The record has been modified by another user. Please refresh and try again.')]]);
-        }
+            if (isset($data['lock_version']) && (int) $data['lock_version'] !== $purchaseOrder->lock_version) {
+                $this->throwConcurrentModification();
+            }
 
-        $headerData = $this->validateHeader($data, $purchaseOrder);
-        $linesData = $this->validateLines($data['lines'] ?? []);
-
-        return DB::transaction(function () use ($purchaseOrder, $headerData, $linesData, $actorId): PurchaseOrder {
+            $headerData = $this->validateHeader($data, $purchaseOrder);
+            $linesData = $this->validateLines($data['lines'] ?? []);
             $before = $purchaseOrder->toArray();
 
             $subtotalMinor = 0;
@@ -97,12 +100,11 @@ class PurchaseOrderService
             }
             $totalMinor = $subtotalMinor;
 
-            $purchaseOrder->update([
+            $this->conditionallyUpdateLockedOrder($purchaseOrder, ['draft'], [
                 ...$headerData,
                 'subtotal_minor' => $subtotalMinor,
                 'total_minor' => $totalMinor,
                 'updated_by' => $actorId,
-                'lock_version' => $purchaseOrder->lock_version + 1,
             ]);
 
             $purchaseOrder->lines()->delete();
@@ -136,26 +138,29 @@ class PurchaseOrderService
 
     public function submit(string $id, ?int $actorId = null): PurchaseOrder
     {
-        /** @var PurchaseOrder $purchaseOrder */
-        $purchaseOrder = PurchaseOrder::query()->with(['lines'])->findOrFail($id);
+        return DB::transaction(function () use ($id, $actorId): PurchaseOrder {
+            /** @var PurchaseOrder $purchaseOrder */
+            $purchaseOrder = PurchaseOrder::query()
+                ->with(['lines'])
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($purchaseOrder->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => [__('Only draft purchase orders can be submitted.')]]);
-        }
+            if ($purchaseOrder->status !== 'draft') {
+                throw ValidationException::withMessages(['status' => [__('Only draft purchase orders can be submitted.')]]);
+            }
 
-        if ($purchaseOrder->lines->isEmpty()) {
-            throw ValidationException::withMessages(['lines' => [__('Cannot submit a purchase order without line items.')]]);
-        }
+            if ($purchaseOrder->lines->isEmpty()) {
+                throw ValidationException::withMessages(['lines' => [__('Cannot submit a purchase order without line items.')]]);
+            }
 
-        return DB::transaction(function () use ($purchaseOrder, $actorId): PurchaseOrder {
             $before = $purchaseOrder->toArray();
 
-            $purchaseOrder->update([
+            $this->conditionallyUpdateLockedOrder($purchaseOrder, ['draft'], [
                 'status' => 'submitted',
                 'submitted_by' => $actorId,
                 'submitted_at' => Carbon::now(),
                 'updated_by' => $actorId,
-                'lock_version' => $purchaseOrder->lock_version + 1,
             ]);
 
             $this->auditLogger->record(
@@ -173,39 +178,40 @@ class PurchaseOrderService
 
     public function confirm(string $id, ?int $actorId = null): PurchaseOrder
     {
-        /** @var PurchaseOrder $purchaseOrder */
-        $purchaseOrder = PurchaseOrder::query()->with(['lines'])->findOrFail($id);
+        return DB::transaction(function () use ($id, $actorId): PurchaseOrder {
+            /** @var PurchaseOrder $purchaseOrder */
+            $purchaseOrder = PurchaseOrder::query()
+                ->with(['lines'])
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        // Idempotency replay check
-        if ($purchaseOrder->status === 'confirmed') {
-            return $purchaseOrder->load(['supplier', 'lines.product', 'lines.unitOfMeasure']);
-        }
+            // Idempotency is checked only after the authoritative row is locked.
+            if ($purchaseOrder->status === 'confirmed') {
+                return $purchaseOrder->load(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+            }
 
-        if (! in_array($purchaseOrder->status, ['draft', 'submitted'], true)) {
-            throw ValidationException::withMessages(['status' => [__('Only draft or submitted purchase orders can be confirmed.')]]);
-        }
+            if (! in_array($purchaseOrder->status, ['draft', 'submitted'], true)) {
+                throw ValidationException::withMessages(['status' => [__('Only draft or submitted purchase orders can be confirmed.')]]);
+            }
 
-        if ($purchaseOrder->lines->isEmpty()) {
-            throw ValidationException::withMessages(['lines' => [__('Cannot confirm a purchase order without line items.')]]);
-        }
+            if ($purchaseOrder->lines->isEmpty()) {
+                throw ValidationException::withMessages(['lines' => [__('Cannot confirm a purchase order without line items.')]]);
+            }
 
-        return DB::transaction(function () use ($purchaseOrder, $actorId): PurchaseOrder {
             $before = $purchaseOrder->toArray();
 
             $number = $purchaseOrder->number;
             if (! $number) {
-                $orderYear = Carbon::parse($purchaseOrder->order_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('purchase.order');
-                $number = 'PO-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('purchase.order', 'PO', $purchaseOrder->order_date);
             }
 
-            $purchaseOrder->update([
+            $this->conditionallyUpdateLockedOrder($purchaseOrder, ['draft', 'submitted'], [
                 'number' => $number,
                 'status' => 'confirmed',
                 'confirmed_by' => $actorId,
                 'confirmed_at' => Carbon::now(),
                 'updated_by' => $actorId,
-                'lock_version' => $purchaseOrder->lock_version + 1,
             ]);
 
             $this->auditLogger->record(
@@ -223,26 +229,28 @@ class PurchaseOrderService
 
     public function cancel(string $id, ?int $actorId = null): PurchaseOrder
     {
-        /** @var PurchaseOrder $purchaseOrder */
-        $purchaseOrder = PurchaseOrder::query()->findOrFail($id);
+        return DB::transaction(function () use ($id, $actorId): PurchaseOrder {
+            /** @var PurchaseOrder $purchaseOrder */
+            $purchaseOrder = PurchaseOrder::query()
+                ->where('id', $id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($purchaseOrder->status === 'confirmed') {
-            throw ValidationException::withMessages(['status' => [__('Confirmed purchase orders cannot be cancelled in this slice.')]]);
-        }
+            if ($purchaseOrder->status === 'confirmed') {
+                throw ValidationException::withMessages(['status' => [__('Confirmed purchase orders cannot be cancelled in this slice.')]]);
+            }
 
-        if ($purchaseOrder->status === 'cancelled') {
-            return $purchaseOrder->load(['supplier', 'lines.product', 'lines.unitOfMeasure']);
-        }
+            if ($purchaseOrder->status === 'cancelled') {
+                return $purchaseOrder->load(['supplier', 'lines.product', 'lines.unitOfMeasure']);
+            }
 
-        return DB::transaction(function () use ($purchaseOrder, $actorId): PurchaseOrder {
             $before = $purchaseOrder->toArray();
 
-            $purchaseOrder->update([
+            $this->conditionallyUpdateLockedOrder($purchaseOrder, ['draft', 'submitted'], [
                 'status' => 'cancelled',
                 'cancelled_by' => $actorId,
                 'cancelled_at' => Carbon::now(),
                 'updated_by' => $actorId,
-                'lock_version' => $purchaseOrder->lock_version + 1,
             ]);
 
             $this->auditLogger->record(
@@ -256,6 +264,39 @@ class PurchaseOrderService
 
             return $purchaseOrder->fresh(['supplier', 'lines.product', 'lines.unitOfMeasure']);
         });
+    }
+
+    /**
+     * Apply a state-sensitive write against the same version that was locked and
+     * authoritatively read. The conditional protects callers even if a future
+     * code path stops honouring the row-locking convention.
+     *
+     * @param  list<string>  $allowedStatuses
+     * @param  array<string, mixed>  $values
+     */
+    private function conditionallyUpdateLockedOrder(PurchaseOrder $purchaseOrder, array $allowedStatuses, array $values): void
+    {
+        $updated = PurchaseOrder::query()
+            ->where('id', $purchaseOrder->id)
+            ->whereIn('status', $allowedStatuses)
+            ->where('lock_version', $purchaseOrder->lock_version)
+            ->update([
+                ...$values,
+                'lock_version' => $purchaseOrder->lock_version + 1,
+            ]);
+
+        if ($updated !== 1) {
+            $this->throwConcurrentModification();
+        }
+
+        $purchaseOrder->refresh();
+    }
+
+    private function throwConcurrentModification(): never
+    {
+        throw ValidationException::withMessages([
+            'lock_version' => [__('The record has been modified by another user. Please refresh and try again.')],
+        ]);
     }
 
     private function validateHeader(array $data, ?PurchaseOrder $existingOrder = null): array

@@ -10,7 +10,7 @@ class RentalOperationsReportPageData
 {
     public const STATUSES = ['draft', 'submitted', 'approved', 'active', 'completed', 'cancelled'];
 
-    public function __construct(private readonly RentalOperationsReportService $reportService) {}
+    public function __construct(private readonly RentalOperationsDataTableService $dataTableService) {}
 
     /**
      * @param  array<string, mixed>  $filters
@@ -19,7 +19,7 @@ class RentalOperationsReportPageData
     public function indexData(array $filters): array
     {
         return [
-            'reportData' => $this->reportService->generate($filters),
+            'reportData' => $this->dataTableService->summary($filters),
             'filters' => $this->normalizedFilters($filters),
             'branches' => Branch::query()->orderBy('code')->get(['id', 'code', 'name', 'is_active']),
             'customers' => Customer::query()->where('status', 'active')->orderBy('code')->get(['id', 'code', 'name']),

@@ -170,7 +170,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
       <PageHeader
         title={dict.app.settings.sections.company.title}
         description={dict.app.settings.company.description}
-        actions={
+        actions={companies.length === 0 ? (
           <button
             type="button"
             onClick={() => {
@@ -186,7 +186,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
             </svg>
             <span>{dict.app.actions.addCompany}</span>
           </button>
-        }
+        ) : undefined}
       />
 
       {/* Add Company Form Panel */}

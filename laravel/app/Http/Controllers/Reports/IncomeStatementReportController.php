@@ -6,7 +6,7 @@ use App\Application\Reports\FinancialPeriodReportOptions;
 use App\Application\Reports\FinancialStatementCsvExporter;
 use App\Application\Reports\IncomeStatementReportService;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Reports\ReportFilterRequest;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,7 +20,7 @@ class IncomeStatementReportController extends Controller
         private FinancialPeriodReportOptions $periodOptions,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ReportFilterRequest $request): Response
     {
         Gate::authorize('reports.view');
         Gate::authorize('view_financials');
@@ -46,7 +46,7 @@ class IncomeStatementReportController extends Controller
         ]);
     }
 
-    public function exportCsv(Request $request): StreamedResponse
+    public function exportCsv(ReportFilterRequest $request): StreamedResponse
     {
         Gate::authorize('reports.view');
         Gate::authorize('reports.export');

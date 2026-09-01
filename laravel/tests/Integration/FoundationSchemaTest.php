@@ -52,7 +52,7 @@ class FoundationSchemaTest extends TestCase
         $this->assertFalse(Schema::hasColumn('notification', 'company_id'));
     }
 
-    public function test_branch_records_do_not_assume_company_ownership(): void
+    public function test_branch_codes_are_globally_unique_without_company_ownership(): void
     {
         Branch::query()->create([
             'id' => (string) Str::uuid(),
@@ -60,13 +60,13 @@ class FoundationSchemaTest extends TestCase
             'name' => ['en' => 'Main Branch', 'ar' => 'الفرع الرئيسي'],
         ]);
 
+        $this->expectException(QueryException::class);
+
         Branch::query()->create([
             'id' => (string) Str::uuid(),
             'code' => 'MAIN',
             'name' => ['en' => 'Duplicate Branch', 'ar' => 'فرع مكرر'],
         ]);
-
-        $this->assertSame(2, Branch::query()->where('code', 'MAIN')->count());
     }
 
     public function test_fiscal_years_are_global_and_financial_periods_belong_to_fiscal_years(): void

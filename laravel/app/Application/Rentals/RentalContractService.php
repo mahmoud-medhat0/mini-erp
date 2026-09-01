@@ -127,9 +127,7 @@ class RentalContractService
 
             $before = $contract->fresh($this->relations())->toArray();
             if (! $contract->number) {
-                $year = Carbon::parse($contract->contract_date)->format('Y');
-                $sequence = $this->numberAllocator->nextValue('rental.contract');
-                $contract->number = 'RENT-'.$year.'-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+                $contract->number = $this->numberAllocator->nextNumber('rental.contract', 'RENT', $contract->contract_date);
             }
 
             $contract->status = 'submitted';

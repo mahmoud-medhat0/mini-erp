@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\AccountingAccountMapping;
@@ -15,11 +16,12 @@ use App\Models\StockBalance;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AccountingInventoryConcurrencyStressCommand extends Command
 {
-    use ResolvesStressCurrency;
+    use GuardsStressExecution, ResolvesStressCurrency;
 
     protected $signature = 'accounting:inventory-concurrency-stress {--workers=50}';
 
@@ -27,130 +29,146 @@ class AccountingInventoryConcurrencyStressCommand extends Command
 
     public function handle(BaseCurrencyResolver $baseCurrencyResolver): int
     {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $workers = (int) $this->option('workers');
         $this->info("Starting Inventory Integrity Stress Test with {$workers} iterations...");
 
-        // Setup test user & baseline data
-        /** @var User $user */
-        $user = User::query()->firstOrCreate(['email' => 'stress-inventory@example.com'], [
-            'name' => 'Stress Inventory User',
-            'password' => 'stress-secret-123',
-            'locale' => 'en',
-        ]);
+        DB::beginTransaction();
 
-        $currencyCode = $this->resolveStressCurrency($baseCurrencyResolver);
-        $runId = now()->format('YmdHis').'-'.Str::lower(Str::random(8));
+        try {
+            // Setup test user & baseline data
+            /** @var User $user */
+            $user = User::query()->firstOrCreate(['email' => 'stress-inventory@example.com'], [
+                'name' => 'Stress Inventory User',
+                'password' => 'stress-secret-123',
+                'locale' => 'en',
+            ]);
 
-        $fiscalYear = FiscalYear::query()->firstOrCreate(['year' => 2026], [
-            'start_date' => '2026-01-01', 'end_date' => '2026-12-31', 'status' => 'open', 'created_by' => $user->id, 'updated_by' => $user->id, 'lock_version' => 1,
-        ]);
+            $currencyCode = $this->resolveStressCurrency($baseCurrencyResolver);
+            $runId = now()->format('YmdHis').'-'.Str::lower(Str::random(8));
+            $this->reportStressRunTag($runId);
 
-        $period = FinancialPeriod::query()->firstOrCreate(['fiscal_year_id' => $fiscalYear->id, 'month' => 1], [
-            'name' => 'January 2026', 'start_date' => '2026-01-01', 'end_date' => '2026-01-31', 'status' => 'open', 'created_by' => $user->id, 'updated_by' => $user->id, 'lock_version' => 1,
-        ]);
+            $stressYear = random_int(3000, 8999);
+            while (FiscalYear::query()->where('year', $stressYear)->exists()) {
+                $stressYear = random_int(3000, 8999);
+            }
 
-        $inventoryAcc = Account::query()->create([
-            'code' => "1300-STRESS-{$runId}",
-            'name' => 'Inventory Asset Stress', 'type' => 'asset', 'nature' => 'debit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
-        ]);
-        $grniAcc = Account::query()->create([
-            'code' => "2200-STRESS-{$runId}",
-            'name' => 'GRNI Clearing Stress', 'type' => 'liability', 'nature' => 'credit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
-        ]);
-        $cogsAcc = Account::query()->create([
-            'code' => "5200-STRESS-{$runId}",
-            'name' => 'COGS Stress', 'type' => 'expense', 'nature' => 'debit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
-        ]);
+            $fiscalYear = FiscalYear::query()->create([
+                'year' => $stressYear, 'start_date' => "{$stressYear}-01-01", 'end_date' => "{$stressYear}-12-31", 'status' => 'open', 'created_by' => $user->id, 'updated_by' => $user->id, 'lock_version' => 1,
+            ]);
 
-        AccountingAccountMapping::query()->updateOrCreate(['key' => 'inventory_asset', 'branch_id' => null], ['account_id' => $inventoryAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
-        AccountingAccountMapping::query()->updateOrCreate(['key' => 'grni_clearing', 'branch_id' => null], ['account_id' => $grniAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
-        AccountingAccountMapping::query()->updateOrCreate(['key' => 'cogs', 'branch_id' => null], ['account_id' => $cogsAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
+            $period = FinancialPeriod::query()->create([
+                'fiscal_year_id' => $fiscalYear->id, 'month' => 1, 'name' => "January {$stressYear}", 'start_date' => "{$stressYear}-01-01", 'end_date' => "{$stressYear}-01-31", 'status' => 'open', 'created_by' => $user->id, 'updated_by' => $user->id, 'lock_version' => 1,
+            ]);
 
-        $uom = UnitOfMeasure::query()->firstOrCreate(['code' => 'PCS-STR'], ['name' => ['en' => 'Pieces'], 'symbol' => 'pcs', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
-        $cat = ProductCategory::query()->firstOrCreate(['code' => 'CAT-STR'], ['name' => ['en' => 'Stress Cat'], 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
+            $inventoryAcc = Account::query()->create([
+                'code' => "1300-STRESS-{$runId}",
+                'name' => 'Inventory Asset Stress', 'type' => 'asset', 'nature' => 'debit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+            ]);
+            $grniAcc = Account::query()->create([
+                'code' => "2200-STRESS-{$runId}",
+                'name' => 'GRNI Clearing Stress', 'type' => 'liability', 'nature' => 'credit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+            ]);
+            $cogsAcc = Account::query()->create([
+                'code' => "5200-STRESS-{$runId}",
+                'name' => 'COGS Stress', 'type' => 'expense', 'nature' => 'debit', 'currency' => $currencyCode, 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id,
+            ]);
 
-        $product = Product::query()->create([
-            'code' => "PROD-STRESS-INV-{$runId}",
-            'name' => ['en' => "Stress Inventory Product {$runId}"],
-            'type' => 'stock',
-            'product_category_id' => $cat->id,
-            'unit_of_measure_id' => $uom->id,
-            'status' => 'active',
-            'is_sales_enabled' => true,
-            'is_purchase_enabled' => true,
-            'created_by' => $user->id,
-            'updated_by' => $user->id,
-            'lock_version' => 1,
-        ]);
+            AccountingAccountMapping::query()->updateOrCreate(['key' => 'inventory_asset', 'branch_id' => null], ['account_id' => $inventoryAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
+            AccountingAccountMapping::query()->updateOrCreate(['key' => 'grni_clearing', 'branch_id' => null], ['account_id' => $grniAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
+            AccountingAccountMapping::query()->updateOrCreate(['key' => 'cogs', 'branch_id' => null], ['account_id' => $cogsAcc->id, 'created_by' => $user->id, 'updated_by' => $user->id]);
 
-        /** @var MovingWeightedAverageInventoryService $inventoryService */
-        $inventoryService = app(MovingWeightedAverageInventoryService::class);
+            $uom = UnitOfMeasure::query()->firstOrCreate(['code' => 'PCS-STR'], ['name' => ['en' => 'Pieces'], 'symbol' => 'pcs', 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
+            $cat = ProductCategory::query()->firstOrCreate(['code' => 'CAT-STR'], ['name' => ['en' => 'Stress Cat'], 'is_active' => true, 'created_by' => $user->id, 'updated_by' => $user->id]);
 
-        $this->info("Executing {$workers} receipt iterations...");
-        $receiptQtyE6 = 1000000; // 1 unit
-        $unitCostMinor = 1000; // 10.00 in configured stress currency minor units.
+            $product = Product::query()->create([
+                'code' => "PROD-STRESS-INV-{$runId}",
+                'name' => ['en' => "Stress Inventory Product {$runId}"],
+                'type' => 'stock',
+                'product_category_id' => $cat->id,
+                'unit_of_measure_id' => $uom->id,
+                'status' => 'active',
+                'is_sales_enabled' => true,
+                'is_purchase_enabled' => true,
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+                'lock_version' => 1,
+            ]);
 
-        for ($i = 0; $i < $workers; $i++) {
-            $sourceId = (string) Str::uuid();
-            $sourceLineId = (string) Str::uuid();
+            /** @var MovingWeightedAverageInventoryService $inventoryService */
+            $inventoryService = app(MovingWeightedAverageInventoryService::class);
 
-            $inventoryService->recordReceipt(
-                sourceType: 'stress_gr',
-                sourceId: $sourceId,
-                sourceLineId: $sourceLineId,
-                movementDate: '2026-01-15',
-                productId: $product->id,
-                unitOfMeasureId: $uom->id,
-                currency: $currencyCode,
-                quantityE6: $receiptQtyE6,
-                unitCostMinor: $unitCostMinor,
-                fiscalYearId: $fiscalYear->id,
-                financialPeriodId: $period->id,
-                actorId: $user->id,
-            );
+            $this->info("Executing {$workers} receipt iterations...");
+            $receiptQtyE6 = 1000000; // 1 unit
+            $unitCostMinor = 1000; // 10.00 in configured stress currency minor units.
+
+            for ($i = 0; $i < $workers; $i++) {
+                $sourceId = (string) Str::uuid();
+                $sourceLineId = (string) Str::uuid();
+
+                $inventoryService->recordReceipt(
+                    sourceType: 'stress_gr',
+                    sourceId: $sourceId,
+                    sourceLineId: $sourceLineId,
+                    movementDate: "{$stressYear}-01-15",
+                    productId: $product->id,
+                    unitOfMeasureId: $uom->id,
+                    currency: $currencyCode,
+                    quantityE6: $receiptQtyE6,
+                    unitCostMinor: $unitCostMinor,
+                    fiscalYearId: $fiscalYear->id,
+                    financialPeriodId: $period->id,
+                    actorId: $user->id,
+                );
+            }
+
+            // Verify balance after receipts
+            /** @var StockBalance $balance */
+            $balance = StockBalance::query()->where('product_id', $product->id)->firstOrFail();
+            $expectedQtyE6 = $workers * $receiptQtyE6;
+            $expectedValuation = $workers * $unitCostMinor;
+
+            if ($balance->quantity_e6 !== $expectedQtyE6 || $balance->valuation_amount_minor !== $expectedValuation) {
+                $this->error("Stock balance mismatch after receipts! Qty: {$balance->quantity_e6} (expected {$expectedQtyE6}), Val: {$balance->valuation_amount_minor} (expected {$expectedValuation})");
+
+                return 1;
+            }
+
+            $this->info("Executing {$workers} issue iterations...");
+            for ($i = 0; $i < $workers; $i++) {
+                $sourceId = (string) Str::uuid();
+                $sourceLineId = (string) Str::uuid();
+
+                $inventoryService->recordIssue(
+                    sourceType: 'stress_dn',
+                    sourceId: $sourceId,
+                    sourceLineId: $sourceLineId,
+                    movementDate: "{$stressYear}-01-20",
+                    productId: $product->id,
+                    unitOfMeasureId: $uom->id,
+                    currency: $currencyCode,
+                    quantityE6: $receiptQtyE6,
+                    fiscalYearId: $fiscalYear->id,
+                    financialPeriodId: $period->id,
+                    actorId: $user->id,
+                );
+            }
+
+            $balance->refresh();
+            if ($balance->quantity_e6 !== 0 || $balance->valuation_amount_minor !== 0) {
+                $this->error("Stock balance residual mismatch after issues! Qty: {$balance->quantity_e6}, Val: {$balance->valuation_amount_minor}");
+
+                return 1;
+            }
+
+            $this->info('Inventory Integrity Stress Test completed successfully!');
+
+            return 0;
+        } finally {
+            DB::rollBack();
         }
-
-        // Verify balance after receipts
-        /** @var StockBalance $balance */
-        $balance = StockBalance::query()->where('product_id', $product->id)->firstOrFail();
-        $expectedQtyE6 = $workers * $receiptQtyE6;
-        $expectedValuation = $workers * $unitCostMinor;
-
-        if ($balance->quantity_e6 !== $expectedQtyE6 || $balance->valuation_amount_minor !== $expectedValuation) {
-            $this->error("Stock balance mismatch after receipts! Qty: {$balance->quantity_e6} (expected {$expectedQtyE6}), Val: {$balance->valuation_amount_minor} (expected {$expectedValuation})");
-
-            return 1;
-        }
-
-        $this->info("Executing {$workers} issue iterations...");
-        for ($i = 0; $i < $workers; $i++) {
-            $sourceId = (string) Str::uuid();
-            $sourceLineId = (string) Str::uuid();
-
-            $inventoryService->recordIssue(
-                sourceType: 'stress_dn',
-                sourceId: $sourceId,
-                sourceLineId: $sourceLineId,
-                movementDate: '2026-01-20',
-                productId: $product->id,
-                unitOfMeasureId: $uom->id,
-                currency: $currencyCode,
-                quantityE6: $receiptQtyE6,
-                fiscalYearId: $fiscalYear->id,
-                financialPeriodId: $period->id,
-                actorId: $user->id,
-            );
-        }
-
-        $balance->refresh();
-        if ($balance->quantity_e6 !== 0 || $balance->valuation_amount_minor !== 0) {
-            $this->error("Stock balance residual mismatch after issues! Qty: {$balance->quantity_e6}, Val: {$balance->valuation_amount_minor}");
-
-            return 1;
-        }
-
-        $this->info('Inventory Integrity Stress Test completed successfully!');
-
-        return 0;
     }
 }

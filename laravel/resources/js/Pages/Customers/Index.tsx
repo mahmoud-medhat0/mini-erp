@@ -4,12 +4,13 @@ import AppLayout from '../../Components/AppLayout';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import { getLocalizedName } from '../../lib/accountingHelpers';
+import type { PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
 
 type CustomerRow = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   status: 'active' | 'inactive';
   email?: string | null;
   phone?: string | null;
@@ -66,7 +67,7 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
     setEditingCustomer(customer);
     setData({
       code: customer.code,
-      name: customer.name,
+      name: getLocalizedName(customer.name, locale),
       status: customer.status,
       email: customer.email || '',
       phone: customer.phone || '',
@@ -189,7 +190,7 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
               {customers.data.map((customer) => (
                 <tr key={customer.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{customer.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{customer.name}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(customer.name, locale)}</td>
                   <td className={tableClasses.td}>{customer.phone || accDict.notAvailable}</td>
                   <td className={tableClasses.td}>{customer.email || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{customer.tax_number || accDict.notAvailable}</td>

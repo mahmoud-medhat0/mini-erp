@@ -131,9 +131,7 @@ class AccrualScheduleService
 
             $number = $schedule->number;
             if (! $number) {
-                $year = Carbon::parse($schedule->schedule_date)->format('Y');
-                $sequence = $this->numberAllocator->nextValue('expenses.accrual');
-                $number = 'ACCR-'.$year.'-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('expenses.accrual', 'ACCR', $schedule->schedule_date);
             }
 
             $before = $schedule->toArray();

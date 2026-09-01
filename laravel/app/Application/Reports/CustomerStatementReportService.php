@@ -8,6 +8,7 @@ use App\Models\CustomerReceipt;
 use App\Models\ReceivableEntry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CustomerStatementReportService
 {
@@ -20,64 +21,36 @@ class CustomerStatementReportService
         $customer = Customer::query()->findOrFail($customerId);
         $targetCurrency = $this->currencyResolver->resolve($currency);
 
-        // 1. Calculate opening balance before dateFrom (Opening Balance + Receivable Entries - Customer Receipts)
-        $obPrior = (int) CustomerOpeningBalance::query()
-            ->where('customer_id', $customerId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->where('entry_date', '<', $dateFrom)
-            ->sum('amount_minor');
-
-        $recEntriesPrior = (int) ReceivableEntry::query()
+        // ReceivableEntry is the canonical AR subledger. Posted opening balances,
+        // receipts, invoices, and adjustments each create exactly one such entry.
+        $openingBalanceMinor = (int) ReceivableEntry::query()
             ->where('customer_id', $customerId)
             ->where('currency', $targetCurrency)
             ->where('entry_date', '<', $dateFrom)
             ->sum(DB::raw('debit_minor - credit_minor'));
 
-        $receiptsPrior = (int) CustomerReceipt::query()
-            ->where('customer_id', $customerId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->where('receipt_date', '<', $dateFrom)
-            ->sum('amount_minor');
-
-        $openingBalanceMinor = $obPrior + $recEntriesPrior - $receiptsPrior;
-
-        // 2. Fetch movement lines inside dateFrom..dateTo
-        $movements = new Collection;
-
-        // Posted Opening Balances within range
-        $obs = CustomerOpeningBalance::query()
-            ->where('customer_id', $customerId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->whereBetween('entry_date', [$dateFrom, $dateTo])
-            ->get();
-
-        foreach ($obs as $ob) {
-            $movements->push([
-                'date' => $ob->entry_date,
-                'type' => 'Opening Balance',
-                'reference' => $ob->reference ?? 'OB-'.$ob->id,
-                'description' => $ob->description ?? 'Customer Opening Balance',
-                'debit_minor' => (int) $ob->amount_minor,
-                'credit_minor' => 0,
-                'created_at' => $ob->created_at,
-            ]);
-        }
-
-        // Receivable Entries within range
+        // Source documents are used only to enrich the human-readable reference;
+        // their monetary amounts must never be added beside the subledger entry.
         $recEntries = ReceivableEntry::query()
+            ->with('journalEntry:id,number,reference')
             ->where('customer_id', $customerId)
             ->where('currency', $targetCurrency)
             ->whereBetween('entry_date', [$dateFrom, $dateTo])
+            ->orderBy('entry_date')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
+        $sourceReferences = $this->sourceReferences($recEntries);
+        $movements = new Collection;
 
         foreach ($recEntries as $re) {
             $movements->push([
                 'date' => $re->entry_date,
-                'type' => 'Receivable Entry',
-                'reference' => 'RE-'.$re->id,
+                'type' => $this->typeLabel($re->source_type),
+                'reference' => $sourceReferences[$re->source_type.':'.$re->source_id]
+                    ?? $re->journalEntry?->reference
+                    ?? $re->journalEntry?->number
+                    ?? 'RE-'.$re->id,
                 'description' => $re->description ?? 'Receivable Entry',
                 'debit_minor' => (int) $re->debit_minor,
                 'credit_minor' => (int) $re->credit_minor,
@@ -85,35 +58,12 @@ class CustomerStatementReportService
             ]);
         }
 
-        // Customer Receipts within range
-        $receipts = CustomerReceipt::query()
-            ->where('customer_id', $customerId)
-            ->where('currency', $targetCurrency)
-            ->where('status', 'posted')
-            ->whereBetween('receipt_date', [$dateFrom, $dateTo])
-            ->get();
-
-        foreach ($receipts as $rc) {
-            $movements->push([
-                'date' => $rc->receipt_date,
-                'type' => 'Customer Receipt',
-                'reference' => $rc->number,
-                'description' => $rc->description ?? 'Customer Receipt',
-                'debit_minor' => 0,
-                'credit_minor' => (int) $rc->amount_minor,
-                'created_at' => $rc->created_at,
-            ]);
-        }
-
-        // Sort movements chronologically
-        $sorted = $movements->sortBy(fn ($item) => $item['date'].' '.$item['created_at'])->values();
-
         $runningBalance = $openingBalanceMinor;
         $totalDebit = 0;
         $totalCredit = 0;
         $lines = [];
 
-        foreach ($sorted as $item) {
+        foreach ($movements as $item) {
             $dr = $item['debit_minor'];
             $cr = $item['credit_minor'];
             $runningBalance += ($dr - $cr);
@@ -145,5 +95,43 @@ class CustomerStatementReportService
             'total_credit_minor' => $totalCredit,
             'closing_balance_minor' => $runningBalance,
         ];
+    }
+
+    /**
+     * Resolve references for source documents whose native reference is clearer
+     * than a subledger UUID. Amounts still come exclusively from ReceivableEntry.
+     *
+     * @param  Collection<int, ReceivableEntry>  $entries
+     * @return array<string, string>
+     */
+    private function sourceReferences(Collection $entries): array
+    {
+        $references = [];
+
+        CustomerOpeningBalance::query()
+            ->whereKey($entries->where('source_type', 'customer_opening_balance')->pluck('source_id')->filter()->unique())
+            ->get(['id', 'reference'])
+            ->each(function (CustomerOpeningBalance $balance) use (&$references): void {
+                $references['customer_opening_balance:'.$balance->id] = $balance->reference ?: 'OB-'.$balance->id;
+            });
+
+        CustomerReceipt::query()
+            ->whereKey($entries->where('source_type', 'customer_receipt')->pluck('source_id')->filter()->unique())
+            ->get(['id', 'number', 'reference'])
+            ->each(function (CustomerReceipt $receipt) use (&$references): void {
+                $references['customer_receipt:'.$receipt->id] = $receipt->number ?: ($receipt->reference ?: 'REC-'.$receipt->id);
+            });
+
+        return $references;
+    }
+
+    private function typeLabel(?string $sourceType): string
+    {
+        return match ($sourceType) {
+            'customer_opening_balance', 'opening_balance' => 'Opening Balance',
+            'customer_receipt' => 'Customer Receipt',
+            null, '' => 'Receivable Entry',
+            default => Str::headline($sourceType),
+        };
     }
 }

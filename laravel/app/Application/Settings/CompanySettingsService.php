@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\Concurrency\OptimisticLock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class CompanySettingsService
@@ -56,6 +57,12 @@ class CompanySettingsService
      */
     public function create(array $validated, int $actorId): string
     {
+        if (Company::query()->exists()) {
+            throw ValidationException::withMessages([
+                'company' => __('The business profile is already configured. Edit the existing profile instead.'),
+            ]);
+        }
+
         $id = $this->insertCompany($validated);
 
         $this->auditLogger->record($actorId, 'company.create', 'company', $id, after: $validated);
@@ -116,7 +123,7 @@ class CompanySettingsService
             'id' => $id,
             'name' => $this->companyNameJson($validated),
             'base_currency' => $validated['base_currency'],
-            'settings_json' => json_encode($this->settingsArray($validated), JSON_THROW_ON_ERROR),
+            'settings_json' => json_encode($this->settingsArray($validated, includeDefaults: true), JSON_THROW_ON_ERROR),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -128,13 +135,13 @@ class CompanySettingsService
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    private function settingsArray(array $validated): array
+    private function settingsArray(array $validated, bool $includeDefaults = false): array
     {
         return [
             'legal_name' => $validated['legal_name'] ?? null,
             'tax_number' => $validated['tax_number'] ?? null,
             'registration_number' => $validated['registration_number'] ?? null,
-            'fiscal_year_start_month' => $validated['fiscal_year_start_month'] ?? 1,
+            'fiscal_year_start_month' => $validated['fiscal_year_start_month'] ?? ($includeDefaults ? 1 : null),
             'phone' => $validated['phone'] ?? null,
             'email' => $validated['email'] ?? null,
             'website' => $validated['website'] ?? null,

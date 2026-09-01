@@ -1,5 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
@@ -10,18 +10,22 @@ type ExchangeRatesProps = SharedPageProps & {
   rates: {
     data: FxRateRow[];
     links: PaginationLink[];
+    total: number;
   };
   currencies?: CurrencyRow[];
   baseCurrency?: string | null;
   baseCurrencyRef?: CurrencyRow | null;
+  filters?: { search?: string | null };
+  activeCurrencyCount?: number;
 };
 
-export default function ExchangeRates({ locale, rates, currencies = [], baseCurrency = null, baseCurrencyRef = null }: ExchangeRatesProps) {
+export default function ExchangeRates({ locale, rates, currencies = [], baseCurrency = null, baseCurrencyRef = null, filters = {}, activeCurrencyCount = 0 }: ExchangeRatesProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const actionsDict = dict.app.actions;
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(filters.search || '');
+  const mounted = useRef(false);
   const baseCurrencyCode = baseCurrency ?? '';
   const foreignCurrencies = currencies.filter((c) => c.code !== baseCurrencyCode);
   const defaultCurrency = foreignCurrencies[0]?.code ?? '';
@@ -57,14 +61,22 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
     label: `${c.code} - ${getName(c.name)} (${c.symbol})`,
   }));
 
-  const filteredRates = rates.data.filter((r) => {
-    const q = search.toLowerCase();
-    return (
-      r.currency.toLowerCase().includes(q) ||
-      r.date.includes(q) ||
-      (r.currency_ref && getName(r.currency_ref.name).toLowerCase().includes(q))
-    );
-  });
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      router.get('/accounting/fx-rates', { search: search || undefined }, {
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   return (
     <AppLayout active="accounting.fx_rates">
@@ -111,7 +123,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {accDict.totalRateEntries}
               </span>
-              <p className="mt-1 text-2xl font-black font-mono text-[var(--text-primary)]">{rates.data.length}</p>
+              <p className="mt-1 text-2xl font-black font-mono text-[var(--text-primary)]">{rates.total}</p>
             </div>
             <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -128,7 +140,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
                 {accDict.activeFxCurrencies}
               </span>
               <p className="mt-1 text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                {new Set(rates.data.map((r) => r.currency)).size}
+                {activeCurrencyCount}
               </p>
             </div>
             <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -263,7 +275,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
-            {filteredRates.map((r, idx) => {
+            {rates.data.map((r, idx) => {
               const decimalValue = (r.rate_e6 / 1000000).toFixed(4);
               return (
                 <tr key={idx} className="hover:bg-[var(--background)]/50 transition-colors">
@@ -299,7 +311,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
                 </tr>
               );
             })}
-            {filteredRates.length === 0 ? (
+            {rates.data.length === 0 ? (
               <tr>
                 <td colSpan={4} className="p-6 text-center text-xs font-bold text-[var(--text-muted)]">
                   {accDict.noFxRates}

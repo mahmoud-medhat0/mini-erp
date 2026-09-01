@@ -67,17 +67,21 @@ use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalHandoverController;
 use App\Http\Controllers\RentalInvoiceController;
 use App\Http\Controllers\RentalReturnController;
+use App\Http\Controllers\Reports\AgingReportDataTableController;
 use App\Http\Controllers\Reports\ApAgingController;
 use App\Http\Controllers\Reports\ApToGlReconciliationController;
 use App\Http\Controllers\Reports\ArAgingController;
+use App\Http\Controllers\Reports\ArApReconciliationDataTableController;
 use App\Http\Controllers\Reports\ArToGlReconciliationController;
 use App\Http\Controllers\Reports\BalanceSheetReportController;
 use App\Http\Controllers\Reports\BankBookController;
 use App\Http\Controllers\Reports\BankReconciliationReportController;
 use App\Http\Controllers\Reports\BranchOperationalReportController;
 use App\Http\Controllers\Reports\BranchProfitabilityReportController;
+use App\Http\Controllers\Reports\CashBankBookDataTableController;
 use App\Http\Controllers\Reports\CashBookController;
 use App\Http\Controllers\Reports\CashFlowReportController;
+use App\Http\Controllers\Reports\ChequeRegisterDataTableController;
 use App\Http\Controllers\Reports\ChequeRegisterReportController;
 use App\Http\Controllers\Reports\CostCenterActualsReportController;
 use App\Http\Controllers\Reports\CustomerInvoiceReportController;
@@ -86,14 +90,18 @@ use App\Http\Controllers\Reports\DeliveryNoteReportController;
 use App\Http\Controllers\Reports\FixedAssetReportController;
 use App\Http\Controllers\Reports\GoodsReceiptReportController;
 use App\Http\Controllers\Reports\IncomeStatementReportController;
+use App\Http\Controllers\Reports\OperationalReportDataTableController;
+use App\Http\Controllers\Reports\PartnerStatementDataTableController;
 use App\Http\Controllers\Reports\ProjectProfitabilityReportController;
 use App\Http\Controllers\Reports\PurchaseOrderReportController;
+use App\Http\Controllers\Reports\RentalOperationsDataTableController;
 use App\Http\Controllers\Reports\RentalOperationsReportController;
 use App\Http\Controllers\Reports\ReportsHubController;
 use App\Http\Controllers\Reports\SalesOrderReportController;
 use App\Http\Controllers\Reports\StockMovementReportController;
 use App\Http\Controllers\Reports\SupplierBillReportController;
 use App\Http\Controllers\Reports\SupplierStatementController;
+use App\Http\Controllers\Reports\VatRegisterDataTableController;
 use App\Http\Controllers\Reports\VatReportController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
@@ -152,7 +160,7 @@ Route::middleware('auth')->group(function (): void {
     Route::redirect('/', '/dashboard')->name('foundation');
     Route::get('/foundation', FoundationController::class)->middleware('permission.any:settings.configure,audit.view')->name('foundation.diagnostics');
     Route::get('/dashboard', DashboardController::class)->middleware('can:dashboard.view')->name('dashboard');
-    Route::get('/settings', SettingsHomeController::class)->middleware('permission.any:settings.view,settings.configure')->name('settings');
+    Route::get('/settings', SettingsHomeController::class)->middleware('permission.any:settings.view,settings.configure,settings.company,settings.branches,settings.numbering,users.configure,approvals.configure,audit.view')->name('settings');
     Route::get('/settings/company', [CompanySettingsController::class, 'index'])->middleware('permission.any:settings.company,settings.configure')->name('settings.company');
     Route::post('/settings/company', [CompanySettingsController::class, 'store'])->middleware('permission.any:settings.company,settings.configure')->name('settings.company.store');
     Route::patch('/settings/company/{companyId?}', [CompanySettingsController::class, 'update'])->middleware('permission.any:settings.company,settings.configure')->name('settings.company.update');
@@ -313,34 +321,50 @@ Route::middleware('auth')->group(function (): void {
     Route::prefix('reports')->middleware('permission.all:reports.view,view_financials')->group(function (): void {
         Route::get('/', [ReportsHubController::class, 'index'])->name('reports.index');
         Route::get('/customer-statement', [CustomerStatementController::class, 'index'])->name('reports.customer-statement');
+        Route::get('/customer-statement/data', [PartnerStatementDataTableController::class, 'customer'])->name('reports.customer-statement.data');
         Route::get('/customer-statement/export', [CustomerStatementController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.customer-statement.export');
         Route::get('/supplier-statement', [SupplierStatementController::class, 'index'])->name('reports.supplier-statement');
+        Route::get('/supplier-statement/data', [PartnerStatementDataTableController::class, 'supplier'])->name('reports.supplier-statement.data');
         Route::get('/supplier-statement/export', [SupplierStatementController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.supplier-statement.export');
         Route::get('/ar-aging', [ArAgingController::class, 'index'])->name('reports.ar-aging');
+        Route::get('/ar-aging/data', [AgingReportDataTableController::class, 'accountsReceivable'])->name('reports.ar-aging.data');
         Route::get('/ar-aging/export', [ArAgingController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.ar-aging.export');
         Route::get('/ap-aging', [ApAgingController::class, 'index'])->name('reports.ap-aging');
+        Route::get('/ap-aging/data', [AgingReportDataTableController::class, 'accountsPayable'])->name('reports.ap-aging.data');
         Route::get('/ap-aging/export', [ApAgingController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.ap-aging.export');
         Route::get('/cash-book', [CashBookController::class, 'index'])->name('reports.cash-book');
+        Route::get('/cash-book/data', [CashBankBookDataTableController::class, 'cashBook'])->name('reports.cash-book.data');
         Route::get('/cash-book/export', [CashBookController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.cash-book.export');
         Route::get('/bank-book', [BankBookController::class, 'index'])->name('reports.bank-book');
+        Route::get('/bank-book/data', [CashBankBookDataTableController::class, 'bankBook'])->name('reports.bank-book.data');
         Route::get('/bank-book/export', [BankBookController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.bank-book.export');
         Route::get('/cheque-register', [ChequeRegisterReportController::class, 'index'])->name('reports.cheque-register');
+        Route::get('/cheque-register/data', ChequeRegisterDataTableController::class)->name('reports.cheque-register.data');
         Route::get('/cheque-register/export', [ChequeRegisterReportController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.cheque-register.export');
         Route::get('/bank-reconciliations', [BankReconciliationReportController::class, 'index'])->name('reports.bank-reconciliations');
         Route::get('/bank-reconciliations/{id}', [BankReconciliationReportController::class, 'show'])->name('reports.bank-reconciliations.show');
         Route::get('/ar-gl-reconciliation', [ArToGlReconciliationController::class, 'index'])->name('reports.ar-gl-reconciliation');
+        Route::get('/ar-gl-reconciliation/data', [ArApReconciliationDataTableController::class, 'accountsReceivable'])->name('reports.ar-gl-reconciliation.data');
         Route::get('/ar-gl-reconciliation/export', [ArToGlReconciliationController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.ar-gl-reconciliation.export');
         Route::get('/ap-gl-reconciliation', [ApToGlReconciliationController::class, 'index'])->name('reports.ap-gl-reconciliation');
+        Route::get('/ap-gl-reconciliation/data', [ArApReconciliationDataTableController::class, 'accountsPayable'])->name('reports.ap-gl-reconciliation.data');
         Route::get('/ap-gl-reconciliation/export', [ApToGlReconciliationController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.ap-gl-reconciliation.export');
 
         // Phase 4 Slice 9 Operational Reports
         Route::get('/sales-orders', [SalesOrderReportController::class, 'index'])->name('reports.sales-orders');
+        Route::get('/sales-orders/data', [OperationalReportDataTableController::class, 'salesOrders'])->name('reports.sales-orders.data');
         Route::get('/purchase-orders', [PurchaseOrderReportController::class, 'index'])->name('reports.purchase-orders');
+        Route::get('/purchase-orders/data', [OperationalReportDataTableController::class, 'purchaseOrders'])->name('reports.purchase-orders.data');
         Route::get('/delivery-notes', [DeliveryNoteReportController::class, 'index'])->name('reports.delivery-notes');
+        Route::get('/delivery-notes/data', [OperationalReportDataTableController::class, 'deliveryNotes'])->name('reports.delivery-notes.data');
         Route::get('/goods-receipts', [GoodsReceiptReportController::class, 'index'])->name('reports.goods-receipts');
+        Route::get('/goods-receipts/data', [OperationalReportDataTableController::class, 'goodsReceipts'])->name('reports.goods-receipts.data');
         Route::get('/customer-invoices', [CustomerInvoiceReportController::class, 'index'])->name('reports.customer-invoices');
+        Route::get('/customer-invoices/data', [OperationalReportDataTableController::class, 'customerInvoices'])->name('reports.customer-invoices.data');
         Route::get('/supplier-bills', [SupplierBillReportController::class, 'index'])->name('reports.supplier-bills');
+        Route::get('/supplier-bills/data', [OperationalReportDataTableController::class, 'supplierBills'])->name('reports.supplier-bills.data');
         Route::get('/stock-movements', [StockMovementReportController::class, 'index'])->name('reports.stock-movements');
+        Route::get('/stock-movements/data', [OperationalReportDataTableController::class, 'stockMovements'])->name('reports.stock-movements.data');
         Route::get('/branch-operations', [BranchOperationalReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.branch-operations');
         Route::get('/branch-profitability', [BranchProfitabilityReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.branch-profitability');
         Route::get('/branch-profitability/export', [BranchProfitabilityReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.branch-profitability.export');
@@ -349,6 +373,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/cost-center-actuals', [CostCenterActualsReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.cost-center-actuals');
         Route::get('/cost-center-actuals/export', [CostCenterActualsReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.cost-center-actuals.export');
         Route::get('/rentals', [RentalOperationsReportController::class, 'index'])->middleware('can:view_financials')->name('reports.rentals');
+        Route::get('/rentals/data', RentalOperationsDataTableController::class)->name('reports.rentals.data');
         Route::get('/rentals/export', [RentalOperationsReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.rentals.export');
 
         // Phase 5 Slice 2 & 3 Financial Statements Reports
@@ -373,6 +398,7 @@ Route::middleware('auth')->group(function (): void {
 
         // Phase 7 Slice 5 VAT Reports
         Route::get('/vat-register', [VatReportController::class, 'register'])->middleware('can:view_financials')->name('reports.vat-register');
+        Route::get('/vat-register/data', VatRegisterDataTableController::class)->name('reports.vat-register.data');
         Route::get('/vat-register/export', [VatReportController::class, 'exportRegister'])->middleware('permission.any:reports.export,taxes.view')->name('reports.vat-register.export');
         Route::get('/vat-summary', [VatReportController::class, 'summary'])->middleware('can:view_financials')->name('reports.vat-summary');
         Route::get('/vat-summary/export', [VatReportController::class, 'exportSummary'])->middleware('permission.any:reports.export,taxes.view')->name('reports.vat-summary.export');

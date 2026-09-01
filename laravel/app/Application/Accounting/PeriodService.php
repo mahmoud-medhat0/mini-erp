@@ -6,9 +6,12 @@ use App\Domain\Audit\AuditLogger;
 use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class PeriodService
@@ -20,24 +23,43 @@ class PeriodService
     public function createFiscalYear(int $year, string $startDate, string $endDate): FiscalYear
     {
         return DB::transaction(function () use ($year, $startDate, $endDate): FiscalYear {
-            $exists = FiscalYear::query()->where('year', $year)->exists();
-            if ($exists) {
-                throw new InvalidArgumentException(__('Fiscal year :year already exists.', ['year' => $year]));
+            [$start, $end] = $this->validateFiscalYearBounds($startDate, $endDate);
+
+            $this->lockFiscalYearCreation();
+
+            if (FiscalYear::query()->where('year', $year)->exists()) {
+                throw ValidationException::withMessages([
+                    'year' => [__('Fiscal year :year already exists.', ['year' => $year])],
+                ]);
+            }
+
+            $overlappingYear = FiscalYear::query()
+                ->whereDate('start_date', '<=', $end->toDateString())
+                ->whereDate('end_date', '>=', $start->toDateString())
+                ->orderBy('start_date')
+                ->first();
+
+            if ($overlappingYear) {
+                throw ValidationException::withMessages([
+                    'start_date' => [__('Fiscal year dates overlap fiscal year :year (:start to :end).', [
+                        'year' => $overlappingYear->year,
+                        'start' => $overlappingYear->start_date->format('Y-m-d'),
+                        'end' => $overlappingYear->end_date->format('Y-m-d'),
+                    ])],
+                ]);
             }
 
             $fiscalYear = FiscalYear::create([
                 'id' => (string) Str::uuid(),
                 'year' => $year,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
                 'status' => 'open',
             ]);
 
-            // Generate 12 monthly periods
-            $start = Carbon::parse($startDate);
             for ($month = 1; $month <= 12; $month++) {
-                $periodStart = $start->copy()->addMonths($month - 1)->startOfMonth();
-                $periodEnd = $periodStart->copy()->endOfMonth();
+                $periodStart = $start->addMonths($month - 1);
+                $periodEnd = $periodStart->endOfMonth();
 
                 FinancialPeriod::create([
                     'id' => (string) Str::uuid(),
@@ -51,6 +73,71 @@ class PeriodService
 
             return $fiscalYear->fresh(['periods']);
         });
+    }
+
+    /**
+     * A fiscal year is represented by exactly 12 consecutive, complete calendar
+     * months. This keeps every generated posting period inside its parent bounds.
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function validateFiscalYearBounds(string $startDate, string $endDate): array
+    {
+        $start = $this->parseIsoDate($startDate, 'start_date');
+        $end = $this->parseIsoDate($endDate, 'end_date');
+
+        if ($start->day !== 1) {
+            throw ValidationException::withMessages([
+                'start_date' => [__('Fiscal year start date must be the first day of a month.')],
+            ]);
+        }
+
+        $expectedEnd = $start->addMonths(12)->subDay();
+        if (! $end->equalTo($expectedEnd)) {
+            throw ValidationException::withMessages([
+                'end_date' => [__('Fiscal year must cover exactly 12 complete calendar months; for :start the end date must be :end.', [
+                    'start' => $start->toDateString(),
+                    'end' => $expectedEnd->toDateString(),
+                ])],
+            ]);
+        }
+
+        return [$start, $end];
+    }
+
+    private function parseIsoDate(string $value, string $field): CarbonImmutable
+    {
+        try {
+            $date = CarbonImmutable::createFromFormat('!Y-m-d', $value);
+        } catch (InvalidFormatException) {
+            $date = null;
+        }
+
+        if (! $date || $date->format('Y-m-d') !== $value) {
+            throw ValidationException::withMessages([
+                $field => [__('Fiscal year dates must use the YYYY-MM-DD format.')],
+            ]);
+        }
+
+        return $date;
+    }
+
+    /**
+     * PostgreSQL advisory locking prevents two concurrent requests from both
+     * passing the overlap check before either fiscal year is inserted.
+     */
+    private function lockFiscalYearCreation(): void
+    {
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::select('SELECT pg_advisory_xact_lock(CAST(? AS bigint))', [2026083101]);
+
+            return;
+        }
+
+        FiscalYear::query()
+            ->orderBy('year')
+            ->lockForUpdate()
+            ->get(['id']);
     }
 
     public function checkCloseReadiness(FinancialPeriod $period): array
@@ -234,6 +321,99 @@ class PeriodService
                 'date' => (string) $landedCost->allocation_date,
                 'reason_code' => 'unposted_landed_cost_allocation',
             ];
+        }
+
+        // Operational documents introduced after the original close-readiness flow.
+        if (Schema::hasTable('treasury_transfer')) {
+            $treasuryTransfers = DB::table('treasury_transfer')
+                ->where('status', 'draft')
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhereBetween('transfer_date', [$startDate, $endDate]);
+                })->get();
+            foreach ($treasuryTransfers as $transfer) {
+                $blockers[] = [
+                    'entity_type' => 'treasury_transfer',
+                    'id' => (string) $transfer->id,
+                    'number_or_reference' => (string) ($transfer->number ?? $transfer->reference ?? $transfer->id),
+                    'status' => (string) $transfer->status,
+                    'date' => (string) $transfer->transfer_date,
+                    'reason_code' => 'unposted_treasury_transfer',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('stock_adjustment')) {
+            $stockAdjustments = DB::table('stock_adjustment')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->whereBetween('adjustment_date', [$startDate, $endDate])
+                ->get();
+            foreach ($stockAdjustments as $adjustment) {
+                $blockers[] = [
+                    'entity_type' => 'stock_adjustment',
+                    'id' => (string) $adjustment->id,
+                    'number_or_reference' => (string) ($adjustment->number ?? $adjustment->reference ?? $adjustment->id),
+                    'status' => (string) $adjustment->status,
+                    'date' => (string) $adjustment->adjustment_date,
+                    'reason_code' => 'unposted_stock_adjustment',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('stock_count')) {
+            $stockCounts = DB::table('stock_count')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->whereBetween('count_date', [$startDate, $endDate])
+                ->get();
+            foreach ($stockCounts as $count) {
+                $blockers[] = [
+                    'entity_type' => 'stock_count',
+                    'id' => (string) $count->id,
+                    'number_or_reference' => (string) ($count->number ?? $count->reference ?? $count->id),
+                    'status' => (string) $count->status,
+                    'date' => (string) $count->count_date,
+                    'reason_code' => 'unposted_stock_count',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('stock_transfer')) {
+            $stockTransfers = DB::table('stock_transfer')
+                ->whereIn('status', ['draft', 'submitted', 'approved', 'issued', 'partially_received'])
+                ->whereBetween('transfer_date', [$startDate, $endDate])
+                ->get();
+            foreach ($stockTransfers as $transfer) {
+                $blockers[] = [
+                    'entity_type' => 'stock_transfer',
+                    'id' => (string) $transfer->id,
+                    'number_or_reference' => (string) ($transfer->number ?? $transfer->reference ?? $transfer->id),
+                    'status' => (string) $transfer->status,
+                    'date' => (string) $transfer->transfer_date,
+                    'reason_code' => 'incomplete_stock_transfer',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('fixed_asset_depreciation_schedule')) {
+            $depreciationSchedules = DB::table('fixed_asset_depreciation_schedule')
+                ->whereIn('status', ['planned', 'reversed'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhere(function ($dateRange) use ($startDate, $endDate) {
+                            $dateRange->where('period_start_date', '<=', $endDate)
+                                ->where('period_end_date', '>=', $startDate);
+                        });
+                })->get();
+            foreach ($depreciationSchedules as $schedule) {
+                $blockers[] = [
+                    'entity_type' => 'fixed_asset_depreciation_schedule',
+                    'id' => (string) $schedule->id,
+                    'number_or_reference' => (string) $schedule->id,
+                    'status' => (string) $schedule->status,
+                    'date' => (string) $schedule->period_end_date,
+                    'reason_code' => 'unposted_fixed_asset_depreciation',
+                ];
+            }
         }
 
         // 11. Expenses

@@ -21,7 +21,6 @@ use Database\Seeders\AccountingCoreSeeder;
 use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
-use InvalidArgumentException;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
@@ -253,7 +252,7 @@ class Phase3Slice5ChequeTest extends TestCase
         $this->assertEquals(0, $bounceRecEntry->credit_minor);
     }
 
-    public function test_incoming_cheque_post_clear_bounce_is_rejected_as_owner_decision_required(): void
+    public function test_incoming_cheque_post_clear_bounce_reverses_clearing_and_restores_ar(): void
     {
         $customer = Customer::query()->create(['code' => 'CUST-REJECT-1', 'name' => ['en' => 'Reject Customer']]);
 
@@ -272,12 +271,30 @@ class Phase3Slice5ChequeTest extends TestCase
         $received = $service->receive($cheque->id, $this->fiscalYear->id, $this->period->id, (string) $this->period->start_date, $this->user->id);
         $cleared = $service->clear($received->id, $this->fiscalYear->id, $this->period->id, (string) $this->period->start_date, $this->bankAccount->id, $this->user->id);
 
-        try {
-            $service->bounceBeforeClear($cleared->id, $this->fiscalYear->id, $this->period->id, (string) $this->period->start_date, 'Post-clear bounce attempt', $this->user->id);
-            $this->fail('Expected InvalidArgumentException for post-clear bounce.');
-        } catch (InvalidArgumentException $e) {
-            $this->assertStringContainsString('OWNER DECISION REQUIRED', $e->getMessage());
-        }
+        $journalCount = JournalEntry::query()->count();
+        $bounced = $service->bounceBeforeClear($cleared->id, $this->fiscalYear->id, $this->period->id, (string) $this->period->start_date, 'Post-clear bounce attempt', $this->user->id);
+
+        $this->assertSame('bounced', $bounced->status);
+        $this->assertNotNull($bounced->bounce_receivable_entry_id);
+        $this->assertSame($journalCount + 2, JournalEntry::query()->count());
+
+        $clearJournal = JournalEntry::query()->findOrFail($cleared->clear_journal_entry_id);
+        $this->assertSame('reversed', $clearJournal->status);
+        $this->assertNotNull($clearJournal->reversal_entry_id);
+
+        $reversal = JournalEntry::query()->with('lines')->findOrFail($clearJournal->reversal_entry_id);
+        $this->assertSame('posted', $reversal->status);
+        $this->assertSame($clearJournal->id, $reversal->reverses_entry_id);
+        $this->assertSame(100000, (int) $reversal->lines->firstWhere('account_id', $this->chequesUnderCollAccount->id)?->debit_minor);
+        $this->assertSame(100000, (int) $reversal->lines->firstWhere('account_id', $this->bankGlAccount->id)?->credit_minor);
+
+        $bounceJournal = JournalEntry::query()->with('lines')->findOrFail($bounced->bounce_journal_entry_id);
+        $this->assertSame(100000, (int) $bounceJournal->lines->firstWhere('account_id', $this->arControlAccount->id)?->debit_minor);
+        $this->assertSame(100000, (int) $bounceJournal->lines->firstWhere('account_id', $this->chequesUnderCollAccount->id)?->credit_minor);
+
+        $replayed = $service->bounceBeforeClear($bounced->id, $this->fiscalYear->id, $this->period->id, (string) $this->period->start_date, 'Post-clear bounce attempt', $this->user->id);
+        $this->assertSame($bounced->bounce_journal_entry_id, $replayed->bounce_journal_entry_id);
+        $this->assertSame($journalCount + 2, JournalEntry::query()->count());
     }
 
     public function test_outgoing_cheque_issue_clear_and_pre_clear_cancel(): void
@@ -354,6 +371,91 @@ class Phase3Slice5ChequeTest extends TestCase
         $this->assertNotNull($cancelPayEntry);
         $this->assertEquals(0, $cancelPayEntry->debit_minor);
         $this->assertEquals(300000, $cancelPayEntry->credit_minor);
+    }
+
+    public function test_incoming_cheque_post_clear_return_reverses_clearing(): void
+    {
+        $customer = Customer::query()->create(['code' => 'CUST-RETURN-CLEAR', 'name' => ['en' => 'Return Customer']]);
+        $service = app(IncomingChequeService::class);
+        $date = (string) $this->period->start_date;
+
+        $cheque = $service->createDraft([
+            'customer_id' => $customer->id,
+            'cheque_number' => 'PHYS-RETURN-CLEAR',
+            'drawer_bank_name' => 'HSBC',
+            'due_date' => '2026-01-15',
+            'currency' => 'EGP',
+            'amount_minor' => 125000,
+        ], $this->user->id);
+
+        $received = $service->receive($cheque->id, $this->fiscalYear->id, $this->period->id, $date, $this->user->id);
+        $cleared = $service->clear($received->id, $this->fiscalYear->id, $this->period->id, $date, $this->bankAccount->id, $this->user->id);
+        $returned = $service->returnBeforeClear($cleared->id, $this->fiscalYear->id, $this->period->id, $date, 'Bank returned after clearing', $this->user->id);
+
+        $this->assertSame('returned', $returned->status);
+        $this->assertNotNull($returned->return_receivable_entry_id);
+        $this->assertSame('reversed', JournalEntry::query()->findOrFail($cleared->clear_journal_entry_id)->status);
+        $this->assertSame(125000, (int) ReceivableEntry::query()->findOrFail($returned->return_receivable_entry_id)->debit_minor);
+    }
+
+    public function test_outgoing_cheque_post_clear_return_reverses_clearing_and_restores_ap(): void
+    {
+        $supplier = Supplier::query()->create(['code' => 'SUPP-RETURN-CLEAR', 'name' => ['en' => 'Return Supplier']]);
+        $service = app(OutgoingChequeService::class);
+        $date = (string) $this->period->start_date;
+
+        $cheque = $service->createDraft([
+            'supplier_id' => $supplier->id,
+            'bank_account_id' => $this->bankAccount->id,
+            'cheque_number' => 'PHYS-OUT-RETURN-CLEAR',
+            'due_date' => '2026-01-15',
+            'currency' => 'EGP',
+            'amount_minor' => 175000,
+        ], $this->user->id);
+
+        $issued = $service->issue($cheque->id, $this->fiscalYear->id, $this->period->id, $date, $this->user->id);
+        $cleared = $service->clear($issued->id, $this->fiscalYear->id, $this->period->id, $date, $this->user->id);
+        $returned = $service->returnBeforeClear($cleared->id, $this->fiscalYear->id, $this->period->id, $date, 'Supplier cheque returned after clearing', $this->user->id);
+
+        $this->assertSame('returned', $returned->status);
+        $this->assertNotNull($returned->return_payable_entry_id);
+
+        $clearJournal = JournalEntry::query()->findOrFail($cleared->clear_journal_entry_id);
+        $this->assertSame('reversed', $clearJournal->status);
+        $reversal = JournalEntry::query()->with('lines')->findOrFail($clearJournal->reversal_entry_id);
+        $this->assertSame($clearJournal->id, $reversal->reverses_entry_id);
+        $this->assertSame(175000, (int) $reversal->lines->firstWhere('account_id', $this->bankGlAccount->id)?->debit_minor);
+        $this->assertSame(175000, (int) $reversal->lines->firstWhere('account_id', $this->chequesPayableAccount->id)?->credit_minor);
+
+        $returnJournal = JournalEntry::query()->with('lines')->findOrFail($returned->return_journal_entry_id);
+        $this->assertSame(175000, (int) $returnJournal->lines->firstWhere('account_id', $this->chequesPayableAccount->id)?->debit_minor);
+        $this->assertSame(175000, (int) $returnJournal->lines->firstWhere('account_id', $this->apControlAccount->id)?->credit_minor);
+        $this->assertSame(175000, (int) PayableEntry::query()->findOrFail($returned->return_payable_entry_id)->credit_minor);
+    }
+
+    public function test_outgoing_cheque_post_clear_cancel_reverses_clearing(): void
+    {
+        $supplier = Supplier::query()->create(['code' => 'SUPP-CANCEL-CLEAR', 'name' => ['en' => 'Cancel Cleared Supplier']]);
+        $service = app(OutgoingChequeService::class);
+        $date = (string) $this->period->start_date;
+
+        $cheque = $service->createDraft([
+            'supplier_id' => $supplier->id,
+            'bank_account_id' => $this->bankAccount->id,
+            'cheque_number' => 'PHYS-OUT-CANCEL-CLEAR',
+            'due_date' => '2026-01-15',
+            'currency' => 'EGP',
+            'amount_minor' => 225000,
+        ], $this->user->id);
+
+        $issued = $service->issue($cheque->id, $this->fiscalYear->id, $this->period->id, $date, $this->user->id);
+        $cleared = $service->clear($issued->id, $this->fiscalYear->id, $this->period->id, $date, $this->user->id);
+        $cancelled = $service->cancelBeforeClear($cleared->id, $this->fiscalYear->id, $this->period->id, $date, 'Voided after bank clearing', $this->user->id);
+
+        $this->assertSame('cancelled', $cancelled->status);
+        $this->assertNotNull($cancelled->cancel_payable_entry_id);
+        $this->assertSame('reversed', JournalEntry::query()->findOrFail($cleared->clear_journal_entry_id)->status);
+        $this->assertSame(225000, (int) PayableEntry::query()->findOrFail($cancelled->cancel_payable_entry_id)->credit_minor);
     }
 
     public function test_attachment_registry_accepts_slice5_cheque_entities(): void

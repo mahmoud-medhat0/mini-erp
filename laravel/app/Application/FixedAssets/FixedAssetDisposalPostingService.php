@@ -170,8 +170,7 @@ class FixedAssetDisposalPostingService
                     }
 
                     // Number allocation
-                    $dispSeq = $this->numberSequenceAllocator->nextValue('fixed_asset_disposal');
-                    $dispNumber = sprintf('DISP-%s-%05d', Carbon::parse($disposalDate)->format('Y'), $dispSeq);
+                    $dispNumber = $this->numberSequenceAllocator->nextNumber('fixed_asset_disposal', 'DISP', $disposalDate);
 
                     $sourceId = (string) Str::uuid();
 

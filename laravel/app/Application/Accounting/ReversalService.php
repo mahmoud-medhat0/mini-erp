@@ -23,15 +23,19 @@ class ReversalService
     /**
      * Reverse a posted journal entry.
      */
-    public function reverse(JournalEntry $entry, string $reversalPeriodId, int $userId): JournalEntry
-    {
+    public function reverse(
+        JournalEntry $entry,
+        string $reversalPeriodId,
+        int $userId,
+        ?string $reversalDate = null,
+    ): JournalEntry {
         $idempotencyKey = AccountingKernel::postingIdempotencyKey('manual_journal', (string) $entry->id, 'reverse');
 
         $result = $this->idempotencyStore->run(
             operation: 'accounting.reverse',
             rawKey: $idempotencyKey,
-            callback: function () use ($entry, $reversalPeriodId, $userId): JournalEntry {
-                $reversalEntry = DB::transaction(function () use ($entry, $reversalPeriodId, $userId): JournalEntry {
+            callback: function () use ($entry, $reversalPeriodId, $userId, $reversalDate): JournalEntry {
+                $reversalEntry = DB::transaction(function () use ($entry, $reversalPeriodId, $userId, $reversalDate): JournalEntry {
                     // 1. Lock reversal period
                     $period = FinancialPeriod::query()
                         ->where('id', $reversalPeriodId)
@@ -56,15 +60,20 @@ class ReversalService
                         throw new InvalidArgumentException(__('Journal entry has already been reversed.'));
                     }
 
+                    $periodStart = substr((string) $period->start_date, 0, 10);
+                    $periodEnd = substr((string) $period->end_date, 0, 10);
+                    if ($reversalDate !== null && ($reversalDate < $periodStart || $reversalDate > $periodEnd)) {
+                        throw new InvalidArgumentException(__('Reversal date is outside the target reversal period.'));
+                    }
+
                     $today = now()->toDateString();
-                    $reversalDate = ($today >= $period->start_date && $today <= $period->end_date)
-                        ? $today
-                        : $period->start_date;
+                    $effectiveReversalDate = $reversalDate
+                        ?? (($today >= $periodStart && $today <= $periodEnd) ? $today : $periodStart);
 
                     // 3. Create draft reversal journal entry
                     $reversal = JournalEntry::create([
                         'id' => (string) Str::uuid(),
-                        'entry_date' => $reversalDate,
+                        'entry_date' => $effectiveReversalDate,
                         'financial_period_id' => $period->id,
                         'branch_id' => $original->branch_id,
                         'source_type' => 'reversal',

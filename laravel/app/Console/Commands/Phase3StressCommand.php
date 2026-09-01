@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -9,12 +10,18 @@ use Symfony\Component\Console\Command\Command as SymfonyCommand;
 
 class Phase3StressCommand extends Command
 {
+    use GuardsStressExecution;
+
     protected $signature = 'accounting:phase3-stress {--workers=50}';
 
     protected $description = 'Run orchestrator stress test for Phase 3 workflows (Receipts, Payments, Allocations, Cheques, Bank Reconciliations, Reports, Integrity).';
 
     public function handle(): int
     {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $workers = max(2, min((int) $this->option('workers'), 250));
 

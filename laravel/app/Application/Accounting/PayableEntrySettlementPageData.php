@@ -55,7 +55,8 @@ class PayableEntrySettlementPageData
             'existingSettlements' => PayableEntrySettlement::query()
                 ->with(['supplier', 'sourcePayableEntry', 'targetPayableEntry', 'creator', 'reverser'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('name')->get(),
             'filters' => [
                 'supplier_id' => $supplierId,

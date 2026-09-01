@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Permission;
@@ -443,6 +444,41 @@ class AttachmentAndNotificationTest extends TestCase
         $this->assertTrue($service->markRead($user->id, $first['id']));
         $this->assertFalse($service->markRead($other->id, $first['id']));
         $this->assertTrue((bool) DB::table('notification')->where('id', $first['id'])->value('read'));
+    }
+
+    public function test_notification_feed_is_server_paginated_and_filters_the_full_history(): void
+    {
+        $service = app(NotificationService::class);
+        $user = User::factory()->create();
+
+        foreach (range(1, 31) as $index) {
+            $notification = $service->create($user->id, 'system.alert', "alert:{$index}");
+
+            if ($index <= 12) {
+                $service->markRead($user->id, $notification['id']);
+            }
+        }
+
+        $this->actingAs($user)
+            ->get('/notifications')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Notifications')
+                ->where('items.total', 31)
+                ->has('items.data', 25)
+                ->where('counts.all', 31)
+                ->where('counts.unread', 19)
+                ->where('counts.read', 12)
+            );
+
+        $this->actingAs($user)
+            ->get('/notifications?tab=read')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.tab', 'read')
+                ->where('items.total', 12)
+                ->has('items.data', 12)
+            );
     }
 
     public function test_cross_user_notification_mark_read_does_not_update_another_users_notification(): void

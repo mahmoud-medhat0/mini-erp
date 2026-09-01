@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
+import ServerDataTable from '../../Components/ServerDataTable';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -13,29 +14,6 @@ type ApAgingProps = SharedPageProps & {
   report: {
     as_of_date: string;
     currency: string;
-    suppliers: Array<{
-      supplier: { id: string; code: string; name: string };
-      items: Array<{
-        id: string;
-        reference: string;
-        entry_date: string;
-        due_date: string | null;
-        basis_used: string;
-        age_days: number;
-        original_amount_minor: number;
-        allocated_minor: number;
-        unapplied_minor: number;
-        bucket: string;
-      }>;
-      totals: {
-        current: number;
-        b1_30: number;
-        b31_60: number;
-        b61_90: number;
-        over_90: number;
-        total: number;
-      };
-    }>;
     grand_totals: {
       current: number;
       b1_30: number;
@@ -50,6 +28,8 @@ type ApAgingProps = SharedPageProps & {
   filters: { as_of_date: string; supplier_id: string | null; currency: string };
 };
 
+type AgingTableSlots = Record<string, (data: any, row: any) => ReactElement>;
+
 export default function ApAging({ locale, report, suppliers, currencies, filters }: ApAgingProps) {
   const dict = getDictionary(locale);
   const actionsDict = dict.app.actions;
@@ -60,6 +40,36 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
   const [asOfDate, setAsOfDate] = useState(filters.as_of_date);
   const [supplierId, setSupplierId] = useState(filters.supplier_id || '');
   const [currency, setCurrency] = useState(filters.currency);
+
+  const tableColumns = useMemo(() => [
+    { data: 'supplier_name', name: 'supplier_name', title: dict.app.pages.reportsApAging.supplier_2 },
+    { data: 'open_items_count', name: 'open_items_count', title: dict.app.pages.reportsApAging.openItems, searchable: false },
+    { data: 'current', name: 'current', title: dict.app.pages.reportsApAging.current_2, searchable: false },
+    { data: 'b1_30', name: 'b1_30', title: '1-30', searchable: false },
+    { data: 'b31_60', name: 'b31_60', title: '31-60', searchable: false },
+    { data: 'b61_90', name: 'b61_90', title: '61-90', searchable: false },
+    { data: 'over_90', name: 'over_90', title: '+90', searchable: false },
+    { data: 'total', name: 'total', title: dict.app.pages.reportsApAging.openBalance, searchable: false },
+  ], [dict]);
+  const tableSlots = useMemo<AgingTableSlots>(() => ({
+    supplier_name: (data, row) => (
+      <span className="font-semibold">
+        {row.supplier_code} - {getLocalizedName(data, locale)}
+      </span>
+    ),
+    open_items_count: (data) => <span>{Number(data)} {dict.app.pages.reportsApAging.openItems}</span>,
+    current: (data) => <span className="font-mono text-emerald-600">{formatMoney(Number(data), report.currency)}</span>,
+    b1_30: (data) => <span className="font-mono text-blue-600">{formatMoney(Number(data), report.currency)}</span>,
+    b31_60: (data) => <span className="font-mono text-amber-600">{formatMoney(Number(data), report.currency)}</span>,
+    b61_90: (data) => <span className="font-mono text-orange-600">{formatMoney(Number(data), report.currency)}</span>,
+    over_90: (data) => <span className="font-mono text-rose-600">{formatMoney(Number(data), report.currency)}</span>,
+    total: (data) => <span className="font-mono font-bold">{formatMoney(Number(data), report.currency)}</span>,
+  }), [dict, locale, report.currency]);
+  const tableFilters = useMemo(() => ({
+    as_of_date: filters.as_of_date,
+    supplier_id: filters.supplier_id,
+    currency: filters.currency,
+  }), [filters.as_of_date, filters.currency, filters.supplier_id]);
 
   const hasActiveFilters = Boolean(supplierId || asOfDate !== filters.as_of_date);
 
@@ -195,47 +205,17 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
         </div>
 
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-start text-xs">
-            <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
-              <tr>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.supplier_2}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.reference}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.entryDate}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.agingBasis}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.current_2}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">1-30</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">31-60</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">61-90</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">+90</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsApAging.openBalance}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {report.suppliers.map((sGroup, idx) => (
-                <tr key={idx} className="hover:bg-[var(--background)]/30">
-                  <td className="p-3 font-bold">
-                    {sGroup.supplier.code} - {sGroup.supplier.name}
-                  </td>
-                  <td colSpan={3} className="p-3 text-[var(--text-secondary)]">
-                    {sGroup.items.length} {dict.app.pages.reportsApAging.openItems}
-                  </td>
-                  <td className="p-3 text-end font-mono">{formatMoney(sGroup.totals.current, report.currency)}</td>
-                  <td className="p-3 text-end font-mono">{formatMoney(sGroup.totals.b1_30, report.currency)}</td>
-                  <td className="p-3 text-end font-mono">{formatMoney(sGroup.totals.b31_60, report.currency)}</td>
-                  <td className="p-3 text-end font-mono">{formatMoney(sGroup.totals.b61_90, report.currency)}</td>
-                  <td className="p-3 text-end font-mono">{formatMoney(sGroup.totals.over_90, report.currency)}</td>
-                  <td className="p-3 text-end font-mono font-bold">{formatMoney(sGroup.totals.total, report.currency)}</td>
-                </tr>
-              ))}
-              {report.suppliers.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="p-8 text-center text-[var(--text-muted)]">
-                    {dict.app.pages.reportsApAging.noOpenSupplierPayablesFound}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <ServerDataTable
+            key={`${filters.as_of_date}-${filters.supplier_id || 'all'}-${filters.currency}`}
+            ajaxUrl="/reports/ap-aging/data"
+            columns={tableColumns}
+            filters={tableFilters}
+            locale={locale}
+            order={[[7, 'desc']]}
+            pageLength={25}
+            slots={tableSlots}
+            tableId="ap-aging-data-table"
+          />
         </Card>
       </div>
     </AppLayout>

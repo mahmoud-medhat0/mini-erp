@@ -137,6 +137,83 @@ class AccountingCoreTest extends TestCase
         ]);
     }
 
+    public function test_stale_journal_actions_cannot_downgrade_or_edit_a_posted_entry(): void
+    {
+        $draftService = app(JournalDraftService::class);
+        $postingEngine = app(PostingEngine::class);
+
+        $entry = $draftService->createDraft(
+            [
+                'entry_date' => '2026-01-15',
+                'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
+                'description' => 'Concurrency guard journal',
+            ],
+            [
+                ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
+                ['account_id' => $this->revenueAccount->id, 'debit_minor' => 0, 'credit_minor' => 10000],
+            ],
+            $this->user->id
+        );
+        $staleEntry = $entry->fresh();
+
+        $postingEngine->post($entry, $this->user->id);
+
+        foreach ([
+            fn () => $draftService->submit($staleEntry, $this->user->id),
+            fn () => $draftService->approve($staleEntry, $this->user->id),
+            fn () => $draftService->updateDraft(
+                $staleEntry,
+                [
+                    'entry_date' => '2026-01-15',
+                    'financial_period_id' => $this->period->id,
+                    'currency' => 'EGP',
+                    'description' => 'Stale overwrite',
+                ],
+                [
+                    ['account_id' => $this->cashAccount->id, 'debit_minor' => 5000, 'credit_minor' => 0],
+                    ['account_id' => $this->revenueAccount->id, 'debit_minor' => 0, 'credit_minor' => 5000],
+                ],
+                $this->user->id
+            ),
+        ] as $staleAction) {
+            try {
+                $staleAction();
+                $this->fail('A stale journal action unexpectedly changed a posted entry.');
+            } catch (InvalidArgumentException) {
+                $this->assertSame('posted', $entry->fresh()->status);
+            }
+        }
+
+        $this->assertSame('Concurrency guard journal', $entry->fresh()->description);
+        $this->assertDatabaseCount('ledger_entry', 2);
+    }
+
+    public function test_journal_submit_and_approve_use_the_authoritative_locked_state(): void
+    {
+        $draftService = app(JournalDraftService::class);
+        $entry = $draftService->createDraft(
+            [
+                'entry_date' => '2026-01-15',
+                'financial_period_id' => $this->period->id,
+                'currency' => 'EGP',
+            ],
+            [
+                ['account_id' => $this->cashAccount->id, 'debit_minor' => 10000, 'credit_minor' => 0],
+                ['account_id' => $this->revenueAccount->id, 'debit_minor' => 0, 'credit_minor' => 10000],
+            ],
+            $this->user->id
+        );
+        $staleDraft = $entry->fresh();
+
+        $submitted = $draftService->submit($entry, $this->user->id);
+        $approved = $draftService->approve($staleDraft, $this->user->id);
+
+        $this->assertSame('submitted', $submitted->status);
+        $this->assertSame('approved', $approved->status);
+        $this->assertSame('approved', $entry->fresh()->status);
+    }
+
     public function test_posted_ledger_entries_preserve_transaction_currency_amounts(): void
     {
         $draftService = app(JournalDraftService::class);
@@ -412,6 +489,40 @@ class AccountingCoreTest extends TestCase
         $loaded = ExchangeRate::with('currencyRef')->find($rate->id);
         $this->assertNotNull($loaded->currencyRef);
         $this->assertEquals('USD', $loaded->currencyRef->code);
+    }
+
+    public function test_exchange_rate_search_runs_on_the_server_and_keeps_paginator_totals(): void
+    {
+        ExchangeRate::create([
+            'currency' => 'USD',
+            'date' => '2026-01-15',
+            'rate_e6' => 50000000,
+        ]);
+        ExchangeRate::create([
+            'currency' => 'EUR',
+            'date' => '2026-02-20',
+            'rate_e6' => 54000000,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get('/accounting/fx-rates?search=USD')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Accounting/ExchangeRates')
+                ->where('filters.search', 'USD')
+                ->where('rates.total', 1)
+                ->has('rates.data', 1)
+                ->where('rates.data.0.currency', 'USD')
+                ->where('activeCurrencyCount', 1)
+            );
+
+        $this->actingAs($this->user)
+            ->get('/accounting/fx-rates?search=2026-02-20')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('rates.total', 1)
+                ->where('rates.data.0.currency', 'EUR')
+            );
     }
 
     public function test_accounting_pages_receive_relationship_backed_currency_options(): void

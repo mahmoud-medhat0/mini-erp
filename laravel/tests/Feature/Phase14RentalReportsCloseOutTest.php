@@ -132,7 +132,11 @@ class Phase14RentalReportsCloseOutTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Reports/RentalOperationsReport')
-                ->has('reportData.rows')
+                // Rows are served by the /reports/rentals/data DataTable endpoint
+                // (Phase 21 Slice 2), so the page payload carries summary only.
+                ->has('reportData.summary')
+                ->has('reportData.readiness')
+                ->missing('reportData.rows')
                 ->has('branches')
                 ->has('customers')
                 ->has('currencies'));

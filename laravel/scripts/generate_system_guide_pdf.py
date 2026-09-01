@@ -18,6 +18,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     BaseDocTemplate,
+    CondPageBreak,
     Flowable,
     Frame,
     KeepTogether,
@@ -37,9 +38,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT / "output" / "pdf" / "mini-erp-system-guide-ar.pdf"
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
-BODY_LEFT = 16 * mm
-BODY_RIGHT = 16 * mm
-BODY_TOP = 20 * mm
+BODY_LEFT = 14 * mm
+BODY_RIGHT = 14 * mm
+BODY_TOP = 19 * mm
 BODY_BOTTOM = 17 * mm
 CONTENT_WIDTH = PAGE_WIDTH - BODY_LEFT - BODY_RIGHT
 
@@ -155,7 +156,7 @@ class RTLText(Flowable):
 
     def wrap(self, avail_width: float, avail_height: float) -> tuple[float, float]:
         del avail_height
-        bullet_indent = 12 if self.bullet else 0
+        bullet_indent = 14 if self.bullet else 0
         self._available_width = avail_width
         self.lines = self._wrap_words(max(20, avail_width - bullet_indent))
         self.width = avail_width
@@ -170,12 +171,12 @@ class RTLText(Flowable):
         self.canv.saveState()
         self.canv.setFillColor(self.color)
         self.canv.setFont(self.font_name, self.font_size)
-        bullet_indent = 12 if self.bullet else 0
+        bullet_indent = 14 if self.bullet else 0
         baseline = self.height - self.top_padding - self.font_size
 
         if self.bullet:
             self.canv.setFillColor(BLUE)
-            self.canv.circle(self.width - 3, baseline + 2.3, 2.1, fill=1, stroke=0)
+            self.canv.circle(self.width - 3.5, baseline + 2.5, 2.3, fill=1, stroke=0)
             self.canv.setFillColor(self.color)
 
         for line in self.lines:
@@ -192,9 +193,9 @@ class RTLText(Flowable):
 class RTLHeading(RTLText):
     def __init__(self, text: str, *, level: int, bookmark: str) -> None:
         if level == 0:
-            font_size, leading, color = 21, 31, NAVY
+            font_size, leading, color = 24, 35, NAVY
         else:
-            font_size, leading, color = 14, 22, BLUE_DARK
+            font_size, leading, color = 16, 25, BLUE_DARK
 
         super().__init__(
             text,
@@ -209,14 +210,20 @@ class RTLHeading(RTLText):
         self.bookmark = bookmark
         self.toc_title = text
 
+    def wrap(self, avail_width: float, avail_height: float) -> tuple[float, float]:
+        inner_width = max(20, avail_width - 17)
+        _, height = super().wrap(inner_width, avail_height)
+        self.width = avail_width
+        return self.width, height
+
     def draw(self) -> None:
         self.canv.saveState()
         self.canv.setFillColor(BLUE if self.level == 0 else INDIGO)
-        bar_height = max(18, self.height - 7)
+        bar_height = max(21, self.height - 7)
         self.canv.roundRect(
-            self.width - 5,
+            self.width - 6,
             (self.height - bar_height) / 2,
-            5,
+            6,
             bar_height,
             2.5,
             fill=1,
@@ -225,7 +232,7 @@ class RTLHeading(RTLText):
         self.canv.restoreState()
 
         original_width = self.width
-        self.width = original_width - 14
+        self.width = original_width - 17
         super().draw()
         self.width = original_width
 
@@ -266,6 +273,7 @@ class RTLTableOfContents(TableOfContents):
     def wrap(self, avail_width: float, avail_height: float) -> tuple[float, float]:
         entries = self._lastEntries or [(0, rtl_visual("محتوى الدليل"), 0, None)]
         rows: list[list[object]] = []
+        main_entry_rows: list[int] = []
 
         for level, title, page_number, key in entries:
             title_style = self.getLevelStyle(level)
@@ -287,24 +295,52 @@ class RTLTableOfContents(TableOfContents):
 
             if title_style.spaceBefore:
                 rows.append([Spacer(1, title_style.spaceBefore), Spacer(1, title_style.spaceBefore)])
+            row_index = len(rows)
             rows.append([Paragraph(page_label, page_style), Paragraph(safe_title, title_style)])
+            if level == 0:
+                main_entry_rows.append(row_index)
 
-        page_column_width = 15 * mm
+        page_column_width = 18 * mm
+        table_style = [
+            ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]
+        for row_index in main_entry_rows:
+            table_style.extend(
+                [
+                    ("BACKGROUND", (0, row_index), (-1, row_index), BLUE_PALE),
+                    ("LINEBELOW", (0, row_index), (-1, row_index), 0.4, BORDER),
+                    ("TOPPADDING", (0, row_index), (-1, row_index), 4),
+                    ("BOTTOMPADDING", (0, row_index), (-1, row_index), 4),
+                ]
+            )
         self._table = Table(
             rows,
             colWidths=[page_column_width, avail_width - page_column_width],
-            style=TableStyle(
-                [
-                    ("VALIGN", (0, 0), (-1, -1), "BOTTOM"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                    ("TOPPADDING", (0, 0), (-1, -1), 0),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-                ]
-            ),
+            style=TableStyle(table_style),
         )
         self.width, self.height = self._table.wrapOn(self.canv, avail_width, avail_height)
         return self.width, self.height
+
+
+class OutlineMarker(Flowable):
+    """Zero-height bookmark and TOC entry for headings rendered inside tables."""
+
+    def __init__(self, title: str, *, level: int, bookmark: str) -> None:
+        super().__init__()
+        self.level = level
+        self.bookmark = bookmark
+        self.toc_title = title
+
+    def wrap(self, avail_width: float, avail_height: float) -> tuple[float, float]:
+        del avail_width, avail_height
+        return 0, 0
+
+    def draw(self) -> None:
+        return
 
 
 class GuideDocTemplate(BaseDocTemplate):
@@ -322,12 +358,16 @@ class GuideDocTemplate(BaseDocTemplate):
         )
 
         cover_frame = Frame(
+            BODY_LEFT,
             18 * mm,
-            18 * mm,
-            PAGE_WIDTH - 36 * mm,
+            CONTENT_WIDTH,
             PAGE_HEIGHT - 36 * mm,
             id="cover-frame",
             showBoundary=0,
+            leftPadding=0,
+            rightPadding=0,
+            topPadding=0,
+            bottomPadding=0,
         )
         body_frame = Frame(
             BODY_LEFT,
@@ -336,6 +376,10 @@ class GuideDocTemplate(BaseDocTemplate):
             PAGE_HEIGHT - BODY_TOP - BODY_BOTTOM,
             id="body-frame",
             showBoundary=0,
+            leftPadding=0,
+            rightPadding=0,
+            topPadding=0,
+            bottomPadding=0,
         )
 
         self.addPageTemplates(
@@ -346,7 +390,7 @@ class GuideDocTemplate(BaseDocTemplate):
         )
 
     def afterFlowable(self, flowable: Flowable) -> None:
-        if not isinstance(flowable, RTLHeading):
+        if not isinstance(flowable, (RTLHeading, OutlineMarker)):
             return
 
         self.canv.bookmarkPage(flowable.bookmark)
@@ -393,18 +437,18 @@ def draw_body_page(canvas, doc) -> None:
     canvas.setFillColor(BLUE)
     canvas.rect(0, PAGE_HEIGHT - 4, PAGE_WIDTH, 4, fill=1, stroke=0)
 
-    canvas.setFont(FONT_REGULAR, 7.5)
+    canvas.setFont(FONT_REGULAR, 8.5)
     canvas.setFillColor(MUTED)
     canvas.drawRightString(
         PAGE_WIDTH - BODY_RIGHT,
         PAGE_HEIGHT - 11 * mm,
         rtl_visual("دليل نظام Mini ERP"),
     )
-    canvas.drawString(BODY_LEFT, PAGE_HEIGHT - 11 * mm, "v1.0 | 2026-08-31")
+    canvas.drawString(BODY_LEFT, PAGE_HEIGHT - 11 * mm, "v1.1 | 2026-08-31")
 
     canvas.setStrokeColor(BORDER)
     canvas.line(BODY_LEFT, 12 * mm, PAGE_WIDTH - BODY_RIGHT, 12 * mm)
-    canvas.setFont(FONT_REGULAR, 8)
+    canvas.setFont(FONT_REGULAR, 9)
     canvas.setFillColor(MUTED)
     canvas.drawCentredString(
         PAGE_WIDTH / 2,
@@ -414,12 +458,12 @@ def draw_body_page(canvas, doc) -> None:
     canvas.restoreState()
 
 
-def paragraph(text: str, *, size: float = 10, color: colors.Color = SLATE) -> RTLText:
-    return RTLText(text, font_size=size, leading=size * 1.7, color=color)
+def paragraph(text: str, *, size: float = 11.2, color: colors.Color = SLATE) -> RTLText:
+    return RTLText(text, font_size=size, leading=size * 1.65, color=color)
 
 
 def bullet(text: str, *, color: colors.Color = SLATE) -> RTLText:
-    return RTLText(text, font_size=9.5, leading=15.5, color=color, bullet=True)
+    return RTLText(text, font_size=10.6, leading=17.4, color=color, bullet=True)
 
 
 def callout(
@@ -430,9 +474,9 @@ def callout(
     border: colors.Color = BLUE,
 ) -> Table:
     content = [
-        RTLText(title, font_name=FONT_BOLD, font_size=11, leading=17, color=NAVY),
-        Spacer(1, 3),
-        RTLText(body, font_size=9.5, leading=16, color=SLATE),
+        RTLText(title, font_name=FONT_BOLD, font_size=12.2, leading=19, color=NAVY),
+        Spacer(1, 4),
+        RTLText(body, font_size=10.6, leading=17.4, color=SLATE),
     ]
     table = Table([[content]], colWidths=[CONTENT_WIDTH])
     table.setStyle(
@@ -443,8 +487,8 @@ def callout(
                 ("LINEAFTER", (0, 0), (0, 0), 4, border),
                 ("LEFTPADDING", (0, 0), (-1, -1), 12),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 14),
-                ("TOPPADDING", (0, 0), (-1, -1), 10),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
             ]
         )
     )
@@ -458,9 +502,9 @@ def cards(items: Sequence[tuple[str, str]], columns: int = 2) -> Table:
         for title, body in items[index : index + columns]:
             row.append(
                 [
-                    RTLText(title, font_name=FONT_BOLD, font_size=10.5, leading=17, color=BLUE_DARK),
-                    Spacer(1, 3),
-                    RTLText(body, font_size=8.8, leading=14.5, color=SLATE),
+                    RTLText(title, font_name=FONT_BOLD, font_size=11.5, leading=18.5, color=BLUE_DARK),
+                    Spacer(1, 4),
+                    RTLText(body, font_size=9.8, leading=16, color=SLATE),
                 ]
             )
         while len(row) < columns:
@@ -477,8 +521,8 @@ def cards(items: Sequence[tuple[str, str]], columns: int = 2) -> Table:
         ("INNERGRID", (0, 0), (-1, -1), gap, WHITE),
         ("LEFTPADDING", (0, 0), (-1, -1), 9),
         ("RIGHTPADDING", (0, 0), (-1, -1), 9),
-        ("TOPPADDING", (0, 0), (-1, -1), 9),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
     ]
     table.setStyle(TableStyle(style_commands))
     return table
@@ -486,13 +530,14 @@ def cards(items: Sequence[tuple[str, str]], columns: int = 2) -> Table:
 
 def workflow_diagram(steps: Sequence[str]) -> list[Flowable]:
     output: list[Flowable] = []
-    for start in range(0, len(steps), 4):
-        chunk = list(steps[start : start + 4])
+    for start in range(0, len(steps), 3):
+        chunk = list(steps[start : start + 3])
         cells: list[object] = []
         widths: list[float] = []
-        step_width = (CONTENT_WIDTH - (len(chunk) - 1) * 18) / len(chunk)
+        arrow_width = 26
+        step_width = (CONTENT_WIDTH - (len(chunk) - 1) * arrow_width) / len(chunk)
         for index, step in enumerate(reversed(chunk)):
-            cells.append(RTLText(step, font_name=FONT_BOLD, font_size=8.5, leading=13, color=NAVY))
+            cells.append(RTLText(step, font_name=FONT_BOLD, font_size=9.5, leading=14.8, color=NAVY))
             widths.append(step_width)
             if index < len(chunk) - 1:
                 cells.append(
@@ -501,14 +546,14 @@ def workflow_diagram(steps: Sequence[str]) -> list[Flowable]:
                         ParagraphStyle(
                             "Arrow",
                             fontName=FONT_BOLD,
-                            fontSize=14,
-                            leading=16,
+                            fontSize=16,
+                            leading=18,
                             textColor=BLUE,
                             alignment=TA_RIGHT,
                         ),
                     )
                 )
-                widths.append(18)
+                widths.append(arrow_width)
 
         table = Table([cells], colWidths=widths, hAlign="CENTER")
         table.setStyle(
@@ -517,10 +562,10 @@ def workflow_diagram(steps: Sequence[str]) -> list[Flowable]:
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("BACKGROUND", (0, 0), (-1, -1), BLUE_PALE),
                     ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 7),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-                    ("TOPPADDING", (0, 0), (-1, -1), 8),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 9),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
                 ]
             )
         )
@@ -539,17 +584,17 @@ def numbered_table(items: Sequence[str]) -> LongTable:
                     ParagraphStyle(
                         "StepNumber",
                         fontName=FONT_BOLD,
-                        fontSize=9,
-                        leading=14,
+                        fontSize=10,
+                        leading=16,
                         textColor=WHITE,
                         alignment=TA_RIGHT,
                     ),
                 ),
-                RTLText(item, font_size=9.2, leading=15, color=SLATE),
+                RTLText(item, font_size=10.3, leading=17.2, color=SLATE),
             ]
         )
 
-    table = LongTable(rows, colWidths=[11 * mm, CONTENT_WIDTH - 11 * mm])
+    table = LongTable(rows, colWidths=[12 * mm, CONTENT_WIDTH - 12 * mm])
     style = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("BACKGROUND", (0, 0), (0, -1), BLUE),
@@ -557,8 +602,8 @@ def numbered_table(items: Sequence[str]) -> LongTable:
         ("INNERGRID", (0, 0), (-1, -1), 0.35, BORDER),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
     ]
     for row in range(len(rows)):
         if row % 2:
@@ -1028,27 +1073,29 @@ ALL_ROUTE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
 
 def screen_table(screens: Sequence[Screen]) -> LongTable:
     header = [
-        RTLText("المسار", font_name=FONT_BOLD, font_size=8.5, color=WHITE),
-        RTLText("الصفحة وما تفعله", font_name=FONT_BOLD, font_size=8.5, color=WHITE),
+        RTLText("المسار", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
+        RTLText("الصفحة وما تفعله", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
     ]
     rows: list[list[object]] = [header]
     for screen in screens:
         rows.append(
             [
-                LTRText(screen.route, font_name=FONT_BOLD, font_size=7.3, color=BLUE_DARK),
+                LTRText(screen.route, font_name=FONT_BOLD, font_size=8.4, color=BLUE_DARK),
                 [
-                    RTLText(screen.title, font_name=FONT_BOLD, font_size=9, leading=14, color=NAVY),
-                    Spacer(1, 2),
-                    RTLText(screen.description, font_size=8.2, leading=13.3, color=SLATE),
+                    RTLText(screen.title, font_name=FONT_BOLD, font_size=10.5, leading=16.5, color=NAVY),
+                    Spacer(1, 3),
+                    RTLText(screen.description, font_size=9.5, leading=15.5, color=SLATE),
                 ],
             ]
         )
 
     table = LongTable(
         rows,
-        colWidths=[54 * mm, CONTENT_WIDTH - 54 * mm],
+        colWidths=[60 * mm, CONTENT_WIDTH - 60 * mm],
         repeatRows=1,
         hAlign="CENTER",
+        splitByRow=1,
+        splitInRow=0,
     )
     style = [
         ("BACKGROUND", (0, 0), (-1, 0), NAVY),
@@ -1057,8 +1104,8 @@ def screen_table(screens: Sequence[Screen]) -> LongTable:
         ("INNERGRID", (0, 0), (-1, -1), 0.35, BORDER),
         ("LEFTPADDING", (0, 0), (-1, -1), 7),
         ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]
     for row in range(1, len(rows)):
         if row % 2 == 0:
@@ -1070,24 +1117,30 @@ def screen_table(screens: Sequence[Screen]) -> LongTable:
 def role_table() -> LongTable:
     rows: list[list[object]] = [
         [
-            RTLText("الدور", font_name=FONT_BOLD, font_size=8.5, color=WHITE),
-            RTLText("النطاق الافتراضي", font_name=FONT_BOLD, font_size=8.5, color=WHITE),
+            RTLText("الدور", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
+            RTLText("النطاق الافتراضي", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
         ]
     ]
     for role, scope in ROLES:
         role_label = (
-            RTLText(role, font_name=FONT_BOLD, font_size=8, color=BLUE_DARK)
+            RTLText(role, font_name=FONT_BOLD, font_size=9.2, color=BLUE_DARK)
             if contains_arabic(role)
-            else LTRText(role, font_name=FONT_BOLD, font_size=8, color=BLUE_DARK)
+            else LTRText(role, font_name=FONT_BOLD, font_size=9.2, color=BLUE_DARK)
         )
         rows.append(
             [
                 role_label,
-                RTLText(scope, font_size=8.7, leading=14, color=SLATE),
+                RTLText(scope, font_size=10, leading=16.5, color=SLATE),
             ]
         )
 
-    table = LongTable(rows, colWidths=[39 * mm, CONTENT_WIDTH - 39 * mm], repeatRows=1)
+    table = LongTable(
+        rows,
+        colWidths=[44 * mm, CONTENT_WIDTH - 44 * mm],
+        repeatRows=1,
+        splitByRow=1,
+        splitInRow=0,
+    )
     style = [
         ("BACKGROUND", (0, 0), (-1, 0), NAVY),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -1095,8 +1148,8 @@ def role_table() -> LongTable:
         ("INNERGRID", (0, 0), (-1, -1), 0.35, BORDER),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
     ]
     for row in range(1, len(rows)):
         if row % 2 == 0:
@@ -1105,39 +1158,47 @@ def role_table() -> LongTable:
     return table
 
 
-def route_directory_table(routes: Sequence[tuple[str, str]]) -> LongTable:
+def route_directory_table(group_title: str, routes: Sequence[tuple[str, str]]) -> LongTable:
     rows: list[list[object]] = [
         [
-            RTLText("المسار", font_name=FONT_BOLD, font_size=8.2, color=WHITE),
-            RTLText("اسم الشاشة", font_name=FONT_BOLD, font_size=8.2, color=WHITE),
+            RTLText(group_title, font_name=FONT_BOLD, font_size=12, leading=18, color=WHITE),
+            "",
+        ],
+        [
+            RTLText("المسار", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
+            RTLText("اسم الشاشة", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
         ]
     ]
     for route, title in routes:
         rows.append(
             [
-                LTRText(route, font_name=FONT_BOLD, font_size=7.2, color=BLUE_DARK),
-                RTLText(title, font_size=8.4, leading=13, color=SLATE),
+                LTRText(route, font_name=FONT_BOLD, font_size=8.3, color=BLUE_DARK),
+                RTLText(title, font_size=9.5, leading=15, color=SLATE),
             ]
         )
 
     table = LongTable(
         rows,
-        colWidths=[78 * mm, CONTENT_WIDTH - 78 * mm],
-        repeatRows=1,
+        colWidths=[90 * mm, CONTENT_WIDTH - 90 * mm],
+        repeatRows=2,
         hAlign="CENTER",
+        splitByRow=1,
+        splitInRow=0,
     )
     style = [
-        ("BACKGROUND", (0, 0), (-1, 0), BLUE_DARK),
+        ("SPAN", (0, 0), (-1, 0)),
+        ("BACKGROUND", (0, 0), (-1, 0), INDIGO),
+        ("BACKGROUND", (0, 1), (-1, 1), BLUE_DARK),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDER),
         ("LEFTPADDING", (0, 0), (-1, -1), 7),
         ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]
-    for row in range(1, len(rows)):
-        if row % 2 == 0:
+    for row in range(2, len(rows)):
+        if row % 2 == 1:
             style.append(("BACKGROUND", (0, row), (-1, row), PALE))
     table.setStyle(TableStyle(style))
     return table
@@ -1151,22 +1212,31 @@ class StoryBuilder:
     def heading(self, title: str, *, level: int = 0, page_break: bool = False) -> None:
         if page_break and self.story:
             self.story.append(PageBreak())
+        elif level > 0:
+            self.story.append(CondPageBreak(38 * mm))
         self.heading_counter += 1
         bookmark = f"heading-{self.heading_counter}"
         self.story.extend(
             [
                 RTLHeading(title, level=level, bookmark=bookmark),
-                Spacer(1, 7 if level == 0 else 4),
+                Spacer(1, 10 if level == 0 else 7),
             ]
         )
 
-    def p(self, text: str, *, size: float = 10, color: colors.Color = SLATE) -> None:
-        self.story.extend([paragraph(text, size=size, color=color), Spacer(1, 5)])
+    def outline_marker(self, title: str, *, level: int) -> None:
+        self.story.append(CondPageBreak(45 * mm))
+        self.heading_counter += 1
+        self.story.append(
+            OutlineMarker(title, level=level, bookmark=f"heading-{self.heading_counter}")
+        )
+
+    def p(self, text: str, *, size: float = 11.2, color: colors.Color = SLATE) -> None:
+        self.story.extend([paragraph(text, size=size, color=color), Spacer(1, 7)])
 
     def bullets(self, items: Iterable[str]) -> None:
         for item in items:
-            self.story.extend([bullet(item), Spacer(1, 2)])
-        self.story.append(Spacer(1, 4))
+            self.story.extend([bullet(item), Spacer(1, 3)])
+        self.story.append(Spacer(1, 6))
 
 
 def build_story() -> list[Flowable]:
@@ -1175,23 +1245,23 @@ def build_story() -> list[Flowable]:
 
     story.extend(
         [
-            Spacer(1, 35 * mm),
+            Spacer(1, 31 * mm),
             RTLText(
                 "الدليل الشامل لنظام Mini ERP",
                 font_name=FONT_BOLD,
-                font_size=29,
-                leading=42,
+                font_size=34,
+                leading=48,
                 color=WHITE,
             ),
             Spacer(1, 5 * mm),
             RTLText(
                 "دليل المستخدم والإدارة والتشغيل المالي",
                 font_name=FONT_BOLD,
-                font_size=16,
-                leading=25,
+                font_size=18.5,
+                leading=28,
                 color=colors.HexColor("#BFDBFE"),
             ),
-            Spacer(1, 18 * mm),
+            Spacer(1, 16 * mm),
         ]
     )
 
@@ -1203,13 +1273,13 @@ def build_story() -> list[Flowable]:
                     ParagraphStyle(
                         "CoverStat",
                         fontName=FONT_BOLD,
-                        fontSize=21,
-                        leading=24,
+                        fontSize=25,
+                        leading=29,
                         textColor=WHITE,
                         alignment=TA_RIGHT,
                     ),
                 ),
-                RTLText("شاشة فعلية", font_size=9, leading=14, color=colors.HexColor("#BFDBFE")),
+                RTLText("شاشة فعلية", font_size=10.5, leading=16, color=colors.HexColor("#BFDBFE")),
             ],
             [
                 Paragraph(
@@ -1217,13 +1287,13 @@ def build_story() -> list[Flowable]:
                     ParagraphStyle(
                         "CoverStat2",
                         fontName=FONT_BOLD,
-                        fontSize=21,
-                        leading=24,
+                        fontSize=25,
+                        leading=29,
                         textColor=WHITE,
                         alignment=TA_RIGHT,
                     ),
                 ),
-                RTLText("شاشة تقارير", font_size=9, leading=14, color=colors.HexColor("#BFDBFE")),
+                RTLText("شاشة تقارير", font_size=10.5, leading=16, color=colors.HexColor("#BFDBFE")),
             ],
             [
                 Paragraph(
@@ -1231,13 +1301,13 @@ def build_story() -> list[Flowable]:
                     ParagraphStyle(
                         "CoverStat3",
                         fontName=FONT_BOLD,
-                        fontSize=17,
-                        leading=24,
+                        fontSize=20,
+                        leading=29,
                         textColor=WHITE,
                         alignment=TA_RIGHT,
                     ),
                 ),
-                RTLText("واجهة ثنائية اللغة", font_size=9, leading=14, color=colors.HexColor("#BFDBFE")),
+                RTLText("واجهة ثنائية اللغة", font_size=10.5, leading=16, color=colors.HexColor("#BFDBFE")),
             ],
         ]
     ]
@@ -1250,8 +1320,8 @@ def build_story() -> list[Flowable]:
                 ("INNERGRID", (0, 0), (-1, -1), 0.8, colors.HexColor("#60A5FA")),
                 ("LEFTPADDING", (0, 0), (-1, -1), 11),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 11),
-                ("TOPPADDING", (0, 0), (-1, -1), 11),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 11),
+                ("TOPPADDING", (0, 0), (-1, -1), 14),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ]
         )
@@ -1259,19 +1329,19 @@ def build_story() -> list[Flowable]:
     story.extend(
         [
             stats,
-            Spacer(1, 28 * mm),
+            Spacer(1, 22 * mm),
             RTLText(
-                "الإصدار 1.0 | 31 أغسطس 2026",
+                "الإصدار 1.1 | 31 أغسطس 2026",
                 font_name=FONT_BOLD,
-                font_size=11,
-                leading=18,
+                font_size=12.5,
+                leading=20,
                 color=colors.HexColor("#DBEAFE"),
             ),
             Spacer(1, 3 * mm),
             RTLText(
                 "مبني على تطبيق Laravel الفعلي ومساراته وصلاحياته الحالية",
-                font_size=9.5,
-                leading=16,
+                font_size=11,
+                leading=18,
                 color=colors.HexColor("#94A3B8"),
             ),
             NextPageTemplate("Body"),
@@ -1285,23 +1355,23 @@ def build_story() -> list[Flowable]:
         ParagraphStyle(
             "TOCLevel0",
             fontName=FONT_BOLD,
-            fontSize=10,
-            leading=19,
+            fontSize=12.5,
+            leading=22,
             textColor=NAVY,
-            leftIndent=10,
-            rightIndent=8,
+            leftIndent=12,
+            rightIndent=10,
             firstLineIndent=0,
             alignment=TA_RIGHT,
-            spaceBefore=4,
+            spaceBefore=5,
         ),
         ParagraphStyle(
             "TOCLevel1",
             fontName=FONT_REGULAR,
-            fontSize=8.5,
-            leading=15,
+            fontSize=10.5,
+            leading=18,
             textColor=SLATE,
-            leftIndent=20,
-            rightIndent=18,
+            leftIndent=22,
+            rightIndent=20,
             alignment=TA_RIGHT,
         ),
     ]
@@ -1539,8 +1609,8 @@ def build_story() -> list[Flowable]:
     assert route_count == 132, f"Expected 132 active screens, found {route_count}."
 
     for group_title, routes in ALL_ROUTE_GROUPS:
-        builder.heading(group_title, level=1)
-        story.extend([route_directory_table(routes), Spacer(1, 7)])
+        builder.outline_marker(group_title, level=1)
+        story.extend([route_directory_table(group_title, routes), Spacer(1, 9)])
 
     builder.heading("قاموس الحالات والمصطلحات", page_break=True)
     story.append(

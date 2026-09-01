@@ -392,9 +392,7 @@ class PurchaseReturnService
 
             $number = $return->number;
             if (! $number) {
-                $year = Carbon::parse($return->return_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('purchase.return');
-                $number = 'PRT-'.$year.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('purchase.return', 'PRT', $return->return_date);
             }
 
             $movements = [];

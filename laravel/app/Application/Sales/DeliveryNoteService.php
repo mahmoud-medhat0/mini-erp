@@ -209,9 +209,7 @@ class DeliveryNoteService
 
             $number = $deliveryNote->number;
             if (! $number) {
-                $orderYear = Carbon::parse($deliveryNote->delivery_date)->format('Y');
-                $seq = $this->numberAllocator->nextValue('delivery.note');
-                $number = 'DN-'.$orderYear.'-'.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
+                $number = $this->numberAllocator->nextNumber('delivery.note', 'DN', $deliveryNote->delivery_date);
             }
 
             $deliveryNote->update([
