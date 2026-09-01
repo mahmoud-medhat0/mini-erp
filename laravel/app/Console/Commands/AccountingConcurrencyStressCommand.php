@@ -7,6 +7,7 @@ use App\Application\Accounting\PeriodService;
 use App\Application\Accounting\PostingEngine;
 use App\Application\Accounting\ReversalService;
 use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Models\Account;
 use App\Models\AccountGroup;
 use App\Models\Currency;
@@ -19,6 +20,8 @@ use Throwable;
 
 class AccountingConcurrencyStressCommand extends Command
 {
+    use GuardsStressExecution;
+
     protected $signature = 'accounting:concurrency-stress {--workers=50}';
 
     protected $description = 'Run sequential stress test for Phase 2 Accounting Core invariants.';
@@ -31,6 +34,10 @@ class AccountingConcurrencyStressCommand extends Command
         NumberSequenceAllocator $allocator,
         BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $this->info("Running Accounting Integrity & Sequence Stress test on DB driver: {$driver}");
 

@@ -36,6 +36,9 @@ class CustomerStatementReportService
             ->where('customer_id', $customerId)
             ->where('currency', $targetCurrency)
             ->whereBetween('entry_date', [$dateFrom, $dateTo])
+            ->orderBy('entry_date')
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->get();
         $sourceReferences = $this->sourceReferences($recEntries);
         $movements = new Collection;
@@ -55,15 +58,12 @@ class CustomerStatementReportService
             ]);
         }
 
-        // Sort movements chronologically
-        $sorted = $movements->sortBy(fn ($item) => $item['date'].' '.$item['created_at'])->values();
-
         $runningBalance = $openingBalanceMinor;
         $totalDebit = 0;
         $totalCredit = 0;
         $lines = [];
 
-        foreach ($sorted as $item) {
+        foreach ($movements as $item) {
             $dr = $item['debit_minor'];
             $cr = $item['credit_minor'];
             $runningBalance += ($dr - $cr);

@@ -1,13 +1,19 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import type { FormEvent } from 'react';
 
 import AppLayout from '../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge } from '../Components/Primitives';
 import { getDictionary } from '../lib/i18n';
-import type { NotificationRow, SharedPageProps } from '../Types';
+import type { NotificationRow, PaginationLink, SharedPageProps } from '../Types';
 
 type NotificationsProps = SharedPageProps & {
-  items: NotificationRow[];
+  items: {
+    data: NotificationRow[];
+    links: PaginationLink[];
+    total: number;
+  };
+  counts: { all: number; unread: number; read: number };
+  filters: { tab: 'all' | 'unread' | 'read' };
 };
 
 function NotificationTypeIcon({ type }: { type: string }) {
@@ -112,27 +118,22 @@ function MarkAllReadButton({ label }: { label: string }) {
   );
 }
 
-export default function Notifications({ items, locale }: NotificationsProps) {
+export default function Notifications({ items, counts, filters, locale }: NotificationsProps) {
   const dict = getDictionary(locale);
-  const { url } = usePage();
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>(() => {
-    const requested = new URLSearchParams(url.split('?')[1] ?? '').get('tab');
-    return requested === 'unread' || requested === 'read' ? requested : 'all';
-  });
+  const filter = filters.tab;
 
   const formatter = new Intl.DateTimeFormat(dict.app.pages.notifications.enUs, {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
 
-  const unreadCount = items.filter((item) => !item.read).length;
-  const readCount = items.filter((item) => item.read).length;
-
-  const filteredItems = items.filter((item) => {
-    if (filter === 'unread') return !item.read;
-    if (filter === 'read') return item.read;
-    return true;
-  });
+  const changeFilter = (tab: 'all' | 'unread' | 'read') => {
+    router.get('/notifications', { tab: tab === 'all' ? undefined : tab }, {
+      preserveScroll: true,
+      preserveState: true,
+      replace: true,
+    });
+  };
 
   return (
     <AppLayout active="notifications">
@@ -141,7 +142,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
       <PageHeader
         title={dict.app.nav.notifications}
         description={dict.app.notifications.description}
-        actions={unreadCount > 0 ? <MarkAllReadButton label={dict.app.notifications.markAllRead} /> : undefined}
+        actions={counts.unread > 0 ? <MarkAllReadButton label={dict.app.notifications.markAllRead} /> : undefined}
       />
 
       {/* Tabs Filter Bar */}
@@ -150,7 +151,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
           type="button"
           role="tab"
           aria-selected={filter === 'all'}
-          onClick={() => setFilter('all')}
+          onClick={() => changeFilter('all')}
           title={dict.app.notifications.all}
           aria-label={dict.app.notifications.all}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
@@ -161,7 +162,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
         >
           <span>{dict.app.notifications.all}</span>
           <span className="rounded-full bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-mono text-[var(--text-secondary)]">
-            {items.length}
+            {counts.all}
           </span>
         </button>
 
@@ -169,7 +170,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
           type="button"
           role="tab"
           aria-selected={filter === 'unread'}
-          onClick={() => setFilter('unread')}
+          onClick={() => changeFilter('unread')}
           title={dict.app.notifications.unread}
           aria-label={dict.app.notifications.unread}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
@@ -179,9 +180,9 @@ export default function Notifications({ items, locale }: NotificationsProps) {
           }`}
         >
           <span>{dict.app.notifications.unread}</span>
-          {unreadCount > 0 ? (
+          {counts.unread > 0 ? (
             <span className="rounded-full bg-blue-500 text-white px-2 py-0.5 text-[10px] font-mono font-bold motion-safe:animate-pulse">
-              {unreadCount}
+              {counts.unread}
             </span>
           ) : (
             <span className="rounded-full bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-mono text-[var(--text-muted)]">
@@ -194,7 +195,7 @@ export default function Notifications({ items, locale }: NotificationsProps) {
           type="button"
           role="tab"
           aria-selected={filter === 'read'}
-          onClick={() => setFilter('read')}
+          onClick={() => changeFilter('read')}
           title={dict.app.notifications.read}
           aria-label={dict.app.notifications.read}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-extrabold transition-all ${
@@ -205,17 +206,17 @@ export default function Notifications({ items, locale }: NotificationsProps) {
         >
           <span>{dict.app.notifications.read}</span>
           <span className="rounded-full bg-[var(--surface)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-mono text-[var(--text-muted)]">
-            {readCount}
+            {counts.read}
           </span>
         </button>
       </div>
 
       {/* Notifications List Feed */}
-      {filteredItems.length === 0 ? (
+      {items.data.length === 0 ? (
         <EmptyState title={dict.app.notifications.empty} />
       ) : (
         <div className="space-y-3">
-          {filteredItems.map((item) => {
+          {items.data.map((item) => {
             const formattedType = item.type
               .split('_')
               .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

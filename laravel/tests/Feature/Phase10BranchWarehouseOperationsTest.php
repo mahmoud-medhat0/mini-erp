@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Application\Accounting\PeriodService;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Application\Inventory\StockTransferService;
 use App\Application\Reports\StockMovementReportService;
@@ -302,6 +303,30 @@ class Phase10BranchWarehouseOperationsTest extends TestCase
         $this->assertTrue($transferInMovements->every(fn (StockMovementLedger $movement): bool => $movement->journal_entry_id === null));
         $this->assertSame(6000, (int) $transferInMovements->sum('value_delta_minor'));
         $this->assertSame($journalCountBeforeTransfer, JournalEntry::query()->count());
+    }
+
+    public function test_incomplete_stock_transfer_blocks_period_close_readiness(): void
+    {
+        $transfer = app(StockTransferService::class)->create([
+            'transfer_date' => '2026-01-20',
+            'source_warehouse_id' => $this->sourceWarehouse->id,
+            'destination_warehouse_id' => $this->destinationWarehouse->id,
+            'reference' => 'CLOSE-BLOCKER-ST',
+            'lines' => [[
+                'product_id' => $this->product->id,
+                'unit_of_measure_id' => $this->uom->id,
+                'quantity_e6' => 1000000,
+            ]],
+        ], $this->user->id);
+
+        $readiness = app(PeriodService::class)->checkCloseReadiness($this->period);
+
+        $this->assertFalse($readiness['can_close']);
+        $this->assertTrue(collect($readiness['blockers'])->contains(
+            fn (array $blocker): bool => $blocker['entity_type'] === 'stock_transfer'
+                && $blocker['id'] === $transfer->id
+                && $blocker['reason_code'] === 'incomplete_stock_transfer'
+        ));
     }
 
     public function test_transfer_issue_is_blocked_when_source_warehouse_stock_is_insufficient(): void

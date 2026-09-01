@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
+import ServerDataTable from '../../Components/ServerDataTable';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
@@ -14,15 +15,6 @@ type CustomerStatementProps = SharedPageProps & {
     customer: { id: string; code: string; name: string; tax_number?: string; phone?: string };
     filters: { date_from: string; date_to: string; currency: string };
     opening_balance_minor: number;
-    lines: Array<{
-      date: string;
-      type: string;
-      reference: string;
-      description: string;
-      debit_minor: number;
-      credit_minor: number;
-      running_balance_minor: number;
-    }>;
     total_debit_minor: number;
     total_credit_minor: number;
     closing_balance_minor: number;
@@ -31,6 +23,8 @@ type CustomerStatementProps = SharedPageProps & {
   currencies: Array<{ code: string }>;
   filters: { customer_id: string | null; date_from: string; date_to: string; currency: string };
 };
+
+type StatementTableSlots = Record<string, (data: any, row: any) => ReactElement>;
 
 export default function CustomerStatement({ locale, report, customers, currencies, filters }: CustomerStatementProps) {
   const dict = getDictionary(locale);
@@ -44,6 +38,40 @@ export default function CustomerStatement({ locale, report, customers, currencie
   const [dateFrom, setDateFrom] = useState(filters.date_from);
   const [dateTo, setDateTo] = useState(filters.date_to);
   const [currency, setCurrency] = useState(filters.currency);
+
+  const tableColumns = useMemo(() => [
+    { data: 'date', name: 'date', title: dict.app.pages.reportsCustomerStatement.date },
+    { data: 'type', name: 'type', title: dict.app.pages.reportsCustomerStatement.type },
+    { data: 'reference', name: 'reference', title: dict.app.pages.reportsCustomerStatement.reference },
+    { data: 'description', name: 'description', title: dict.app.pages.reportsCustomerStatement.description },
+    { data: 'debit_minor', name: 'debit_minor', title: dict.app.pages.reportsCustomerStatement.debitIncrease, searchable: false },
+    { data: 'credit_minor', name: 'credit_minor', title: dict.app.pages.reportsCustomerStatement.creditPayment, searchable: false },
+    { data: 'running_balance_minor', name: 'running_balance_minor', title: dict.app.pages.reportsCustomerStatement.runningBalance, searchable: false },
+  ], [dict]);
+  const tableSlots = useMemo<StatementTableSlots>(() => ({
+    type: (data) => <span className="font-medium">{String(data)}</span>,
+    reference: (data) => <span className="font-mono">{String(data)}</span>,
+    description: (data) => <span className="text-[var(--text-secondary)]">{String(data)}</span>,
+    debit_minor: (data) => (
+      <span className="font-mono">
+        {Number(data) > 0 ? formatMoney(Number(data), report?.filters.currency) : accDict.zeroAmount}
+      </span>
+    ),
+    credit_minor: (data) => (
+      <span className="font-mono">
+        {Number(data) > 0 ? formatMoney(Number(data), report?.filters.currency) : accDict.zeroAmount}
+      </span>
+    ),
+    running_balance_minor: (data) => (
+      <span className="font-mono font-bold">{formatMoney(Number(data), report?.filters.currency)}</span>
+    ),
+  }), [accDict.zeroAmount, report?.filters.currency]);
+  const tableFilters = useMemo(() => ({
+    customer_id: filters.customer_id,
+    date_from: filters.date_from,
+    date_to: filters.date_to,
+    currency: filters.currency,
+  }), [filters.currency, filters.customer_id, filters.date_from, filters.date_to]);
 
   const hasActiveFilters = Boolean(customerId || dateFrom || dateTo);
 
@@ -167,49 +195,20 @@ export default function CustomerStatement({ locale, report, customers, currencie
             </div>
 
             <Card className="overflow-hidden p-0">
-              <table className="w-full text-start text-xs">
-                <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
-                  <tr>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.date}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.type}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.reference}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.description}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.debitIncrease}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.creditPayment}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsCustomerStatement.runningBalance}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-color)]">
-                  <tr className="bg-[var(--background)]/50 font-bold">
-                    <td colSpan={6} className="p-3">{dict.app.pages.reportsCustomerStatement.openingBalancePriorToRange}</td>
-                    <td className="p-3 text-end">{formatMoney(report.opening_balance_minor, report.filters.currency)}</td>
-                  </tr>
-                  {report.lines.map((line, idx) => (
-                    <tr key={idx} className="hover:bg-[var(--background)]/30">
-                      <td className="p-3">{line.date}</td>
-                      <td className="p-3 font-medium">{line.type}</td>
-                      <td className="p-3 font-mono">{line.reference}</td>
-                      <td className="p-3 text-[var(--text-secondary)]">{line.description}</td>
-                      <td className="p-3 text-end font-mono">
-                        {line.debit_minor > 0 ? formatMoney(line.debit_minor, report.filters.currency) : accDict.zeroAmount}
-                      </td>
-                      <td className="p-3 text-end font-mono">
-                        {line.credit_minor > 0 ? formatMoney(line.credit_minor, report.filters.currency) : accDict.zeroAmount}
-                      </td>
-                      <td className="p-3 text-end font-mono font-bold">
-                        {formatMoney(line.running_balance_minor, report.filters.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                  {report.lines.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-6 text-center text-[var(--text-muted)]">
-                        {dict.app.pages.reportsCustomerStatement.noMovementsFoundForTheSelected}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+              <div className="border-b border-[var(--border-color)] bg-[var(--background)]/50 px-4 py-3 text-xs font-bold">
+                {dict.app.pages.reportsCustomerStatement.openingBalancePriorToRange}: {formatMoney(report.opening_balance_minor, report.filters.currency)}
+              </div>
+              <ServerDataTable
+                key={`${filters.customer_id}-${filters.date_from}-${filters.date_to}-${filters.currency}`}
+                ajaxUrl="/reports/customer-statement/data"
+                columns={tableColumns}
+                filters={tableFilters}
+                locale={locale}
+                order={[]}
+                pageLength={25}
+                slots={tableSlots}
+                tableId="customer-statement-data-table"
+              />
             </Card>
           </div>
         ) : (

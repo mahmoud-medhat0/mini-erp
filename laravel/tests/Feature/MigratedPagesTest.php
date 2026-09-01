@@ -121,7 +121,7 @@ class MigratedPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Notifications')
-                ->where('items.0.targetRef', 'demo:1')
+                ->where('items.data.0.targetRef', 'demo:1')
                 ->where('notifications.unreadCount', 1)
                 ->etc());
     }

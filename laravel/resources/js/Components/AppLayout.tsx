@@ -5,6 +5,7 @@ import { changeLocale, getDictionary } from '../lib/i18n';
 import { useCan } from '../lib/permissions';
 import type { SharedPageProps } from '../Types/page';
 import TourGuide from './TourGuide';
+import UniversalPagination from './UniversalPagination';
 
 export type NavKey =
   | 'dashboard'
@@ -124,6 +125,7 @@ export type NavKey =
 type AppLayoutProps = {
   active: NavKey;
   children: ReactNode;
+  pagination?: 'auto' | 'manual' | 'none';
 };
 
 type FlashTone = 'success' | 'error';
@@ -349,7 +351,7 @@ const NAV_PERMS_FALLBACK: Partial<Record<NavKey, NavPermission>> = {
   'settings.branch_approval_rules': 'settings.configure',
 };
 
-export default function AppLayout({ active, children }: AppLayoutProps) {
+export default function AppLayout({ active, children, pagination = 'auto' }: AppLayoutProps) {
   const page = usePage<SharedPageProps>();
   const { props } = page;
   const mainContentRef = useRef<HTMLElement>(null);
@@ -1888,7 +1890,14 @@ export default function AppLayout({ active, children }: AppLayoutProps) {
             tabIndex={-1}
             className="flex-1 p-4 focus:outline-none sm:p-6 lg:p-8"
           >
-            <div className="mx-auto max-w-7xl">{children}</div>
+            <div className="mx-auto max-w-7xl">
+              {children}
+              <UniversalPagination
+                locale={locale}
+                mode={pagination}
+                pageProps={props as unknown as Record<string, unknown>}
+              />
+            </div>
           </main>
         </div>
       </div>

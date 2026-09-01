@@ -6,6 +6,7 @@ use App\Application\Accounting\AccountingAccountMappingService;
 use App\Application\Inventory\MovingWeightedAverageInventoryService;
 use App\Application\Inventory\StockTransferService;
 use App\Application\Support\BaseCurrencyResolver;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Console\Commands\Concerns\ResolvesStressCurrency;
 use App\Models\Account;
 use App\Models\AccountGroup;
@@ -29,7 +30,7 @@ use Throwable;
 
 class StockTransferConcurrencyStressCommand extends Command
 {
-    use ResolvesStressCurrency;
+    use GuardsStressExecution, ResolvesStressCurrency;
 
     protected $signature = 'accounting:stock-transfer-stress {--workers=50 : Number of concurrent transfer workers}';
 
@@ -40,6 +41,10 @@ class StockTransferConcurrencyStressCommand extends Command
         MovingWeightedAverageInventoryService $inventoryService,
         BaseCurrencyResolver $baseCurrencyResolver,
     ): int {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $workers = max(2, min((int) $this->option('workers'), 100));
 
@@ -58,6 +63,7 @@ class StockTransferConcurrencyStressCommand extends Command
             $user = User::query()->first() ?? User::factory()->create();
             $currency = $this->resolveStressCurrency($baseCurrencyResolver);
             $suffix = Str::upper(Str::random(8));
+            $this->reportStressRunTag($suffix);
             $year = random_int(3300, 8999);
 
             while (FiscalYear::query()->where('year', $year)->exists()) {

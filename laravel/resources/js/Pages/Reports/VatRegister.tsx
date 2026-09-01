@@ -3,7 +3,8 @@ import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Button, Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader } from '../../Components/Primitives';
+import VatRegisterDataTable from '../../Components/VatRegisterDataTable';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import { getDictionary } from '../../lib/i18n';
@@ -15,22 +16,6 @@ type TaxCodeOption = {
   name: Record<string, string> | string;
 };
 
-type VatRegisterRow = {
-  document_type: string;
-  document_id: string;
-  document_number: string;
-  document_date: string;
-  entity_type: string;
-  entity_name: string;
-  tax_category: 'output' | 'input';
-  tax_code_id: string;
-  tax_code: string;
-  tax_rate_bps: number;
-  subtotal_minor: number;
-  tax_amount_minor: number;
-  gross_amount_minor: number;
-};
-
 type VatRegisterProps = SharedPageProps & {
   report: {
     from_date: string;
@@ -38,7 +23,6 @@ type VatRegisterProps = SharedPageProps & {
     type: string;
     tax_code_id: string | null;
     currency?: string | null;
-    rows: VatRegisterRow[];
     summary: {
       total_output_subtotal_minor: number;
       total_output_tax_minor: number;
@@ -105,9 +89,6 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
       return { value: tc.id, label: `${tc.code} - ${name}` };
     }),
   ];
-
-  const thRightClass = "px-4 py-3 text-end font-medium text-xs text-[var(--text-secondary)] uppercase border-b border-[var(--border-color)]";
-  const tdRightClass = "px-4 py-3 text-end text-xs border-b border-[var(--border-color)]";
 
   return (
     <AppLayout active="reports.vat-register">
@@ -204,56 +185,42 @@ export default function VatRegister({ locale, report, taxCodes, filters }: VatRe
           </div>
         </div>
 
-        <Card>
-          {report.rows.length === 0 ? (
-            <EmptyState
-              title={t.noRecords}
-              description={t.noRecordsDescription}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className={tableClasses.table}>
-                <thead className="bg-[var(--surface-color)]">
-                  <tr>
-                    <th className={tableClasses.th}>{t.documentDate}</th>
-                    <th className={tableClasses.th}>{t.documentType}</th>
-                    <th className={tableClasses.th}>{t.documentNumber}</th>
-                    <th className={tableClasses.th}>{t.entity}</th>
-                    <th className={tableClasses.th}>{t.taxCategory}</th>
-                    <th className={tableClasses.th}>{t.taxCode}</th>
-                    <th className={thRightClass}>{t.subtotal}</th>
-                    <th className={thRightClass}>{t.taxAmount}</th>
-                    <th className={thRightClass}>{t.grossAmount}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-color)]">
-                  {report.rows.map((row, idx) => (
-                    <tr key={`${row.document_type}-${row.document_id}-${idx}`} className="hover:bg-[var(--surface-color)] transition-colors">
-                      <td className={tableClasses.td}>{row.document_date}</td>
-                      <td className={tableClasses.td}>
-                        <span className="font-mono text-xs uppercase tracking-wider">{row.document_type.replace('_', ' ')}</span>
-                      </td>
-                      <td className={`${tableClasses.td} font-semibold`}>{row.document_number}</td>
-                      <td className={tableClasses.td}>{row.entity_name}</td>
-                      <td className={tableClasses.td}>
-                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${row.tax_category === 'output' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-sky-500/10 text-sky-700 dark:text-sky-400'}`}>
-                          {row.tax_category.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className={tableClasses.td}>
-                        <span className="font-semibold">{row.tax_code}</span> ({row.tax_rate_bps / 100}%)
-                      </td>
-                      <td className={`${tdRightClass} font-mono`}>{formatVatMoney(row.subtotal_minor)}</td>
-                      <td className={`${tdRightClass} font-mono font-bold ${row.tax_amount_minor < 0 ? 'text-rose-600' : ''}`}>
-                        {formatVatMoney(row.tax_amount_minor)}
-                      </td>
-                      <td className={`${tdRightClass} font-mono`}>{formatVatMoney(row.gross_amount_minor)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <Card className="overflow-hidden p-0">
+          <VatRegisterDataTable
+            key={`${filters.from_date}-${filters.to_date}-${type}-${taxCodeId || 'all'}`}
+            currency={report.currency || ''}
+            filters={{
+              from_date: filters.from_date,
+              to_date: filters.to_date,
+              type: filters.type || 'all',
+              tax_code_id: filters.tax_code_id || null,
+            }}
+            labels={{
+              documentDate: t.documentDate,
+              documentType: t.documentType,
+              documentNumber: t.documentNumber,
+              entity: t.entity,
+              taxCategory: t.taxCategory,
+              taxCode: t.taxCode,
+              subtotal: t.subtotal,
+              taxAmount: t.taxAmount,
+              grossAmount: t.grossAmount,
+              documentTypes: {
+                customer_invoice: accDict.entity_customer_invoice,
+                customer_credit_note: accDict.entity_customer_credit_note,
+                sales_return: accDict.entity_sales_return,
+                rental_invoice: accDict.entity_rental_invoice,
+                supplier_bill: accDict.entity_supplier_bill,
+                supplier_adjustment_note: accDict.entity_supplier_adjustment_note,
+                purchase_return: accDict.entity_purchase_return,
+              },
+              categories: {
+                output: t.outputCategory,
+                input: t.inputCategory,
+              },
+            }}
+            locale={locale}
+          />
         </Card>
       </div>
     </AppLayout>

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Reports;
 use App\Application\Reports\FixedAssetCsvReportExporter;
 use App\Application\Reports\FixedAssetReportService;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Reports\ReportFilterRequest;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,7 +18,7 @@ class FixedAssetReportController extends Controller
         private FixedAssetCsvReportExporter $csvExporter,
     ) {}
 
-    public function register(Request $request): Response
+    public function register(ReportFilterRequest $request): Response
     {
         $this->authorizeReportView();
 
@@ -28,7 +28,7 @@ class FixedAssetReportController extends Controller
         ]);
     }
 
-    public function netBookValues(Request $request): Response
+    public function netBookValues(ReportFilterRequest $request): Response
     {
         $this->authorizeReportView();
 
@@ -38,7 +38,7 @@ class FixedAssetReportController extends Controller
         ]);
     }
 
-    public function depreciation(Request $request): Response
+    public function depreciation(ReportFilterRequest $request): Response
     {
         $this->authorizeReportView();
 
@@ -48,7 +48,7 @@ class FixedAssetReportController extends Controller
         ]);
     }
 
-    public function depreciationRuns(Request $request): Response
+    public function depreciationRuns(ReportFilterRequest $request): Response
     {
         $this->authorizeReportView();
 
@@ -58,7 +58,7 @@ class FixedAssetReportController extends Controller
         ]);
     }
 
-    public function disposals(Request $request): Response
+    public function disposals(ReportFilterRequest $request): Response
     {
         $this->authorizeReportView();
 
@@ -68,35 +68,35 @@ class FixedAssetReportController extends Controller
         ]);
     }
 
-    public function exportRegister(Request $request): StreamedResponse
+    public function exportRegister(ReportFilterRequest $request): StreamedResponse
     {
         $this->authorizeReportExport($request);
 
         return $this->csvExporter->register($this->filters($request, ['search', 'category_id', 'status']));
     }
 
-    public function exportNetBookValues(Request $request): StreamedResponse
+    public function exportNetBookValues(ReportFilterRequest $request): StreamedResponse
     {
         $this->authorizeReportExport($request);
 
         return $this->csvExporter->netBookValues($this->filters($request, ['search', 'category_id', 'status']));
     }
 
-    public function exportDepreciation(Request $request): StreamedResponse
+    public function exportDepreciation(ReportFilterRequest $request): StreamedResponse
     {
         $this->authorizeReportExport($request);
 
         return $this->csvExporter->depreciation($this->filters($request, ['search', 'status']));
     }
 
-    public function exportDepreciationRuns(Request $request): StreamedResponse
+    public function exportDepreciationRuns(ReportFilterRequest $request): StreamedResponse
     {
         $this->authorizeReportExport($request);
 
         return $this->csvExporter->depreciationRuns($this->filters($request, ['period_id', 'status']));
     }
 
-    public function exportDisposals(Request $request): StreamedResponse
+    public function exportDisposals(ReportFilterRequest $request): StreamedResponse
     {
         $this->authorizeReportExport($request);
 
@@ -107,7 +107,7 @@ class FixedAssetReportController extends Controller
      * @param  list<string>  $allowed
      * @return array<string, mixed>
      */
-    private function filters(Request $request, array $allowed): array
+    private function filters(ReportFilterRequest $request, array $allowed): array
     {
         return array_filter(
             $request->only($allowed),
@@ -121,7 +121,7 @@ class FixedAssetReportController extends Controller
         Gate::authorize('view_financials');
     }
 
-    private function authorizeReportExport(Request $request): void
+    private function authorizeReportExport(ReportFilterRequest $request): void
     {
         Gate::authorize('reports.view');
         Gate::authorize('view_financials');

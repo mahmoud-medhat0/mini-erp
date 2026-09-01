@@ -9,6 +9,7 @@ use App\Models\LedgerEntry;
 use App\Models\PayableEntry;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\UnitOfMeasure;
 use App\Models\User;
@@ -264,6 +265,70 @@ class Phase4Slice3PurchaseOrderTest extends TestCase
         $this->assertEquals('confirmed', $confirmedOrder2->status);
     }
 
+    public function test_confirm_replay_keeps_the_authoritative_number_and_lock_version(): void
+    {
+        $service = app(PurchaseOrderService::class);
+        $order = $this->createDraftOrder();
+
+        $confirmed = $service->confirm($order->id, $this->adminUser->id);
+        $confirmedVersion = $confirmed->lock_version;
+
+        $replayed = $service->confirm($order->id, $this->adminUser->id);
+
+        $this->assertSame($confirmed->number, $replayed->number);
+        $this->assertSame($confirmedVersion, $replayed->lock_version);
+        $this->assertSame(1, PurchaseOrder::query()->where('id', $order->id)->where('status', 'confirmed')->count());
+    }
+
+    public function test_stale_purchase_order_update_request_cannot_replace_authoritative_lines(): void
+    {
+        $service = app(PurchaseOrderService::class);
+        $order = $this->createDraftOrder();
+        $staleVersion = $order->lock_version;
+        $originalLineId = $order->lines->firstOrFail()->id;
+
+        PurchaseOrder::query()->where('id', $order->id)->increment('lock_version');
+
+        try {
+            $service->update($order->id, [
+                'lock_version' => $staleVersion,
+                'lines' => [[
+                    'product_id' => $this->product->id,
+                    'unit_of_measure_id' => $this->uom->id,
+                    'quantity_e6' => 9000000,
+                    'unit_price_minor' => 500,
+                ]],
+            ], $this->adminUser->id);
+            $this->fail('A stale purchase order update must be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lock_version', $exception->errors());
+        }
+
+        $fresh = $order->fresh('lines');
+        $this->assertSame($originalLineId, $fresh->lines->firstOrFail()->id);
+        $this->assertSame(1000000, $fresh->lines->firstOrFail()->quantity_e6);
+        $this->assertSame($staleVersion + 1, $fresh->lock_version);
+    }
+
+    public function test_stale_draft_model_cannot_cancel_an_authoritatively_confirmed_purchase_order(): void
+    {
+        $service = app(PurchaseOrderService::class);
+        $staleDraft = $this->createDraftOrder();
+
+        $confirmed = $service->confirm($staleDraft->id, $this->adminUser->id);
+
+        try {
+            $service->cancel($staleDraft->id, $this->adminUser->id);
+            $this->fail('A stale draft model must not overwrite a confirmed order.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('status', $exception->errors());
+        }
+
+        $this->assertSame('draft', $staleDraft->status);
+        $this->assertSame('confirmed', $confirmed->fresh()->status);
+        $this->assertNull($confirmed->fresh()->cancelled_at);
+    }
+
     public function test_cancel_changes_status_for_draft_or_submitted(): void
     {
         /** @var PurchaseOrderService $service */
@@ -449,5 +514,20 @@ class Phase4Slice3PurchaseOrderTest extends TestCase
                 );
             }
         }
+    }
+
+    private function createDraftOrder(): PurchaseOrder
+    {
+        return app(PurchaseOrderService::class)->create([
+            'supplier_id' => $this->supplier->id,
+            'order_date' => '2026-08-22',
+            'currency' => 'USD',
+            'lines' => [[
+                'product_id' => $this->product->id,
+                'unit_of_measure_id' => $this->uom->id,
+                'quantity_e6' => 1000000,
+                'unit_price_minor' => 500,
+            ]],
+        ], $this->adminUser->id);
     }
 }

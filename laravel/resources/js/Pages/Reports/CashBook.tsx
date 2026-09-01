@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
+import { CashBookDataTable } from '../../Components/CashBankBookDataTables';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
@@ -16,16 +17,6 @@ type CashBookProps = SharedPageProps & {
     date_from: string;
     date_to: string;
     opening_balance_minor: number;
-    entries: Array<{
-      ledger_entry_id: string;
-      entry_date: string;
-      journal_number: string;
-      description: string;
-      debit_minor: number;
-      credit_minor: number;
-      signed_movement_minor: number;
-      balance_after_minor: number;
-    }>;
     period_debit_minor: number;
     period_credit_minor: number;
     period_movement_minor: number;
@@ -165,47 +156,23 @@ export default function CashBook({ locale, report, cashAccounts, filters }: Cash
             </div>
 
             <Card className="overflow-hidden p-0">
-              <table className="w-full text-start text-xs">
-                <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
-                  <tr>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCashBook.date}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCashBook.journalRef}</th>
-                    <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsCashBook.description}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsCashBook.receiptsIn}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsCashBook.paymentsOut}</th>
-                    <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsCashBook.runningBalance}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-color)]">
-                  <tr className="bg-[var(--background)]/50 font-bold">
-                    <td colSpan={5} className="p-3">{dict.app.pages.reportsCashBook.openingBalancePriorToRange}</td>
-                    <td className="p-3 text-end">{formatMoney(report.opening_balance_minor, report.currency)}</td>
-                  </tr>
-                  {report.entries.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[var(--background)]/30">
-                      <td className="p-3">{item.entry_date}</td>
-                      <td className="p-3 font-mono">{item.journal_number}</td>
-                      <td className="p-3 text-[var(--text-secondary)]">{item.description}</td>
-                      <td className="p-3 text-end font-mono">
-                        {item.debit_minor > 0 ? formatMoney(item.debit_minor, report.currency) : accDict.zeroAmount}
-                      </td>
-                      <td className="p-3 text-end font-mono">
-                        {item.credit_minor > 0 ? formatMoney(item.credit_minor, report.currency) : accDict.zeroAmount}
-                      </td>
-                      <td className="p-3 text-end font-mono font-bold">
-                        {formatMoney(item.balance_after_minor, report.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                  {report.entries.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-6 text-center text-[var(--text-muted)]">
-                        {dict.app.pages.reportsCashBook.noCashMovementsFoundForThe}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+              <CashBookDataTable
+                key={`${filters.cash_account_id}-${filters.date_from}-${filters.date_to}`}
+                accountId={report.cash_account.id}
+                currency={report.currency}
+                dateFrom={report.date_from}
+                dateTo={report.date_to}
+                labels={{
+                  date: dict.app.pages.reportsCashBook.date,
+                  journalRef: dict.app.pages.reportsCashBook.journalRef,
+                  description: dict.app.pages.reportsCashBook.description,
+                  debit: dict.app.pages.reportsCashBook.receiptsIn,
+                  credit: dict.app.pages.reportsCashBook.paymentsOut,
+                  runningBalance: dict.app.pages.reportsCashBook.runningBalance,
+                  zeroAmount: accDict.zeroAmount,
+                }}
+                locale={locale}
+              />
             </Card>
           </div>
         ) : (

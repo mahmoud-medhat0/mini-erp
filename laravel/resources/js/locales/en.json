@@ -942,6 +942,7 @@
       "entity_sales_return": "Sales Return",
       "entity_customer_credit_note": "Customer Credit Note",
       "entity_purchase_return": "Purchase Return",
+      "entity_rental_invoice": "Rental Invoice",
       "entity_supplier_adjustment_note": "Supplier Adjustment Note",
       "entity_opening_balance": "Opening Balance",
       "entity_customer_opening_balance": "Customer Opening Balance",
@@ -5405,7 +5406,9 @@
         "netSubtotal": "Net",
         "netVatPayable": "Net VAT Payable / (Claimable)",
         "noRecords": "No posted tax entries found for the selected filter criteria.",
-        "noRecordsDescription": "Adjust the date range, tax category, or tax code to review registered posted tax transactions."
+        "noRecordsDescription": "Adjust the date range, tax category, or tax code to review registered posted tax transactions.",
+        "outputCategory": "OUTPUT",
+        "inputCategory": "INPUT"
       },
       "vatSummary": {
         "title": "VAT Summary Report",

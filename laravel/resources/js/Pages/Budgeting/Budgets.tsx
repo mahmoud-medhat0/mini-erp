@@ -436,7 +436,7 @@ export default function BudgetsIndex({
   }
 
   return (
-    <AppLayout active="budgeting.budgets">
+    <AppLayout active="budgeting.budgets" pagination="manual">
       <Head title={pageDict.headTitle} />
 
       <PageHeader

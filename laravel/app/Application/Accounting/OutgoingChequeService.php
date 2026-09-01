@@ -17,12 +17,12 @@ use App\Support\Concurrency\DatabaseIdempotencyStore;
 use App\Support\Numbering\NumberSequenceAllocator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 
 class OutgoingChequeService
 {
     public function __construct(
         private readonly PostingEngine $postingEngine,
+        private readonly ReversalService $reversalService,
         private readonly AccountingAccountMappingService $mappingService,
         private readonly NumberSequenceAllocator $numberSequenceAllocator,
         private readonly DatabaseIdempotencyStore $idempotencyStore,
@@ -381,17 +381,14 @@ class OutgoingChequeService
                         return $cheque;
                     }
 
-                    if ($cheque->status === 'cleared') {
-                        throw new InvalidArgumentException(__('OWNER DECISION REQUIRED: Post-clear return workflow is not implemented in pre-clear cheque lifecycle.'));
-                    }
-
-                    if ($cheque->status !== 'issued') {
+                    if (! in_array($cheque->status, ['issued', 'cleared'], true)) {
                         throw ValidationException::withMessages([
-                            'status' => [__('Cannot return cheque from status [:status]. Only issued pre-clear cheques can be returned.', ['status' => $cheque->status])],
+                            'status' => [__('Cannot return cheque from status [:status]. Only issued or cleared cheques can be returned.', ['status' => $cheque->status])],
                         ]);
                     }
 
                     $period = $this->validateAndLockPeriod($fiscalYearId, $financialPeriodId, $returnedDate);
+                    $this->reverseClearingJournalIfNeeded($cheque, $financialPeriodId, $returnedDate, $actorId);
 
                     $chequesPayableAcc = $this->resolveMappedAccount('cheques_payable', 'liability', 'credit', $cheque->currency);
                     $apControlAcc = $this->resolveMappedAccount('ap_control', 'liability', 'credit', $cheque->currency);
@@ -514,17 +511,14 @@ class OutgoingChequeService
                         return $cheque;
                     }
 
-                    if ($cheque->status === 'cleared') {
-                        throw new InvalidArgumentException(__('OWNER DECISION REQUIRED: Post-clear cancel workflow is not implemented in pre-clear cheque lifecycle.'));
-                    }
-
-                    if ($cheque->status !== 'issued') {
+                    if (! in_array($cheque->status, ['issued', 'cleared'], true)) {
                         throw ValidationException::withMessages([
-                            'status' => [__('Cannot cancel cheque from status [:status]. Only issued pre-clear cheques can be cancelled.', ['status' => $cheque->status])],
+                            'status' => [__('Cannot cancel cheque from status [:status]. Only issued or cleared cheques can be cancelled.', ['status' => $cheque->status])],
                         ]);
                     }
 
                     $period = $this->validateAndLockPeriod($fiscalYearId, $financialPeriodId, $cancelledDate);
+                    $this->reverseClearingJournalIfNeeded($cheque, $financialPeriodId, $cancelledDate, $actorId);
 
                     $chequesPayableAcc = $this->resolveMappedAccount('cheques_payable', 'liability', 'credit', $cheque->currency);
                     $apControlAcc = $this->resolveMappedAccount('ap_control', 'liability', 'credit', $cheque->currency);
@@ -654,6 +648,47 @@ class OutgoingChequeService
 
             return $cheque->fresh();
         });
+    }
+
+    private function reverseClearingJournalIfNeeded(
+        OutgoingCheque $cheque,
+        string $financialPeriodId,
+        string $eventDate,
+        int $actorId,
+    ): void {
+        if ($cheque->status !== 'cleared') {
+            return;
+        }
+
+        if (! $cheque->clear_journal_entry_id) {
+            throw ValidationException::withMessages([
+                'clear_journal_entry_id' => [__('Cleared cheque is missing its clearing journal entry.')],
+            ]);
+        }
+
+        /** @var JournalEntry $clearJournal */
+        $clearJournal = JournalEntry::query()
+            ->where('id', $cheque->clear_journal_entry_id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        if ($clearJournal->source_type !== 'outgoing_cheque' || (string) $clearJournal->source_id !== (string) $cheque->id) {
+            throw ValidationException::withMessages([
+                'clear_journal_entry_id' => [__('Clearing journal entry does not belong to this cheque.')],
+            ]);
+        }
+
+        if ($clearJournal->status === 'reversed' && $clearJournal->reversal_entry_id) {
+            return;
+        }
+
+        if ($clearJournal->status !== 'posted') {
+            throw ValidationException::withMessages([
+                'clear_journal_entry_id' => [__('Clearing journal entry is not posted and cannot be reversed.')],
+            ]);
+        }
+
+        $this->reversalService->reverse($clearJournal, $financialPeriodId, $actorId, $eventDate);
     }
 
     private function validateAndLockPeriod(string $fiscalYearId, string $financialPeriodId, string $eventDate): FinancialPeriod

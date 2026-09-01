@@ -58,7 +58,7 @@ class FixedAssetRegisterService
 
         $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 15)));
 
-        return $query->paginate($perPage);
+        return $query->paginate($perPage)->withQueryString();
     }
 
     /**

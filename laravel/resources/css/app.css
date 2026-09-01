@@ -62,6 +62,120 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* DataTables 2 server-side tables */
+.server-data-table {
+    color: var(--text-primary);
+}
+
+.server-data-table .dt-container {
+    padding: 1rem;
+}
+
+.server-data-table .dt-layout-row {
+    align-items: center;
+    gap: .75rem;
+    margin: 0 0 1rem;
+}
+
+.server-data-table .dt-layout-row:last-child {
+    margin: 1rem 0 0;
+}
+
+.server-data-table .dt-search,
+.server-data-table .dt-length {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: var(--text-secondary);
+    font-size: .8125rem;
+}
+
+.server-data-table .dt-input {
+    min-height: 2.5rem;
+    border: 1px solid var(--border) !important;
+    border-radius: .65rem !important;
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    padding: .5rem .75rem !important;
+}
+
+.server-data-table .dt-search .dt-input {
+    min-width: min(18rem, 55vw);
+}
+
+.server-data-table table.dataTable > thead > tr > th {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 88%, var(--background));
+    color: var(--text-secondary);
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.server-data-table table.dataTable > tbody > tr {
+    background: var(--surface);
+}
+
+.server-data-table table.dataTable > tbody > tr:hover {
+    background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+}
+
+.server-data-table table.dataTable > tbody > tr > td {
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: .8125rem;
+    vertical-align: middle;
+}
+
+.server-data-table .dt-info {
+    color: var(--text-secondary);
+    font-size: .75rem;
+}
+
+.server-data-table .dt-paging .dt-paging-button {
+    min-width: 2.25rem;
+    border: 1px solid var(--border) !important;
+    border-radius: .55rem !important;
+    background: var(--surface) !important;
+    color: var(--text-secondary) !important;
+}
+
+.server-data-table .dt-paging .dt-paging-button.current,
+.server-data-table .dt-paging .dt-paging-button:hover {
+    border-color: var(--primary) !important;
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+.server-data-table .dt-processing {
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    background: var(--surface);
+    box-shadow: 0 12px 30px rgb(15 23 42 / .14);
+    color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+    .server-data-table .dt-layout-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .server-data-table .dt-layout-cell {
+        width: 100%;
+    }
+
+    .server-data-table .dt-search,
+    .server-data-table .dt-length {
+        justify-content: space-between;
+    }
+
+    .server-data-table .dt-search .dt-input {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
 .code,
 .identifier {
     direction: ltr;

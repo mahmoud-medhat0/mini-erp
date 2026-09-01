@@ -18,7 +18,8 @@ class FixedAssetDepreciationRunPageData
             'runs' => FixedAssetDepreciationRun::query()
                 ->with(['financialPeriod', 'journalEntry', 'poster'])
                 ->orderByDesc('created_at')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'openPeriods' => FinancialPeriod::query()
                 ->whereIn('status', ['open', 'reopened'])
                 ->orderBy('start_date')

@@ -47,7 +47,7 @@ export default function GeneralJournal({ locale, journals, periods = [], filters
   const [selectedJournal, setSelectedJournal] = useState<JournalRow | null>(null);
 
   return (
-    <AppLayout active="accounting.journal">
+    <AppLayout active="accounting.journal" pagination="manual">
       <Head title={accDict.journal} />
 
       <PageHeader

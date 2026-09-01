@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Reports;
 use App\Application\Reports\BalanceSheetReportService;
 use App\Application\Reports\FinancialStatementCsvExporter;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Reports\ReportFilterRequest;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,7 +18,7 @@ class BalanceSheetReportController extends Controller
         private FinancialStatementCsvExporter $csvExporter,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ReportFilterRequest $request): Response
     {
         Gate::authorize('reports.view');
         Gate::authorize('view_financials');
@@ -34,7 +34,7 @@ class BalanceSheetReportController extends Controller
         ]);
     }
 
-    public function exportCsv(Request $request): StreamedResponse
+    public function exportCsv(ReportFilterRequest $request): StreamedResponse
     {
         Gate::authorize('reports.view');
         Gate::authorize('reports.export');

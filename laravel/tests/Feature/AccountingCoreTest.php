@@ -491,6 +491,40 @@ class AccountingCoreTest extends TestCase
         $this->assertEquals('USD', $loaded->currencyRef->code);
     }
 
+    public function test_exchange_rate_search_runs_on_the_server_and_keeps_paginator_totals(): void
+    {
+        ExchangeRate::create([
+            'currency' => 'USD',
+            'date' => '2026-01-15',
+            'rate_e6' => 50000000,
+        ]);
+        ExchangeRate::create([
+            'currency' => 'EUR',
+            'date' => '2026-02-20',
+            'rate_e6' => 54000000,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get('/accounting/fx-rates?search=USD')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Accounting/ExchangeRates')
+                ->where('filters.search', 'USD')
+                ->where('rates.total', 1)
+                ->has('rates.data', 1)
+                ->where('rates.data.0.currency', 'USD')
+                ->where('activeCurrencyCount', 1)
+            );
+
+        $this->actingAs($this->user)
+            ->get('/accounting/fx-rates?search=2026-02-20')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('rates.total', 1)
+                ->where('rates.data.0.currency', 'EUR')
+            );
+    }
+
     public function test_accounting_pages_receive_relationship_backed_currency_options(): void
     {
         $this->actingAs($this->user)

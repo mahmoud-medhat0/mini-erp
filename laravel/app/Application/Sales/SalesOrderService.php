@@ -9,7 +9,6 @@ use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderLine;
 use App\Models\UnitOfMeasure;
-use App\Support\Concurrency\OptimisticLock;
 use App\Support\Numbering\NumberSequenceAllocator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +20,6 @@ class SalesOrderService
 
     public function __construct(
         private readonly AuditLogger $auditLogger,
-        private readonly OptimisticLock $optimisticLock,
         private readonly NumberSequenceAllocator $numberSequenceAllocator,
     ) {}
 
@@ -84,11 +82,10 @@ class SalesOrderService
     public function update(string $id, array $data, int|string|null $actorId = null): SalesOrder
     {
         return DB::transaction(function () use ($id, $data, $actorId) {
-            /** @var SalesOrder $salesOrder */
-            $salesOrder = SalesOrder::query()->with('lines')->findOrFail($id);
+            $salesOrder = $this->lockSalesOrder($id);
 
             if (isset($data['lock_version'])) {
-                $this->optimisticLock->verify($salesOrder, (int) $data['lock_version']);
+                $this->assertCurrentVersion($salesOrder, (int) $data['lock_version']);
             }
 
             if ($salesOrder->status !== 'draft') {
@@ -108,18 +105,18 @@ class SalesOrderService
             }
             $totalMinor = $subtotalMinor;
 
-            $salesOrder->customer_id = $validatedHeader['customer_id'];
-            $salesOrder->order_date = $validatedHeader['order_date'];
-            $salesOrder->expected_delivery_date = $validatedHeader['expected_delivery_date'];
-            $salesOrder->currency = $validatedHeader['currency'];
-            $salesOrder->fx_rate_e6 = $validatedHeader['fx_rate_e6'];
-            $salesOrder->reference = $validatedHeader['reference'];
-            $salesOrder->notes = $validatedHeader['notes'];
-            $salesOrder->subtotal_minor = $subtotalMinor;
-            $salesOrder->total_minor = $totalMinor;
-            $salesOrder->updated_by = $actorId;
-            $salesOrder->lock_version = ((int) $salesOrder->lock_version) + 1;
-            $salesOrder->save();
+            $this->conditionalUpdateLockedOrder($salesOrder, 'draft', [
+                'customer_id' => $validatedHeader['customer_id'],
+                'order_date' => $validatedHeader['order_date'],
+                'expected_delivery_date' => $validatedHeader['expected_delivery_date'],
+                'currency' => $validatedHeader['currency'],
+                'fx_rate_e6' => $validatedHeader['fx_rate_e6'],
+                'reference' => $validatedHeader['reference'],
+                'notes' => $validatedHeader['notes'],
+                'subtotal_minor' => $subtotalMinor,
+                'total_minor' => $totalMinor,
+                'updated_by' => $actorId,
+            ]);
 
             // Re-create lines
             $salesOrder->lines()->delete();
@@ -154,8 +151,7 @@ class SalesOrderService
     public function submit(string $id, int|string|null $actorId = null): SalesOrder
     {
         return DB::transaction(function () use ($id, $actorId) {
-            /** @var SalesOrder $salesOrder */
-            $salesOrder = SalesOrder::query()->with('lines')->findOrFail($id);
+            $salesOrder = $this->lockSalesOrder($id);
 
             if ($salesOrder->status !== 'draft') {
                 throw ValidationException::withMessages([
@@ -171,12 +167,11 @@ class SalesOrderService
 
             $before = $salesOrder->toArray();
 
-            $salesOrder->status = 'submitted';
-            $salesOrder->submitted_by = $actorId;
-            $salesOrder->submitted_at = now();
-            $salesOrder->updated_by = $actorId;
-            $salesOrder->lock_version = ((int) $salesOrder->lock_version) + 1;
-            $salesOrder->save();
+            $this->transitionLockedOrder($salesOrder, 'draft', 'submitted', [
+                'submitted_by' => $actorId,
+                'submitted_at' => now(),
+                'updated_by' => $actorId,
+            ]);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -194,8 +189,7 @@ class SalesOrderService
     public function confirm(string $id, int|string|null $actorId = null): SalesOrder
     {
         return DB::transaction(function () use ($id, $actorId) {
-            /** @var SalesOrder $salesOrder */
-            $salesOrder = SalesOrder::query()->with('lines')->findOrFail($id);
+            $salesOrder = $this->lockSalesOrder($id);
 
             // Idempotency check: if already confirmed, return without error
             if ($salesOrder->status === 'confirmed') {
@@ -220,12 +214,12 @@ class SalesOrderService
                 $salesOrder->number = $this->numberSequenceAllocator->nextNumber('sales.order', 'SO', $salesOrder->order_date);
             }
 
-            $salesOrder->status = 'confirmed';
-            $salesOrder->confirmed_by = $actorId;
-            $salesOrder->confirmed_at = now();
-            $salesOrder->updated_by = $actorId;
-            $salesOrder->lock_version = ((int) $salesOrder->lock_version) + 1;
-            $salesOrder->save();
+            $this->transitionLockedOrder($salesOrder, $salesOrder->status, 'confirmed', [
+                'number' => $salesOrder->number,
+                'confirmed_by' => $actorId,
+                'confirmed_at' => now(),
+                'updated_by' => $actorId,
+            ]);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -243,8 +237,7 @@ class SalesOrderService
     public function cancel(string $id, int|string|null $actorId = null): SalesOrder
     {
         return DB::transaction(function () use ($id, $actorId) {
-            /** @var SalesOrder $salesOrder */
-            $salesOrder = SalesOrder::query()->with('lines')->findOrFail($id);
+            $salesOrder = $this->lockSalesOrder($id);
 
             if ($salesOrder->status === 'cancelled') {
                 return $salesOrder->fresh(['customer', 'lines.product', 'lines.unitOfMeasure']);
@@ -258,12 +251,11 @@ class SalesOrderService
 
             $before = $salesOrder->toArray();
 
-            $salesOrder->status = 'cancelled';
-            $salesOrder->cancelled_by = $actorId;
-            $salesOrder->cancelled_at = now();
-            $salesOrder->updated_by = $actorId;
-            $salesOrder->lock_version = ((int) $salesOrder->lock_version) + 1;
-            $salesOrder->save();
+            $this->transitionLockedOrder($salesOrder, $salesOrder->status, 'cancelled', [
+                'cancelled_by' => $actorId,
+                'cancelled_at' => now(),
+                'updated_by' => $actorId,
+            ]);
 
             $this->auditLogger->record(
                 actorId: $actorId,
@@ -276,6 +268,75 @@ class SalesOrderService
 
             return $salesOrder->fresh(['customer', 'lines.product', 'lines.unitOfMeasure']);
         });
+    }
+
+    private function lockSalesOrder(string $id): SalesOrder
+    {
+        /** @var SalesOrder $salesOrder */
+        $salesOrder = SalesOrder::query()
+            ->whereKey($id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        return $salesOrder->load('lines');
+    }
+
+    private function assertCurrentVersion(SalesOrder $salesOrder, int $expectedVersion): void
+    {
+        if ((int) $salesOrder->lock_version !== $expectedVersion) {
+            $this->throwConcurrencyValidationException();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function transitionLockedOrder(
+        SalesOrder $salesOrder,
+        string $expectedStatus,
+        string $nextStatus,
+        array $attributes,
+    ): void {
+        $this->conditionalUpdateLockedOrder($salesOrder, $expectedStatus, [
+            ...$attributes,
+            'status' => $nextStatus,
+        ]);
+    }
+
+    /**
+     * Persist against the exact state read under the row lock. The predicates are
+     * a final guard against stale state if this method is reused outside that lock.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function conditionalUpdateLockedOrder(
+        SalesOrder $salesOrder,
+        string $expectedStatus,
+        array $attributes,
+    ): void {
+        $expectedVersion = (int) $salesOrder->lock_version;
+
+        $affected = SalesOrder::query()
+            ->whereKey($salesOrder->getKey())
+            ->where('status', $expectedStatus)
+            ->where('lock_version', $expectedVersion)
+            ->update([
+                ...$attributes,
+                'lock_version' => $expectedVersion + 1,
+            ]);
+
+        if ($affected !== 1) {
+            $this->throwConcurrencyValidationException();
+        }
+
+        $salesOrder->refresh();
+    }
+
+    private function throwConcurrencyValidationException(): never
+    {
+        throw ValidationException::withMessages([
+            'lock_version' => [__('The record has been modified by another user. Please refresh and try again.')],
+        ]);
     }
 
     private function validateHeader(array $data, ?SalesOrder $existingOrder = null): array

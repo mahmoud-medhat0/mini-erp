@@ -15,7 +15,7 @@ class PartnerStatementCsvExporter
     {
         return $this->statement(
             report: $report,
-            filename: 'customer_statement_'.$report['customer']['code'].'.csv',
+            filename: $this->csvReportResponse->safeFilename('customer_statement_'.$report['customer']['code'].'.csv'),
             title: 'Customer Statement Report',
             partnerLabel: 'Customer',
             partner: $report['customer'],
@@ -31,7 +31,7 @@ class PartnerStatementCsvExporter
     {
         return $this->statement(
             report: $report,
-            filename: 'supplier_statement_'.$report['supplier']['code'].'.csv',
+            filename: $this->csvReportResponse->safeFilename('supplier_statement_'.$report['supplier']['code'].'.csv'),
             title: 'Supplier Statement Report',
             partnerLabel: 'Supplier',
             partner: $report['supplier'],
@@ -54,17 +54,17 @@ class PartnerStatementCsvExporter
         string $creditHeading,
     ): StreamedResponse {
         return $this->csvReportResponse->stream($filename, function ($handle) use ($report, $title, $partnerLabel, $partner, $debitHeading, $creditHeading): void {
-            fputcsv($handle, [$title]);
-            fputcsv($handle, [$partnerLabel, $partner['code'].' - '.$partner['name']]);
-            fputcsv($handle, ['Period', $report['filters']['date_from'].' to '.$report['filters']['date_to']]);
-            fputcsv($handle, ['Currency', $report['filters']['currency']]);
-            fputcsv($handle, []);
-            fputcsv($handle, ['Opening Balance', $this->formatMinor($report['opening_balance_minor'])]);
-            fputcsv($handle, []);
-            fputcsv($handle, ['Date', 'Type', 'Reference', 'Description', $debitHeading, $creditHeading, 'Running Balance']);
+            $this->csvReportResponse->writeRow($handle, [$title]);
+            $this->csvReportResponse->writeRow($handle, [$partnerLabel, $partner['code'].' - '.$partner['name']]);
+            $this->csvReportResponse->writeRow($handle, ['Period', $report['filters']['date_from'].' to '.$report['filters']['date_to']]);
+            $this->csvReportResponse->writeRow($handle, ['Currency', $report['filters']['currency']]);
+            $this->csvReportResponse->writeRow($handle, []);
+            $this->csvReportResponse->writeRow($handle, ['Opening Balance', $this->formatMinor($report['opening_balance_minor'])]);
+            $this->csvReportResponse->writeRow($handle, []);
+            $this->csvReportResponse->writeRow($handle, ['Date', 'Type', 'Reference', 'Description', $debitHeading, $creditHeading, 'Running Balance']);
 
             foreach ($report['lines'] as $line) {
-                fputcsv($handle, [
+                $this->csvReportResponse->writeRow($handle, [
                     $line['date'],
                     $line['type'],
                     $line['reference'],
@@ -75,8 +75,8 @@ class PartnerStatementCsvExporter
                 ]);
             }
 
-            fputcsv($handle, []);
-            fputcsv($handle, [
+            $this->csvReportResponse->writeRow($handle, []);
+            $this->csvReportResponse->writeRow($handle, [
                 'Totals',
                 '',
                 '',

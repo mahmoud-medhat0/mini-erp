@@ -46,7 +46,7 @@ class GeneralLedgerService
             $query->where('entry_date', '<=', $filters['end_date']);
         }
 
-        return $query->paginate($filters['per_page'] ?? 20);
+        return $query->paginate($filters['per_page'] ?? 20)->withQueryString();
     }
 
     /**
@@ -87,7 +87,7 @@ class GeneralLedgerService
         $totalCredit = (int) (clone $query)->sum('credit_minor');
         $netMovement = $totalDebit - $totalCredit;
 
-        $entries = $query->paginate($filters['per_page'] ?? 50);
+        $entries = $query->paginate($filters['per_page'] ?? 50)->withQueryString();
 
         return [
             'entries' => $entries,

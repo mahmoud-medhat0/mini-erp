@@ -23,6 +23,9 @@
     },
     "dependencies": {
         "@inertiajs/react": "^3.7.0",
+        "datatables.net-dt": "^3.0.3",
+        "datatables.net-react": "^1.0.2",
+        "datatables.net-responsive-dt": "^4.0.2",
         "react": "^19.2.8",
         "react-dom": "^19.2.8"
     }

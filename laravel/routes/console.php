@@ -30,8 +30,14 @@ Artisan::command('tokens:gc {--batch=500 : Maximum rows to delete per table}', f
 })->purpose('Delete expired sessions, password reset tokens, and idempotency keys in bounded batches');
 
 Artisan::command('concurrency:stress {--workers=100 : Number of concurrent operations}', function () {
+    if (app()->environment('production')) {
+        $this->error('Stress commands are disabled in production to protect operational data.');
+
+        return Command::FAILURE;
+    }
+
     if (DB::connection()->getDriverName() !== 'pgsql') {
-        $this->error('concurrency:stress requires PostgreSQL because the production allocator relies on ON CONFLICT locking.');
+        $this->error('concurrency:stress requires PostgreSQL row locking.');
 
         return Command::FAILURE;
     }

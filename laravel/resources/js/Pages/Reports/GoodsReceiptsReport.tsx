@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
+import { GoodsReceiptsDataTable } from '../../Components/OperationalReportDataTables';
 import ReportFilterPanel from '../../Components/ReportFilterPanel';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Button, Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
@@ -47,7 +48,9 @@ interface GoodsReceiptsReportProps extends SharedPageProps {
 }
 
 export default function GoodsReceiptsReport({ locale, reportData, filters, suppliers, products, warehouses }: GoodsReceiptsReportProps) {
-    const pageDict = getDictionary(locale).app.pages.reports;
+    const dict = getDictionary(locale);
+    const pageDict = dict.app.pages.reports;
+    const notAvailable = dict.app.accounting.notAvailable;
     const [dateFrom, setDateFrom] = useState(filters.date_from || '');
     const [dateTo, setDateTo] = useState(filters.date_to || '');
     const [status, setStatus] = useState(filters.status || '');
@@ -100,20 +103,6 @@ export default function GoodsReceiptsReport({ locale, reportData, filters, suppl
         setWarehouseId('');
         setSearch('');
         router.get('/reports/goods-receipts', {}, { preserveState: true });
-    };
-
-    const getStatusTone = (st: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' => {
-        if (st === 'confirmed') return 'ok';
-        if (st === 'cancelled') return 'danger';
-        return 'muted';
-    };
-
-    const getStatusLabel = (st: string) => {
-        if (st === 'draft') return pageDict.draft;
-        if (st === 'confirmed') return pageDict.confirmed;
-        if (st === 'cancelled') return pageDict.cancelled;
-
-        return st;
     };
 
     const numberLocale = locale === 'ar' ? 'ar-EG' : 'en-US';
@@ -178,42 +167,12 @@ export default function GoodsReceiptsReport({ locale, reportData, filters, suppl
                 </div>
 
                 <Card>
-                    <div className="overflow-x-auto">
-                        <table className={tableClasses.table}>
-                            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                                <tr>
-                                    <th className={tableClasses.th}>{pageDict.receiptNumber}</th>
-                                    <th className={tableClasses.th}>{pageDict.purchaseOrderNumber}</th>
-                                    <th className={tableClasses.th}>{pageDict.supplier}</th>
-                                    <th className={tableClasses.th}>{pageDict.warehouse}</th>
-                                    <th className={tableClasses.th}>{pageDict.date}</th>
-                                    <th className={tableClasses.th}>{pageDict.status}</th>
-                                    <th className={tableClasses.th}>{pageDict.receivedQty}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                {reportData.rows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="p-4 text-center">
-                                            <EmptyState title={pageDict.emptyGoodsReceipts} />
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    reportData.rows.map((row) => (
-                                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                                            <td className={`${tableClasses.td} font-medium`}>{row.receipt_number}</td>
-                                            <td className={tableClasses.td}>{row.purchase_order_number}</td>
-                                            <td className={tableClasses.td}>{row.supplier_code} - {row.supplier_name}</td>
-                                            <td className={tableClasses.td}>{row.warehouse_code} - {getLocalizedName(row.warehouse_name, locale)}</td>
-                                            <td className={tableClasses.td}>{row.receipt_date}</td>
-                                            <td className={tableClasses.td}><StatusBadge tone={getStatusTone(row.status)}>{getStatusLabel(row.status)}</StatusBadge></td>
-                                            <td className={`${tableClasses.td} font-semibold`}>{formatQty(row.received_quantity_e6)}</td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                    <GoodsReceiptsDataTable
+                        filters={filters}
+                        labels={pageDict}
+                        locale={locale}
+                        notAvailable={notAvailable}
+                    />
                 </Card>
             </div>
         </AppLayout>

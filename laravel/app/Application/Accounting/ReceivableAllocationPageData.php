@@ -50,7 +50,8 @@ class ReceivableAllocationPageData
             'existingAllocations' => ReceivableAllocation::query()
                 ->with(['customerReceipt', 'receivableEntry', 'customer'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'customers' => Customer::query()->where('status', 'active')->orderBy('code')->get(),
             'filters' => [
                 'customer_id' => $customerId,

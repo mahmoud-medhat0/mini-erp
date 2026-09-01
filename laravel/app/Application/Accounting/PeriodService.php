@@ -323,6 +323,99 @@ class PeriodService
             ];
         }
 
+        // Operational documents introduced after the original close-readiness flow.
+        if (Schema::hasTable('treasury_transfer')) {
+            $treasuryTransfers = DB::table('treasury_transfer')
+                ->where('status', 'draft')
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhereBetween('transfer_date', [$startDate, $endDate]);
+                })->get();
+            foreach ($treasuryTransfers as $transfer) {
+                $blockers[] = [
+                    'entity_type' => 'treasury_transfer',
+                    'id' => (string) $transfer->id,
+                    'number_or_reference' => (string) ($transfer->number ?? $transfer->reference ?? $transfer->id),
+                    'status' => (string) $transfer->status,
+                    'date' => (string) $transfer->transfer_date,
+                    'reason_code' => 'unposted_treasury_transfer',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('stock_adjustment')) {
+            $stockAdjustments = DB::table('stock_adjustment')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->whereBetween('adjustment_date', [$startDate, $endDate])
+                ->get();
+            foreach ($stockAdjustments as $adjustment) {
+                $blockers[] = [
+                    'entity_type' => 'stock_adjustment',
+                    'id' => (string) $adjustment->id,
+                    'number_or_reference' => (string) ($adjustment->number ?? $adjustment->reference ?? $adjustment->id),
+                    'status' => (string) $adjustment->status,
+                    'date' => (string) $adjustment->adjustment_date,
+                    'reason_code' => 'unposted_stock_adjustment',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('stock_count')) {
+            $stockCounts = DB::table('stock_count')
+                ->whereIn('status', ['draft', 'submitted', 'approved'])
+                ->whereBetween('count_date', [$startDate, $endDate])
+                ->get();
+            foreach ($stockCounts as $count) {
+                $blockers[] = [
+                    'entity_type' => 'stock_count',
+                    'id' => (string) $count->id,
+                    'number_or_reference' => (string) ($count->number ?? $count->reference ?? $count->id),
+                    'status' => (string) $count->status,
+                    'date' => (string) $count->count_date,
+                    'reason_code' => 'unposted_stock_count',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('stock_transfer')) {
+            $stockTransfers = DB::table('stock_transfer')
+                ->whereIn('status', ['draft', 'submitted', 'approved', 'issued', 'partially_received'])
+                ->whereBetween('transfer_date', [$startDate, $endDate])
+                ->get();
+            foreach ($stockTransfers as $transfer) {
+                $blockers[] = [
+                    'entity_type' => 'stock_transfer',
+                    'id' => (string) $transfer->id,
+                    'number_or_reference' => (string) ($transfer->number ?? $transfer->reference ?? $transfer->id),
+                    'status' => (string) $transfer->status,
+                    'date' => (string) $transfer->transfer_date,
+                    'reason_code' => 'incomplete_stock_transfer',
+                ];
+            }
+        }
+
+        if (Schema::hasTable('fixed_asset_depreciation_schedule')) {
+            $depreciationSchedules = DB::table('fixed_asset_depreciation_schedule')
+                ->whereIn('status', ['planned', 'reversed'])
+                ->where(function ($q) use ($period, $startDate, $endDate) {
+                    $q->where('financial_period_id', $period->id)
+                        ->orWhere(function ($dateRange) use ($startDate, $endDate) {
+                            $dateRange->where('period_start_date', '<=', $endDate)
+                                ->where('period_end_date', '>=', $startDate);
+                        });
+                })->get();
+            foreach ($depreciationSchedules as $schedule) {
+                $blockers[] = [
+                    'entity_type' => 'fixed_asset_depreciation_schedule',
+                    'id' => (string) $schedule->id,
+                    'number_or_reference' => (string) $schedule->id,
+                    'status' => (string) $schedule->status,
+                    'date' => (string) $schedule->period_end_date,
+                    'reason_code' => 'unposted_fixed_asset_depreciation',
+                ];
+            }
+        }
+
         // 11. Expenses
         if (Schema::hasTable('expense')) {
             $expenses = DB::table('expense')

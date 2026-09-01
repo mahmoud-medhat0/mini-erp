@@ -7,6 +7,7 @@ use App\Application\Accounting\PeriodService;
 use App\Application\Sales\CustomerCreditNoteService;
 use App\Application\Sales\CustomerInvoiceService;
 use App\Application\Taxes\TaxMasterDataService;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\TaxCode;
@@ -18,6 +19,8 @@ use Throwable;
 
 class SalesTaxPostingStressCommand extends Command
 {
+    use GuardsStressExecution;
+
     protected $signature = 'accounting:sales-tax-stress {--workers=50}';
 
     protected $description = 'Run stress test for Phase 7 Sales Output VAT posting integrity and idempotency.';
@@ -29,6 +32,10 @@ class SalesTaxPostingStressCommand extends Command
         PeriodService $periodService,
         AccountingAccountMappingService $mappingService,
     ): int {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $this->info("Running Sales Output VAT Posting Stress test on DB driver: {$driver}");
 

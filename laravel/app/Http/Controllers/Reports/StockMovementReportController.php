@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Application\Reports\OperationalReportDataTableService;
 use App\Application\Reports\ReportPageOptions;
-use App\Application\Reports\StockMovementReportService;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Reports\ReportFilterRequest;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,7 +14,7 @@ class StockMovementReportController extends Controller
 {
     public function __construct(private readonly ReportPageOptions $options) {}
 
-    public function index(Request $request, StockMovementReportService $service): Response
+    public function index(ReportFilterRequest $request, OperationalReportDataTableService $service): Response
     {
         Gate::authorize('reports.view');
 
@@ -26,15 +26,21 @@ class StockMovementReportController extends Controller
         $currency = $request->query('currency');
         $search = $request->query('search');
 
-        $data = $service->generate(
-            dateFrom: $dateFrom ? (string) $dateFrom : null,
-            dateTo: $dateTo ? (string) $dateTo : null,
-            movementType: $movementType ? (string) $movementType : null,
-            productId: $productId ? (string) $productId : null,
-            warehouseId: $warehouseId ? (string) $warehouseId : null,
-            currency: $currency ? (string) $currency : null,
-            search: $search ? (string) $search : null
-        );
+        $data = [
+            'rows' => [],
+            'summary' => $service->stockMovementSummary([
+                'date_from' => $dateFrom ? (string) $dateFrom : null,
+                'date_to' => $dateTo ? (string) $dateTo : null,
+                'status' => null,
+                'customer_id' => null,
+                'supplier_id' => null,
+                'product_id' => $productId ? (string) $productId : null,
+                'warehouse_id' => $warehouseId ? (string) $warehouseId : null,
+                'currency' => $currency ? (string) $currency : null,
+                'movement_type' => $movementType ? (string) $movementType : null,
+                'search' => $search ? (string) $search : null,
+            ]),
+        ];
 
         return Inertia::render('Reports/StockMovementsReport', [
             'reportData' => $data,

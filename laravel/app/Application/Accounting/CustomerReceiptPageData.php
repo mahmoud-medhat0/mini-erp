@@ -21,7 +21,8 @@ class CustomerReceiptPageData
             'receipts' => CustomerReceipt::query()
                 ->with(['customer', 'cashAccount', 'bankAccount', 'fiscalYear', 'financialPeriod'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'customers' => Customer::query()->where('status', 'active')->orderBy('code')->get(),
             'cashAccounts' => CashAccount::query()->where('is_active', true)->orderBy('code')->get(),
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('code')->get(),

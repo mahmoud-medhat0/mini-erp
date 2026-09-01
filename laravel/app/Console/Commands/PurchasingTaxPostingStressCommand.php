@@ -7,6 +7,7 @@ use App\Application\Accounting\PeriodService;
 use App\Application\Purchasing\SupplierAdjustmentNoteService;
 use App\Application\Purchasing\SupplierBillService;
 use App\Application\Taxes\TaxMasterDataService;
+use App\Console\Commands\Concerns\GuardsStressExecution;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\TaxCode;
@@ -18,6 +19,8 @@ use Throwable;
 
 class PurchasingTaxPostingStressCommand extends Command
 {
+    use GuardsStressExecution;
+
     protected $signature = 'accounting:purchasing-tax-stress {--workers=50}';
 
     protected $description = 'Run stress test for Phase 7 Purchasing Input VAT posting integrity and idempotency.';
@@ -29,6 +32,10 @@ class PurchasingTaxPostingStressCommand extends Command
         PeriodService $periodService,
         AccountingAccountMappingService $mappingService,
     ): int {
+        if ($this->refusesProductionStressRun()) {
+            return self::FAILURE;
+        }
+
         $driver = DB::connection()->getDriverName();
         $this->info("Running Purchasing Input VAT Posting Stress test on DB driver: {$driver}");
 

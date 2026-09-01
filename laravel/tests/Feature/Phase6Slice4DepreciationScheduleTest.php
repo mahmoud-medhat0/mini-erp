@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Application\Accounting\PeriodService;
 use App\Models\FixedAsset;
 use App\Models\FixedAssetCategory;
 use App\Models\FixedAssetDepreciationSchedule;
@@ -87,6 +88,29 @@ class Phase6Slice4DepreciationScheduleTest extends TestCase
         $sumDepreciation = $schedules->sum('depreciation_minor');
 
         $this->assertEquals($expectedBase, $sumDepreciation);
+    }
+
+    public function test_planned_depreciation_schedule_blocks_its_financial_period_close(): void
+    {
+        $this->actingAs($this->authorizedUser)
+            ->post("/fixed-assets/{$this->asset->id}/generate-schedule")
+            ->assertRedirect();
+
+        $schedule = FixedAssetDepreciationSchedule::query()
+            ->with('financialPeriod')
+            ->where('fixed_asset_id', $this->asset->id)
+            ->where('status', 'planned')
+            ->orderBy('period_number')
+            ->firstOrFail();
+
+        $readiness = app(PeriodService::class)->checkCloseReadiness($schedule->financialPeriod);
+
+        $this->assertFalse($readiness['can_close']);
+        $this->assertTrue(collect($readiness['blockers'])->contains(
+            fn (array $blocker): bool => $blocker['entity_type'] === 'fixed_asset_depreciation_schedule'
+                && $blocker['id'] === $schedule->id
+                && $blocker['reason_code'] === 'unposted_fixed_asset_depreciation'
+        ));
     }
 
     public function test_remainder_cents_are_allocated_deterministically(): void

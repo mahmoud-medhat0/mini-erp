@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
+import { SupplierBillsDataTable } from '../../Components/OperationalReportDataTables';
 import ReportFilterPanel from '../../Components/ReportFilterPanel';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Button, Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
@@ -104,23 +105,6 @@ export default function SupplierBillsReport({ locale, reportData, filters, suppl
         router.get('/reports/supplier-bills', {}, { preserveState: true });
     };
 
-    const getStatusTone = (st: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' => {
-        if (st === 'posted') return 'ok';
-        if (st === 'cancelled') return 'danger';
-        if (st === 'approved' || st === 'submitted') return 'warning';
-        return 'muted';
-    };
-
-    const getStatusLabel = (st: string) => {
-        if (st === 'draft') return pageDict.draft;
-        if (st === 'submitted') return pageDict.submitted;
-        if (st === 'approved') return pageDict.approved;
-        if (st === 'posted') return pageDict.posted;
-        if (st === 'cancelled') return pageDict.cancelled;
-
-        return st;
-    };
-
     return (
         <AppLayout active="reports.supplier-bills">
             <Head title={pageDict.supplierBillsHeadTitle} />
@@ -206,56 +190,12 @@ export default function SupplierBillsReport({ locale, reportData, filters, suppl
                 </div>
 
                 <Card>
-                    <div className="overflow-x-auto">
-                        <table className={tableClasses.table}>
-                            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                                <tr>
-                                    <th className={tableClasses.th}>{pageDict.billNumber}</th>
-                                    <th className={tableClasses.th}>{pageDict.supplier}</th>
-                                    <th className={tableClasses.th}>{pageDict.date}</th>
-                                    <th className={tableClasses.th}>{pageDict.dueDate}</th>
-                                    <th className={tableClasses.th}>{pageDict.status}</th>
-                                    <th className={tableClasses.th}>{pageDict.total}</th>
-                                    <th className={tableClasses.th}>{pageDict.journal}</th>
-                                    <th className={tableClasses.th}>{pageDict.apEntry}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                {reportData.rows.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={8} className="p-4 text-center">
-                                            <EmptyState title={pageDict.emptySupplierBills} />
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    reportData.rows.map((row) => (
-                                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                                            <td className={`${tableClasses.td} font-medium`}>{row.bill_number}</td>
-                                            <td className={tableClasses.td}>{row.supplier_code} - {row.supplier_name}</td>
-                                            <td className={tableClasses.td}>{row.bill_date}</td>
-                                            <td className={tableClasses.td}>{row.due_date}</td>
-                                            <td className={tableClasses.td}><StatusBadge tone={getStatusTone(row.status)}>{getStatusLabel(row.status)}</StatusBadge></td>
-                                            <td className={`${tableClasses.td} font-semibold`}>{formatMoney(row.total_minor, row.currency)}</td>
-                                            <td className={tableClasses.td}>
-                                                {row.journal_entry_number ? (
-                                                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{row.journal_entry_number}</span>
-                                                ) : (
-                                                    <span className="text-xs text-slate-400">{accDict.notAvailable}</span>
-                                                )}
-                                            </td>
-                                            <td className={tableClasses.td}>
-                                                {row.payable_entry_id ? (
-                                                    <span className="text-xs font-mono text-purple-600 dark:text-purple-400 font-semibold">AP-{row.payable_entry_id.substring(0, 8)}</span>
-                                                ) : (
-                                                    <span className="text-xs text-slate-400">{accDict.notAvailable}</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                    <SupplierBillsDataTable
+                        filters={filters}
+                        labels={pageDict}
+                        locale={locale}
+                        notAvailable={accDict.notAvailable}
+                    />
                 </Card>
             </div>
         </AppLayout>

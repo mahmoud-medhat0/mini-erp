@@ -109,7 +109,7 @@ export default function AuditLogIndex({
   }
 
   return (
-    <AppLayout active="audit.view">
+    <AppLayout active="audit.view" pagination="manual">
       <Head title={dict.app.nav.auditLog} />
 
       <PageHeader

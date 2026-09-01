@@ -205,19 +205,32 @@ class Phase3Slice8ReportsTest extends TestCase
             ->where('report.closing_balance_minor', 120000)
             ->where('report.total_debit_minor', 150000)
             ->where('report.total_credit_minor', 30000)
-            ->has('report.lines', 3)
-            ->where('report.lines.0.type', 'Opening Balance')
-            ->where('report.lines.0.reference', 'AR-OB-001')
-            ->where('report.lines.2.type', 'Customer Receipt')
-            ->where('report.lines.2.reference', 'REC-2026-00001')
+            ->missing('report.lines')
         );
+
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/customer-statement/data?'.http_build_query([
+                'customer_id' => $customer->id,
+                'date_from' => '2026-01-01',
+                'date_to' => '2026-02-28',
+                'currency' => 'EGP',
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 3)
+            ->assertJsonPath('data.0.type', 'Opening Balance')
+            ->assertJsonPath('data.0.reference', 'AR-OB-001')
+            ->assertJsonPath('data.2.type', 'Customer Receipt')
+            ->assertJsonPath('data.2.reference', 'REC-2026-00001');
 
         $priorPeriodResponse = $this->actingAs($this->adminUser)->get('/reports/customer-statement?customer_id='.$customer->id.'&date_from=2026-03-01&date_to=2026-03-31');
         $priorPeriodResponse->assertStatus(200);
         $priorPeriodResponse->assertInertia(fn ($page) => $page
             ->where('report.opening_balance_minor', 120000)
             ->where('report.closing_balance_minor', 120000)
-            ->has('report.lines', 0)
+            ->missing('report.lines')
         );
 
         $csvResponse = $this->actingAs($this->adminUser)->get('/reports/customer-statement/export?customer_id='.$customer->id.'&date_from=2026-01-01&date_to=2026-02-28');
@@ -302,19 +315,32 @@ class Phase3Slice8ReportsTest extends TestCase
             ->where('report.closing_balance_minor', 230000)
             ->where('report.total_debit_minor', 50000)
             ->where('report.total_credit_minor', 280000)
-            ->has('report.lines', 3)
-            ->where('report.lines.0.type', 'Opening Balance')
-            ->where('report.lines.0.reference', 'AP-OB-001')
-            ->where('report.lines.2.type', 'Supplier Payment')
-            ->where('report.lines.2.reference', 'PAY-2026-00001')
+            ->missing('report.lines')
         );
+
+        $this->actingAs($this->adminUser)
+            ->getJson('/reports/supplier-statement/data?'.http_build_query([
+                'supplier_id' => $supplier->id,
+                'date_from' => '2026-01-01',
+                'date_to' => '2026-02-28',
+                'currency' => 'EGP',
+                'draw' => 1,
+                'start' => 0,
+                'length' => 10,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 3)
+            ->assertJsonPath('data.0.type', 'Opening Balance')
+            ->assertJsonPath('data.0.reference', 'AP-OB-001')
+            ->assertJsonPath('data.2.type', 'Supplier Payment')
+            ->assertJsonPath('data.2.reference', 'PAY-2026-00001');
 
         $priorPeriodResponse = $this->actingAs($this->adminUser)->get('/reports/supplier-statement?supplier_id='.$supplier->id.'&date_from=2026-03-01&date_to=2026-03-31');
         $priorPeriodResponse->assertStatus(200);
         $priorPeriodResponse->assertInertia(fn ($page) => $page
             ->where('report.opening_balance_minor', 230000)
             ->where('report.closing_balance_minor', 230000)
-            ->has('report.lines', 0)
+            ->missing('report.lines')
         );
 
         $csvResponse = $this->actingAs($this->adminUser)->get('/reports/supplier-statement/export?supplier_id='.$supplier->id.'&date_from=2026-01-01&date_to=2026-02-28');

@@ -50,7 +50,8 @@ class PayableAllocationPageData
             'existingAllocations' => PayableAllocation::query()
                 ->with(['supplierPayment', 'payableEntry', 'supplier'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('code')->get(),
             'filters' => [
                 'supplier_id' => $supplierId,

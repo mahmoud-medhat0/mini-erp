@@ -167,7 +167,7 @@ export default function CostCentersIndex({ locale, costCenters, filters }: Props
   }
 
   return (
-    <AppLayout active="cost-centers.index">
+    <AppLayout active="cost-centers.index" pagination="manual">
       <Head title={pageDict.headTitle} />
 
       <PageHeader

@@ -19,7 +19,8 @@ class SupplierOpeningBalancePageData
             'balances' => SupplierOpeningBalance::query()
                 ->with(['supplier', 'fiscalYear', 'financialPeriod'])
                 ->orderBy('created_at', 'desc')
-                ->paginate(15),
+                ->paginate(15)
+                ->withQueryString(),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('code')->get(),
             'fiscalYears' => FiscalYear::query()->open()->orderBy('year', 'desc')->get(),
             'periods' => FinancialPeriod::query()->with('fiscalYear')->openForPosting()->orderBy('start_date', 'asc')->get(),

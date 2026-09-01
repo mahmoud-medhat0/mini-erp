@@ -261,6 +261,21 @@ export function decodePaginationLabel(label: string): string {
     .replace(/&quot;/g, '"');
 }
 
+function paginationUrlWithCurrentQuery(url: string): string {
+  if (typeof window === 'undefined') return url;
+
+  const current = new URL(window.location.href);
+  const target = new URL(url, current.origin);
+
+  current.searchParams.forEach((value, key) => {
+    if (!target.searchParams.has(key)) {
+      target.searchParams.append(key, value);
+    }
+  });
+
+  return `${target.pathname}${target.search}${target.hash}`;
+}
+
 export function PaginationControls({
   links,
   total,
@@ -277,7 +292,7 @@ export function PaginationControls({
   }
 
   return (
-    <div className={`flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface)] mt-4 rounded-lg ${className}`}>
+    <div data-pagination-controls className={`flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] p-4 sm:flex-row sm:items-center sm:justify-between mt-4 rounded-lg ${className}`}>
       {total !== undefined && totalLabel ? (
         <span className="text-xs text-[var(--text-muted)] font-mono">
           {totalLabel} {total}
@@ -285,14 +300,14 @@ export function PaginationControls({
       ) : (
         <span />
       )}
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-end">
         {links.map((link, idx) => {
           const safeLabel = decodePaginationLabel(link.label);
 
           return link.url ? (
             <Link
               key={idx}
-              href={link.url}
+              href={paginationUrlWithCurrentQuery(link.url)}
               preserveScroll
               preserveState
               className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${

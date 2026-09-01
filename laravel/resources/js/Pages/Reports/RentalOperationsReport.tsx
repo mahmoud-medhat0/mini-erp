@@ -3,8 +3,9 @@ import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
+import { AccountingAmount, Button, Card, MetricCard, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import RentalOperationsDataTable from '../../Components/RentalOperationsDataTable';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, SharedPageProps } from '../../Types';
@@ -18,42 +19,6 @@ type OptionRow = {
   is_active?: boolean;
 };
 
-type RentalReportRow = {
-  contract_id: string;
-  contract_number: string;
-  customer_code: string;
-  customer_name: TranslatedName;
-  branch_id: string | null;
-  branch_code: string;
-  branch_name: TranslatedName;
-  status: string;
-  due_state: string;
-  start_date: string | null;
-  expected_end_date: string | null;
-  actual_end_date: string | null;
-  currency: string;
-  billing_cycle: string;
-  line_count: number;
-  confirmed_handover_count: number;
-  returned_line_count: number;
-  open_item_count: number;
-  invoice_count: number;
-  posted_invoice_count: number;
-  open_invoice_count: number;
-  estimated_rent_minor: number;
-  deposit_minor: number;
-  rent_billed_minor: number;
-  deposit_billed_minor: number;
-  charge_billed_minor: number;
-  tax_billed_minor: number;
-  total_billed_minor: number;
-  open_invoice_total_minor: number;
-  unbilled_line_count: number;
-  pending_damage_minor: number;
-  has_unposted_invoice: boolean;
-  latest_journal_number: string;
-};
-
 type Props = SharedPageProps & {
   reportData: {
     as_of_date: string;
@@ -62,7 +27,6 @@ type Props = SharedPageProps & {
     currency_codes: string[];
     single_currency: boolean;
     display_currency: string;
-    rows: RentalReportRow[];
     summary: {
       contract_count: number;
       active_contract_count: number;
@@ -306,89 +270,44 @@ export default function RentalOperationsReport({ locale, reportData, filters, br
           </Card>
         </div>
 
-        {reportData.rows.length === 0 ? (
-          <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.contract}</th>
-                  <th className={tableClasses.th}>{pageDict.customer}</th>
-                  <th className={tableClasses.th}>{pageDict.branch}</th>
-                  <th className={tableClasses.th}>{pageDict.status}</th>
-                  <th className={tableClasses.th}>{pageDict.dates}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.items}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.invoices}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.totalBilled}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.pendingDamage}</th>
-                  <th className={tableClasses.th}>{pageDict.latestJournal}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.rows.map((row) => (
-                  <tr key={row.contract_id} className="hover:bg-[var(--background)]">
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-44 flex-col gap-1">
-                        <span className="font-mono text-xs font-bold">{row.contract_number || pageDict.notNumbered}</span>
-                        <span className="text-xs text-[var(--text-secondary)]">{pageDict.billingCycles[row.billing_cycle as keyof typeof pageDict.billingCycles] || row.billing_cycle}</span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-48 flex-col gap-1">
-                        <span className="font-mono text-xs font-bold">{row.customer_code}</span>
-                        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(row.customer_name, activeLocale)}</span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-40 flex-col gap-1">
-                        <span className="font-mono text-xs font-bold">{row.branch_code || pageDict.noBranch}</span>
-                        <span className="text-xs text-[var(--text-secondary)]">{row.branch_id ? getLocalizedName(row.branch_name, activeLocale) : pageDict.operationalReference}</span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-col gap-2">
-                        <StatusBadge tone={statusTone(row.status)}>
-                          {pageDict.statuses[row.status as keyof typeof pageDict.statuses] || row.status}
-                        </StatusBadge>
-                        <StatusBadge tone={statusTone(row.due_state)}>
-                          {pageDict.dueStates[row.due_state as keyof typeof pageDict.dueStates] || row.due_state}
-                        </StatusBadge>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-40 flex-col gap-1 text-xs">
-                        <span>{pageDict.from}: {formatDate(row.start_date) || pageDict.notAvailable}</span>
-                        <span>{pageDict.to}: {formatDate(row.expected_end_date) || pageDict.notAvailable}</span>
-                      </div>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="space-y-1 font-mono text-xs">
-                        <div>{row.open_item_count.toLocaleString()} / {row.line_count.toLocaleString()}</div>
-                        <div className="text-[var(--text-muted)]">{pageDict.unbilled}: {row.unbilled_line_count.toLocaleString()}</div>
-                      </div>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="space-y-1 font-mono text-xs">
-                        <div>{pageDict.posted}: {row.posted_invoice_count.toLocaleString()}</div>
-                        <div className="text-[var(--text-muted)]">{pageDict.open}: {row.open_invoice_count.toLocaleString()}</div>
-                      </div>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <AccountingAmount amountMinor={row.total_billed_minor} currency={row.currency} tone="success" />
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <AccountingAmount amountMinor={row.pending_damage_minor} currency={row.currency} tone={row.pending_damage_minor > 0 ? 'danger' : 'muted'} />
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="font-mono text-xs font-bold text-[var(--text-secondary)]">{row.latest_journal_number || pageDict.notAvailable}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <RentalOperationsDataTable
+          key={`${asOfDate}-${branchId || 'all'}-${customerId || 'all'}-${status || 'all'}-${currency || 'all'}-${dateFrom}-${dateTo}`}
+          filters={{
+            as_of_date: asOfDate,
+            branch_id: branchId || null,
+            customer_id: customerId || null,
+            status: status || null,
+            currency: currency || null,
+            date_from: dateFrom || null,
+            date_to: dateTo || null,
+          }}
+          labels={{
+            contract: pageDict.contract,
+            customer: pageDict.customer,
+            branch: pageDict.branch,
+            status: pageDict.status,
+            dates: pageDict.dates,
+            items: pageDict.items,
+            invoices: pageDict.invoices,
+            totalBilled: pageDict.totalBilled,
+            pendingDamage: pageDict.pendingDamage,
+            latestJournal: pageDict.latestJournal,
+            notNumbered: pageDict.notNumbered,
+            noBranch: pageDict.noBranch,
+            operationalReference: pageDict.operationalReference,
+            notAvailable: pageDict.notAvailable,
+            from: pageDict.from,
+            to: pageDict.to,
+            unbilled: pageDict.unbilled,
+            posted: pageDict.posted,
+            open: pageDict.open,
+            statuses: pageDict.statuses,
+            dueStates: pageDict.dueStates,
+            billingCycles: pageDict.billingCycles,
+          }}
+          locale={activeLocale}
+          statusTone={statusTone}
+        />
       </div>
     </AppLayout>
   );

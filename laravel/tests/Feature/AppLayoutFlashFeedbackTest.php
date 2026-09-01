@@ -28,4 +28,30 @@ class AppLayoutFlashFeedbackTest extends TestCase
         $this->assertStringContainsString('mainContentRef.current?.focus({ preventScroll: true })', $source);
         $this->assertStringContainsString("router.on('success'", $source);
     }
+
+    public function test_app_layout_supplies_safe_automatic_pagination_for_paginated_pages(): void
+    {
+        $layout = (string) file_get_contents(resource_path('js/Components/AppLayout.tsx'));
+        $automatic = (string) file_get_contents(resource_path('js/Components/UniversalPagination.tsx'));
+        $primitives = (string) file_get_contents(resource_path('js/Components/Primitives.tsx'));
+
+        $this->assertStringContainsString("pagination = 'auto'", $layout);
+        $this->assertStringContainsString('<UniversalPagination', $layout);
+        $this->assertStringContainsString('if (paginators.length !== 1) return null', $automatic);
+        $this->assertStringContainsString('paginator.last_page > 1', $automatic);
+        $this->assertStringContainsString('paginationUrlWithCurrentQuery', $primitives);
+        $this->assertStringContainsString('data-pagination-controls', $primitives);
+
+        $manualPages = [
+            'js/Pages/Accounting/GeneralJournal.tsx',
+            'js/Pages/AuditLog/Index.tsx',
+            'js/Pages/Budgeting/Budgets.tsx',
+            'js/Pages/CostCenters/Index.tsx',
+            'js/Pages/Projects/Index.tsx',
+        ];
+
+        foreach ($manualPages as $path) {
+            $this->assertStringContainsString('pagination="manual"', (string) file_get_contents(resource_path($path)), $path);
+        }
+    }
 }

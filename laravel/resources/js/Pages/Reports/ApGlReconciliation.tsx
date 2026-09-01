@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
+import ArApReconciliationDataTable from '../../Components/ArApReconciliationDataTable';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
@@ -19,12 +20,6 @@ type ApGlReconciliationProps = SharedPageProps & {
     gl_total_minor: number;
     difference_minor: number;
     is_reconciled: boolean;
-    supplier_breakdown: Array<{
-      supplier_id: string;
-      supplier_code: string;
-      supplier_name: string;
-      subledger_balance_minor: number;
-    }>;
   };
   currencies: Array<{ code: string }>;
   filters: { as_of_date: string; currency: string };
@@ -148,33 +143,18 @@ export default function ApGlReconciliation({ locale, report, currencies, filters
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
             {dict.app.pages.reportsApGlReconciliation.supplierSubledgerBalanceBreakdown}
           </div>
-          <table className="w-full text-start text-xs">
-            <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
-              <tr>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApGlReconciliation.supplierCode}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsApGlReconciliation.supplierName}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsApGlReconciliation.subledgerOpenBalance}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {report.supplier_breakdown.map((row) => (
-                <tr key={row.supplier_id} className="hover:bg-[var(--background)]/30">
-                  <td className="p-3 font-mono font-bold">{row.supplier_code}</td>
-                  <td className="p-3 font-medium">{row.supplier_name}</td>
-                  <td className="p-3 text-end font-mono font-bold">
-                    {formatMoney(row.subledger_balance_minor, report.currency)}
-                  </td>
-                </tr>
-              ))}
-              {report.supplier_breakdown.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="p-6 text-center text-[var(--text-muted)]">
-                    {dict.app.pages.reportsApGlReconciliation.noOpenSupplierSubledgerBalances}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <ArApReconciliationDataTable
+            currency={report.currency}
+            endpoint="/reports/ap-gl-reconciliation/data"
+            filters={{ as_of_date: filters.as_of_date, currency: filters.currency }}
+            labels={{
+              balance: dict.app.pages.reportsApGlReconciliation.subledgerOpenBalance,
+              code: dict.app.pages.reportsApGlReconciliation.supplierCode,
+              name: dict.app.pages.reportsApGlReconciliation.supplierName,
+            }}
+            locale={locale}
+            tableId="ap-gl-reconciliation-data-table"
+          />
         </Card>
       </div>
     </AppLayout>

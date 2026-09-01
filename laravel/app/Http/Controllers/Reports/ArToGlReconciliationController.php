@@ -7,7 +7,7 @@ use App\Application\Reports\ArToGlReconciliationReportService;
 use App\Application\Reports\ReportCurrencyResolver;
 use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Reports\ReportFilterRequest;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -21,12 +21,12 @@ class ArToGlReconciliationController extends Controller
         private readonly ReportPageOptions $options,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(ReportFilterRequest $request): Response
     {
         $asOfDate = $request->query('as_of_date', date('Y-m-d'));
         $currency = $this->currencyResolver->resolve($request->query('currency'));
 
-        $report = $this->service->generate($asOfDate, $currency);
+        $report = $this->service->summary($asOfDate, $currency);
 
         return Inertia::render('Reports/ArGlReconciliation', [
             'report' => $report,
@@ -38,7 +38,7 @@ class ArToGlReconciliationController extends Controller
         ]);
     }
 
-    public function exportCsv(Request $request): StreamedResponse
+    public function exportCsv(ReportFilterRequest $request): StreamedResponse
     {
         $asOfDate = $request->query('as_of_date', date('Y-m-d'));
         $currency = $this->currencyResolver->resolve($request->query('currency'));

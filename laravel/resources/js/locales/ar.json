@@ -942,6 +942,7 @@
       "entity_sales_return": "مردود مبيعات",
       "entity_customer_credit_note": "إشعار دائن لعميل",
       "entity_purchase_return": "مردود مشتريات",
+      "entity_rental_invoice": "فاتورة تأجير",
       "entity_supplier_adjustment_note": "إشعار تسوية مورّد",
       "entity_opening_balance": "رصيد افتتاحي",
       "entity_customer_opening_balance": "رصيد افتتاحي لعميل",
@@ -5405,7 +5406,9 @@
         "netSubtotal": "الصافي",
         "netVatPayable": "صافي ضريبة القيمة المضافة المستحقة / (المستردة)",
         "noRecords": "لا توجد عمليات ضريبية مرحّلة تنطبق مع معايير البحث.",
-        "noRecordsDescription": "عدّل نطاق التاريخ أو فئة الضريبة أو الكود الضريبي لمراجعة العمليات الضريبية المرحلة."
+        "noRecordsDescription": "عدّل نطاق التاريخ أو فئة الضريبة أو الكود الضريبي لمراجعة العمليات الضريبية المرحلة.",
+        "outputCategory": "مخرجات",
+        "inputCategory": "مدخلات"
       },
       "vatSummary": {
         "title": "تقرير ملخص ضريبة القيمة المضافة",

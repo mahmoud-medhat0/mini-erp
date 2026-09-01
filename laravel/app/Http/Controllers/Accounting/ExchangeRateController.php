@@ -23,8 +23,11 @@ class ExchangeRateController extends Controller
     public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
 
-        return Inertia::render('Accounting/ExchangeRates', $this->pageData->indexData());
+        return Inertia::render('Accounting/ExchangeRates', $this->pageData->indexData($validated['search'] ?? null));
     }
 
     public function store(Request $request): RedirectResponse
