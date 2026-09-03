@@ -1,11 +1,12 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierPaymentRow = {
   id: string;
@@ -42,10 +43,6 @@ type PayableAllocationsProps = SharedPageProps & {
   payments: SupplierPaymentRow[];
   selectedPayment?: SupplierPaymentRow | null;
   openPayables: PayableEntryRow[];
-  existingAllocations: {
-    data: AllocationRow[];
-    links: PaginationLink[];
-  };
   suppliers: Array<{ id: string; code: string; name: string }>;
   filters: {
     supplier_id?: string;
@@ -58,7 +55,6 @@ export default function PayableAllocationsIndex({
   payments = [],
   selectedPayment,
   openPayables = [],
-  existingAllocations,
   suppliers = [],
   filters,
 }: PayableAllocationsProps) {
@@ -73,11 +69,11 @@ export default function PayableAllocationsIndex({
 
   const { post, transform, processing } = useForm({});
 
-  const activeFilterCount = [filters.supplier_id, filters.payment_id].filter(Boolean).length;
+  const activeFilterCount = [filters?.supplier_id, filters?.payment_id].filter(Boolean).length;
 
   const applyFilters = (next: Record<string, string>) => {
-    const supplierId = next.supplier_id ?? filters.supplier_id ?? '';
-    const paymentId = next.payment_id ?? filters.payment_id ?? '';
+    const supplierId = next.supplier_id ?? filters?.supplier_id ?? '';
+    const paymentId = next.payment_id ?? filters?.payment_id ?? '';
     const params: Record<string, string> = {};
 
     if (supplierId) params.supplier_id = supplierId;
@@ -156,6 +152,44 @@ export default function PayableAllocationsIndex({
     label: `${s.code} - ${getLocalizedName(s.name, locale)}`,
   }));
 
+  // ── DataTables columns for Executed Allocations History ────────────────────
+  const historyColumns = useMemo(() => [
+    { data: 'payment_number', name: 'payment_number', title: dict.app.pages.payableAllocations.payment_2, className: 'font-mono font-bold text-xs', width: '140px' },
+    { data: 'supplier_name', name: 'supplier_name', title: dict.app.pages.payableAllocations.supplier_2 },
+    { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.payableAllocations.allocatedAmount, width: '130px' },
+    { data: 'created_at', name: 'created_at', title: dict.app.pages.payableAllocations.date_2, width: '160px' },
+    { data: 'actions', name: 'actions', title: dict.app.pages.payableAllocations.actions, orderable: false, searchable: false, width: '90px', className: 'text-end' },
+  ], [dict]);
+
+  // ── DataTables slots for Executed Allocations History ──────────────────────
+  const historySlots = useMemo<DataTableSlots>(() => ({
+    payment_number: (d: any) => <span className="font-mono font-bold text-xs">{d || accDict.notAvailable}</span>,
+    supplier_name: (d: any, _type: any, row: any) => (
+      <span className="font-semibold">
+        {row?.supplier_code ? `${row.supplier_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
+      </span>
+    ),
+    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs text-emerald-600">{formatMoney(d, row?.currency)}</span>,
+    created_at: (d: any) => <span className="font-mono text-xs">{new Date(d).toLocaleString()}</span>,
+    actions: (_d: any, _type: any, row: any) => (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {canManagePayableAllocations ? (
+          <button
+            type="button"
+            onClick={() => handleReverse(row?.id)}
+            title={dict.app.pages.payableAllocations.reverse}
+            aria-label={dict.app.pages.payableAllocations.reverse}
+            className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40 cursor-pointer"
+          >
+            {dict.app.pages.payableAllocations.reverse}
+          </button>
+        ) : (
+          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+        )}
+      </div>
+    ),
+  } as Record<string, (data: any, type: any, row: any) => ReactElement>), [dict, accDict, locale, canManagePayableAllocations]);
+
   return (
     <AppLayout active="payable-allocations.index">
       <Head title={dict.app.pages.payableAllocations.apAllocationsMiniErp} />
@@ -179,7 +213,7 @@ export default function PayableAllocationsIndex({
               </label>
               <SearchableSelect
                 options={[{ value: '', label: dict.app.pages.payableAllocations.allSuppliers }, ...supplierSelectOptions]}
-                value={filters.supplier_id || ''}
+                value={filters?.supplier_id || ''}
                 onChange={(val) => handleSupplierSelect(val)}
               />
             </div>
@@ -297,60 +331,22 @@ export default function PayableAllocationsIndex({
         </Card>
       </div>
 
-      {/* Existing Allocations Log Table */}
+      {/* Executed Allocations History Table */}
       <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3">
         {dict.app.pages.payableAllocations.executedAllocationsHistory}
       </h2>
 
-      {existingAllocations.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.payableAllocations.noPreviousAllocations}
-          description={dict.app.pages.payableAllocations.executedAllocationsWillAppearHere}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/payable-allocations/data"
+          columns={historyColumns}
+          locale={locale}
+          order={[[3, 'desc']]}
+          pageLength={25}
+          slots={historySlots}
+          tableId="payable-allocations-history-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.payableAllocations.payment_2}</th>
-                <th className={tableClasses.th}>{dict.app.pages.payableAllocations.supplier_2}</th>
-                <th className={tableClasses.th}>{dict.app.pages.payableAllocations.allocatedAmount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.payableAllocations.date_2}</th>
-                <th className={tableClasses.th}>{dict.app.pages.payableAllocations.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {existingAllocations.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.supplierPayment?.number || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(row.supplier?.name, locale) || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs text-emerald-600`}>
-                    {formatMoney(row.amount_minor, row.currency)}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{new Date(row.created_at).toLocaleString()}</td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                    {canManagePayableAllocations ? (
-                      <button
-                        type="button"
-                        onClick={() => handleReverse(row.id)}
-                        title={dict.app.pages.payableAllocations.reverse}
-                        aria-label={dict.app.pages.payableAllocations.reverse}
-                        className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                      >
-                        {dict.app.pages.payableAllocations.reverse}
-                      </button>
-                    ) : (
-                      <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                    )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       <SensitiveActionModal
         isOpen={reversingId !== null}

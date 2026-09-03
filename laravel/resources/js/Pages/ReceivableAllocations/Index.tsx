@@ -116,20 +116,16 @@ export default function ReceivableAllocationsIndex({
       return;
     }
 
-    router.post(
-      '/receivable-allocations',
-      {
-        receipt_id: selectedReceipt.id,
-        lines: linesToSubmit,
+    router.post('/receivable-allocations', {
+      receipt_id: selectedReceipt.id,
+      lines: linesToSubmit,
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setAllocationAmounts({});
+        setAllocationError(null);
       },
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          setAllocationAmounts({});
-          setAllocationError(null);
-        },
-      },
-    );
+    });
   };
 
   const handleReverse = (allocationId: string) => {
@@ -157,7 +153,7 @@ export default function ReceivableAllocationsIndex({
         {row?.customer_code ? `${row.customer_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
       </span>
     ),
-    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs text-emerald-600">{formatMoney(d, row?.currency || 'EGP')}</span>,
+    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs text-emerald-600">{formatMoney(d, row?.currency)}</span>,
     created_at: (d: any) => <span className="font-mono text-xs">{new Date(d).toLocaleString()}</span>,
     actions: (_d: any, _type: any, row: any) => (
       <div className="flex items-center justify-end">
@@ -200,7 +196,14 @@ export default function ReceivableAllocationsIndex({
                   {dict.app.pages.receivableAllocations.filterCustomer}
                 </label>
                 {activeFilterCount > 0 && (
-                  <button type="button" onClick={clearFilters} disabled={activeFilterCount === 0} className="text-xs font-bold text-red-600 hover:underline">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    disabled={activeFilterCount === 0}
+                    title={accDict.clearFilters}
+                    aria-label={accDict.clearFilters}
+                    className="text-xs font-bold text-red-600 hover:underline"
+                  >
                     {accDict.clearFilters}
                   </button>
                 )}
@@ -306,6 +309,8 @@ export default function ReceivableAllocationsIndex({
                 <button
                   type="submit"
                   disabled={processing}
+                  title={dict.app.pages.receivableAllocations.executeAllocation}
+                  aria-label={dict.app.pages.receivableAllocations.executeAllocation}
                   className="bg-[var(--primary)] text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-[var(--primary-hover)] transition-colors disabled:opacity-50"
                 >
                   {processing ? dict.app.pages.receivableAllocations.processing : dict.app.pages.receivableAllocations.executeAllocation}

@@ -301,6 +301,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/receivable-allocations/{id}/reverse', [ReceivableAllocationController::class, 'reverse'])->middleware(['can:customers.allocations', 'sensitive.confirm'])->name('receivable-allocations.reverse');
 
     Route::get('/payable-allocations', [PayableAllocationController::class, 'index'])->middleware('can:suppliers.view')->name('payable-allocations.index');
+    Route::get('/payable-allocations/data', [PayableAllocationController::class, 'datatable'])->middleware('can:suppliers.view')->name('payable-allocations.datatable');
     Route::post('/payable-allocations', [PayableAllocationController::class, 'store'])->middleware('can:suppliers.allocations')->name('payable-allocations.store');
     Route::post('/payable-allocations/{id}/reverse', [PayableAllocationController::class, 'reverse'])->middleware(['can:suppliers.allocations', 'sensitive.confirm'])->name('payable-allocations.reverse');
 

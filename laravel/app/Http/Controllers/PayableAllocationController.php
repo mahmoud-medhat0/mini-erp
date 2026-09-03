@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\PayableAllocationPageData;
 use App\Application\Accounting\PayableAllocationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,6 +21,13 @@ class PayableAllocationController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('PayableAllocations/Index', $this->pageData->indexData($request->only(['supplier_id', 'payment_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('suppliers.view');
+
+        return $this->pageData->datatable($request->all());
     }
 
     public function store(Request $request): RedirectResponse

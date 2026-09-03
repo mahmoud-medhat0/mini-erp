@@ -249,6 +249,8 @@ export default function OpeningBalances({
           <button
             type="button"
             onClick={() => setSearchQuery('')}
+            title={dict.common.select.clear}
+            aria-label={dict.common.select.clear}
             className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
           >
             {dict.common.select.clear}

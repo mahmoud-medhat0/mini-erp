@@ -31,7 +31,7 @@ type JournalDetailProps = SharedPageProps & {
 
 export default function JournalDetail({ locale, journal, openPeriods = [] }: JournalDetailProps) {
   const dict = getDictionary(locale);
-  const accDict = dict.app.accounting;
+  const accDict = dict.app.accounting as Record<string, any>;
   const branchReportDict = dict.app.pages.branchOperationsReport;
   const can = useCan();
 
@@ -111,8 +111,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           <button
             type="button"
             onClick={() => handleCopy(journal.id, 'id')}
-            title={copiedField === 'id' ? (locale === 'ar' ? 'تم النسخ' : 'Copied!') : (locale === 'ar' ? 'نسخ' : 'Copy')}
-            aria-label={locale === 'ar' ? 'نسخ' : 'Copy'}
+            title={copiedField === 'id' ? (accDict.copied || 'Copied!') : (accDict.copy || 'Copy')}
+            aria-label={accDict.copy || 'Copy'}
             className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
           >
             {copiedField === 'id' ? (
@@ -145,8 +145,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 <button
                   type="button"
                   onClick={() => handleCopy(journal.number!, 'number')}
-                  title={copiedField === 'number' ? (locale === 'ar' ? 'تم النسخ' : 'Copied!') : (locale === 'ar' ? 'نسخ' : 'Copy')}
-                  aria-label={locale === 'ar' ? 'نسخ' : 'Copy'}
+                  title={copiedField === 'number' ? (accDict.copied || 'Copied!') : (accDict.copy || 'Copy')}
+                  aria-label={accDict.copy || 'Copy'}
                   className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                 >
                   {copiedField === 'number' ? (
@@ -270,7 +270,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
         <Card className={`p-4 border-s-4 shadow-xs ${isBalanced ? 'border-s-emerald-500 bg-emerald-500/5' : 'border-s-red-500 bg-red-500/5'}`}>
           <span className="block text-xs font-bold uppercase text-[var(--text-muted)] tracking-wider">
-            {locale === 'ar' ? 'توازن القيد' : 'Balance Status'}
+            {accDict.balanceStatus || 'Balance Status'}
           </span>
           <div className="mt-1.5 flex items-center gap-2">
             {isBalanced ? (
@@ -278,7 +278,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span>{locale === 'ar' ? 'متوازن (0.00)' : 'Balanced (0.00)'}</span>
+                <span>{accDict.balancedZero || 'Balanced (0.00)'}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20">
@@ -293,7 +293,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
         <Card className="p-4 border-s-4 border-s-purple-500 bg-gradient-to-br from-purple-500/5 to-transparent shadow-xs">
           <span className="block text-xs font-bold uppercase text-[var(--text-muted)] tracking-wider">
-            {locale === 'ar' ? 'عدد البنود' : 'Total Lines'}
+            {accDict.totalLines || accDict.totalLabel}
           </span>
           <span className="mt-1.5 block text-lg font-mono font-extrabold text-[var(--text-primary)]">
             {journal.lines.length}
@@ -410,16 +410,13 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                reverseForm.post(`/accounting/journal/${journal.id}/reverse`, {
-                  preserveScroll: true,
-                  onSuccess: () => setShowReverseModal(false),
-                });
+                reverseForm.post(`/accounting/journal/${journal.id}/reverse`, { preserveScroll: true });
               }}
               className="space-y-4"
             >
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1 uppercase">
-                  {locale === 'ar' ? 'الفترة المالية العكسية' : 'Reversal Financial Period'}
+                  {accDict.reversalFinancialPeriod || 'Reversal Financial Period'}
                 </label>
                 <SearchableSelect
                   options={openPeriodOptions}
@@ -434,7 +431,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1 uppercase">
-                  {dict.app.sensitiveActions.reasonPlaceholder || (locale === 'ar' ? 'سبب العكس' : 'Reversal Reason')}
+                  {dict.app.sensitiveActions.reasonPlaceholder || accDict.reversalReason || 'Reversal Reason'}
                 </label>
                 <textarea
                   value={reverseForm.data.reason}
@@ -517,8 +514,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                   <button
                     type="button"
                     onClick={() => handleCopy(journal.reference!, 'ref')}
-                    title={copiedField === 'ref' ? (locale === 'ar' ? 'تم النسخ' : 'Copied!') : (locale === 'ar' ? 'نسخ' : 'Copy')}
-                    aria-label={locale === 'ar' ? 'نسخ' : 'Copy'}
+                    title={copiedField === 'ref' ? (accDict.copied || 'Copied!') : (accDict.copy || 'Copy')}
+                    aria-label={accDict.copy || 'Copy'}
                     className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                   >
                     {copiedField === 'ref' ? (
@@ -604,7 +601,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </div>
               <div className="flex-1 rounded-xl bg-[var(--background)] p-3 border border-[var(--border)] group-last:mb-0 mb-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold text-[var(--text-primary)] m-0">{locale === 'ar' ? 'أنشئ القيد' : 'Voucher Created'}</p>
+                  <p className="font-bold text-[var(--text-primary)] m-0">{accDict.voucherCreated || 'Voucher Created'}</p>
                   <span className="font-mono text-[11px] text-[var(--text-muted)]">{formatDate(journal.entry_date)}</span>
                 </div>
                 <span className="text-[var(--text-secondary)] text-[11px] block mt-1 font-medium">
@@ -617,37 +614,35 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             <div className="flex items-stretch gap-3 group">
               <div className="relative flex flex-col items-center shrink-0 w-6">
                 <div className="w-0.5 absolute top-0 bottom-0 bg-[var(--border)] group-first:top-3 group-last:bottom-auto group-last:h-3" />
-                {journal.posted_at ? (
-                  <div className="relative z-10 flex size-6 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 bg-[var(--surface)] shrink-0 mt-0.5">
-                    <span className="size-2 rounded-full bg-emerald-500" />
-                  </div>
-                ) : (
-                  <div className="relative z-10 flex size-6 items-center justify-center rounded-full bg-slate-500/10 text-slate-400 border border-[var(--border)] bg-[var(--surface)] shrink-0 mt-0.5">
-                    <span className="size-2 rounded-full bg-slate-400" />
-                  </div>
-                )}
+                <div className={`relative z-10 flex size-6 items-center justify-center rounded-full border bg-[var(--surface)] shrink-0 mt-0.5 ${
+                  journal.posted_at
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                    : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                }`}>
+                  <span className={`size-2 rounded-full ${journal.posted_at ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                </div>
               </div>
               <div className="flex-1 rounded-xl bg-[var(--background)] p-3 border border-[var(--border)] group-last:mb-0 mb-3">
                 {journal.posted_at ? (
                   <>
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-bold text-[var(--text-primary)] m-0">{accDict.postedDate}</p>
+                      <p className="font-bold text-emerald-600 dark:text-emerald-400 m-0">{accDict.statusPosted}</p>
                       <span className="font-mono text-[11px] text-[var(--text-muted)]">{formatDate(journal.posted_at)}</span>
                     </div>
                     <span className="text-[var(--text-secondary)] text-[11px] block mt-1 font-medium">
-                      {journal.postedBy?.name || accDict.systemActor}
+                      {accDict.postedBy}: {journal.postedBy?.name || accDict.systemActor}
                     </span>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-[var(--text-muted)] m-0">
-                        {locale === 'ar' ? 'بانتظار الترحيل' : 'Pending Posting'}
+                        {accDict.pendingPosting || 'Pending Posting'}
                       </p>
                       <span className="text-[11px] text-[var(--text-muted)] font-mono">—</span>
                     </div>
                     <span className="text-[var(--text-muted)] text-[11px] block mt-1 font-medium">
-                      {locale === 'ar' ? 'لم يتم الترحيل بعد' : 'Not posted yet'}
+                      {accDict.notPostedYet || 'Not posted yet'}
                     </span>
                   </>
                 )}
@@ -685,7 +680,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
         <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--background)] px-5 py-3.5">
           <div className="flex items-center gap-2">
             <h3 className="m-0 text-xs font-extrabold text-[var(--text-primary)] uppercase tracking-wider">
-              {locale === 'ar' ? 'بنود القيد المحاسبي' : 'Journal Entry Lines'}
+              {accDict.journalLines || accDict.journal}
             </h3>
             <span className="rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 text-xs font-extrabold text-blue-600 dark:text-blue-400 font-mono">
               {journal.lines.length}

@@ -33,7 +33,7 @@ function toCustomerStatus(v: string): CustomerStatus {
 export default function CustomersIndex({ locale, filters }: CustomersProps) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.customers;
-  const accDict  = dict.app.accounting;
+  const accDict = dict.app.accounting;
   const can = useCan();
 
   const [showModal, setShowModal]       = useState(false);
@@ -127,7 +127,14 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
         isSearchable={false}
       />
       {activeFilterCount > 0 && (
-        <button type="button" onClick={clearFilters} disabled={activeFilterCount === 0} className="text-xs font-bold text-red-600 hover:underline">
+        <button
+          type="button"
+          onClick={clearFilters}
+          disabled={activeFilterCount === 0}
+          title={accDict.clearFilters}
+          aria-label={accDict.clearFilters}
+          className="text-xs font-bold text-red-600 hover:underline"
+        >
           {accDict.clearFilters}
         </button>
       )}

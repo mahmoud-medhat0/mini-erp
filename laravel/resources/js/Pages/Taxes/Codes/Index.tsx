@@ -50,7 +50,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
   }
 
   function handleFilter() {
-    router.get('/taxes/codes', { search: search || undefined }, { preserveState: true, preserveScroll: true, replace: true });
+    router.get('/taxes/codes', { search }, { preserveState: true, preserveScroll: true, replace: true });
   }
 
   function handleReset() {
@@ -121,6 +121,8 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                 <button
                   type="button"
                   onClick={handleReset}
+                  title={dict.app.actions.reset}
+                  aria-label={dict.app.actions.reset}
                   className="absolute inset-y-0 end-0 flex items-center pe-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                 >
                   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -129,7 +131,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                 </button>
               )}
             </div>
-            <Button onClick={handleFilter} className="px-4 py-2 text-xs">
+            <Button onClick={handleFilter} title={taxDict.search} aria-label={taxDict.search} className="px-4 py-2 text-xs">
               {taxDict.search}
             </Button>
             {search && (
