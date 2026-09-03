@@ -4,7 +4,21 @@
 
 ## Status
 
-COMPLETE - 2026-09-01. Both residual-risk items from `IMPLEMENTATION_STATUS.md` are closed.
+PARTIALLY SUPERSEDED - 2026-09-03.
+
+The browser-coverage half of this phase is COMPLETE and in use. **The CI pipeline described
+below was removed on 2026-09-03 by owner decision**, along with the dead `app/`-targeted
+workflow it had replaced. `.github/` no longer exists and no pipeline is connected.
+
+Everything else this phase added is retained and works standalone:
+
+- 22 Playwright browser tests (`npm run e2e`)
+- `scripts/check-locale-parity.mjs`
+- `php artisan e2e:prepare-user`
+- the DataTable component/request column-parity guard
+
+The defects this phase found (Section "Defects Found By The New Coverage") were real and
+their fixes remain in place. Read the CI sections below as historical record only.
 
 ## Purpose
 

@@ -261,13 +261,19 @@ export function decodePaginationLabel(label: string): string {
     .replace(/&quot;/g, '"');
 }
 
+/**
+ * Carries the page's active filters onto a pagination link.
+ *
+ * Reads the current query string only — it never assigns to `window.location`,
+ * so navigation stays with Inertia and the SPA keeps its state.
+ */
 function paginationUrlWithCurrentQuery(url: string): string {
   if (typeof window === 'undefined') return url;
 
-  const current = new URL(window.location.href);
-  const target = new URL(url, current.origin);
+  const currentParams = new URLSearchParams(window.location.search);
+  const target = new URL(url, window.location.origin);
 
-  current.searchParams.forEach((value, key) => {
+  currentParams.forEach((value, key) => {
     if (!target.searchParams.has(key)) {
       target.searchParams.append(key, value);
     }

@@ -46,9 +46,20 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerRow | null>(null);
 
-  const { data, setData, post, patch, processing, errors, reset } = useForm({
+  const { data, setData, post, patch, transform, processing, errors, reset } = useForm<{
+    code: string;
+    name_en: string;
+    name_ar: string;
+    status: string;
+    email: string;
+    phone: string;
+    address: string;
+    tax_number: string;
+    lock_version: number;
+  }>({
     code: '',
-    name: '',
+    name_en: '',
+    name_ar: '',
     status: 'active',
     email: '',
     phone: '',
@@ -65,9 +76,13 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
 
   const openEditModal = (customer: CustomerRow) => {
     setEditingCustomer(customer);
+    const rawName = customer.name;
+    const nameEn = typeof rawName === 'object' && rawName !== null ? (rawName as Record<string, string>)['en'] ?? '' : typeof rawName === 'string' ? rawName : '';
+    const nameAr = typeof rawName === 'object' && rawName !== null ? (rawName as Record<string, string>)['ar'] ?? '' : '';
     setData({
       code: customer.code,
-      name: getLocalizedName(customer.name, locale),
+      name_en: nameEn,
+      name_ar: nameAr,
       status: customer.status,
       email: customer.email || '',
       phone: customer.phone || '',
@@ -80,6 +95,13 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+
+    // Merge en/ar inputs into the `name` translation object the backend expects.
+    transform((d) => ({
+      ...d,
+      name: JSON.stringify({ en: d.name_en, ar: d.name_ar || d.name_en }),
+    } as any));
+
     if (editingCustomer) {
       patch(`/customers/${editingCustomer.id}`, {
         preserveScroll: true,
@@ -261,18 +283,38 @@ export default function CustomersIndex({ locale, customers, filters }: Customers
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {dict.app.pages.customers.customerName} *
-                </label>
-                <input
-                  type="text"
-                  value={data.name}
-                  onChange={(e) => setData('name', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] font-semibold"
-                  required
-                />
-                {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                    {dict.app.pages.customers.customerNameEn} *
+                  </label>
+                  <input
+                    id="customer-name-en"
+                    type="text"
+                    dir="ltr"
+                    value={data.name_en}
+                    onChange={(e) => setData('name_en', e.target.value)}
+                    placeholder="e.g. Al Rowad Trading"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] font-semibold"
+                    required
+                  />
+                  {errors.name_en && <p className="text-xs text-red-500 mt-1">{errors.name_en}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                    {dict.app.pages.customers.customerNameAr}
+                  </label>
+                  <input
+                    id="customer-name-ar"
+                    type="text"
+                    dir="rtl"
+                    value={data.name_ar}
+                    onChange={(e) => setData('name_ar', e.target.value)}
+                    placeholder="مثال: شركة الرواد"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)] font-semibold"
+                  />
+                  {errors.name_ar && <p className="text-xs text-red-500 mt-1">{errors.name_ar}</p>}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

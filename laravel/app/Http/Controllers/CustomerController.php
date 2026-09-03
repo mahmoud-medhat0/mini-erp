@@ -25,13 +25,21 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:50'],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:1000'],
             'status' => ['required', 'string', 'in:active,inactive'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string'],
             'tax_number' => ['nullable', 'string', 'max:50'],
         ]);
+
+        // Decode JSON-encoded translation object sent by the frontend.
+        if (is_string($validated['name']) && str_starts_with(trim($validated['name']), '{')) {
+            $decoded = json_decode($validated['name'], true);
+            if (is_array($decoded)) {
+                $validated['name'] = $decoded;
+            }
+        }
 
         $this->customerService->create($validated, $request->user()?->id);
 
@@ -42,7 +50,7 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'code' => ['sometimes', 'required', 'string', 'max:50'],
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:1000'],
             'status' => ['sometimes', 'required', 'string', 'in:active,inactive'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -50,6 +58,14 @@ class CustomerController extends Controller
             'tax_number' => ['nullable', 'string', 'max:50'],
             'lock_version' => ['required', 'integer', 'min:0'],
         ]);
+
+        // Decode JSON-encoded translation object sent by the frontend.
+        if (isset($validated['name']) && is_string($validated['name']) && str_starts_with(trim($validated['name']), '{')) {
+            $decoded = json_decode($validated['name'], true);
+            if (is_array($decoded)) {
+                $validated['name'] = $decoded;
+            }
+        }
 
         $expectedVersion = (int) $validated['lock_version'];
         unset($validated['lock_version']);

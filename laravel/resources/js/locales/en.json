@@ -2636,6 +2636,8 @@
         "active": "Active",
         "inactive": "Inactive",
         "customerName": "Customer Name",
+        "customerNameEn": "Name (English)",
+        "customerNameAr": "Name (Arabic)",
         "phone_2": "Phone",
         "email_2": "Email",
         "taxNumber_2": "Tax Number",

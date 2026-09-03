@@ -116,3 +116,13 @@ Schedule::command('tokens:gc --batch=100')
     ->hourly()
     ->withoutOverlapping()
     ->description('Delete expired auth and idempotency tokens');
+
+// Retention defaults to 14 days. Adjust once the owner selects a retention option
+// in spec/BACKUP_RESTORE_DRILL.md. Runs in a low-traffic window as that doc requires.
+// Requires the PostgreSQL client (pg_dump) on the host PATH; the command fails
+// loudly and writes no partial file when it is missing.
+Schedule::command('db:backup --retention-days=14')
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->description('Create a compressed PostgreSQL dump and prune expired backups');

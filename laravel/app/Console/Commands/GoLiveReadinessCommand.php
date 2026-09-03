@@ -33,6 +33,7 @@ class GoLiveReadinessCommand extends Command
             $this->checkAppEnvironment($target),
             $this->checkAppKey(),
             $this->checkAppDebug($target),
+            $this->checkLogLevel($target),
             $this->checkAppUrl($target),
             $this->checkDatabaseConnection($target),
             $this->checkMigrationStatus(),
@@ -108,6 +109,30 @@ class GoLiveReadinessCommand extends Command
         }
 
         return $this->checkPass('app.debug', 'Debug mode policy is satisfied for the selected target.');
+    }
+
+    /**
+     * Debug-level logging records request context that can include customer data
+     * and financial payloads. Acceptable locally, not on a live install.
+     *
+     * @return array{name: string, level: string, message: string}
+     */
+    private function checkLogLevel(string $target): array
+    {
+        if ($target === 'local') {
+            return $this->checkPass('log.level', 'Log level policy does not apply to the local target.');
+        }
+
+        $level = strtolower((string) Config::get('logging.channels.'.Config::get('logging.default').'.level', 'debug'));
+
+        if (in_array($level, ['debug', 'info'], true)) {
+            return $this->checkFail(
+                'log.level',
+                "LOG_LEVEL is [{$level}]; use warning or stricter outside local so logs do not retain request payloads."
+            );
+        }
+
+        return $this->checkPass('log.level', "Log level [{$level}] is appropriate for the selected target.");
     }
 
     /**
@@ -204,7 +229,11 @@ class GoLiveReadinessCommand extends Command
             return $this->checkFail('scheduler.tokens_gc', 'tokens:gc --batch=100 is not registered in the scheduler.');
         }
 
-        return $this->checkPass('scheduler.tokens_gc', 'tokens:gc --batch=100 is registered in the scheduler.');
+        if (! str_contains($output, 'db:backup')) {
+            return $this->checkFail('scheduler.db_backup', 'db:backup is not registered in the scheduler; production would run without automated backups.');
+        }
+
+        return $this->checkPass('scheduler.tokens_gc', 'tokens:gc --batch=100 and db:backup are registered in the scheduler.');
     }
 
     /**

@@ -2636,6 +2636,8 @@
         "active": "نشط",
         "inactive": "غير نشط",
         "customerName": "اسم العميل",
+        "customerNameEn": "الاسم (إنجليزي)",
+        "customerNameAr": "الاسم (عربي)",
         "phone_2": "الهاتف",
         "email_2": "البريد الإلكتروني",
         "taxNumber_2": "الرقم الضريبي",

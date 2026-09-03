@@ -115,27 +115,38 @@ class GeneralLedgerService
         $grandTotalDebit = 0;
         $grandTotalCredit = 0;
 
+        // Aggregate every account's movement in one grouped query. Summing per
+        // account inside the loop issued two queries per account, so a 146-account
+        // chart cost ~294 round trips to render a single trial balance.
+        $totalsQuery = LedgerEntry::query()
+            ->selectRaw('account_id')
+            ->selectRaw('COALESCE(SUM(debit_minor), 0) AS total_debit')
+            ->selectRaw('COALESCE(SUM(credit_minor), 0) AS total_credit')
+            ->whereIn('account_id', $accounts->pluck('id'))
+            ->groupBy('account_id');
+
+        if (! empty($filters['period_id'])) {
+            $totalsQuery->where('financial_period_id', $filters['period_id']);
+        }
+
+        if (! empty($filters['branch_id'])) {
+            $totalsQuery->where('branch_id', $filters['branch_id']);
+        }
+
+        if (! empty($filters['start_date'])) {
+            $totalsQuery->where('entry_date', '>=', $filters['start_date']);
+        }
+
+        if (! empty($filters['end_date'])) {
+            $totalsQuery->where('entry_date', '<=', $filters['end_date']);
+        }
+
+        $totalsByAccount = $totalsQuery->get()->keyBy('account_id');
+
         foreach ($accounts as $account) {
-            $ledgerQuery = LedgerEntry::query()->where('account_id', $account->id);
-
-            if (! empty($filters['period_id'])) {
-                $ledgerQuery->where('financial_period_id', $filters['period_id']);
-            }
-
-            if (! empty($filters['branch_id'])) {
-                $ledgerQuery->where('branch_id', $filters['branch_id']);
-            }
-
-            if (! empty($filters['start_date'])) {
-                $ledgerQuery->where('entry_date', '>=', $filters['start_date']);
-            }
-
-            if (! empty($filters['end_date'])) {
-                $ledgerQuery->where('entry_date', '<=', $filters['end_date']);
-            }
-
-            $totalDebit = (int) (clone $ledgerQuery)->sum('debit_minor');
-            $totalCredit = (int) (clone $ledgerQuery)->sum('credit_minor');
+            $accountTotals = $totalsByAccount->get($account->id);
+            $totalDebit = (int) ($accountTotals->total_debit ?? 0);
+            $totalCredit = (int) ($accountTotals->total_credit ?? 0);
 
             if ($totalDebit === 0 && $totalCredit === 0 && empty($filters['include_zero'])) {
                 continue;

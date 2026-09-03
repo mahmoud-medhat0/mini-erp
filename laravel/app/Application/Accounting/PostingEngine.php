@@ -127,6 +127,12 @@ class PostingEngine
 
                     // 6. Generate Immutable Ledger Entries
                     $now = now();
+                    // Normalise to a bare Y-m-d string. The cast hands back a Carbon
+                    // instance, which SQLite persists as "Y-m-d 00:00:00"; that string
+                    // then sorts after a plain "Y-m-d" bound value, so `entry_date <= :date`
+                    // silently drops every entry posted on the boundary date itself.
+                    $ledgerEntryDate = Carbon::parse($lockedEntry->entry_date)->format('Y-m-d');
+
                     foreach ($lines as $line) {
                         LedgerEntry::create([
                             'id' => (string) Str::uuid(),
@@ -137,7 +143,7 @@ class PostingEngine
                             'branch_id' => $line->branch_id ?? $lockedEntry->branch_id,
                             'project_id' => $line->project_id,
                             'cost_center_id' => $line->cost_center_id,
-                            'entry_date' => $lockedEntry->entry_date,
+                            'entry_date' => $ledgerEntryDate,
                             'debit_minor' => $line->debit_minor,
                             'credit_minor' => $line->credit_minor,
                             'currency' => $line->currency,

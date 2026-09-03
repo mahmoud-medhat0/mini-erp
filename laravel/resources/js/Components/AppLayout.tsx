@@ -580,7 +580,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
             {!sidebarCollapsed ? (
               <>
                 <Link href="/dashboard" className="flex items-center gap-3 no-underline overflow-hidden">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/30">
                     <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -661,7 +661,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
                   } ${
                     active === 'dashboard'
-                      ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                   }`}
                 >
@@ -690,7 +690,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
                   } ${
                     active === 'notifications'
-                      ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                   }`}
                 >
@@ -733,7 +733,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
                   } ${
                     active === 'foundation'
-                      ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                       : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                   }`}
                 >
@@ -773,7 +773,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('accounting')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -844,7 +844,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                               sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                             } ${
                               isSubActive
-                                ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20 font-bold'
+                                ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                             }`}
                           >
@@ -874,7 +874,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('customer') || active.startsWith('receivable')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -929,7 +929,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('supplier') || active.startsWith('payable')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -984,7 +984,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('expense')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1039,7 +1039,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('payroll')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1093,7 +1093,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('rentals')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1149,7 +1149,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1206,7 +1206,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.includes('product') || active.includes('uom') || active.startsWith('catalog')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1271,7 +1271,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.includes('inventory') || active.includes('warehouse') || active.includes('stock-')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1327,7 +1327,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('fixed-asset')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1383,7 +1383,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('project') || active.startsWith('cost-center') || active.startsWith('budgeting')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1444,7 +1444,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('reports')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1513,7 +1513,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       active.startsWith('settings')
-                        ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -1566,7 +1566,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                           sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                         } ${
                           active === 'settings'
-                            ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20 font-bold'
+                            ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
                             : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                         }`}
                       >
@@ -1605,7 +1605,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                               sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                             } ${
                               isSubActive
-                                ? 'bg-[var(--primary)] text-white shadow-md shadow-blue-500/20 font-bold'
+                                ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                             }`}
                           >
@@ -1669,7 +1669,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
         {/* Main Content Viewport */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top Bar Header */}
-          <header data-tour="topbar" className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/90 px-4 sm:px-6 backdrop-blur-md">
+          <header data-tour="topbar" className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/75 px-4 sm:px-6 backdrop-blur-xl shadow-sm shadow-[var(--border)]">
             {/* Mobile Menu Button + Workspace Context */}
             <div className="flex items-center gap-3">
               <button
@@ -1847,7 +1847,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     userMenuOpen ? 'ring-2 ring-blue-500/20 bg-[var(--background)]' : 'hover:bg-[var(--background)]'
                   }`}
                 >
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-xs font-bold text-white shadow-xs">
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-xs font-bold text-white shadow-md shadow-blue-500/30">
                     {userInitials}
                   </div>
                   <svg className={`size-3 text-[var(--text-muted)] transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1890,7 +1890,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
             tabIndex={-1}
             className="flex-1 p-4 focus:outline-none sm:p-6 lg:p-8"
           >
-            <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w">
               {children}
               <UniversalPagination
                 locale={locale}

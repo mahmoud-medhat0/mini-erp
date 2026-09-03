@@ -221,9 +221,10 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
         ) : undefined}
       />
 
-      <section className="relative mb-6 overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 p-6 text-white shadow-xl shadow-blue-950/10 sm:p-8" data-tour="dashboard-welcome">
-        <div className="pointer-events-none absolute -end-16 -top-24 size-72 rounded-full bg-blue-400/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 start-1/3 size-64 rounded-full bg-violet-400/10 blur-3xl" />
+      <section className="relative mb-6 overflow-hidden rounded-3xl border border-blue-500/20 bg-[linear-gradient(135deg,_#020c1b_0%,_#0d1b3e_45%,_#110d35_100%)] p-6 text-white shadow-2xl shadow-blue-950/40 sm:p-8" data-tour="dashboard-welcome">
+        <div className="hero-orb pointer-events-none absolute -end-20 -top-20 size-[420px] rounded-full bg-blue-500/25 blur-[90px]" />
+        <div className="hero-orb-2 pointer-events-none absolute -bottom-32 start-1/4 size-96 rounded-full bg-violet-500/20 blur-[90px]" />
+        <div className="hero-orb-3 pointer-events-none absolute top-1/2 start-0 size-64 rounded-full bg-indigo-400/10 blur-3xl" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <span className="text-sm font-bold text-blue-200">{dayFormatter.format(new Date())}</span>
@@ -238,7 +239,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
           {(health.companyName !== undefined || health.baseCurrency !== undefined || health.latestPostingAt !== undefined) ? (
             <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:min-w-[360px]">
               {(health.companyName !== undefined || health.baseCurrency !== undefined) ? (
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-3.5 backdrop-blur-sm">
+                <div className="rounded-2xl border border-white/[0.12] bg-white/[0.07] p-3.5 backdrop-blur-md shadow-lg shadow-black/20">
                   <span className="block text-[11px] font-bold text-blue-200">{health.companyName || dict.app.dashboard.notConfigured}</span>
                   <strong className="mt-1 block text-sm text-white">
                     {dict.app.dashboard.baseCurrency}: <span className="font-mono" dir="ltr">{health.baseCurrency || dict.app.dashboard.notConfigured}</span>
@@ -246,7 +247,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
                 </div>
               ) : null}
               {health.latestPostingAt !== undefined ? (
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-3.5 backdrop-blur-sm">
+                <div className="rounded-2xl border border-white/[0.12] bg-white/[0.07] p-3.5 backdrop-blur-md shadow-lg shadow-black/20">
                   <span className="block text-[11px] font-bold text-blue-200">{dict.app.dashboard.latestPosting}</span>
                   <strong className="mt-1 block text-sm text-white">{formatDateTime(health.latestPostingAt)}</strong>
                 </div>
@@ -258,7 +259,8 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
 
       {(visibleMetrics.length > 0 || notifications.unreadCount > 0) ? (
         <section className="mb-7" data-tour="dashboard-metrics">
-          <div className="mb-3">
+          <div className="mb-3 flex items-center gap-2.5">
+            <span className="section-accent-bar h-5" aria-hidden="true" />
             <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.operationalSnapshot}</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -266,7 +268,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
               <Link
                 key={metric.key}
                 href={metric.href}
-                className={`group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline shadow-xs transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-lg motion-reduce:transform-none ${focusClasses}`}
+                className={`group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-xl hover:shadow-blue-500/10 motion-reduce:transform-none ${focusClasses}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-sm font-bold text-[var(--text-secondary)]">{dict.app.dashboard.counts[metric.key]}</span>
@@ -284,7 +286,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
 
             <Link
               href="/notifications?tab=unread"
-              className={`group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline shadow-xs transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:shadow-lg motion-reduce:transform-none ${focusClasses}`}
+              className={`group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-xl hover:shadow-blue-500/10 motion-reduce:transform-none ${focusClasses}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <span className="text-sm font-bold text-[var(--text-secondary)]">{dict.app.dashboard.counts.unreadNotifications}</span>
@@ -306,7 +308,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
         <div className="space-y-6 xl:col-span-2">
           {accountingShortcuts.length > 0 ? (
             <Card className="rounded-2xl p-5 sm:p-6" data-tour="dashboard-workspace">
-              <div className="mb-4">
+              <div className="mb-4 border-s-[3px] border-blue-500/50 ps-3">
                 <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.accountingWorkspace}</h2>
                 <p className="mb-0 mt-1 text-sm leading-6 text-[var(--text-secondary)]">{dict.app.dashboard.accountingWorkspaceDescription}</p>
               </div>
@@ -315,7 +317,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
                   <Link
                     key={shortcut.href}
                     href={shortcut.href}
-                    className={`group flex min-h-24 items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4 no-underline transition-all hover:border-[var(--primary)] hover:bg-[var(--surface)] hover:shadow-md ${focusClasses}`}
+                    className={`group flex min-h-24 items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4 no-underline transition-all duration-200 hover:border-[var(--primary)] hover:bg-[var(--surface)] hover:shadow-lg hover:shadow-blue-500/[0.08] ${focusClasses}`}
                   >
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                       <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -334,10 +336,10 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
 
           <Card className="rounded-2xl p-5 sm:p-6" data-tour="dashboard-activity">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.latestNotifications}</h2>
-                <p className="mb-0 mt-1 text-sm text-[var(--text-secondary)]">{dict.app.dashboard.latestNotificationsDescription}</p>
-              </div>
+                <div className="border-s-[3px] border-blue-500/50 ps-3">
+                  <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.latestNotifications}</h2>
+                  <p className="mb-0 mt-1 text-sm text-[var(--text-secondary)]">{dict.app.dashboard.latestNotificationsDescription}</p>
+                </div>
               <Link href="/notifications" className={`text-xs font-bold text-[var(--primary)] no-underline hover:underline ${focusClasses}`}>
                 {dict.app.notifications.viewAll}
               </Link>
@@ -348,7 +350,7 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
             ) : (
               <div className="space-y-2">
                 {recentNotifications.map((notification) => (
-                  <div key={notification.id} className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div key={notification.id} className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 transition-colors duration-150 hover:border-[var(--primary)]/30 hover:bg-[var(--surface)] sm:grid-cols-[1fr_auto] sm:items-center">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className={`size-2 shrink-0 rounded-full ${notification.read ? 'bg-slate-400' : 'bg-blue-500 motion-safe:animate-pulse'}`} />
                       <div className="min-w-0">
@@ -373,13 +375,13 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
         <div className="space-y-6">
           {operationalCards.length > 0 ? (
             <Card className="rounded-2xl p-5 sm:p-6" data-tour="dashboard-health">
-              <div className="mb-4">
+              <div className="mb-4 border-s-[3px] border-emerald-500/50 ps-3">
                 <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.noKpisTitle}</h2>
                 <p className="mb-0 mt-1 text-xs leading-5 text-[var(--text-secondary)]">{dict.app.dashboard.noKpisDescription}</p>
               </div>
               <div className="space-y-2.5">
                 {operationalCards.map((item) => (
-                  <div key={item.key} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3.5">
+                  <div key={item.key} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3.5 transition-colors duration-150 hover:bg-[var(--surface)]">
                     <span className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)]">
                       <span className={`size-2 rounded-full ${item.dot}`} />
                       {item.label}
@@ -393,13 +395,13 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
 
           {managementActions.length > 0 ? (
             <Card className="rounded-2xl p-5 sm:p-6" data-tour="dashboard-management">
-              <div className="mb-4">
+              <div className="mb-4 border-s-[3px] border-violet-500/50 ps-3">
                 <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.quickActions}</h2>
                 <p className="mb-0 mt-1 text-xs leading-5 text-[var(--text-secondary)]">{dict.app.dashboard.quickActionsDescription}</p>
               </div>
               <div className="space-y-2.5">
                 {managementActions.map((action) => (
-                  <Link key={action.href} href={action.href} className={`group flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 no-underline transition-all hover:border-[var(--primary)] hover:bg-[var(--surface)] ${focusClasses}`}>
+                  <Link key={action.href} href={action.href} className={`group flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 no-underline transition-all duration-200 hover:border-[var(--primary)] hover:bg-[var(--surface)] hover:shadow-sm ${focusClasses}`}>
                     <span className="flex min-w-0 items-center gap-3">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                         <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">

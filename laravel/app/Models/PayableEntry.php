@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class PayableEntry extends Model
 {
@@ -44,6 +45,34 @@ class PayableEntry extends Model
             'credit_txn_minor' => 'integer',
             'fx_rate_e6' => 'integer',
         ];
+    }
+
+    /**
+     * Persist date-only columns as bare Y-m-d strings.
+     *
+     * The `date:Y-m-d` cast controls how a value is read back, not how it is
+     * written. Callers pass a mix of Carbon instances and strings, and on SQLite
+     * a Carbon instance serialises to "Y-m-d 00:00:00". That value sorts after a
+     * plain "Y-m-d" bound parameter, so `entry_date <= :as_of_date` silently drops
+     * every row dated on the boundary day and reports understate balances.
+     */
+    protected function asDateOnly(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return Carbon::parse($value)->format('Y-m-d');
+    }
+
+    public function setEntryDateAttribute(mixed $value): void
+    {
+        $this->attributes['entry_date'] = $this->asDateOnly($value);
+    }
+
+    public function setDueDateAttribute(mixed $value): void
+    {
+        $this->attributes['due_date'] = $this->asDateOnly($value);
     }
 
     public function supplier(): BelongsTo
