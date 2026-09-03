@@ -108,17 +108,20 @@ export default function ReceivableAllocationsIndex({
       return;
     }
 
-    post('/receivable-allocations', {
-      data: {
+    router.post(
+      '/receivable-allocations',
+      {
         receipt_id: selectedReceipt.id,
         lines: linesToSubmit,
-      } as any,
-      preserveScroll: true,
-      onSuccess: () => {
-        setAllocationAmounts({});
-        setAllocationError(null);
       },
-    });
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          setAllocationAmounts({});
+          setAllocationError(null);
+        },
+      },
+    );
   };
 
   const handleReverse = (allocationId: string) => {
@@ -169,11 +172,11 @@ export default function ReceivableAllocationsIndex({
 
   return (
     <AppLayout active="receivable-allocations.index">
-      <Head title={dict.app.pages.receivableAllocations.receivableAllocationsMiniErp} />
+      <Head title={dict.app.pages.receivableAllocations.arAllocationsMiniErp} />
 
       <PageHeader
         title={dict.app.pages.receivableAllocations.receivableAllocations}
-        description={dict.app.pages.receivableAllocations.allocateCustomerReceiptsAgainstOpenInvoicesAnd}
+        description={dict.app.pages.receivableAllocations.allocatePostedReceiptsAgainstOpenCustomer}
       />
 
       <div className="grid grid-cols-1 gap-6 mb-8">
