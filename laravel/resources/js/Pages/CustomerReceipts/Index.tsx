@@ -129,25 +129,25 @@ export default function CustomerReceiptsIndex({
 
   // ── DataTables slots ──────────────────────────────────────────────────────
   const slots = useMemo<DataTableSlots>(() => ({
-    customer_name: (d: any, row: any) => (
+    customer_name: (d: any, _type: any, row: any) => (
       <span className="font-semibold">
-        {row.customer_code ? `${row.customer_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
+        {row?.customer_code ? `${row.customer_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
       </span>
     ),
     receipt_date: (d: any) => <span className="font-mono text-xs">{d}</span>,
-    destination: (_d: any, row: any) => (
+    destination: (_d: any, _type: any, row: any) => (
       <span>
-        {row.cash_account_name
+        {row?.cash_account_name
           ? `${dict.app.pages.customerReceipts.cashAccount}: ${getLocalizedName(row.cash_account_name, locale)}`
-          : row.bank_account_name
+          : row?.bank_account_name
           ? `${dict.app.pages.customerReceipts.bankAccount}: ${getLocalizedName(row.bank_account_name, locale)}`
           : accDict.notAvailable}
       </span>
     ),
-    amount_minor: (d: any, row: any) => <span className="font-mono font-bold text-xs">{formatMoney(d, row.currency)}</span>,
-    unapplied_minor: (d: any, row: any) => (
+    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs">{formatMoney(d, row?.currency || 'EGP')}</span>,
+    unapplied_minor: (d: any, _type: any, row: any) => (
       <span className={`font-mono text-xs font-bold ${Number(d) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-        {formatMoney(d, row.currency)}
+        {formatMoney(d, row?.currency || 'EGP')}
       </span>
     ),
     status: (d: any) => (
@@ -155,13 +155,13 @@ export default function CustomerReceiptsIndex({
         {d === 'posted' ? dict.app.pages.customerReceipts.posted : dict.app.pages.customerReceipts.draft}
       </StatusBadge>
     ),
-    actions: (_d: any, row: any) => (
+    actions: (_d: any, _type: any, row: any) => (
       <div className="flex items-center justify-end gap-2">
-        {row.status === 'draft' ? (
+        {row?.status === 'draft' ? (
           canPostReceipt ? (
             <button
               type="button"
-              onClick={() => handlePost(row.id)}
+              onClick={() => handlePost(row?.id)}
               title={dict.app.pages.customerReceipts.confirmPostReceipt}
               aria-label={dict.app.pages.customerReceipts.confirmPostReceipt}
               className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
@@ -173,7 +173,7 @@ export default function CustomerReceiptsIndex({
           )
         ) : (
           <Link
-            href={`/receivable-allocations?receipt_id=${row.id}`}
+            href={`/receivable-allocations?receipt_id=${row?.id}`}
             title={dict.app.pages.customerReceipts.allocate}
             aria-label={dict.app.pages.customerReceipts.allocate}
             className="text-xs font-bold text-[var(--primary)] hover:underline"
@@ -183,7 +183,7 @@ export default function CustomerReceiptsIndex({
         )}
       </div>
     ),
-  } as Record<string, (data: any, row: any) => ReactElement>), [dict, accDict, locale, canPostReceipt]);
+  } as Record<string, (data: any, type: any, row: any) => ReactElement>), [dict, accDict, locale, canPostReceipt]);
 
   const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
 

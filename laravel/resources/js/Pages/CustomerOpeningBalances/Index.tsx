@@ -123,25 +123,25 @@ export default function CustomerOpeningBalancesIndex({
 
   const slots = useMemo<DataTableSlots>(() => ({
     // The feed sends the raw translations object, so the active locale wins here.
-    customer_name: (data: CustomerOBTableRow['customer_name'], row: CustomerOBTableRow): ReactElement => (
+    customer_name: (data: CustomerOBTableRow['customer_name'], _type: any, row: CustomerOBTableRow): ReactElement => (
       <div className="flex flex-col leading-tight">
         <span className="font-semibold">{getLocalizedName(data, locale)}</span>
-        <span className="font-mono text-[11px] text-[var(--text-muted)]">{row.customer_code}</span>
+        <span className="font-mono text-[11px] text-[var(--text-muted)]">{row?.customer_code}</span>
       </div>
     ),
     reference: (data: string | null): ReactElement => (
       <span className="font-mono text-xs">{data || accDict.notAvailable}</span>
     ),
-    amount_minor: (data: number, row: CustomerOBTableRow): ReactElement => (
-      <span className="font-mono text-xs font-bold">{formatMoney(data, row.currency)}</span>
+    amount_minor: (data: number, _type: any, row: CustomerOBTableRow): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatMoney(data, row?.currency || 'EGP')}</span>
     ),
     status: (data: string): ReactElement => (
       <StatusBadge tone={data === 'posted' ? 'ok' : 'warning'}>
         {data === 'posted' ? dict.app.pages.customerOpeningBalances.posted : dict.app.pages.customerOpeningBalances.draft}
       </StatusBadge>
     ),
-    id: (data: string, row: CustomerOBTableRow): ReactElement => (
-      row.status === 'draft' ? (
+    id: (data: string, _type: any, row: CustomerOBTableRow): ReactElement => (
+      row?.status === 'draft' ? (
         canPostOpeningBalance ? (
           <button
             type="button"

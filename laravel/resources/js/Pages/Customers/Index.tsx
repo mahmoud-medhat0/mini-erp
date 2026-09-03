@@ -92,13 +92,13 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
     email:      (d: any)        => <span className="text-[var(--text-secondary)]">{d || accDict.notAvailable}</span>,
     tax_number: (d: any)        => <span className="font-mono text-xs">{d || accDict.notAvailable}</span>,
     status:     (d: any)        => <StatusBadge tone={d === 'active' ? 'ok' : 'muted'}>{d === 'active' ? pageDict.active_2 : pageDict.inactive_2}</StatusBadge>,
-    actions:    (_d: any, row: any) => (
+    actions:    (_d: any, _type: any, row: any) => (
       <button type="button" onClick={() => openEdit(row as CustomerRow)}
         className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer">
         {pageDict.edit}
       </button>
     ),
-  } as Record<string, (data: any, row: any) => ReactElement>), [pageDict, accDict, locale]);
+  } as Record<string, (data: any, type: any, row: any) => ReactElement>), [pageDict, accDict, locale]);
 
   const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
 

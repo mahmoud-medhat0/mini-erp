@@ -141,19 +141,19 @@ export default function ReceivableAllocationsIndex({
 
   const historySlots = useMemo<DataTableSlots>(() => ({
     receipt_number: (d: any) => <span className="font-mono font-bold text-xs">{d || accDict.notAvailable}</span>,
-    customer_name: (d: any, row: any) => (
+    customer_name: (d: any, _type: any, row: any) => (
       <span className="font-semibold">
-        {row.customer_code ? `${row.customer_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
+        {row?.customer_code ? `${row.customer_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
       </span>
     ),
-    amount_minor: (d: any, row: any) => <span className="font-mono font-bold text-xs text-emerald-600">{formatMoney(d, row.currency)}</span>,
+    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs text-emerald-600">{formatMoney(d, row?.currency || 'EGP')}</span>,
     created_at: (d: any) => <span className="font-mono text-xs">{new Date(d).toLocaleString()}</span>,
-    actions: (_d: any, row: any) => (
+    actions: (_d: any, _type: any, row: any) => (
       <div className="flex items-center justify-end">
         {canManageReceivableAllocations ? (
           <button
             type="button"
-            onClick={() => handleReverse(row.id)}
+            onClick={() => handleReverse(row?.id)}
             title={dict.app.pages.receivableAllocations.reverse}
             aria-label={dict.app.pages.receivableAllocations.reverse}
             className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40 cursor-pointer"
@@ -165,7 +165,7 @@ export default function ReceivableAllocationsIndex({
         )}
       </div>
     ),
-  } as Record<string, (data: any, row: any) => ReactElement>), [dict, accDict, locale, canManageReceivableAllocations]);
+  } as Record<string, (data: any, type: any, row: any) => ReactElement>), [dict, accDict, locale, canManageReceivableAllocations]);
 
   return (
     <AppLayout active="receivable-allocations.index">
