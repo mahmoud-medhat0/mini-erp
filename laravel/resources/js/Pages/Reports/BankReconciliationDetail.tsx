@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary, interpolate } from '../../lib/i18n';
@@ -63,7 +63,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
 
       <PageHeader
         title={interpolate(dict.app.pages.bankReconciliationDetail.reportTitle, { ref: reconciliation.statement_reference })}
-        description={`${reconciliation.bank_account.code} - ${reconciliation.bank_account.name} (${reconciliation.date_from} → ${reconciliation.date_to})`}
+        description={`${reconciliation.bank_account.code} - ${getLocalizedName(reconciliation.bank_account.name, locale)} (${reconciliation.date_from} → ${reconciliation.date_to})`}
         actions={
           <div className="flex items-center gap-3">
             {canPrint ? (

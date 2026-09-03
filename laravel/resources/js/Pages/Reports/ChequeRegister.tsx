@@ -5,7 +5,7 @@ import ChequeRegisterDataTable from '../../Components/ChequeRegisterDataTable';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -146,7 +146,7 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsChequeRegister.allCustomers },
-                  ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
+                  ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` })),
                 ]}
                 value={customerId}
                 onChange={(val) => setCustomerId(val || '')}
@@ -159,7 +159,7 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsChequeRegister.allSuppliers },
-                  ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` })),
+                  ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${getLocalizedName(s.name, locale)}` })),
                 ]}
                 value={supplierId}
                 onChange={(val) => setSupplierId(val || '')}
@@ -172,7 +172,7 @@ export default function ChequeRegister({ locale, report, customers, suppliers, b
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsChequeRegister.allBankAccounts },
-                  ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` })),
+                  ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)}` })),
                 ]}
                 value={bankAccountId}
                 onChange={(val) => setBankAccountId(val || '')}

@@ -132,7 +132,7 @@ export default function ApAging({ locale, report, suppliers, currencies, filters
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsApAging.allSuppliers },
-                  ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` })),
+                  ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${getLocalizedName(s.name, locale)}` })),
                 ]}
                 value={supplierId}
                 onChange={(val) => setSupplierId(val || '')}

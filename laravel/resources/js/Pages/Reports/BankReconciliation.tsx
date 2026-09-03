@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -86,7 +86,7 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsBankReconciliation.allBankAccounts },
-                  ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` })),
+                  ...bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)}` })),
                 ]}
                 value={bankAccountId}
                 onChange={(val) => setBankAccountId(val || '')}
@@ -139,7 +139,7 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
             <tbody className="divide-y divide-[var(--border-color)]">
               {report.reconciliations.map((recon) => (
                 <tr key={recon.id} className="hover:bg-[var(--background)]/30">
-                  <td className="p-3 font-bold">{recon.bank_account.code} - {recon.bank_account.name}</td>
+                  <td className="p-3 font-bold">{recon.bank_account.code} - {getLocalizedName(recon.bank_account.name, locale)}</td>
                   <td className="p-3 font-mono">{recon.statement_reference}</td>
                   <td className="p-3 text-[var(--text-secondary)]">{recon.date_from} → {recon.date_to}</td>
                   <td className="p-3">

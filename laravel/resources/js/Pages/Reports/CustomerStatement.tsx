@@ -5,7 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import ServerDataTable from '../../Components/ServerDataTable';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -130,7 +130,7 @@ export default function CustomerStatement({ locale, report, customers, currencie
                 {dict.app.pages.reportsCustomerStatement.customer}
               </label>
               <SearchableSelect
-                options={customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }))}
+                options={customers.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` }))}
                 value={customerId}
                 onChange={(val) => setCustomerId(val || '')}
                 placeholder={dict.app.pages.reportsCustomerStatement.selectCustomer}

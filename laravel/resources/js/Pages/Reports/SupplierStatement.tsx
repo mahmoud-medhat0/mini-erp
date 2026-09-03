@@ -5,7 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import ServerDataTable from '../../Components/ServerDataTable';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -130,7 +130,7 @@ export default function SupplierStatement({ locale, report, suppliers, currencie
                 {dict.app.pages.reportsSupplierStatement.supplier}
               </label>
               <SearchableSelect
-                options={suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` }))}
+                options={suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${getLocalizedName(s.name, locale)}` }))}
                 value={supplierId}
                 onChange={(val) => setSupplierId(val || '')}
                 placeholder={dict.app.pages.reportsSupplierStatement.selectSupplier}

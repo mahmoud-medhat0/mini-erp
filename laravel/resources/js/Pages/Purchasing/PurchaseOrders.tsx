@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { PaginationLink, SharedPageProps } from '../../Types';
@@ -135,7 +135,7 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
   })), [suppliers]);
   const currencyOptions = useMemo(() => currencies.map((currency) => ({
     value: currency.code,
-    label: `${currency.code} - ${currency.name}`,
+    label: `${currency.code} - ${getLocalizedName(currency.name, locale)}`,
     sublabel: currency.symbol,
   })), [currencies]);
   const productOptions = useMemo(() => products.map((product) => ({
@@ -417,7 +417,7 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                       <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                         {order.number || dict.app.pages.purchasingPurchaseOrders.draft_2}
                       </td>
-                      <td className={`${tableClasses.td} font-medium`}>{order.supplier?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(order.supplier?.name, locale) || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{order.order_date}</td>
                       <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
                         {formatMoney(order.total_minor, order.currency)}
@@ -598,7 +598,7 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
                           <input
                             type="text"
                             disabled
-                            value={lineProd?.unit_of_measure?.name || dict.app.pages.purchasingPurchaseOrders.noUom}
+                            value={getLocalizedName(lineProd?.unit_of_measure?.name, locale) || dict.app.pages.purchasingPurchaseOrders.noUom}
                             className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--text-muted)] font-medium"
                           />
                         </div>

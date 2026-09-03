@@ -67,11 +67,11 @@ export default function DeliveryNotesReport({ locale, reportData, filters, custo
     ];
     const customerOptions = [
         { value: '', label: pageDict.allCustomers },
-        ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
+        ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` })),
     ];
     const productOptions = [
         { value: '', label: pageDict.allProducts },
-        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${p.name}` })),
+        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${getLocalizedName(p.name, locale)}` })),
     ];
     const warehouseOptions = [
         { value: '', label: pageDict.allWarehouses },

@@ -91,7 +91,7 @@ export default function CustomerOpeningBalancesIndex({
 
   const customerSelectOptions = customers.map((c) => ({
     value: c.id,
-    label: `${c.code} - ${c.name}`,
+    label: `${c.code} - ${getLocalizedName(c.name, locale)}`,
   }));
 
   const periodSelectOptions = periods.map((p) => ({
@@ -101,7 +101,7 @@ export default function CustomerOpeningBalancesIndex({
 
   const currencyOptions = currencies.map((c) => ({
     value: c.code,
-    label: `${c.code} (${c.name})`,
+    label: `${c.code} (${getLocalizedName(c.name, locale)})`,
   }));
 
   return (

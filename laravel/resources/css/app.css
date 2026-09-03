@@ -77,43 +77,105 @@ body {
     padding: 0;
 }
 
-.server-data-table .dt-layout-row {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    margin: 0;
-    padding: .75rem 1rem;
-    background: color-mix(in srgb, var(--background) 40%, var(--surface));
-    border-bottom: 1px solid var(--border);
+.server-data-table div.dt-container div.dt-layout-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 1rem !important;
+    margin: 0 !important;
+    padding: .75rem 1.25rem !important;
+    background: color-mix(in srgb, var(--background) 40%, var(--surface)) !important;
+    border-bottom: 1px solid var(--border) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
-.server-data-table .dt-layout-row:last-child {
-    border-bottom: 0;
-    border-top: 1px solid var(--border);
+/* ── Top row layout cells (Length & Search edges) ── */
+.server-data-table div.dt-container div.dt-layout-cell {
+    display: flex !important;
+    align-items: center !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
 
-/* ── Length + Search labels ── */
+.server-data-table div.dt-container div.dt-layout-row:not(:last-child) div.dt-layout-cell.dt-layout-start,
+.server-data-table div.dt-container div.dt-layout-row:not(:last-child) div.dt-layout-cell.dt-start {
+    justify-content: flex-start !important;
+    margin-inline-start: 0 !important;
+    margin-inline-end: auto !important;
+}
+
+.server-data-table div.dt-container div.dt-layout-row:not(:last-child) div.dt-layout-cell.dt-layout-end,
+.server-data-table div.dt-container div.dt-layout-row:not(:last-child) div.dt-layout-cell.dt-end {
+    justify-content: flex-end !important;
+    margin-inline-start: auto !important;
+    margin-inline-end: 0 !important;
+}
+
+/* ── Bottom footer control bar (Centered) ── */
+.server-data-table div.dt-container div.dt-layout-row:last-child {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .6rem !important;
+    padding: .85rem 1.25rem !important;
+    border-bottom: 0 !important;
+    border-top: 1px solid var(--border) !important;
+    text-align: center !important;
+}
+
+.server-data-table div.dt-container div.dt-layout-row:last-child div.dt-layout-cell {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 !important;
+    width: 100% !important;
+    text-align: center !important;
+}
+
+.server-data-table div.dt-container div.dt-layout-row:last-child div.dt-layout-cell.dt-layout-start,
+.server-data-table div.dt-container div.dt-layout-row:last-child div.dt-layout-cell.dt-start,
+.server-data-table div.dt-container div.dt-layout-row:last-child div.dt-layout-cell.dt-layout-end,
+.server-data-table div.dt-container div.dt-layout-row:last-child div.dt-layout-cell.dt-end {
+    justify-content: center !important;
+    margin-inline-start: 0 !important;
+    margin-inline-end: 0 !important;
+}
+
+/* ── Length & Search Containers ── */
 .server-data-table .dt-search,
 .server-data-table .dt-length {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    color: var(--text-secondary);
-    font-size: .75rem;
-    font-weight: 500;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: .5rem !important;
+    color: var(--text-secondary) !important;
+    font-size: .8rem !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
 }
 
-/* ── Inputs ── */
+.server-data-table .dt-search label,
+.server-data-table .dt-length label {
+    margin: 0 !important;
+    color: var(--text-secondary) !important;
+    font-size: .78rem !important;
+    font-weight: 500 !important;
+}
+
+/* ── Inputs (Search & Select) ── */
 .server-data-table .dt-input {
-    height: 2.1rem;
+    height: 2.25rem !important;
     border: 1px solid var(--border) !important;
-    border-radius: .6rem !important;
+    border-radius: .65rem !important;
     background: var(--surface) !important;
     color: var(--text-primary) !important;
-    padding: 0 .75rem !important;
+    padding: 0 .85rem !important;
     font-size: .8125rem !important;
-    transition: border-color .15s, box-shadow .15s;
+    transition: all .15s ease-in-out !important;
     outline: none !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .03) !important;
 }
 
 .server-data-table .dt-input:focus {
@@ -121,109 +183,203 @@ body {
     box-shadow: 0 0 0 3px var(--primary-glow) !important;
 }
 
-.server-data-table .dt-search .dt-input {
-    min-width: min(16rem, 55vw);
+.server-data-table select.dt-input {
+    cursor: pointer !important;
+}
+
+.server-data-table .dt-search input.dt-input {
+    width: 18rem !important;
+    min-width: 15rem !important;
+    max-width: 100% !important;
+    padding-inline-start: .85rem !important;
+    padding-inline-end: .85rem !important;
+}
+
+.server-data-table .dt-search input.dt-input::placeholder {
+    color: var(--text-muted) !important;
+    font-size: .8rem !important;
 }
 
 /* ── Table head ── */
-.server-data-table table.dataTable > thead > tr > th {
-    padding: .65rem 1rem;
-    border-bottom: 2px solid var(--border);
-    background: color-mix(in srgb, var(--background) 55%, var(--surface));
-    color: var(--text-secondary);
-    font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    white-space: nowrap;
+.server-data-table table.dataTable>thead>tr>th {
+    padding: .85rem 1.25rem !important;
+    border-bottom: 2px solid var(--border) !important;
+    background: color-mix(in srgb, var(--background) 65%, var(--surface)) !important;
+    color: var(--text-primary) !important;
+    font-size: .8rem !important;
+    font-weight: 700 !important;
+    letter-spacing: .02em !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    transition: background-color .15s ease, color .15s ease !important;
 }
 
-/* Sort arrows */
-.server-data-table table.dataTable > thead > tr > th.dt-orderable-asc,
-.server-data-table table.dataTable > thead > tr > th.dt-orderable-desc {
-    cursor: pointer;
+/* Sortable column header hover state */
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-asc:hover,
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-desc:hover {
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
+    color: var(--primary) !important;
+    cursor: pointer !important;
 }
 
-.server-data-table table.dataTable > thead > tr > th.dt-ordering-asc span.dt-column-order::before,
-.server-data-table table.dataTable > thead > tr > th.dt-ordering-desc span.dt-column-order::after {
-    color: var(--primary);
-    opacity: 1;
+/* ── Modern Vector SVG Table Sort Icons ── */
+
+/* Non-orderable headers (e.g. إجراءات): Hide sorting element completely */
+.server-data-table table.dataTable>thead>tr>th:not(.dt-orderable-asc):not(.dt-orderable-desc) .dt-column-order {
+    display: none !important;
+}
+
+/* Hide default DataTables CSS triangle borders and pseudo content */
+.server-data-table table.dataTable>thead>tr>th .dt-column-order::before,
+.server-data-table table.dataTable>thead>tr>th .dt-column-order::after {
+    display: none !important;
+    content: "" !important;
+}
+
+/* Orderable headers icon container */
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-asc .dt-column-order,
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-desc .dt-column-order {
+    display: inline-block !important;
+    width: .9rem !important;
+    height: .9rem !important;
+    margin-inline-start: .45rem !important;
+    vertical-align: middle !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    transition: all .15s ease-in-out !important;
+}
+
+/* Unsorted state: sleek dual chevron stroke ↕ */
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-asc:not(.dt-ordering-asc):not(.dt-ordering-desc) .dt-column-order,
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-desc:not(.dt-ordering-asc):not(.dt-ordering-desc) .dt-column-order {
+    opacity: .4 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E") !important;
+}
+
+/* Hover state on unsorted header cell */
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-asc:not(.dt-ordering-asc):not(.dt-ordering-desc):hover .dt-column-order,
+.server-data-table table.dataTable>thead>tr>th.dt-orderable-desc:not(.dt-ordering-asc):not(.dt-ordering-desc):hover .dt-column-order {
+    opacity: .9 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E") !important;
+}
+
+/* Sorted ASC (Sleek Arrow Up stroke ↑) */
+.server-data-table table.dataTable>thead>tr>th.dt-ordering-asc {
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
+    color: var(--primary) !important;
+}
+
+.server-data-table table.dataTable>thead>tr>th.dt-ordering-asc .dt-column-order {
+    opacity: 1 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E") !important;
+}
+
+:root[data-theme="dark"] .server-data-table table.dataTable>thead>tr>th.dt-ordering-asc .dt-column-order {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E") !important;
+}
+
+/* Sorted DESC (Sleek Arrow Down stroke ↓) */
+.server-data-table table.dataTable>thead>tr>th.dt-ordering-desc {
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
+    color: var(--primary) !important;
+}
+
+.server-data-table table.dataTable>thead>tr>th.dt-ordering-desc .dt-column-order {
+    opacity: 1 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12l7 7 7-7'/%3E%3C/svg%3E") !important;
+}
+
+:root[data-theme="dark"] .server-data-table table.dataTable>thead>tr>th.dt-ordering-desc .dt-column-order {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12l7 7 7-7'/%3E%3C/svg%3E") !important;
 }
 
 /* ── Table body rows ── */
-.server-data-table table.dataTable > tbody > tr {
+.server-data-table table.dataTable>tbody>tr {
     background: var(--surface);
     transition: background .12s;
 }
 
-.server-data-table table.dataTable > tbody > tr:nth-child(even) {
+.server-data-table table.dataTable>tbody>tr:nth-child(even) {
     background: color-mix(in srgb, var(--background) 30%, var(--surface));
 }
 
-.server-data-table table.dataTable > tbody > tr:hover,
-.server-data-table table.dataTable > tbody > tr:nth-child(even):hover {
+.server-data-table table.dataTable>tbody>tr:hover,
+.server-data-table table.dataTable>tbody>tr:nth-child(even):hover {
     background: color-mix(in srgb, var(--primary) 6%, var(--surface));
 }
 
 /* ── Table cells ── */
-.server-data-table table.dataTable > tbody > tr > td {
-    padding: .65rem 1rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-    color: var(--text-primary);
-    font-size: .8125rem;
-    vertical-align: middle;
+.server-data-table table.dataTable>tbody>tr>td {
+    padding: .85rem 1.25rem !important;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent) !important;
+    color: var(--text-primary) !important;
+    font-size: .85rem !important;
+    vertical-align: middle !important;
 }
 
-.server-data-table table.dataTable > tbody > tr:last-child > td {
+.server-data-table table.dataTable>tbody>tr:last-child>td {
     border-bottom: 0;
 }
 
 /* ── Info text ── */
 .server-data-table .dt-info {
     color: var(--text-muted);
-    font-size: .72rem;
+    font-size: .75rem;
+    text-align: center !important;
+    width: 100% !important;
 }
 
 /* ── Pagination ── */
-.server-data-table .dt-paging {
-    display: flex;
-    align-items: center;
-    gap: .25rem;
+.server-data-table div.dt-container .dt-paging {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: .25rem !important;
+    width: 100% !important;
 }
 
-.server-data-table .dt-paging .dt-paging-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 2rem;
-    height: 2rem;
-    padding: 0 .5rem;
+.server-data-table div.dt-container .dt-paging .dt-paging-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 2rem !important;
+    height: 2rem !important;
+    padding: 0 .65rem !important;
     border: 1px solid var(--border) !important;
-    border-radius: .5rem !important;
+    border-radius: .55rem !important;
     background: var(--surface) !important;
-    color: var(--text-secondary) !important;
-    font-size: .75rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background .12s, border-color .12s, color .12s;
+    color: var(--text-primary) !important;
+    font-size: .75rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all .15s ease-in-out !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .04) !important;
 }
 
-.server-data-table .dt-paging .dt-paging-button:hover:not(.disabled) {
+.server-data-table div.dt-container .dt-paging .dt-paging-button:hover:not(.disabled):not(.current) {
     border-color: var(--primary) !important;
-    background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
+    background: color-mix(in srgb, var(--primary) 12%, var(--surface)) !important;
     color: var(--primary) !important;
 }
 
-.server-data-table .dt-paging .dt-paging-button.current {
+.server-data-table div.dt-container .dt-paging .dt-paging-button.current {
     border-color: var(--primary) !important;
     background: var(--primary) !important;
-    color: #fff !important;
-    font-weight: 700;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 4px var(--primary-glow) !important;
 }
 
-.server-data-table .dt-paging .dt-paging-button.disabled {
-    opacity: .35;
-    cursor: not-allowed;
+.server-data-table div.dt-container .dt-paging .dt-paging-button.disabled,
+.server-data-table div.dt-container .dt-paging .dt-paging-button.disabled:hover,
+.server-data-table div.dt-container .dt-paging .dt-paging-button.disabled:active {
+    opacity: .45 !important;
+    color: var(--text-muted) !important;
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
 }
 
 /* ── Processing overlay ── */
@@ -234,8 +390,8 @@ body {
     position: relative;
 }
 
-/* Hide DataTables default animated-dots div */
-.server-data-table .dt-processing > div {
+/* Hide DataTables default animated-dots div (except our sdt-spinner) */
+.server-data-table .dt-processing>div:not(.sdt-spinner) {
     display: none !important;
 }
 
@@ -273,35 +429,38 @@ body {
 
 /* Spinner ring */
 .sdt-spinner {
-    width: 2.5rem;
-    height: 2.5rem;
-    border: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: sdt-spin .65s linear infinite;
-    flex-shrink: 0;
+    display: block !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    border: 3px solid color-mix(in srgb, var(--primary) 20%, transparent) !important;
+    border-top-color: var(--primary) !important;
+    border-radius: 50% !important;
+    animation: sdt-spin .65s linear infinite !important;
+    flex-shrink: 0 !important;
 }
 
 /* Label below spinner */
 .sdt-spinner-label {
-    color: var(--text-secondary);
-    font-size: .78rem;
-    font-weight: 500;
-    letter-spacing: .025em;
+    color: var(--text-secondary) !important;
+    font-size: .8rem !important;
+    font-weight: 600 !important;
+    letter-spacing: .025em !important;
 }
 
 @keyframes sdt-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 
 
 /* ── Responsive collapsed rows ── */
-.server-data-table table.dataTable > tbody > tr.child {
+.server-data-table table.dataTable>tbody>tr.child {
     background: color-mix(in srgb, var(--primary) 4%, var(--surface)) !important;
 }
 
-.server-data-table table.dataTable > tbody > tr.child td.child ul.dtr-details {
+.server-data-table table.dataTable>tbody>tr.child td.child ul.dtr-details {
     display: block;
 }
 
@@ -397,15 +556,41 @@ body {
    Dashboard Hero Orb Animations
    ===================================================== */
 @keyframes hero-drift {
-    0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
-    33% { transform: translate(14px, -20px) scale(1.05); opacity: 0.85; }
-    66% { transform: translate(-12px, 14px) scale(0.96); opacity: 0.9; }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+
+    33% {
+        transform: translate(14px, -20px) scale(1.05);
+        opacity: 0.85;
+    }
+
+    66% {
+        transform: translate(-12px, 14px) scale(0.96);
+        opacity: 0.9;
+    }
 }
 
 @keyframes hero-drift-alt {
-    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
-    33% { transform: translate(-16px, 12px) scale(1.03); opacity: 1; }
-    66% { transform: translate(10px, -16px) scale(0.98); opacity: 0.85; }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.9;
+    }
+
+    33% {
+        transform: translate(-16px, 12px) scale(1.03);
+        opacity: 1;
+    }
+
+    66% {
+        transform: translate(10px, -16px) scale(0.98);
+        opacity: 0.85;
+    }
 }
 
 .hero-orb {

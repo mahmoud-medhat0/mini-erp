@@ -4,6 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import type { SharedPageProps } from '../../Types/page';
 
 type CategoryOption = {
@@ -94,7 +95,7 @@ export default function FixedAssetCreate({ locale, categories, currencies }: Cre
   const currencyOptions = useMemo(
     () => currencies.map((curr) => ({
       value: curr.code,
-      label: `${curr.code} - ${curr.name}`,
+      label: `${curr.code} - ${getLocalizedName(curr.name, locale)}`,
       sublabel: curr.symbol,
     })),
     [currencies],

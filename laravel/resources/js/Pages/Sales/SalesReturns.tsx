@@ -574,7 +574,7 @@ export default function SalesReturnsIndex({
                       <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                         {ret.number || dict.app.pages.salesSalesReturns.draft_2}
                       </td>
-                      <td className={`${tableClasses.td} font-medium`}>{ret.customer?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(ret.customer?.name, locale) || accDict.notAvailable}</td>
                       <td className={`${tableClasses.td} font-mono`}>{ret.deliveryNote?.number || accDict.notAvailable}</td>
                       <td className={`${tableClasses.td} font-mono`}>{ret.customerInvoice?.number || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>

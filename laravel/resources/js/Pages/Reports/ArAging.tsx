@@ -132,7 +132,7 @@ export default function ArAging({ locale, report, customers, currencies, filters
               <SearchableSelect
                 options={[
                   { value: '', label: dict.app.pages.reportsArAging.allCustomers },
-                  ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` })),
+                  ...customers.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` })),
                 ]}
                 value={customerId}
                 onChange={(val) => setCustomerId(val || '')}

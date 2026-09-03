@@ -377,7 +377,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
                         {receipt.number || dict.app.pages.purchasingGoodsReceipts.draft_2}
                       </td>
                       <td className={`${tableClasses.td} font-mono`}>{receipt.purchaseOrder?.number || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-medium`}>{receipt.purchaseOrder?.supplier?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(receipt.purchaseOrder?.supplier?.name, locale) || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{receipt.warehouse ? `${receipt.warehouse.code} - ${getLocalizedName(receipt.warehouse.name, locale)}` : accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{receipt.receipt_date}</td>
                       <td className={tableClasses.td}>

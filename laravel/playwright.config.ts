@@ -24,8 +24,10 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
 
-  timeout: 45_000,
-  expect: { timeout: 10_000 },
+  // The dev server is a single-process `artisan serve`; heavier pages under a
+  // full-suite run legitimately take longer than a solo load.
+  timeout: 90_000,
+  expect: { timeout: 20_000 },
 
   reporter: process.env.CI
     ? [['list'], ['html', { outputFolder: './storage/e2e/report', open: 'never' }]]

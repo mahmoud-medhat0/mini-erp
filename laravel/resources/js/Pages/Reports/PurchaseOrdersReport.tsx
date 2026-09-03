@@ -6,7 +6,7 @@ import { PurchaseOrdersDataTable } from '../../Components/OperationalReportDataT
 import ReportFilterPanel from '../../Components/ReportFilterPanel';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
 
@@ -71,11 +71,11 @@ export default function PurchaseOrdersReport({ locale, reportData, filters, supp
     ];
     const supplierOptions = [
         { value: '', label: pageDict.allSuppliers },
-        ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` })),
+        ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${getLocalizedName(s.name, locale)}` })),
     ];
     const productOptions = [
         { value: '', label: pageDict.allProducts },
-        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${p.name}` })),
+        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${getLocalizedName(p.name, locale)}` })),
     ];
 
     const handleFilter = (e: React.FormEvent) => {

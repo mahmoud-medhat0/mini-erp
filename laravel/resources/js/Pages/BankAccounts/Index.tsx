@@ -109,12 +109,12 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
 
   const glSelectOptions = glAccounts.map((a) => ({
     value: a.id,
-    label: `${a.code} - ${a.name}`,
+    label: `${a.code} - ${getLocalizedName(a.name, locale)}`,
   }));
 
   const currencyOptions = currencies.map((c) => ({
     value: c.code,
-    label: `${c.code} (${c.name})`,
+    label: `${c.code} (${getLocalizedName(c.name, locale)})`,
   }));
   const branchOptions = branches.map((b) => ({
     value: b.id,
@@ -228,7 +228,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{acc.currency}</td>
                   <td className={tableClasses.td}>
-                    {acc.gl_account ? `${acc.gl_account.code} - ${acc.gl_account.name}` : accDict.notAvailable}
+                    {acc.gl_account ? `${acc.gl_account.code} - ${getLocalizedName(acc.gl_account.name, locale)}` : accDict.notAvailable}
                   </td>
                   <td className={tableClasses.td}>
                     <StatusBadge tone={acc.is_active ? 'ok' : 'muted'}>

@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { PaginationLink, SharedPageProps } from '../../Types';
@@ -470,7 +470,7 @@ export default function CustomerCreditNotesIndex({
                       <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                         {note.number || dict.app.pages.salesCustomerCreditNotes.draft_2}
                       </td>
-                      <td className={`${tableClasses.td} font-medium`}>{note.customer?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(note.customer?.name, locale) || accDict.notAvailable}</td>
                       <td className={`${tableClasses.td} font-mono`}>{note.customerInvoice?.number || accDict.notAvailable}</td>
                       <td className={`${tableClasses.td} font-mono`}>{note.salesReturn?.number || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{note.credit_date}</td>

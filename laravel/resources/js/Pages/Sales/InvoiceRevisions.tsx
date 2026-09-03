@@ -1,7 +1,7 @@
 import { Head, router, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { PaginationLink, SharedPageProps } from '../../Types';
 
@@ -99,7 +99,7 @@ export default function InvoiceRevisionsIndex({ locale, customerInvoiceRevisions
                       <span className="ms-1 text-[10px] font-semibold text-[var(--text-muted)]">#{rev.revision_no}</span>
                     </td>
                     <td className={`${tableClasses.td} font-mono`}>{rev.customerInvoice?.number || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{rev.customerInvoice?.customer?.name || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(rev.customerInvoice?.customer?.name, locale) || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>{rev.revision_date}</td>
                     <td className={`${tableClasses.td} text-end font-mono font-semibold`}>
                       {formatMoney(rev.original_total_minor, rev.currency)}

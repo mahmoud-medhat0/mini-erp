@@ -60,6 +60,24 @@ class TranslatableDisplayGuardTest extends TestCase
         'unitOfMeasure' => ['name'],
         'statementLine' => ['name'],
         'financialStatementLine' => ['name'],
+        // Relation keys as they appear in Inertia payloads.
+        'gl_account' => ['name'],
+        'glAccount' => ['name'],
+        'bank_account' => ['name', 'bank_name'],
+        'bankAccount' => ['name', 'bank_name'],
+        'cash_account' => ['name'],
+        'cashAccount' => ['name'],
+        'source_account' => ['name'],
+        'destination_account' => ['name'],
+        'product_category' => ['name', 'description'],
+        'productCategory' => ['name', 'description'],
+        'unit_of_measure' => ['name'],
+        'unitOfMeasure' => ['name'],
+        'cat' => ['name', 'description'],
+        'output_tax_account' => ['name'],
+        'input_tax_account' => ['name'],
+        'row' => ['bank_name'],
+        'recon' => ['bank_name'],
     ];
 
     /** Every field this guard knows how to check. */
@@ -185,9 +203,14 @@ class TranslatableDisplayGuardTest extends TestCase
 
         foreach (self::TRANSLATABLE_ENTITY_FIELDS as $entity => $fields) {
             $fieldPattern = implode('|', array_map('preg_quote', $fields));
-            $pattern = '/\{\s*((?:[A-Za-z_$][A-Za-z0-9_$]*\??\.)*?'
+            // Matches both `{a.b.name}` JSX children and `${a.b.name}` template
+            // interpolation. The latter prints "[object Object]" rather than
+            // crashing, which is just as wrong and much easier to miss.
+            // Matches `{a.b.name}`, `${a.b.name}` interpolation, and
+            // `{a.b.name || fallback}` — all render the raw object.
+            $pattern = '/\$?\{\s*((?:[A-Za-z_$][A-Za-z0-9_$]*\??\.)*?'
                 .preg_quote($entity, '/')
-                .'\??\.('.$fieldPattern.'))\s*\}/';
+                .'\??\.('.$fieldPattern.'))\s*(?:\}|\|\|)/';
 
             foreach (explode('
 ', $source) as $index => $line) {

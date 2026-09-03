@@ -5,7 +5,7 @@ import { CashBookDataTable } from '../../Components/CashBankBookDataTables';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -92,7 +92,7 @@ export default function CashBook({ locale, report, cashAccounts, filters }: Cash
                 {dict.app.pages.reportsCashBook.cashAccount}
               </label>
               <SearchableSelect
-                options={cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }))}
+                options={cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` }))}
                 value={cashAccountId}
                 onChange={(val) => setCashAccountId(val || '')}
               />

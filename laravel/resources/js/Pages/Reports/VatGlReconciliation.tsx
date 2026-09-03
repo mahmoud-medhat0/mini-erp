@@ -4,7 +4,7 @@ import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
@@ -139,14 +139,14 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
             <div className="text-xs text-[var(--text-secondary)] mb-1">{t.outputAccount}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
-              {report.output_tax_account ? `${report.output_tax_account.code} - ${report.output_tax_account.name}` : t.notMapped}
+              {report.output_tax_account ? `${report.output_tax_account.code} - ${getLocalizedName(report.output_tax_account.name, locale)}` : t.notMapped}
             </div>
           </div>
 
           <div className="bg-[var(--card)] p-4 rounded-xl border border-[var(--border-color)]">
             <div className="text-xs text-[var(--text-secondary)] mb-1">{t.inputAccount}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
-              {report.input_tax_account ? `${report.input_tax_account.code} - ${report.input_tax_account.name}` : t.notMapped}
+              {report.input_tax_account ? `${report.input_tax_account.code} - ${getLocalizedName(report.input_tax_account.name, locale)}` : t.notMapped}
             </div>
           </div>
 

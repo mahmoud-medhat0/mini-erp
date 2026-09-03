@@ -54,6 +54,29 @@
       "searchPlaceholder": "Search...",
       "noOptions": "No options found",
       "clear": "Clear selection"
+    },
+    "datatable": {
+      "show": "Show",
+      "entries": "entries",
+      "searchPlaceholder": "Search results...",
+      "quickSearch": "Quick search:",
+      "filterStatus": "Status:",
+      "filterLabel": "Filter:",
+      "createOption": "Select :query entries",
+      "searchOrEnterNumber": "Search or enter number...",
+      "processing": "Processing…",
+      "loadingRecords": "Loading…",
+      "emptyTable": "No data available",
+      "info": "Showing _START_ to _END_ of _TOTAL_ records",
+      "infoEmpty": "No records to show",
+      "infoFiltered": "(filtered from _MAX_ total records)",
+      "zeroRecords": "No matching records found",
+      "paginate": {
+        "first": "First",
+        "last": "Last",
+        "next": "Next",
+        "previous": "Previous"
+      }
     }
   },
   "app": {

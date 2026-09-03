@@ -67,11 +67,11 @@ export default function GoodsReceiptsReport({ locale, reportData, filters, suppl
     ];
     const supplierOptions = [
         { value: '', label: pageDict.allSuppliers },
-        ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` })),
+        ...suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${getLocalizedName(s.name, locale)}` })),
     ];
     const productOptions = [
         { value: '', label: pageDict.allProducts },
-        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${p.name}` })),
+        ...products.map((p) => ({ value: p.id, label: `${p.code} - ${getLocalizedName(p.name, locale)}` })),
     ];
     const warehouseOptions = [
         { value: '', label: pageDict.allWarehouses },

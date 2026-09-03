@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { PaginationLink, SharedPageProps } from '../../Types';
@@ -234,7 +234,7 @@ export default function SupplierBillsIndex({
   const purchaseOrderOptions = useMemo(() => confirmedPurchaseOrders.map((purchaseOrder) => ({
     value: purchaseOrder.id,
     label: purchaseOrder.number || purchaseOrder.id,
-    sublabel: `${purchaseOrder.supplier?.name || accDict.notAvailable} - ${purchaseOrder.currency || accDict.notAvailable}`,
+    sublabel: `${getLocalizedName(purchaseOrder.supplier?.name, locale) || accDict.notAvailable} - ${purchaseOrder.currency || accDict.notAvailable}`,
   })), [confirmedPurchaseOrders, accDict.notAvailable]);
 
   const goodsReceiptOptions = useMemo(() => confirmedGoodsReceipts.map((goodsReceipt) => {
@@ -243,7 +243,7 @@ export default function SupplierBillsIndex({
     return {
       value: goodsReceipt.id,
       label: goodsReceipt.number || goodsReceipt.id,
-      sublabel: `${goodsReceipt.supplier?.name || purchaseOrder?.supplier?.name || accDict.notAvailable} - ${goodsReceipt.currency || purchaseOrder?.currency || accDict.notAvailable}`,
+      sublabel: `${getLocalizedName(goodsReceipt.supplier?.name, locale) || purchaseOrder?.supplier?.name || accDict.notAvailable} - ${goodsReceipt.currency || purchaseOrder?.currency || accDict.notAvailable}`,
     };
   }), [confirmedGoodsReceipts, accDict.notAvailable]);
 
@@ -648,7 +648,7 @@ export default function SupplierBillsIndex({
                         <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                           {bill.number || <span className="text-[var(--text-muted)]">{dict.app.pages.purchasingSupplierBills.draft_2}</span>}
                         </td>
-                        <td className={`${tableClasses.td} font-medium`}>{bill.supplier?.name || accDict.notAvailable}</td>
+                        <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(bill.supplier?.name, locale) || accDict.notAvailable}</td>
                         <td className={tableClasses.td}>{bill.bill_date}</td>
                         <td className={`${tableClasses.td} font-mono font-semibold`}>
                           {formatMoney(bill.total_minor, bill.currency)}

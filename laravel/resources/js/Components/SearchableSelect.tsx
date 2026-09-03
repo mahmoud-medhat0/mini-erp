@@ -21,6 +21,8 @@ export type SearchableSelectProps<T = string | number> = {
   label?: string;
   isClearable?: boolean;
   isSearchable?: boolean;
+  isCreatable?: boolean;
+  createOptionLabel?: (query: string) => string;
   disabled?: boolean;
   error?: string;
   className?: string;
@@ -37,6 +39,8 @@ export default function SearchableSelect<T extends string | number = string>({
   label,
   isClearable = true,
   isSearchable = true,
+  isCreatable = false,
+  createOptionLabel,
   disabled = false,
   error,
   className = '',
@@ -68,13 +72,27 @@ export default function SearchableSelect<T extends string | number = string>({
     };
   });
 
-  // Find active option
-  const selectedOption = normalizedOptions.find((opt) => opt.value === value);
+  // Check if search query matches any option exactly
+  const trimmedQuery = searchQuery.trim();
+  const exactMatch = normalizedOptions.some(
+    (opt) =>
+      String(opt.value).toLowerCase() === trimmedQuery.toLowerCase() ||
+      opt.label.toLowerCase() === trimmedQuery.toLowerCase(),
+  );
+
+  const showCreateOption = isCreatable && trimmedQuery !== '' && !exactMatch;
+
+  // Find active option or fallback to custom value
+  const selectedOption =
+    normalizedOptions.find((opt) => opt.value === value) ||
+    (value !== null && value !== undefined && value !== ''
+      ? { value: value as T, label: String(value) }
+      : undefined);
 
   // Filter options by search query
   const filteredOptions = normalizedOptions.filter((opt) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
+    if (!trimmedQuery) return true;
+    const q = trimmedQuery.toLowerCase();
     const matchLabel = opt.label.toLowerCase().includes(q);
     const matchSublabel = opt.sublabel ? opt.sublabel.toLowerCase().includes(q) : false;
     const matchValue = String(opt.value).toLowerCase().includes(q);
@@ -200,6 +218,23 @@ export default function SearchableSelect<T extends string | number = string>({
 
           {/* Options List */}
           <div className="max-h-64 overflow-y-auto space-y-1 pe-1">
+            {showCreateOption ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const firstVal = normalizedOptions[0]?.value;
+                  const isNum = typeof firstVal === 'number' || typeof value === 'number';
+                  const parsedVal = isNum && !isNaN(Number(trimmedQuery)) ? Number(trimmedQuery) : trimmedQuery;
+                  handleSelect(parsedVal as T);
+                }}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-start text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 cursor-pointer border border-dashed border-[var(--primary)]/40 mb-1"
+              >
+                <span>
+                  + {createOptionLabel ? createOptionLabel(trimmedQuery) : (locale === 'ar' ? `إضافة "${trimmedQuery}"` : `Add "${trimmedQuery}"`)}
+                </span>
+              </button>
+            ) : null}
+
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => {
                 const isSelected = option.value === value;
@@ -235,11 +270,11 @@ export default function SearchableSelect<T extends string | number = string>({
                   </button>
                 );
               })
-            ) : (
+            ) : !showCreateOption ? (
               <div className="py-6 text-center text-xs text-[var(--text-muted)]">
                 {activeNoOptionsLabel}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -104,7 +104,13 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
 
   // ── filter toolbar ────────────────────────────────────────────────────────
   const toolbar = (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-xs font-bold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] whitespace-nowrap shrink-0">
+        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        <span>{dict.common.datatable.filterStatus}</span>
+      </div>
       <SearchableSelect
         options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
         value={statusFilter}
@@ -133,19 +139,6 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
         }
       />
 
-      {/* ── Status filter bar ── */}
-      <Card className="p-3 mb-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchableSelect
-            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v || '')}
-            className="w-44"
-            isSearchable={false}
-          />
-        </div>
-      </Card>
-
       {/* ── DataTable card ── */}
       <Card className="overflow-hidden p-0">
         <ServerDataTable
@@ -157,6 +150,7 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
           pageLength={25}
           slots={slots}
           tableId="customers-data-table"
+          toolbar={toolbar}
         />
       </Card>
 

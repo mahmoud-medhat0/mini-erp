@@ -149,11 +149,11 @@ export default function PayableAllocationsIndex({
 
   const paymentSelectOptions = payments.map((p) => ({
     value: p.id,
-    label: `${p.number} - ${p.supplier?.name || accDict.notAvailable} (${dict.app.pages.payableAllocations.unappliedAmount} ${formatMoney(p.unapplied_minor, p.currency)})`,
+    label: `${p.number} - ${getLocalizedName(p.supplier?.name, locale) || accDict.notAvailable} (${dict.app.pages.payableAllocations.unappliedAmount} ${formatMoney(p.unapplied_minor, p.currency)})`,
   }));
   const supplierSelectOptions = suppliers.map((s) => ({
     value: s.id,
-    label: `${s.code} - ${s.name}`,
+    label: `${s.code} - ${getLocalizedName(s.name, locale)}`,
   }));
 
   return (
@@ -323,7 +323,7 @@ export default function PayableAllocationsIndex({
               {existingAllocations.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.supplierPayment?.number || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{row.supplier?.name || accDict.notAvailable}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(row.supplier?.name, locale) || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs text-emerald-600`}>
                     {formatMoney(row.amount_minor, row.currency)}
                   </td>

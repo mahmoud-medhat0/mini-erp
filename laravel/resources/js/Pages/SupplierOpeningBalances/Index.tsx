@@ -90,7 +90,7 @@ export default function SupplierOpeningBalancesIndex({
 
   const supplierSelectOptions = suppliers.map((s) => ({
     value: s.id,
-    label: `${s.code} - ${s.name}`,
+    label: `${s.code} - ${getLocalizedName(s.name, locale)}`,
   }));
 
   const periodSelectOptions = periods.map((p) => ({
@@ -100,7 +100,7 @@ export default function SupplierOpeningBalancesIndex({
 
   const currencyOptions = currencies.map((c) => ({
     value: c.code,
-    label: `${c.code} (${c.name})`,
+    label: `${c.code} (${getLocalizedName(c.name, locale)})`,
   }));
 
   return (

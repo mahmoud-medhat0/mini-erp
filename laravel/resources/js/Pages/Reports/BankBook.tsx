@@ -5,7 +5,7 @@ import { BankBookDataTable } from '../../Components/CashBankBookDataTables';
 import DatePicker from '../../Components/DatePicker';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -92,7 +92,7 @@ export default function BankBook({ locale, report, bankAccounts, filters }: Bank
                 {dict.app.pages.reportsBankBook.bankAccount}
               </label>
               <SearchableSelect
-                options={bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }))}
+                options={bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)}` }))}
                 value={bankAccountId}
                 onChange={(val) => setBankAccountId(val || '')}
               />

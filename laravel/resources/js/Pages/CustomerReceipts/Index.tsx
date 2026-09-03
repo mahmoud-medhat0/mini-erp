@@ -108,15 +108,15 @@ export default function CustomerReceiptsIndex({
     setPostingReceiptId(id);
   };
 
-  const customerSelectOptions = customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
-  const cashSelectOptions = cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
-  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
+  const customerSelectOptions = customers.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` }));
+  const cashSelectOptions = cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` }));
+  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)}` }));
   const destinationTypeOptions = [
     { value: 'cash', label: dict.app.pages.customerReceipts.cashAccount },
     { value: 'bank', label: dict.app.pages.customerReceipts.bankAccount },
   ];
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
-  const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
+  const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${getLocalizedName(c.name, locale)})` }));
 
   return (
     <AppLayout active="customer-receipts.index">
@@ -173,9 +173,9 @@ export default function CustomerReceiptsIndex({
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.receipt_date}</td>
                   <td className={tableClasses.td}>
                     {row.cash_account
-                      ? `${dict.app.pages.customerReceipts.cashAccount}: ${row.cash_account.name}`
+                      ? `${dict.app.pages.customerReceipts.cashAccount}: ${getLocalizedName(row.cash_account.name, locale)}`
                       : row.bank_account
-                      ? `${dict.app.pages.customerReceipts.bankAccount}: ${row.bank_account.name}`
+                      ? `${dict.app.pages.customerReceipts.bankAccount}: ${getLocalizedName(row.bank_account.name, locale)}`
                       : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>

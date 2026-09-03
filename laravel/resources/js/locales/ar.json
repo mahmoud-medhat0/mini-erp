@@ -54,6 +54,29 @@
       "searchPlaceholder": "بحث...",
       "noOptions": "لا توجد خيارات متاحة",
       "clear": "مسح الاختيار"
+    },
+    "datatable": {
+      "show": "عرض",
+      "entries": "سجل",
+      "searchPlaceholder": "ابحث في النتائج...",
+      "quickSearch": "بحث سريع:",
+      "filterStatus": "الحالة:",
+      "filterLabel": "تصفية:",
+      "createOption": "اختر :query سجل",
+      "searchOrEnterNumber": "ابحث أو ادخل رقم...",
+      "processing": "جارٍ تجهيز البيانات…",
+      "loadingRecords": "جارٍ التحميل…",
+      "emptyTable": "لا توجد بيانات متاحة",
+      "info": "عرض _START_ إلى _END_ من إجمالي _TOTAL_ سجل",
+      "infoEmpty": "لا توجد سجلات للعرض",
+      "infoFiltered": "(تمت التصفية من إجمالي _MAX_ سجل)",
+      "zeroRecords": "لا توجد نتائج مطابقة",
+      "paginate": {
+        "first": "الأولى",
+        "last": "الأخيرة",
+        "next": "التالي",
+        "previous": "السابق"
+      }
     }
   },
   "app": {

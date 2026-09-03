@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
 import { Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { CompanyFormData, CompanyRow, CurrencyRow, SharedPageProps } from '../../Types';
 
@@ -16,11 +17,13 @@ function CompanyFormModal({
   company,
   currencies,
   dict,
+  locale,
   onClose,
 }: {
   company?: CompanyRow;
   currencies: CurrencyRow[];
   dict: ReturnType<typeof getDictionary>;
+  locale: string;
   onClose: () => void;
 }) {
   const { data, setData, post, patch, processing, errors, reset } = useForm<CompanyFormData>({
@@ -106,7 +109,7 @@ function CompanyFormModal({
             label={dict.app.fields.baseCurrency}
             options={currencies.map((c) => ({
               value: c.code,
-              label: `${c.code} - ${c.name}`,
+              label: `${c.code} - ${getLocalizedName(c.name, locale)}`,
               badge: c.code,
             }))}
             value={data.base_currency}
@@ -194,6 +197,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
         <CompanyFormModal
           currencies={currencies}
           dict={dict}
+          locale={locale}
           onClose={() => setShowAddForm(false)}
         />
       ) : null}
@@ -293,6 +297,7 @@ export default function CompanySettings({ companies, currencies, locale }: Compa
                 company={companies.find((c) => c.id === editingCompanyId)}
                 currencies={currencies}
                 dict={dict}
+                locale={locale}
                 onClose={() => setEditingCompanyId(null)}
               />
             </div>

@@ -107,15 +107,15 @@ export default function SupplierPaymentsIndex({
     setPostingPaymentId(id);
   };
 
-  const supplierSelectOptions = suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${s.name}` }));
-  const cashSelectOptions = cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
-  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
+  const supplierSelectOptions = suppliers.map((s) => ({ value: s.id, label: `${s.code} - ${getLocalizedName(s.name, locale)}` }));
+  const cashSelectOptions = cashAccounts.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` }));
+  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)}` }));
   const sourceTypeOptions = [
     { value: 'cash', label: dict.app.pages.supplierPayments.cashAccount },
     { value: 'bank', label: dict.app.pages.supplierPayments.bankAccount },
   ];
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
-  const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
+  const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${getLocalizedName(c.name, locale)})` }));
 
   return (
     <AppLayout active="supplier-payments.index">
@@ -172,9 +172,9 @@ export default function SupplierPaymentsIndex({
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.payment_date}</td>
                   <td className={tableClasses.td}>
                     {row.cash_account
-                      ? `${dict.app.pages.supplierPayments.cashAccount}: ${row.cash_account.name}`
+                      ? `${dict.app.pages.supplierPayments.cashAccount}: ${getLocalizedName(row.cash_account.name, locale)}`
                       : row.bank_account
-                      ? `${dict.app.pages.supplierPayments.bankAccount}: ${row.bank_account.name}`
+                      ? `${dict.app.pages.supplierPayments.bankAccount}: ${getLocalizedName(row.bank_account.name, locale)}`
                       : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>

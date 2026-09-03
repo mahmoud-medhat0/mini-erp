@@ -458,7 +458,7 @@ export default function PurchaseReturnsIndex({
                       <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
                         {ret.number || dict.app.pages.purchasingPurchaseReturns.draft_2}
                       </td>
-                      <td className={`${tableClasses.td} font-medium`}>{ret.supplier?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(ret.supplier?.name, locale) || accDict.notAvailable}</td>
                       <td className={`${tableClasses.td} font-mono`}>{ret.goodsReceipt?.number || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{ret.return_date}</td>

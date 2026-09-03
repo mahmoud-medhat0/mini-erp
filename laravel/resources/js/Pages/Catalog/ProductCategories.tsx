@@ -2,6 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { PaginationLink, SharedPageProps } from '../../Types';
@@ -157,8 +158,8 @@ export default function ProductCategoriesIndex({ locale, categories, filters }: 
                 {categories.data.map((cat) => (
                   <tr key={cat.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>{cat.code}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{cat.name}</td>
-                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{cat.description || accDict.notAvailable}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(cat.name, locale)}</td>
+                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{getLocalizedName(cat.description, locale) || accDict.notAvailable}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={cat.is_active ? 'ok' : 'muted'}>
                         {cat.is_active ? dict.app.pages.catalogProductCategories.active_2 : dict.app.pages.catalogProductCategories.inactive}

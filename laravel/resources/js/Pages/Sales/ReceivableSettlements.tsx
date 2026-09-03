@@ -146,7 +146,7 @@ export default function ReceivableSettlements({
   }));
   const sourceEntrySelectOptions = creditEntries.map((entry) => ({
     value: entry.id,
-    label: `${entry.customer?.name || pageDict.customer} | ${pageDict.dateLabel}: ${entry.entry_date} | ${pageDict.sourceLabel}: ${entry.source_type} | ${pageDict.remainingCredit}: ${fmtMoney(entry.remaining_minor, entry.currency)}`,
+    label: `${getLocalizedName(entry.customer?.name, locale) || pageDict.customer} | ${pageDict.dateLabel}: ${entry.entry_date} | ${pageDict.sourceLabel}: ${entry.source_type} | ${pageDict.remainingCredit}: ${fmtMoney(entry.remaining_minor, entry.currency)}`,
   }));
 
   return (

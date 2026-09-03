@@ -127,10 +127,10 @@ export default function IncomingChequesIndex({
     });
   };
 
-  const customerSelectOptions = customers.map((c) => ({ value: c.id, label: `${c.code} - ${c.name}` }));
-  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name}` }));
+  const customerSelectOptions = customers.map((c) => ({ value: c.id, label: `${c.code} - ${getLocalizedName(c.name, locale)}` }));
+  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)}` }));
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
-  const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${c.name})` }));
+  const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${getLocalizedName(c.name, locale)})` }));
   const statusOptions = [
     { value: 'draft', label: pageDict.statuses.draft },
     { value: 'received', label: pageDict.statuses.received },
@@ -254,7 +254,7 @@ export default function IncomingChequesIndex({
                     <td className={`${tableClasses.td} font-semibold`}>
                       {row.customer ? `${row.customer.code} - ${getLocalizedName(row.customer.name, locale)}` : accDict.notAvailable}
                     </td>
-                    <td className={tableClasses.td}>{row.bank_name}</td>
+                    <td className={tableClasses.td}>{getLocalizedName(row.bank_name, locale)}</td>
                     <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
                     <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
                       {formatMoney(row.amount_minor, row.currency)}

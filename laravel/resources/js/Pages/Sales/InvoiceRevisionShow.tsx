@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import { Card } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types';
 
@@ -127,7 +127,7 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
                 </p>
               ) : null}
               <p className="m-0">
-                <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.customer}:</span> {revision.customerInvoice?.customer?.name || accDict.notAvailable}
+                <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.customer}:</span> {getLocalizedName(revision.customerInvoice?.customer?.name, locale) || accDict.notAvailable}
               </p>
               <p className="m-0">
                 <span className="font-bold">{dict.app.pages.salesInvoiceRevisions.revisionDate_2}:</span> {revision.revision_date}
@@ -181,7 +181,7 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
                   <tr key={line.id}>
                     <td className={`${cellStyle} font-medium`}>{getProductName(line.product) || accDict.notAvailable}</td>
                     <td className={cellStyle}>{line.description || accDict.notAvailable}</td>
-                    <td className={cellStyle}>{line.unitOfMeasure?.name || accDict.notAvailable}</td>
+                    <td className={cellStyle}>{getLocalizedName(line.unitOfMeasure?.name, locale) || accDict.notAvailable}</td>
                     <td className={`${cellStyle} text-end font-mono`}>{formatQuantity(line.original_quantity_e6)}</td>
                     <td className={`${cellStyle} text-end font-mono`}>{formatQuantity(line.returned_quantity_e6)}</td>
                     <td className={`${cellStyle} text-end font-mono`}>{formatQuantity(line.net_quantity_e6)}</td>

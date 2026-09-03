@@ -149,11 +149,11 @@ export default function ReceivableAllocationsIndex({
 
   const receiptSelectOptions = receipts.map((r) => ({
     value: r.id,
-    label: `${r.number} - ${r.customer?.name || accDict.notAvailable} (${dict.app.pages.receivableAllocations.unappliedAmount} ${formatMoney(r.unapplied_minor, r.currency)})`,
+    label: `${r.number} - ${getLocalizedName(r.customer?.name, locale) || accDict.notAvailable} (${dict.app.pages.receivableAllocations.unappliedAmount} ${formatMoney(r.unapplied_minor, r.currency)})`,
   }));
   const customerSelectOptions = customers.map((c) => ({
     value: c.id,
-    label: `${c.code} - ${c.name}`,
+    label: `${c.code} - ${getLocalizedName(c.name, locale)}`,
   }));
 
   return (
@@ -323,7 +323,7 @@ export default function ReceivableAllocationsIndex({
               {existingAllocations.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.customerReceipt?.number || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{row.customer?.name || accDict.notAvailable}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(row.customer?.name, locale) || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono font-bold text-xs text-emerald-600`}>
                     {formatMoney(row.amount_minor, row.currency)}
                   </td>

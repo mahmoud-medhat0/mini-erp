@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
@@ -84,7 +84,7 @@ export default function BankReconciliationsIndex({
     });
   };
 
-  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${b.name} (${b.currency})` }));
+  const bankSelectOptions = bankAccounts.map((b) => ({ value: b.id, label: `${b.code} - ${getLocalizedName(b.name, locale)} (${b.currency})` }));
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const formatBankAmount = (amountMinor: number, currency?: string | null): string => (currency ? formatMoney(amountMinor, currency) : accDict.notAvailable);
   const statusOptions = [
@@ -176,7 +176,7 @@ export default function BankReconciliationsIndex({
               {reconciliations.data.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.bank_account ? `${row.bank_account.code} - ${row.bank_account.name}` : accDict.notAvailable}
+                    {row.bank_account ? `${row.bank_account.code} - ${getLocalizedName(row.bank_account.name, locale)}` : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.statement_reference || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>

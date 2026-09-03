@@ -146,7 +146,7 @@ export default function PayableSettlements({
   }));
   const sourceEntrySelectOptions = debitEntries.map((entry) => ({
     value: entry.id,
-    label: `${entry.supplier?.name || pageDict.supplier} | ${pageDict.dateLabel}: ${entry.entry_date} | ${pageDict.sourceLabel}: ${entry.source_type} | ${pageDict.remainingDebit}: ${fmtMoney(entry.remaining_minor, entry.currency)}`,
+    label: `${getLocalizedName(entry.supplier?.name, locale) || pageDict.supplier} | ${pageDict.dateLabel}: ${entry.entry_date} | ${pageDict.sourceLabel}: ${entry.source_type} | ${pageDict.remainingDebit}: ${fmtMoney(entry.remaining_minor, entry.currency)}`,
   }));
 
   return (

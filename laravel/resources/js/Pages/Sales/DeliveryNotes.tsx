@@ -377,7 +377,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
                         {note.number || dict.app.pages.salesDeliveryNotes.draft_2}
                       </td>
                       <td className={`${tableClasses.td} font-mono`}>{note.salesOrder?.number || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-medium`}>{note.salesOrder?.customer?.name || accDict.notAvailable}</td>
+                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(note.salesOrder?.customer?.name, locale) || accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{note.warehouse ? `${note.warehouse.code} - ${getLocalizedName(note.warehouse.name, locale)}` : accDict.notAvailable}</td>
                       <td className={tableClasses.td}>{note.delivery_date}</td>
                       <td className={tableClasses.td}>
