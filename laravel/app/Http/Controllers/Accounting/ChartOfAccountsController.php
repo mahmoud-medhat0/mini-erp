@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\AccountGroup;
 use App\Models\AccountType;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -25,6 +26,13 @@ class ChartOfAccountsController extends Controller
         $this->authorizePermission($request, 'accounting.view');
 
         return Inertia::render('Accounting/ChartOfAccounts', $this->pageData->indexData());
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'accounting.view');
+
+        return $this->pageData->datatable($request->all());
     }
 
     public function storeGroup(Request $request): RedirectResponse
