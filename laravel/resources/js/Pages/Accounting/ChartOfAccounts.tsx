@@ -6,13 +6,12 @@ import { Card, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '.
 import { getAccountTypeLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountGroupRow, AccountRow, AccountTypeItem, CurrencyRow, SharedPageProps } from '../../Types';
+import type { AccountGroupRow, AccountTypeItem, CurrencyRow, SharedPageProps } from '../../Types';
 
 type AccountNature = 'debit' | 'credit';
 
 type CoaProps = SharedPageProps & {
   groups: AccountGroupRow[];
-  accounts: AccountRow[];
   accountTypes?: AccountTypeItem[];
   currencies?: CurrencyRow[];
 };
@@ -21,7 +20,7 @@ function toAccountNature(value: string | number | null, fallback: AccountNature)
   return value === 'credit' || value === 'debit' ? value : fallback;
 }
 
-export default function ChartOfAccounts({ locale, groups = [], accounts = [], accountTypes = [], currencies = [] }: CoaProps) {
+export default function ChartOfAccounts({ locale, groups = [], accountTypes = [], currencies = [] }: CoaProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const actionsDict = dict.app.actions;

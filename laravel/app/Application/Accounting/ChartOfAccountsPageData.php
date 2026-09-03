@@ -13,9 +13,13 @@ use Yajra\DataTables\Facades\DataTables;
 class ChartOfAccountsPageData
 {
     /**
+     * The grid streams its rows from {@see self::datatable()}, so the page load
+     * only carries the option lists its filters and create forms need. Shipping
+     * every account here as well cost ~290KB and several seconds per visit,
+     * which also queued the page's own JS chunk behind it.
+     *
      * @return array{
      *     groups: EloquentCollection<int, AccountGroup>,
-     *     accounts: EloquentCollection<int, Account>,
      *     accountTypes: EloquentCollection<int, AccountType>,
      *     currencies: EloquentCollection<int, Currency>
      * }
@@ -24,13 +28,8 @@ class ChartOfAccountsPageData
     {
         return [
             'groups' => AccountGroup::query()
-                ->with(['accountType', 'children', 'accounts'])
                 ->orderBy('sort_order')
-                ->get(),
-            'accounts' => Account::query()
-                ->with(['accountType', 'group', 'currencyRef'])
-                ->orderBy('code')
-                ->get(),
+                ->get(['id', 'code', 'name', 'account_type_id', 'type', 'sort_order']),
             'accountTypes' => AccountType::query()
                 ->where('is_active', true)
                 ->orderBy('sort_order')

@@ -42,9 +42,38 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    // Vite discovers dependencies lazily. When a navigation pulls in a package
+    // that was not pre-bundled, the dev server stops to re-optimize and forces a
+    // reload, which shows up as a page chunk stalling for seconds. Declaring the
+    // heavy shared dependencies up front keeps navigation off that path.
+    optimizeDeps: {
+        include: [
+            'react',
+            'react-dom',
+            'react-dom/client',
+            '@inertiajs/react',
+            'datatables.net-react',
+            'datatables.net-dt',
+            'datatables.net-responsive-dt',
+        ],
+    },
     server: {
+        // The hot file otherwise advertises [::1]; the IPv6 round trip is slow
+        // on Windows and the app is reached over 127.0.0.1 anyway.
         watch: {
             ignored: ['**/storage/framework/views/**'],
+        },
+        // Transform the client graph at boot instead of on first click. The cost
+        // is almost entirely the shared component graph: once it is warm, an
+        // extra page costs milliseconds even at 38KB of source, whereas the
+        // first cold page paid 16-32s for the whole subtree it dragged in.
+        warmup: {
+            clientFiles: [
+                './resources/js/app.tsx',
+                './resources/js/lib/**/*.ts',
+                './resources/js/Components/**/*.tsx',
+                './resources/js/Pages/**/*.tsx',
+            ],
         },
     },
 });
