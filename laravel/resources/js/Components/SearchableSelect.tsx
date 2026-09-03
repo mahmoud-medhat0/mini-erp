@@ -1,9 +1,21 @@
-import { usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { getDictionary } from '../lib/i18n';
-import type { SharedPageProps } from '../Types/page';
+
+/**
+ * datatables.net-react renders each cell slot into a detached React root, which
+ * sits outside the Inertia provider — `usePage()` there throws and blanks the
+ * cell. The locale is therefore read from an explicit prop when given, and
+ * otherwise from the server-rendered <html lang>, so this component never
+ * depends on page context.
+ */
+function resolveLocale(explicit?: string): 'ar' | 'en' {
+  const candidate = explicit
+    ?? (typeof document === 'undefined' ? '' : document.documentElement.lang);
+
+  return candidate?.toLowerCase().startsWith('ar') ? 'ar' : 'en';
+}
 
 export type SelectOption<T = string | number> = {
   value: T;
@@ -29,6 +41,8 @@ export type SearchableSelectProps<T = string | number> = {
   className?: string;
   id?: string;
   required?: boolean;
+  /** Overrides the document locale; pass it when rendering outside Inertia. */
+  locale?: string;
 };
 
 export default function SearchableSelect<T extends string | number = string>({
@@ -47,9 +61,9 @@ export default function SearchableSelect<T extends string | number = string>({
   className = '',
   id,
   required = false,
+  locale: localeProp,
 }: SearchableSelectProps<T>) {
-  const page = usePage<SharedPageProps>();
-  const locale = page.props?.locale === 'ar' ? 'ar' : 'en';
+  const locale = resolveLocale(localeProp);
   const dict = getDictionary(locale);
 
   const activePlaceholder = placeholder ?? dict.common.select.placeholder;

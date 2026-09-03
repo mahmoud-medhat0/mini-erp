@@ -118,7 +118,8 @@ export default function ServerDataTable({
     order,
     pageLength: currentPageLength,
     processing: true,
-    responsive: true,
+    responsive: false,
+    scrollX: false,
     search: initialSearch
       ? ({ search: initialSearch } as NonNullable<Config['search']> & { search: string })
       : undefined,
@@ -153,7 +154,7 @@ export default function ServerDataTable({
   }, [filterStateKey]);
 
   return (
-    <div className="server-data-table overflow-hidden" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="server-data-table" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <div className="sdt-top-bar flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_40%,var(--surface))]">
         <div className="flex flex-wrap items-center gap-3">
           {/* Quick Search */}
@@ -197,16 +198,18 @@ export default function ServerDataTable({
         </div>
       </div>
 
-      <DataTable
-        ref={dtRef}
-        key={tableId || 'sdt-table'}
-        ajax={ajax}
-        columns={columns}
-        id={tableId}
-        options={options}
-        slots={slots}
-        className="display responsive nowrap w-full"
-      />
+      <div className="sdt-scroll overflow-x-auto">
+        <DataTable
+          ref={dtRef}
+          key={tableId || 'sdt-table'}
+          ajax={ajax}
+          columns={columns}
+          id={tableId}
+          options={options}
+          slots={slots}
+          className="display nowrap w-full"
+        />
+      </div>
     </div>
   );
 }

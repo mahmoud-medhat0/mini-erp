@@ -130,7 +130,8 @@
       "sequenceDetails": "تفاصيل التسلسل",
       "exportCsv": "تصدير CSV",
       "printReport": "طباعة التقرير",
-      "printVoucher": "طباعة السند"
+      "printVoucher": "طباعة السند",
+      "add": "إضافة"
     },
     "nav": {
       "dashboard": "لوحة التحكم",
@@ -1246,7 +1247,21 @@
         "fixed_asset_disposal_gain": "ربح استبعاد أصل ثابت",
         "fixed_asset_disposal_loss": "خسارة استبعاد أصل ثابت",
         "fixed_asset_clearing": "حساب تسوية الأصول الثابتة"
-      }
+      },
+      "statementLineName": "اسم بند القائمة",
+      "statementLines": "بنود القوائم",
+      "detailsTable": "جدول التفاصيل",
+      "unmapped": "غير مربوط",
+      "unassignOption": "-- إلغاء الربط --",
+      "mappingStatus": "حالة الربط",
+      "allMappingStatuses": "حالة الربط (الكل)",
+      "allCashFlowActivities": "التدفقات النقدية (الكل)",
+      "allSections": "القسم (الكل)",
+      "searchAccountsPlaceholder": "ابحث في الحسابات...",
+      "noResults": "لا توجد نتائج",
+      "showMoreCount": "عرض :count إضافية",
+      "statementLineNameEnExample": "Current Assets",
+      "statementLineNameArExample": "الأصول المتداولة"
     },
     "pages": {
       "stockBalances": {

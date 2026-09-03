@@ -133,7 +133,7 @@ export default function CustomerOpeningBalancesIndex({
       <span className="font-mono text-xs">{data || accDict.notAvailable}</span>
     ),
     amount_minor: (data: number, _type: any, row: CustomerOBTableRow): ReactElement => (
-      <span className="font-mono text-xs font-bold">{formatMoney(data, row?.currency || 'EGP')}</span>
+      <span className="font-mono text-xs font-bold">{formatMoney(data, row?.currency)}</span>
     ),
     status: (data: string): ReactElement => (
       <StatusBadge tone={data === 'posted' ? 'ok' : 'warning'}>

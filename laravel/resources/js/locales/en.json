@@ -130,7 +130,8 @@
       "sequenceDetails": "Sequence Details",
       "exportCsv": "Export CSV",
       "printReport": "Print Report",
-      "printVoucher": "Print Voucher"
+      "printVoucher": "Print Voucher",
+      "add": "Add"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -1246,7 +1247,21 @@
         "fixed_asset_disposal_gain": "Fixed Asset Disposal Gain",
         "fixed_asset_disposal_loss": "Fixed Asset Disposal Loss",
         "fixed_asset_clearing": "Fixed Asset Clearing"
-      }
+      },
+      "statementLineName": "Statement Line Name",
+      "statementLines": "Statement Lines",
+      "detailsTable": "Details Table",
+      "unmapped": "Unmapped",
+      "unassignOption": "-- Unassign --",
+      "mappingStatus": "Mapping Status",
+      "allMappingStatuses": "Mapping Status (All)",
+      "allCashFlowActivities": "Cash Flow (All)",
+      "allSections": "Section (All)",
+      "searchAccountsPlaceholder": "Search accounts...",
+      "noResults": "No results found",
+      "showMoreCount": "Show :count more",
+      "statementLineNameEnExample": "Current Assets",
+      "statementLineNameArExample": "الأصول المتداولة"
     },
     "pages": {
       "stockBalances": {
