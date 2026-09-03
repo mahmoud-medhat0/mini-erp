@@ -257,6 +257,7 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/customers/{id}', [CustomerController::class, 'update'])->middleware('can:customers.edit')->name('customers.update');
 
     Route::get('/suppliers', [SupplierController::class, 'index'])->middleware('can:suppliers.view')->name('suppliers.index');
+    Route::get('/suppliers/data', [SupplierController::class, 'datatable'])->middleware('can:suppliers.view')->name('suppliers.datatable');
     Route::post('/suppliers', [SupplierController::class, 'store'])->middleware('can:suppliers.create')->name('suppliers.store');
     Route::patch('/suppliers/{id}', [SupplierController::class, 'update'])->middleware('can:suppliers.edit')->name('suppliers.update');
 
@@ -280,6 +281,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/customer-opening-balances/{id}/post', [CustomerOpeningBalanceController::class, 'post'])->middleware(['permission.all:customers.opening_balances,view_financials', 'sensitive.confirm'])->name('customer-opening-balances.post');
 
     Route::get('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'index'])->middleware('can:suppliers.view')->name('supplier-opening-balances.index');
+    Route::get('/supplier-opening-balances/data', [SupplierOpeningBalanceController::class, 'datatable'])->middleware('can:suppliers.view')->name('supplier-opening-balances.datatable');
     Route::post('/supplier-opening-balances', [SupplierOpeningBalanceController::class, 'store'])->middleware('can:suppliers.opening_balances')->name('supplier-opening-balances.store');
     Route::post('/supplier-opening-balances/{id}/post', [SupplierOpeningBalanceController::class, 'post'])->middleware(['permission.all:suppliers.opening_balances,view_financials', 'sensitive.confirm'])->name('supplier-opening-balances.post');
 
@@ -289,6 +291,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/customer-receipts/{id}/post', [CustomerReceiptController::class, 'post'])->middleware(['permission.all:customers.receipts,view_financials', 'sensitive.confirm'])->name('customer-receipts.post');
 
     Route::get('/supplier-payments', [SupplierPaymentController::class, 'index'])->middleware('can:suppliers.view')->name('supplier-payments.index');
+    Route::get('/supplier-payments/data', [SupplierPaymentController::class, 'datatable'])->middleware('can:suppliers.view')->name('supplier-payments.datatable');
     Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->middleware('can:suppliers.payments')->name('supplier-payments.store');
     Route::post('/supplier-payments/{id}/post', [SupplierPaymentController::class, 'post'])->middleware(['permission.all:suppliers.payments,view_financials', 'sensitive.confirm'])->name('supplier-payments.post');
 

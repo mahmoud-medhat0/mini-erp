@@ -177,7 +177,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                           </span>
                           {item.is_system && (
                             <span className="rounded bg-[var(--background)] border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)] uppercase">
-                              {locale === 'ar' ? 'نظام' : 'System'}
+                              {taxDict.isSystem}
                             </span>
                           )}
                         </div>

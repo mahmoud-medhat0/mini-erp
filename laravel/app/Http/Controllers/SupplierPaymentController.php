@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\SupplierPaymentPageData;
 use App\Application\Accounting\SupplierPaymentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class SupplierPaymentController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('SupplierPayments/Index', $this->pageData->indexData());
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status']));
     }
 
     public function store(Request $request): RedirectResponse

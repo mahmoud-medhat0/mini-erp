@@ -3445,6 +3445,7 @@
         }
       },
       "supplierOpeningBalances": {
+        "allStatuses": "جميع الحالات",
         "supplierOpeningBalancesMiniErp": "أرصدة افتتاحية للموردين - Mini ERP",
         "supplierOpeningBalances": "أرصدة افتتاحية للموردين",
         "recordAndPostOpeningAccountsPayable": "إدراج وتوثيق الأرصدة الدائنة الافتتاحية للموردين وترحيلها لإنشاء قيود ومستحقات الموردين.",
@@ -3544,6 +3545,10 @@
         "active": "نشط",
         "inactive": "غير نشط",
         "supplierName": "اسم المورد",
+        "supplierNameEn": "الاسم (إنجليزي)",
+        "supplierNameAr": "الاسم (عربي)",
+        "supplierNameEnPlaceholder": "مثال: Acme Supplies Co.",
+        "supplierNameArPlaceholder": "مثال: شركة التوريدات العمومية",
         "phone_2": "الهاتف",
         "email_2": "البريد الإلكتروني",
         "taxNumber_2": "الرقم الضريبي",

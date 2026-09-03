@@ -183,7 +183,7 @@ export default function OpeningBalances({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={locale === 'ar' ? 'البحث بكود أو اسم الحساب...' : 'Search by account code or name...'}
+                placeholder={dict.common.datatable.searchPlaceholder}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] ps-9 pe-9 py-2 text-xs font-semibold text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-all"
               />
               {searchQuery && (
@@ -191,7 +191,7 @@ export default function OpeningBalances({
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="absolute inset-y-0 end-0 flex items-center pe-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-                  title={locale === 'ar' ? 'مسح البحث' : 'Clear search'}
+                  title={dict.common.select.clear}
                 >
                   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -244,14 +244,14 @@ export default function OpeningBalances({
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <p className="text-xs font-bold text-[var(--text-secondary)] mb-1">
-            {locale === 'ar' ? 'لا توجد نتائج تطابق البحث' : 'No accounts found matching your search'}
+            {dict.common.datatable.zeroRecords}
           </p>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
             className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
           >
-            {locale === 'ar' ? 'إعادة ضبط البحث' : 'Reset search'}
+            {dict.common.select.clear}
           </button>
         </Card>
       ) : (

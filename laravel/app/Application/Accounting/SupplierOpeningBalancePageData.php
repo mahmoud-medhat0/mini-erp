@@ -8,6 +8,9 @@ use App\Models\FiscalYear;
 use App\Models\Supplier;
 use App\Models\SupplierOpeningBalance;
 
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
+
 class SupplierOpeningBalancePageData
 {
     /**
@@ -73,5 +76,64 @@ class SupplierOpeningBalancePageData
             'periods' => FinancialPeriod::query()->with('fiscalYear')->openForPosting()->orderBy('start_date', 'asc')->get(),
             'currencies' => Currency::query()->orderBy('code')->get(),
         ];
+    }
+
+    /**
+     * Server-side DataTables feed for the supplier opening balance grid.
+     *
+     * The supplier name is emitted as its raw translations object so the client
+     * can render it in the active locale without a round trip.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $status = (string) ($filters['status'] ?? '');
+
+        $query = SupplierOpeningBalance::query()
+            ->join('supplier', 'supplier.id', '=', 'supplier_opening_balance.supplier_id')
+            ->select([
+                'supplier_opening_balance.id',
+                'supplier_opening_balance.supplier_id',
+                'supplier_opening_balance.entry_date',
+                'supplier_opening_balance.reference',
+                'supplier_opening_balance.currency',
+                'supplier_opening_balance.amount_minor',
+                'supplier_opening_balance.status',
+                'supplier_opening_balance.posted_at',
+                'supplier_opening_balance.created_at',
+                'supplier.code as supplier_code',
+                'supplier.name as supplier_name',
+            ])
+            ->when(
+                in_array($status, ['draft', 'posted'], true),
+                fn ($q) => $q->where('supplier_opening_balance.status', $status),
+            )
+            ->orderBy('supplier_opening_balance.created_at', 'desc');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('supplier_name', function ($q, $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $q->where(function ($inner) use ($keyword, $needle): void {
+                    $inner->where('supplier.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(supplier.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('supplier_name', 'supplier.code $1')
+            ->orderColumn('status', 'supplier_opening_balance.status $1')
+            ->orderColumn('id', 'supplier_opening_balance.id $1')
+            ->editColumn('supplier_name', fn ($row) => $this->decodeTranslations($row->supplier_name))
+            ->toJson();
+    }
+
+    private function decodeTranslations(mixed $value): array|string
+    {
+        if (! is_string($value)) {
+            return is_array($value) ? $value : (string) $value;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : $value;
     }
 }

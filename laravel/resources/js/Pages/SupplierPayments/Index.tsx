@@ -1,40 +1,17 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
-
-type SupplierPaymentRow = {
-  id: string;
-  number: string;
-  supplier_id: string;
-  supplier?: { id: string; code: string; name: string };
-  cash_account_id?: string | null;
-  cash_account?: { id: string; name: string };
-  bank_account_id?: string | null;
-  bank_account?: { id: string; name: string };
-  payment_date: string;
-  reference?: string | null;
-  currency: string;
-  amount_minor: number;
-  allocated_minor: number;
-  unapplied_minor: number;
-  status: 'draft' | 'posted';
-  posted_at?: string | null;
-  created_at: string;
-};
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type CashBankDestinationType = 'cash' | 'bank';
 
 type SupplierPaymentProps = SharedPageProps & {
-  payments: {
-    data: SupplierPaymentRow[];
-    links: PaginationLink[];
-  };
   suppliers: Array<{ id: string; code: string; name: string }>;
   cashAccounts: Array<{ id: string; code: string; name: string }>;
   bankAccounts: Array<{ id: string; code: string; name: string }>;
@@ -49,7 +26,6 @@ function toCashBankDestinationType(value: string): CashBankDestinationType {
 
 export default function SupplierPaymentsIndex({
   locale,
-  payments,
   suppliers = [],
   cashAccounts = [],
   bankAccounts = [],
@@ -66,6 +42,7 @@ export default function SupplierPaymentsIndex({
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
   const [postingPaymentId, setPostingPaymentId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     supplier_id: '',
@@ -117,6 +94,101 @@ export default function SupplierPaymentsIndex({
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${getLocalizedName(c.name, locale)})` }));
 
+  // ── DataTables columns ────────────────────────────────────────────────────
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: dict.app.pages.supplierPayments.paymentNo, className: 'font-mono font-bold text-xs', width: '130px' },
+    { data: 'supplier_name', name: 'supplier_name', title: dict.app.pages.supplierPayments.supplier },
+    { data: 'payment_date', name: 'payment_date', title: dict.app.pages.supplierPayments.date, width: '110px' },
+    { data: 'source', name: 'source', title: dict.app.pages.supplierPayments.sourceAccount, orderable: false, searchable: false },
+    { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.supplierPayments.totalAmount, width: '120px' },
+    { data: 'unapplied_minor', name: 'unapplied_minor', title: dict.app.pages.supplierPayments.unapplied, width: '120px' },
+    { data: 'status', name: 'status', title: dict.app.pages.supplierPayments.status, searchable: false, width: '100px' },
+    { data: 'actions', name: 'actions', title: dict.app.pages.supplierPayments.actions, orderable: false, searchable: false, width: '90px', className: 'text-end' },
+  ], [dict]);
+
+  // ── DataTables slots ──────────────────────────────────────────────────────
+  const slots = useMemo<DataTableSlots>(() => ({
+    supplier_name: (d: any, _type: any, row: any) => (
+      <span className="font-semibold">
+        {row?.supplier_code ? `${row.supplier_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
+      </span>
+    ),
+    payment_date: (d: any) => <span className="font-mono text-xs">{d}</span>,
+    source: (_d: any, _type: any, row: any) => (
+      <span>
+        {row?.cash_account_name
+          ? `${dict.app.pages.supplierPayments.cashAccount}: ${getLocalizedName(row.cash_account_name, locale)}`
+          : row?.bank_account_name
+          ? `${dict.app.pages.supplierPayments.bankAccount}: ${getLocalizedName(row.bank_account_name, locale)}`
+          : accDict.notAvailable}
+      </span>
+    ),
+    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs">{formatMoney(d, row?.currency)}</span>,
+    unapplied_minor: (d: any, _type: any, row: any) => (
+      <span className={`font-mono text-xs font-bold ${Number(d) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+        {formatMoney(d, row?.currency)}
+      </span>
+    ),
+    status: (d: any) => (
+      <StatusBadge tone={d === 'posted' ? 'ok' : 'warning'}>
+        {d === 'posted' ? dict.app.pages.supplierPayments.posted : dict.app.pages.supplierPayments.draft}
+      </StatusBadge>
+    ),
+    actions: (_d: any, _type: any, row: any) => (
+      <div className="flex items-center justify-end gap-2">
+        {row?.status === 'draft' ? (
+          canPostPayment ? (
+            <button
+              type="button"
+              onClick={() => handlePost(row?.id)}
+              title={dict.app.pages.supplierPayments.confirmPostPayment}
+              aria-label={dict.app.pages.supplierPayments.confirmPostPayment}
+              className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+            >
+              {dict.app.pages.supplierPayments.post}
+            </button>
+          ) : (
+            <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+          )
+        ) : (
+          <Link
+            href={`/payable-allocations?payment_id=${row.id}`}
+            title={dict.app.pages.supplierPayments.allocate}
+            aria-label={dict.app.pages.supplierPayments.allocate}
+            className="text-xs font-bold text-[var(--primary)] hover:underline"
+          >
+            {dict.app.pages.supplierPayments.allocate}
+          </Link>
+        )}
+      </div>
+    ),
+  } as Record<string, (data: any, type: any, row: any) => ReactElement>), [dict, accDict, locale, canPostPayment]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+
+  const statusOptions = [
+    { value: 'draft', label: dict.app.pages.supplierPayments.draft },
+    { value: 'posted', label: dict.app.pages.supplierPayments.posted },
+  ];
+
+  const toolbar = (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-xs font-bold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] whitespace-nowrap shrink-0">
+        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        <span>{dict.common.datatable.filterStatus}</span>
+      </div>
+      <SearchableSelect
+        options={[{ value: '', label: locale === 'ar' ? 'جميع الحالات' : 'All Statuses' }, ...statusOptions]}
+        value={statusFilter}
+        onChange={(v) => setStatusFilter(v || '')}
+        className="w-44"
+        isSearchable={false}
+      />
+    </div>
+  );
+
   return (
     <AppLayout active="supplier-payments.index">
       <Head title={dict.app.pages.supplierPayments.supplierPaymentsMiniErp} />
@@ -142,86 +214,19 @@ export default function SupplierPaymentsIndex({
         }
       />
 
-      {payments.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.supplierPayments.noSupplierPaymentsFound}
-          description={dict.app.pages.supplierPayments.getStartedByCreatingYourFirst}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/supplier-payments/data"
+          columns={columns}
+          filters={tableFilters}
+          locale={locale}
+          order={[[0, 'desc']]}
+          pageLength={25}
+          slots={slots}
+          tableId="supplier-payments-data-table"
+          toolbar={toolbar}
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.paymentNo}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.supplier}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.date}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.sourceAccount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.totalAmount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.unapplied}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.status}</th>
-                <th className={tableClasses.th}>{dict.app.pages.supplierPayments.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.number}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>
-                    {row.supplier ? `${row.supplier.code} - ${getLocalizedName(row.supplier.name, locale)}` : accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.payment_date}</td>
-                  <td className={tableClasses.td}>
-                    {row.cash_account
-                      ? `${dict.app.pages.supplierPayments.cashAccount}: ${getLocalizedName(row.cash_account.name, locale)}`
-                      : row.bank_account
-                      ? `${dict.app.pages.supplierPayments.bankAccount}: ${getLocalizedName(row.bank_account.name, locale)}`
-                      : accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatMoney(row.amount_minor, row.currency)}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold ${row.unapplied_minor > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    {formatMoney(row.unapplied_minor, row.currency)}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={row.status === 'posted' ? 'ok' : 'warning'}>
-                      {row.status === 'posted' ? dict.app.pages.supplierPayments.posted : dict.app.pages.supplierPayments.draft}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {row.status === 'draft' ? (
-                        canPostPayment ? (
-                          <button
-                            type="button"
-                            onClick={() => handlePost(row.id)}
-                            title={dict.app.pages.supplierPayments.confirmPostPayment}
-                            aria-label={dict.app.pages.supplierPayments.confirmPostPayment}
-                            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                          >
-                            {dict.app.pages.supplierPayments.post}
-                          </button>
-                        ) : (
-                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                        )
-                      ) : (
-                        <Link
-                          href={`/payable-allocations?payment_id=${row.id}`}
-                          title={dict.app.pages.supplierPayments.allocate}
-                          aria-label={dict.app.pages.supplierPayments.allocate}
-                          className="text-xs font-bold text-[var(--primary)] hover:underline"
-                        >
-                          {dict.app.pages.supplierPayments.allocate}
-                        </Link>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Modal Form */}
       {showModal ? (

@@ -144,10 +144,10 @@ export default function CustomerReceiptsIndex({
           : accDict.notAvailable}
       </span>
     ),
-    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs">{formatMoney(d, row?.currency || 'EGP')}</span>,
+    amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs">{formatMoney(d, row?.currency)}</span>,
     unapplied_minor: (d: any, _type: any, row: any) => (
       <span className={`font-mono text-xs font-bold ${Number(d) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-        {formatMoney(d, row?.currency || 'EGP')}
+        {formatMoney(d, row?.currency)}
       </span>
     ),
     status: (d: any) => (
@@ -173,7 +173,7 @@ export default function CustomerReceiptsIndex({
           )
         ) : (
           <Link
-            href={`/receivable-allocations?receipt_id=${row?.id}`}
+            href={`/receivable-allocations?receipt_id=${row.id}`}
             title={dict.app.pages.customerReceipts.allocate}
             aria-label={dict.app.pages.customerReceipts.allocate}
             className="text-xs font-bold text-[var(--primary)] hover:underline"

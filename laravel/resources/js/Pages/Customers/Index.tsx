@@ -1,4 +1,4 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
@@ -39,6 +39,13 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
   const [showModal, setShowModal]       = useState(false);
   const [editingCustomer, setEditing]   = useState<CustomerRow | null>(null);
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
+
+  const activeFilterCount = [filters.search, filters.status].filter(Boolean).length;
+
+  function clearFilters() {
+    setStatusFilter('');
+    router.get('/customers', {}, { preserveScroll: true, preserveState: true });
+  }
 
   // ── form ──────────────────────────────────────────────────────────────────
   const { data, setData, post, patch, transform, processing, errors, reset } = useForm<{
@@ -94,6 +101,7 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
     status:     (d: any)        => <StatusBadge tone={d === 'active' ? 'ok' : 'muted'}>{d === 'active' ? pageDict.active_2 : pageDict.inactive_2}</StatusBadge>,
     actions:    (_d: any, _type: any, row: any) => (
       <button type="button" onClick={() => openEdit(row as CustomerRow)}
+        title={pageDict.edit} aria-label={pageDict.edit}
         className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer">
         {pageDict.edit}
       </button>
@@ -118,6 +126,11 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
         className="w-44"
         isSearchable={false}
       />
+      {activeFilterCount > 0 && (
+        <button type="button" onClick={clearFilters} disabled={activeFilterCount === 0} className="text-xs font-bold text-red-600 hover:underline">
+          {accDict.clearFilters}
+        </button>
+      )}
     </div>
   );
 

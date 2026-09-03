@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\SupplierOpeningBalancePageData;
 use App\Application\Accounting\SupplierOpeningBalanceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,6 +21,13 @@ class SupplierOpeningBalanceController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('SupplierOpeningBalances/Index', $this->pageData->indexData());
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('suppliers.view');
+
+        return $this->pageData->datatable($request->only(['status']));
     }
 
     public function store(Request $request): RedirectResponse

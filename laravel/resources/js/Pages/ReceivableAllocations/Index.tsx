@@ -54,6 +54,14 @@ export default function ReceivableAllocationsIndex({
 
   const { post, processing } = useForm();
 
+  const activeFilterCount = [filters.customer_id, filters.receipt_id].filter(Boolean).length;
+
+  function clearFilters() {
+    setSelectedCustomerId('');
+    setSelectedReceiptId('');
+    router.get('/receivable-allocations', {}, { preserveScroll: true, preserveState: true });
+  }
+
   const handleCustomerChange = (val: string | null) => {
     const custId = val || '';
     setSelectedCustomerId(custId);
@@ -187,9 +195,16 @@ export default function ReceivableAllocationsIndex({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                {dict.app.pages.receivableAllocations.filterByCustomer}
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase">
+                  {dict.app.pages.receivableAllocations.filterCustomer}
+                </label>
+                {activeFilterCount > 0 && (
+                  <button type="button" onClick={clearFilters} disabled={activeFilterCount === 0} className="text-xs font-bold text-red-600 hover:underline">
+                    {accDict.clearFilters}
+                  </button>
+                )}
+              </div>
               <SearchableSelect
                 options={customerSelectOptions}
                 value={selectedCustomerId}

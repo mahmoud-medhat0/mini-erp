@@ -3445,6 +3445,7 @@
         }
       },
       "supplierOpeningBalances": {
+        "allStatuses": "All Statuses",
         "supplierOpeningBalancesMiniErp": "Supplier Opening Balances - Mini ERP",
         "supplierOpeningBalances": "Supplier Opening Balances",
         "recordAndPostOpeningAccountsPayable": "Record and post opening accounts payable balances for suppliers.",
@@ -3544,6 +3545,10 @@
         "active": "Active",
         "inactive": "Inactive",
         "supplierName": "Supplier Name",
+        "supplierNameEn": "Name (EN)",
+        "supplierNameAr": "Name (AR)",
+        "supplierNameEnPlaceholder": "e.g. Acme Supplies Co.",
+        "supplierNameArPlaceholder": "e.g. شركة التوريدات العمومية",
         "phone_2": "Phone",
         "email_2": "Email",
         "taxNumber_2": "Tax Number",
