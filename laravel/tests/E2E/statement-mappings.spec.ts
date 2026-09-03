@@ -69,4 +69,42 @@ test.describe('Statement mappings grid', () => {
       await setLocale(page, 'en');
     }
   });
+
+  test('remembers whether the unmapped accounts panel is collapsed', async ({ page }) => {
+    test.setTimeout(180_000);
+
+    await signIn(page);
+    await page.goto('/accounting/statement-mappings', { waitUntil: 'domcontentloaded' });
+
+    const toggle = page.locator('button[aria-controls="unmapped-accounts-panel"]');
+    const panel = page.locator('#unmapped-accounts-panel');
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
+
+    // The panel lists hundreds of chips, so it starts collapsed — but the count
+    // stays readable in the header.
+    await expect(panel).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toContainText(/\(\d+\)/);
+
+    await toggle.click();
+    await expect(panel).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    // The quick-assign select must still work once revealed.
+    await panel.locator('button[type="button"]').first().click();
+    const options = page.locator('button[type="button"]:visible').filter({ hasText: /^\d{4}/ });
+    await expect(options.first()).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Escape');
+
+    // The choice survives a revisit.
+    await page.goto('/accounting/statement-mappings', { waitUntil: 'domcontentloaded' });
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
+    await expect(panel).toBeVisible({ timeout: 15_000 });
+
+    await toggle.click();
+    await expect(panel).toBeHidden();
+    await page.goto('/accounting/statement-mappings', { waitUntil: 'domcontentloaded' });
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
+    await expect(panel).toBeHidden();
+  });
 });

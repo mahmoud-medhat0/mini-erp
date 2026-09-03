@@ -131,7 +131,9 @@
       "exportCsv": "تصدير CSV",
       "printReport": "طباعة التقرير",
       "printVoucher": "طباعة السند",
-      "add": "إضافة"
+      "add": "إضافة",
+      "expand": "توسيع",
+      "collapse": "طي"
     },
     "nav": {
       "dashboard": "لوحة التحكم",
@@ -1246,7 +1248,17 @@
         "depreciation_expense": "مصروف الإهلاك",
         "fixed_asset_disposal_gain": "ربح استبعاد أصل ثابت",
         "fixed_asset_disposal_loss": "خسارة استبعاد أصل ثابت",
-        "fixed_asset_clearing": "حساب تسوية الأصول الثابتة"
+        "fixed_asset_clearing": "حساب تسوية الأصول الثابتة",
+        "prepaid_expense_asset": "مصروفات مقدَّمة",
+        "accrued_expense_liability": "مصروفات مستحقة الدفع",
+        "payroll_expense": "مصروف الرواتب",
+        "payroll_payable": "رواتب مستحقة الدفع",
+        "payroll_deductions_payable": "استقطاعات رواتب مستحقة",
+        "rental_revenue": "إيرادات الإيجار",
+        "rental_damage_revenue": "إيرادات تعويض التلفيات",
+        "rental_late_fee_revenue": "إيرادات غرامات التأخير",
+        "rental_other_revenue": "إيرادات إيجار أخرى",
+        "rental_deposit_liability": "تأمينات إيجار مستحقة"
       },
       "statementLineName": "اسم بند القائمة",
       "statementLines": "بنود القوائم",
@@ -1261,7 +1273,9 @@
       "noResults": "لا توجد نتائج",
       "showMoreCount": "عرض :count إضافية",
       "statementLineNameEnExample": "Current Assets",
-      "statementLineNameArExample": "الأصول المتداولة"
+      "statementLineNameArExample": "الأصول المتداولة",
+      "allScopes": "النطاق (الكل)",
+      "allMappingKeys": "مفتاح الربط (الكل)"
     },
     "pages": {
       "stockBalances": {

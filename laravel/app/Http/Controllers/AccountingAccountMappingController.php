@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\AccountingAccountMappingPageData;
 use App\Application\Accounting\AccountingAccountMappingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -23,6 +24,13 @@ class AccountingAccountMappingController extends Controller
         Gate::authorize('accounting.mappings');
 
         return Inertia::render('Accounting/AccountMappings', $this->pageData->indexData());
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('accounting.mappings');
+
+        return $this->pageData->datatable($request->only(['scope', 'key']));
     }
 
     public function store(Request $request): RedirectResponse

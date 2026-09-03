@@ -1,8 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -39,9 +40,16 @@ type MappingRow = {
   branch: BranchOption | null;
 };
 
+/** Slim rows behind the summary cards; the grid loads its own from the feed. */
+type MappingSummaryRow = {
+  id: string;
+  key: string;
+  branch_id: string | null;
+};
+
 type AccountMappingsProps = SharedPageProps & {
   mappingKeys: string[];
-  mappings: MappingRow[];
+  mappings: MappingSummaryRow[];
   accounts: AccountOption[];
   branches: BranchOption[];
 };
@@ -55,6 +63,7 @@ function toMappingScope(value: string | null): MappingScope {
 export default function AccountMappings({ locale, mappingKeys, mappings, accounts, branches }: AccountMappingsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
   const can = useCan();
   const canManageMappings = can('accounting.mappings') || can('settings.configure');
   const mappingKeyLabels = accDict.mappingKeys as Record<string, string>;
@@ -109,6 +118,7 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
       onSuccess: () => {
         form.setData('account_id', '');
         form.setData('description', '');
+        setGridReloadToken((token) => token + 1);
       },
     });
   }
@@ -136,8 +146,139 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
   function deleteMapping(mapping: MappingRow) {
     if (!mapping.branch_id) return;
     if (!confirm(mappingDeleteMessage(mapping))) return;
-    router.delete(`/accounting/account-mappings/${mapping.id}`, { preserveScroll: true });
+    router.delete(`/accounting/account-mappings/${mapping.id}`, {
+      preserveScroll: true,
+      onSuccess: () => setGridReloadToken((token) => token + 1),
+    });
   }
+
+  // ── server-side grid ──────────────────────────────────────────────────────
+  const [scopeFilter, setScopeFilter] = useState('');
+  const [keyFilter, setKeyFilter] = useState('');
+  // The grid fetches its own rows, so mutations have to ask it to refetch.
+  const [gridReloadToken, setGridReloadToken] = useState(0);
+
+  const dtColumns = useMemo(() => [
+    { data: 'key', name: 'key', title: accDict.mappingKey },
+    { data: 'scope', name: 'scope', title: accDict.mappingScope, searchable: false, width: '190px' },
+    { data: 'account.code', name: 'account', title: accDict.account, searchable: false, defaultContent: '' },
+    { data: 'description', name: 'description', title: accDict.description, searchable: false },
+    { data: 'is_system', name: 'is_system', title: accDict.status, searchable: false, orderable: false, width: '110px' },
+    { data: 'id', name: 'id', title: accDict.actions, searchable: false, orderable: false, width: '150px' },
+  ], [accDict]);
+
+  const dtSlots = useMemo<DataTableSlots>(() => ({
+    key: (_d: unknown, _t: unknown, row: MappingRow): ReactElement => (
+      <div className="flex min-w-56 flex-col gap-1">
+        <span className="text-sm font-bold text-[var(--text-primary)]">{mappingKeyLabels[row.key] || row.key}</span>
+        <span className="font-mono text-xs text-[var(--text-muted)]">{row.key}</span>
+      </div>
+    ),
+    scope: (_d: unknown, _t: unknown, row: MappingRow): ReactElement => (
+      row.branch ? (
+        <div className="flex min-w-48 flex-col gap-1">
+          <StatusBadge tone="ok">{accDict.branchScope}</StatusBadge>
+          <span className="text-xs text-[var(--text-secondary)]">
+            {row.branch.code} - {getLocalizedName(row.branch.name, locale)}
+          </span>
+        </div>
+      ) : (
+        <StatusBadge tone="muted">{accDict.globalScope}</StatusBadge>
+      )
+    ),
+    account: (_d: unknown, _t: unknown, row: MappingRow): ReactElement => (
+      <div className="flex min-w-56 flex-col gap-1">
+        <span className="font-mono text-xs font-bold text-[var(--text-primary)]">{row.account?.code}</span>
+        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(row.account?.name ?? null, locale)}</span>
+        <span className="text-[10px] font-semibold uppercase text-[var(--text-muted)]">
+          {row.account?.type} / {row.account?.nature} / {row.account?.currency}
+        </span>
+      </div>
+    ),
+    description: (data: string | null): ReactElement => (
+      <span className="text-xs text-[var(--text-secondary)]">{data || accDict.notAssigned}</span>
+    ),
+    is_system: (_d: unknown, _t: unknown, row: MappingRow): ReactElement => (
+      <StatusBadge tone={row.branch_id ? 'ok' : 'muted'}>
+        {row.branch_id ? accDict.overrideBadge : accDict.globalBadge}
+      </StatusBadge>
+    ),
+    id: (_d: unknown, _t: unknown, row: MappingRow): ReactElement => (
+      row.branch_id ? (
+        canManageMappings ? (
+          <Button type="button" variant="danger" onClick={() => deleteMapping(row)}>
+            {accDict.delete}
+          </Button>
+        ) : (
+          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+        )
+      ) : (
+        <span className="text-xs font-semibold text-[var(--text-muted)]">{accDict.protectedGlobalMapping}</span>
+      )
+    ),
+  } as unknown as DataTableSlots), [accDict, dict, locale, mappingKeyLabels, canManageMappings]);
+
+  const dtFilters = useMemo(() => ({ scope: scopeFilter, key: keyFilter }), [scopeFilter, keyFilter]);
+
+  const hasGridFilters = scopeFilter !== '' || keyFilter !== '';
+
+  // The two controls stay on one line and move as a unit when the bar runs out
+  // of room; splitting them across lines reads as a broken layout. Neither is
+  // clearable — their "(All)" option already is the cleared state, so a clear
+  // button would just duplicate it.
+  const dtToolbar = (
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-nowrap sm:items-center">
+      <span className="flex items-center gap-1.5 rounded-xl border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] px-2.5 py-1.5 text-xs font-bold whitespace-nowrap text-[var(--primary)] shrink-0">
+        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        {actionsDict.filter}
+      </span>
+
+      <SearchableSelect
+        options={[
+          { value: '', label: accDict.allScopes },
+          { value: 'global', label: accDict.globalScope },
+          { value: 'branch', label: accDict.branchScope },
+        ]}
+        value={scopeFilter}
+        onChange={(value) => setScopeFilter(value || '')}
+        placeholder={accDict.mappingScope}
+        isSearchable={false}
+        isClearable={false}
+        locale={locale}
+        className="w-full sm:w-40 shrink-0"
+      />
+
+      <SearchableSelect
+        options={[{ value: '', label: accDict.allMappingKeys }, ...mappingKeyOptions]}
+        value={keyFilter}
+        onChange={(value) => setKeyFilter(value || '')}
+        placeholder={accDict.mappingKey}
+        isClearable={false}
+        locale={locale}
+        className="w-full sm:w-56 shrink-0"
+      />
+
+      {hasGridFilters ? (
+        <button
+          type="button"
+          onClick={() => {
+            setScopeFilter('');
+            setKeyFilter('');
+          }}
+          title={actionsDict.reset}
+          aria-label={actionsDict.reset}
+          className="inline-flex items-center justify-center gap-1 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-bold whitespace-nowrap text-red-600 shrink-0 transition-all hover:text-red-700 cursor-pointer dark:text-red-400"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          {actionsDict.reset}
+        </button>
+      ) : null}
+    </div>
+  );
 
   const globalCount = mappings.filter((mapping) => !mapping.branch_id).length;
   const branchCount = mappings.filter((mapping) => mapping.branch_id).length;
@@ -220,76 +361,20 @@ export default function AccountMappings({ locale, mappingKeys, mappings, account
           </form>
         </Card>
 
-        {mappings.length === 0 ? (
-          <EmptyState title={accDict.noAccountMappings} description={accDict.noAccountMappingsDesc} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{accDict.mappingKey}</th>
-                  <th className={tableClasses.th}>{accDict.mappingScope}</th>
-                  <th className={tableClasses.th}>{accDict.account}</th>
-                  <th className={tableClasses.th}>{accDict.description}</th>
-                  <th className={tableClasses.th}>{accDict.status}</th>
-                  <th className={tableClasses.th}>{accDict.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mappings.map((mapping) => (
-                  <tr key={mapping.id} className="hover:bg-[var(--background)]">
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-56 flex-col gap-1">
-                        <span className="text-sm font-bold text-[var(--text-primary)]">{mappingKeyLabels[mapping.key] || mapping.key}</span>
-                        <span className="font-mono text-xs text-[var(--text-muted)]">{mapping.key}</span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {mapping.branch ? (
-                        <div className="flex min-w-48 flex-col gap-1">
-                          <StatusBadge tone="ok">{accDict.branchScope}</StatusBadge>
-                          <span className="text-xs text-[var(--text-secondary)]">
-                            {mapping.branch.code} - {getLocalizedName(mapping.branch.name, locale)}
-                          </span>
-                        </div>
-                      ) : (
-                        <StatusBadge tone="muted">{accDict.globalScope}</StatusBadge>
-                      )}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-56 flex-col gap-1">
-                        <span className="font-mono text-xs font-bold text-[var(--text-primary)]">{mapping.account.code}</span>
-                        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(mapping.account.name, locale)}</span>
-                        <span className="text-[10px] font-semibold uppercase text-[var(--text-muted)]">
-                          {mapping.account.type} / {mapping.account.nature} / {mapping.account.currency}
-                        </span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>{mapping.description || accDict.notAssigned}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={mapping.branch_id ? 'ok' : 'muted'}>
-                        {mapping.branch_id ? accDict.overrideBadge : accDict.globalBadge}
-                      </StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {mapping.branch_id ? (
-                        canManageMappings ? (
-                          <Button type="button" variant="danger" onClick={() => deleteMapping(mapping)}>
-                            {accDict.delete}
-                          </Button>
-                        ) : (
-                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                        )
-                      ) : (
-                        <span className="text-xs font-semibold text-[var(--text-muted)]">{accDict.protectedGlobalMapping}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/accounting/account-mappings/data"
+            columns={dtColumns}
+            filters={dtFilters}
+            locale={locale}
+            order={[]}
+            pageLength={25}
+            slots={dtSlots}
+            tableId="account-mappings-table"
+            toolbar={dtToolbar}
+            reloadToken={gridReloadToken}
+          />
+        </Card>
       </div>
     </AppLayout>
   );

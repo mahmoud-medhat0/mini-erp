@@ -26,6 +26,11 @@ interface ServerDataTableProps {
   slots?: DataTableSlots;
   tableId?: string;
   toolbar?: ReactNode;
+  /**
+   * Bump this after a mutation to refetch the feed. A server-side grid does not
+   * see an Inertia redirect, so without it the table keeps showing stale rows.
+   */
+  reloadToken?: string | number;
 }
 
 const language = (locale: string): Config['language'] => {
@@ -62,6 +67,7 @@ export default function ServerDataTable({
   slots,
   tableId,
   toolbar,
+  reloadToken,
 }: ServerDataTableProps) {
   const dict = getDictionary(locale);
   const dtDict = dict.common.datatable;
@@ -125,7 +131,11 @@ export default function ServerDataTable({
       : undefined,
     searchDelay: 350,
     serverSide: true,
-  }), [currentPageLength, dtDict.processing, initialSearch, locale, order]);
+  // NOTE: currentPageLength is intentionally omitted from deps — changing it must NOT
+  // trigger a full DataTable destroy/reinit. Page length changes are applied via the
+  // DataTable API in the dedicated useEffect below.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [dtDict.processing, initialSearch, locale, order]);
 
   const [searchValue, setSearchValue] = useState(initialSearch);
 
@@ -151,7 +161,22 @@ export default function ServerDataTable({
         dt.ajax.reload(null, true);
       }
     }
-  }, [filterStateKey]);
+  }, [filterStateKey, reloadToken]);
+
+  // Apply page-length changes via the DataTables API (no destroy/reinit)
+  const isPageLengthFirstRender = useRef(true);
+  useEffect(() => {
+    if (isPageLengthFirstRender.current) {
+      isPageLengthFirstRender.current = false;
+      return;
+    }
+    if (dtRef.current) {
+      const dt = dtRef.current.dt ? dtRef.current.dt() : dtRef.current;
+      if (dt && typeof dt.page?.len === 'function') {
+        dt.page.len(currentPageLength).draw();
+      }
+    }
+  }, [currentPageLength]);
 
   return (
     <div className="server-data-table" dir={locale === 'ar' ? 'rtl' : 'ltr'}>

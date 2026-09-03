@@ -131,7 +131,9 @@
       "exportCsv": "Export CSV",
       "printReport": "Print Report",
       "printVoucher": "Print Voucher",
-      "add": "Add"
+      "add": "Add",
+      "expand": "Expand",
+      "collapse": "Collapse"
     },
     "nav": {
       "dashboard": "Dashboard",
@@ -1246,7 +1248,17 @@
         "depreciation_expense": "Depreciation Expense",
         "fixed_asset_disposal_gain": "Fixed Asset Disposal Gain",
         "fixed_asset_disposal_loss": "Fixed Asset Disposal Loss",
-        "fixed_asset_clearing": "Fixed Asset Clearing"
+        "fixed_asset_clearing": "Fixed Asset Clearing",
+        "prepaid_expense_asset": "Prepaid Expenses",
+        "accrued_expense_liability": "Accrued Expenses Payable",
+        "payroll_expense": "Payroll Expense",
+        "payroll_payable": "Payroll Payable",
+        "payroll_deductions_payable": "Payroll Deductions Payable",
+        "rental_revenue": "Rental Revenue",
+        "rental_damage_revenue": "Rental Damage Revenue",
+        "rental_late_fee_revenue": "Rental Late Fee Revenue",
+        "rental_other_revenue": "Other Rental Revenue",
+        "rental_deposit_liability": "Rental Deposit Liability"
       },
       "statementLineName": "Statement Line Name",
       "statementLines": "Statement Lines",
@@ -1261,7 +1273,9 @@
       "noResults": "No results found",
       "showMoreCount": "Show :count more",
       "statementLineNameEnExample": "Current Assets",
-      "statementLineNameArExample": "الأصول المتداولة"
+      "statementLineNameArExample": "الأصول المتداولة",
+      "allScopes": "Scope (All)",
+      "allMappingKeys": "Mapping Key (All)"
     },
     "pages": {
       "stockBalances": {

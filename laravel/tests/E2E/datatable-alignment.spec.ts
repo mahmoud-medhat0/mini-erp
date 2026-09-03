@@ -16,6 +16,7 @@ const grids = [
   { path: '/accounting/statement-mappings', id: 'statement-mappings-table' },
   { path: '/customer-opening-balances', id: 'customer-opening-balances-table' },
   { path: '/customers', id: 'customers-data-table' },
+  { path: '/accounting/account-mappings', id: 'account-mappings-table' },
 ];
 
 const setLocale = (page: import('@playwright/test').Page, locale: string) =>

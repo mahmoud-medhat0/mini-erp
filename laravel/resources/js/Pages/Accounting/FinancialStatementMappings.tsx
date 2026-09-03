@@ -1,5 +1,5 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { useMemo, useRef, useState, type FormEvent, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
@@ -33,6 +33,8 @@ type StatementLineRow = {
   is_active: boolean;
   accounts: AccountItem[];
 };
+
+const UNMAPPED_COLLAPSE_KEY = 'statement_mappings_unmapped_collapsed';
 
 type StatementType = StatementLineRow['statement_type'];
 type NormalBalance = StatementLineRow['normal_balance'];
@@ -103,6 +105,9 @@ export default function FinancialStatementMappings({
   const [dtSection, setDtSection] = useState<string>('');
   const [unmappedSearch, setUnmappedSearch] = useState('');
   const [unmappedExpanded, setUnmappedExpanded] = useState(false);
+  // The panel can list hundreds of chips, so it starts collapsed and the
+  // choice is remembered — same treatment as the sidebar collapse.
+  const [unmappedCollapsed, setUnmappedCollapsed] = useState(true);
 
 
   const statementTypeLabel = (value: string) => (value === 'balance_sheet' ? accDict.balanceSheet : accDict.incomeStatement);
@@ -222,6 +227,21 @@ export default function FinancialStatementMappings({
   const totalMappedAccountsCount = lines.reduce((acc, curr) => acc + (curr.accounts?.length || 0), 0);
   const bsLinesCount = lines.filter((l) => l.statement_type === 'balance_sheet').length;
   const isLinesCount = lines.filter((l) => l.statement_type === 'income_statement').length;
+
+  useEffect(() => {
+    const saved = localStorage.getItem(UNMAPPED_COLLAPSE_KEY);
+    if (saved !== null) {
+      setUnmappedCollapsed(saved === 'true');
+    }
+  }, []);
+
+  function toggleUnmappedCollapse() {
+    setUnmappedCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(UNMAPPED_COLLAPSE_KEY, String(next));
+      return next;
+    });
+  }
 
   const UNMAPPED_DISPLAY_LIMIT = 40;
   const filteredUnmapped = useMemo(() => {
@@ -650,15 +670,33 @@ export default function FinancialStatementMappings({
         {unmappedAccounts.length > 0 ? (
           <Card className="border-amber-500/30 bg-amber-500/5 p-4 dark:bg-amber-500/10">
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              <button
+                type="button"
+                onClick={toggleUnmappedCollapse}
+                aria-expanded={!unmappedCollapsed}
+                aria-controls="unmapped-accounts-panel"
+                title={unmappedCollapsed ? actionsDict.expand : actionsDict.collapse}
+                aria-label={unmappedCollapsed ? actionsDict.expand : actionsDict.collapse}
+                className="flex w-full items-center justify-between gap-3 text-start cursor-pointer"
+              >
+                <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  <svg
+                    className={`size-3.5 shrink-0 transition-transform duration-200 ${unmappedCollapsed ? '' : 'rotate-180'}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
                   {accDict.unmappedAccounts} ({unmappedAccounts.length})
                 </h3>
                 <span className="text-[11px] text-[var(--text-muted)]">
                   {accDict.assignToLineDesc}
                 </span>
-              </div>
+              </button>
 
+              <div id="unmapped-accounts-panel" className="space-y-3" hidden={unmappedCollapsed}>
               {canManage ? (
                 <form onSubmit={handleUnmappedAssignSubmit} className="flex flex-wrap items-center gap-3">
                   <div className="min-w-[220px] flex-1">
@@ -751,6 +789,7 @@ export default function FinancialStatementMappings({
                       })}
                 </button>
               )}
+              </div>
 
             </div>
           </Card>

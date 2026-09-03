@@ -243,6 +243,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/statement-mappings/bulk-assign', [FinancialStatementMappingController::class, 'bulkAssign'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.bulk_assign');
         Route::post('/statement-mappings/account-cash-flow', [FinancialStatementMappingController::class, 'updateAccountCashFlow'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.account_cash_flow');
         Route::get('/account-mappings', [AccountingAccountMappingController::class, 'index'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.account_mappings.index');
+        Route::get('/account-mappings/data', [AccountingAccountMappingController::class, 'datatable'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.account_mappings.datatable');
         Route::post('/account-mappings', [AccountingAccountMappingController::class, 'store'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.account_mappings.store');
         Route::delete('/account-mappings/{id}', [AccountingAccountMappingController::class, 'destroy'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.account_mappings.destroy');
     });
