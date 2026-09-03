@@ -50,12 +50,14 @@ class DeliveryNotePageData
 
         if ($filters['search']) {
             $query->where(function (Builder $query) use ($filters): void {
-                $query->where('number', 'like', "%{$filters['search']}%")
-                    ->orWhere('reference', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('salesOrder', function (Builder $salesOrderQuery) use ($filters): void {
-                        $salesOrderQuery->where('number', 'like', "%{$filters['search']}%")
-                            ->orWhereHas('customer', function (Builder $customerQuery) use ($filters): void {
-                                $customerQuery->where('name', 'like', "%{$filters['search']}%");
+                $search = (string) $filters['search'];
+                $query->where('number', 'like', "%{$search}%")
+                    ->orWhere('reference', 'like', "%{$search}%")
+                    ->orWhereHas('salesOrder', function (Builder $salesOrderQuery) use ($search): void {
+                        $salesOrderQuery->where('number', 'like', "%{$search}%")
+                            ->orWhereHas('customer', function (Builder $customerQuery) use ($search): void {
+                                $customerQuery->where('code', 'like', "%{$search}%")
+                                    ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
                             });
                     });
             });

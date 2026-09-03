@@ -44,8 +44,8 @@ class DeliveryNoteReportService
                     ->orWhereHas('salesOrder', function ($sq) use ($search): void {
                         $sq->where('number', 'like', "%{$search}%")
                             ->orWhereHas('customer', function ($cq) use ($search): void {
-                                $cq->where('name', 'like', "%{$search}%")
-                                    ->orWhere('code', 'like', "%{$search}%");
+                                $cq->where('code', 'like', "%{$search}%")
+                                    ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
                             });
                     });
             });

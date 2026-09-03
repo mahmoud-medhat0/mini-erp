@@ -58,10 +58,12 @@ class CustomerCreditNotePageData
 
         if ($filters['search']) {
             $query->where(function (Builder $query) use ($filters): void {
-                $query->where('number', 'like', "%{$filters['search']}%")
-                    ->orWhere('reason', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('customer', function (Builder $customerQuery) use ($filters): void {
-                        $customerQuery->where('name', 'like', "%{$filters['search']}%");
+                $search = (string) $filters['search'];
+                $query->where('number', 'like', "%{$search}%")
+                    ->orWhere('reason', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function (Builder $customerQuery) use ($search): void {
+                        $customerQuery->where('code', 'like', "%{$search}%")
+                            ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
                     });
             });
         }
@@ -84,7 +86,7 @@ class CustomerCreditNotePageData
      */
     private function activeCustomers(): Collection
     {
-        return Customer::query()->where('status', 'active')->orderBy('name', 'asc')->get();
+        return Customer::query()->where('status', 'active')->orderBy('code', 'asc')->get();
     }
 
     /**

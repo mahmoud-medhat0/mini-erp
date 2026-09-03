@@ -41,8 +41,8 @@ class CustomerInvoiceReportService
             $query->where(function ($q) use ($search): void {
                 $q->where('number', 'like', "%{$search}%")
                     ->orWhereHas('customer', function ($cq) use ($search): void {
-                        $cq->where('name', 'like', "%{$search}%")
-                            ->orWhere('code', 'like', "%{$search}%");
+                        $cq->where('code', 'like', "%{$search}%")
+                            ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
                     });
             });
         }
