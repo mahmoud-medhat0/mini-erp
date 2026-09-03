@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { getDictionary } from '../lib/i18n';
 import type { SharedPageProps } from '../Types/page';
@@ -59,7 +60,15 @@ export default function SearchableSelect<T extends string | number = string>({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const [dropdownCoords, setDropdownCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    placeAbove: boolean;
+  }>({ top: 0, left: 0, width: 0, placeAbove: false });
 
   // Normalize options array into SelectOption format
   const normalizedOptions: SelectOption<T>[] = options.map((opt) => {
@@ -99,10 +108,42 @@ export default function SearchableSelect<T extends string | number = string>({
     return matchLabel || matchSublabel || matchValue;
   });
 
+  const updateDropdownCoords = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const dropdownMaxHeight = 280;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const placeAbove = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow;
+
+      setDropdownCoords({
+        top: placeAbove ? rect.top : rect.bottom + 6,
+        left: rect.left,
+        width: Math.max(rect.width, 220),
+        placeAbove,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownCoords();
+      window.addEventListener('resize', updateDropdownCoords, true);
+      window.addEventListener('scroll', updateDropdownCoords, true);
+      return () => {
+        window.removeEventListener('resize', updateDropdownCoords, true);
+        window.removeEventListener('scroll', updateDropdownCoords, true);
+      };
+    }
+  }, [isOpen, updateDropdownCoords]);
+
   // Handle click outside to close dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isInsideContainer = containerRef.current?.contains(target);
+      const isInsidePopover = popoverRef.current?.contains(target);
+      if (!isInsideContainer && !isInsidePopover) {
         setIsOpen(false);
       }
     }
@@ -185,99 +226,113 @@ export default function SearchableSelect<T extends string | number = string>({
       {/* Error Message */}
       {error ? <p className="mt-1 text-xs font-semibold text-[var(--danger)]">{error}</p> : null}
 
-      {/* Popover Dropdown Panel */}
-      {isOpen && !disabled ? (
-        <div className="absolute start-0 top-full mt-1.5 z-50 min-w-full w-max max-w-xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl shadow-slate-900/30 backdrop-blur-xl animate-in fade-in duration-150">
-          {/* Search Input Filter */}
-          {isSearchable ? (
-            <div className="relative mb-2">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={activeSearchPlaceholder}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2 pe-8 ps-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
-              />
-              <svg className="absolute start-2.5 top-2.5 size-3.5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              {searchQuery ? (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute end-2.5 top-2.5 rounded-full p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                >
-                  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      {/* Popover Dropdown Panel (rendered via Portal to prevent table overflow clipping) */}
+      {isOpen && !disabled && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={popoverRef}
+              style={{
+                position: 'fixed',
+                top: dropdownCoords.placeAbove ? 'auto' : `${dropdownCoords.top}px`,
+                bottom: dropdownCoords.placeAbove ? `${window.innerHeight - dropdownCoords.top + 6}px` : 'auto',
+                left: `${dropdownCoords.left}px`,
+                width: `${dropdownCoords.width}px`,
+                zIndex: 99999,
+              }}
+              className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl shadow-slate-900/40 backdrop-blur-xl animate-in fade-in duration-150"
+            >
+              {/* Search Input Filter */}
+              {isSearchable ? (
+                <div className="relative mb-2">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={activeSearchPlaceholder}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2 pe-8 ps-8 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--primary)] focus:outline-hidden"
+                  />
+                  <svg className="absolute start-2.5 top-2.5 size-3.5 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                </button>
+                  {searchQuery ? (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute end-2.5 top-2.5 rounded-full p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    >
+                      <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
 
-          {/* Options List */}
-          <div className="max-h-64 overflow-y-auto space-y-1 pe-1">
-            {showCreateOption ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const firstVal = normalizedOptions[0]?.value;
-                  const isNum = typeof firstVal === 'number' || typeof value === 'number';
-                  const parsedVal = isNum && !isNaN(Number(trimmedQuery)) ? Number(trimmedQuery) : trimmedQuery;
-                  handleSelect(parsedVal as T);
-                }}
-                className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-start text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 cursor-pointer border border-dashed border-[var(--primary)]/40 mb-1"
-              >
-                <span>
-                  + {createOptionLabel ? createOptionLabel(trimmedQuery) : (locale === 'ar' ? `إضافة "${trimmedQuery}"` : `Add "${trimmedQuery}"`)}
-                </span>
-              </button>
-            ) : null}
-
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => {
-                const isSelected = option.value === value;
-
-                return (
+              {/* Options List */}
+              <div className="max-h-64 overflow-y-auto space-y-1 pe-1">
+                {showCreateOption ? (
                   <button
-                    key={String(option.value)}
                     type="button"
-                    disabled={option.disabled}
-                    onClick={() => handleSelect(option.value)}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-start text-xs font-semibold transition-all ${
-                      isSelected
-                        ? 'bg-[var(--primary)] text-white shadow-xs'
-                        : 'text-[var(--text-primary)] hover:bg-[var(--background)]'
-                    } ${option.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                    onClick={() => {
+                      const firstVal = normalizedOptions[0]?.value;
+                      const isNum = typeof firstVal === 'number' || typeof value === 'number';
+                      const parsedVal = isNum && !isNaN(Number(trimmedQuery)) ? Number(trimmedQuery) : trimmedQuery;
+                      handleSelect(parsedVal as T);
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-start text-xs font-bold text-[var(--primary)] hover:bg-[var(--primary)]/10 cursor-pointer border border-dashed border-[var(--primary)]/40 mb-1"
                   >
-                    <div className="flex flex-col me-2 text-start">
-                      <span className="whitespace-normal leading-relaxed">{option.label}</span>
-                      {option.sublabel ? (
-                        <span className={`text-[10px] whitespace-normal leading-tight ${isSelected ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
-                          {option.sublabel}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {option.badge ? (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                      }`}>
-                        {option.badge}
-                      </span>
-                    ) : null}
+                    <span>
+                      + {createOptionLabel ? createOptionLabel(trimmedQuery) : (locale === 'ar' ? `إضافة "${trimmedQuery}"` : `Add "${trimmedQuery}"`)}
+                    </span>
                   </button>
-                );
-              })
-            ) : !showCreateOption ? (
-              <div className="py-6 text-center text-xs text-[var(--text-muted)]">
-                {activeNoOptionsLabel}
+                ) : null}
+
+                {filteredOptions.length > 0 ? (
+                  filteredOptions.map((option) => {
+                    const isSelected = option.value === value;
+
+                    return (
+                      <button
+                        key={String(option.value)}
+                        type="button"
+                        disabled={option.disabled}
+                        onClick={() => handleSelect(option.value)}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-start text-xs font-semibold transition-all ${
+                          isSelected
+                            ? 'bg-[var(--primary)] text-white shadow-xs'
+                            : 'text-[var(--text-primary)] hover:bg-[var(--background)]'
+                        } ${option.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <div className="flex flex-col me-2 text-start">
+                          <span className="whitespace-normal leading-relaxed">{option.label}</span>
+                          {option.sublabel ? (
+                            <span className={`text-[10px] whitespace-normal leading-tight ${isSelected ? 'text-white/80' : 'text-[var(--text-muted)]'}`}>
+                              {option.sublabel}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {option.badge ? (
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                          }`}>
+                            {option.badge}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })
+                ) : !showCreateOption ? (
+                  <div className="py-6 text-center text-xs text-[var(--text-muted)]">
+                    {activeNoOptionsLabel}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

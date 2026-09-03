@@ -109,19 +109,6 @@ export default function ServerDataTable({
         <span class="sdt-spinner-label">${dtDict.processing}</span>
       `,
     },
-    initComplete: function () {
-      try {
-        const tableNode = (this.api() as any).table().node();
-        if (tableNode && tableNode.parentElement && !tableNode.parentElement.classList.contains('sdt-table-scroll')) {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'sdt-table-scroll w-full overflow-x-auto';
-          tableNode.parentNode.insertBefore(wrapper, tableNode);
-          wrapper.appendChild(tableNode);
-        }
-      } catch (err) {
-        // Fallback handled by useEffect
-      }
-    },
     layout: {
       topStart: null,
       topEnd: null,
@@ -131,8 +118,7 @@ export default function ServerDataTable({
     order,
     pageLength: currentPageLength,
     processing: true,
-    responsive: false,
-    scrollX: false,
+    responsive: true,
     search: initialSearch
       ? ({ search: initialSearch } as NonNullable<Config['search']> & { search: string })
       : undefined,
@@ -154,27 +140,6 @@ export default function ServerDataTable({
   };
 
   useEffect(() => {
-    const wrapTable = () => {
-      if (dtRef.current) {
-        const dt = dtRef.current.dt ? dtRef.current.dt() : dtRef.current;
-        if (dt && typeof dt.table === 'function') {
-          const tableNode = dt.table().node();
-          if (tableNode && tableNode.parentElement && !tableNode.parentElement.classList.contains('sdt-table-scroll')) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'sdt-table-scroll w-full overflow-x-auto';
-            tableNode.parentNode.insertBefore(wrapper, tableNode);
-            wrapper.appendChild(tableNode);
-          }
-        }
-      }
-    };
-
-    wrapTable();
-    const timer = setTimeout(wrapTable, 100);
-    return () => clearTimeout(timer);
-  }, [tableId]);
-
-  useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -189,10 +154,10 @@ export default function ServerDataTable({
 
   return (
     <div className="server-data-table overflow-hidden" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="sdt-top-bar px-5 py-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_40%,var(--surface))] space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="sdt-top-bar flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--background)_40%,var(--surface))]">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Quick Search */}
-          <div className="relative flex items-center shrink-0">
+          <div className="relative flex items-center">
             <svg className="absolute start-3 w-4 h-4 text-[var(--text-muted)] pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -206,34 +171,30 @@ export default function ServerDataTable({
             />
           </div>
 
-          {/* Page Length Dropdown */}
-          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)] shrink-0">
-            <span>{dtDict.show}</span>
-            <SearchableSelect<number>
-              options={lengthOptions.map((n) => ({ value: n, label: String(n) }))}
-              value={currentPageLength}
-              onChange={(val) => {
-                if (val && !isNaN(Number(val))) {
-                  setCurrentPageLength(Number(val));
-                }
-              }}
-              isSearchable={true}
-              isCreatable={true}
-              isClearable={false}
-              searchPlaceholder={dtDict.searchOrEnterNumber}
-              createOptionLabel={(q) => interpolate(dtDict.createOption, { query: q })}
-              className="w-24 min-w-[5.5rem]"
-            />
-            <span>{dtDict.entries}</span>
-          </div>
+          {/* Custom Page Filters Toolbar */}
+          {toolbar}
         </div>
 
-        {/* Custom Page Filters Toolbar */}
-        {toolbar ? (
-          <div className="sdt-toolbar-container pt-2.5 border-t border-[var(--border)]/40 w-full">
-            {toolbar}
-          </div>
-        ) : null}
+        {/* Page Length Dropdown */}
+        <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-secondary)] shrink-0">
+          <span>{dtDict.show}</span>
+          <SearchableSelect<number>
+            options={lengthOptions.map((n) => ({ value: n, label: String(n) }))}
+            value={currentPageLength}
+            onChange={(val) => {
+              if (val && !isNaN(Number(val))) {
+                setCurrentPageLength(Number(val));
+              }
+            }}
+            isSearchable={true}
+            isCreatable={true}
+            isClearable={false}
+            searchPlaceholder={dtDict.searchOrEnterNumber}
+            createOptionLabel={(q) => interpolate(dtDict.createOption, { query: q })}
+            className="w-24 min-w-[5.5rem]"
+          />
+          <span>{dtDict.entries}</span>
+        </div>
       </div>
 
       <DataTable
@@ -244,7 +205,7 @@ export default function ServerDataTable({
         id={tableId}
         options={options}
         slots={slots}
-        className="display nowrap w-full"
+        className="display responsive nowrap w-full"
       />
     </div>
   );

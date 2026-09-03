@@ -235,6 +235,7 @@ Route::middleware('auth')->group(function (): void {
 
         // Phase 5 Slice 1 Financial Statement Mappings Routes
         Route::get('/statement-mappings', [FinancialStatementMappingController::class, 'index'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.index');
+        Route::get('/statement-mappings/data', [FinancialStatementMappingController::class, 'datatable'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.datatable');
         Route::post('/statement-mappings/lines', [FinancialStatementMappingController::class, 'storeLine'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.lines.store');
         Route::put('/statement-mappings/lines/{id}', [FinancialStatementMappingController::class, 'updateLine'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.lines.update');
         Route::delete('/statement-mappings/lines/{id}', [FinancialStatementMappingController::class, 'destroyLine'])->middleware('permission.any:accounting.mappings,settings.configure')->name('accounting.statement_mappings.lines.destroy');

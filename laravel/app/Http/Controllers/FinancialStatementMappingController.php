@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\FinancialStatementMappingPageData;
 use App\Application\Accounting\FinancialStatementMappingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -22,6 +23,13 @@ class FinancialStatementMappingController extends Controller
         Gate::authorize('accounting.mappings');
 
         return Inertia::render('Accounting/FinancialStatementMappings', $this->pageData->indexData());
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('accounting.mappings');
+
+        return $this->pageData->datatable($request->all());
     }
 
     public function storeLine(Request $request): RedirectResponse
