@@ -209,7 +209,8 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/journal/{journalEntry}/approve', [JournalController::class, 'approve'])->middleware('permission.any:accounting.approve,settings.configure')->name('accounting.journal.approve');
         Route::post('/journal/{journalEntry}/post', [JournalController::class, 'post'])->middleware(['permission.all:accounting.post,view_financials', 'sensitive.confirm'])->name('accounting.journal.post');
         Route::post('/journal/{journalEntry}/reverse', [JournalController::class, 'reverse'])->middleware(['permission.any:accounting.reverse,settings.configure', 'sensitive.confirm'])->name('accounting.journal.reverse');
-        Route::get('/ledger', GeneralLedgerController::class)->middleware('permission.any:accounting.view,settings.configure')->name('accounting.ledger');
+        Route::get('/ledger', [GeneralLedgerController::class, 'index'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.ledger');
+        Route::get('/ledger/data', [GeneralLedgerController::class, 'datatable'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.ledger.datatable');
         Route::get('/trial-balance', TrialBalanceController::class)->middleware('permission.any:accounting.view,settings.configure')->name('accounting.trial_balance');
         Route::get('/periods', [FinancialPeriodController::class, 'index'])->middleware('permission.any:accounting.periods,settings.configure')->name('accounting.periods');
         Route::get('/periods/{period}/close-readiness', [FinancialPeriodController::class, 'closeReadiness'])->middleware('permission.any:accounting.periods,settings.configure')->name('accounting.periods.close_readiness');

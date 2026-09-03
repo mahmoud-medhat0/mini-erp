@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getAccountNatureLabel, getAccountTypeLabel, getLocalizedName } from '../../lib/accountingHelpers';
@@ -24,6 +24,7 @@ export default function OpeningBalances({
   const accDict = dict.app.accounting;
 
   const activeYearId = selectedYearId ?? fiscalYears[0]?.id ?? '';
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [balancesState, setBalancesState] = useState<Record<string, { debit_minor: number; credit_minor: number }>>(() => {
     const initial: Record<string, { debit_minor: number; credit_minor: number }> = {};
@@ -49,6 +50,18 @@ export default function OpeningBalances({
   });
 
   const isAlreadyPosted = Object.values(existingBalances).some((b) => b.status === 'posted');
+
+  const filteredAccounts = useMemo(() => {
+    if (!searchQuery.trim()) return accounts;
+    const q = searchQuery.toLowerCase().trim();
+    return accounts.filter((acc) => {
+      const codeMatch = acc.code.toLowerCase().includes(q);
+      const nameMatch = getLocalizedName(acc.name, locale).toLowerCase().includes(q);
+      const typeMatch = getAccountTypeLabel(acc.type, locale).toLowerCase().includes(q);
+      const natureMatch = getAccountNatureLabel(acc.nature, locale).toLowerCase().includes(q);
+      return codeMatch || nameMatch || typeMatch || natureMatch;
+    });
+  }, [accounts, searchQuery, locale]);
 
   const updateBalance = (accountId: string, field: 'debit_minor' | 'credit_minor', val: number) => {
     if (isAlreadyPosted) return;
@@ -140,26 +153,55 @@ export default function OpeningBalances({
       )}
 
       <Card className="p-4 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
-              {accDict.fiscalYear}
-            </span>
-            <div className="w-64 sm:w-80">
-              <SearchableSelect
-                options={fiscalYearOptions}
-                value={activeYearId}
-                onChange={(val) => {
-                  if (val) {
-                    router.get('/accounting/opening-balances', { fiscal_year_id: val }, { preserveState: false, preserveScroll: true });
-                  }
-                }}
-                isClearable={false}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[var(--text-secondary)] uppercase whitespace-nowrap">
+                {accDict.fiscalYear}
+              </span>
+              <div className="w-48 sm:w-60">
+                <SearchableSelect
+                  options={fiscalYearOptions}
+                  value={activeYearId}
+                  onChange={(val) => {
+                    if (val) {
+                      router.get('/accounting/opening-balances', { fiscal_year_id: val }, { preserveState: false, preserveScroll: true });
+                    }
+                  }}
+                  isClearable={false}
+                />
+              </div>
+            </div>
+
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-[var(--text-muted)]">
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={locale === 'ar' ? 'البحث بكود أو اسم الحساب...' : 'Search by account code or name...'}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] ps-9 pe-9 py-2 text-xs font-semibold text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] transition-all"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 end-0 flex items-center pe-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                  title={locale === 'ar' ? 'مسح البحث' : 'Clear search'}
+                >
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 font-mono text-xs font-bold">
+          <div className="flex flex-wrap items-center gap-4 font-mono text-xs font-bold shrink-0">
             <div>
               <span className="text-[var(--text-muted)] uppercase me-1.5 font-sans">
                 {accDict.totalDebit}
@@ -196,6 +238,22 @@ export default function OpeningBalances({
           title={accDict.noOpeningBalancesConfigured}
           description={accDict.noOpeningBalancesConfiguredDesc}
         />
+      ) : filteredAccounts.length === 0 ? (
+        <Card className="p-8 text-center mb-6">
+          <svg className="size-8 mx-auto text-[var(--text-muted)] mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <p className="text-xs font-bold text-[var(--text-secondary)] mb-1">
+            {locale === 'ar' ? 'لا توجد نتائج تطابق البحث' : 'No accounts found matching your search'}
+          </p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+          >
+            {locale === 'ar' ? 'إعادة ضبط البحث' : 'Reset search'}
+          </button>
+        </Card>
       ) : (
         <form onSubmit={submitDraft}>
           <div className={tableClasses.wrap + ' mb-6'}>
@@ -214,7 +272,7 @@ export default function OpeningBalances({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {accounts.map((acc) => {
+                {filteredAccounts.map((acc) => {
                   const bal = balancesState[acc.id] || { debit_minor: 0, credit_minor: 0 };
                   return (
                     <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">

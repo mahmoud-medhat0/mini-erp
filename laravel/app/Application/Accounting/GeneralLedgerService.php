@@ -50,18 +50,25 @@ class GeneralLedgerService
     }
 
     /**
-     * Get General Ledger entries for a specific account or all accounts.
-     * Derived STRICTLY from posted ledger entries.
+     * Get General Ledger summary totals derived STRICTLY from posted ledger entries.
      *
      * @param  array<string, mixed>  $filters
-     * @return array{entries: LengthAwarePaginator, total_debit: int, total_credit: int, net_movement: int}
+     * @return array{total_debit: int, total_credit: int, net_movement: int}
      */
     public function getGeneralLedger(array $filters = []): array
     {
-        $query = LedgerEntry::query()
-            ->with(['account', 'branch', 'journalEntry', 'period.fiscalYear', 'currencyRef'])
-            ->orderBy('entry_date', 'asc')
-            ->orderBy('created_at', 'asc');
+        return $this->getGeneralLedgerTotals($filters);
+    }
+
+    /**
+     * Get General Ledger summary totals derived STRICTLY from posted ledger entries.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array{total_debit: int, total_credit: int, net_movement: int}
+     */
+    public function getGeneralLedgerTotals(array $filters = []): array
+    {
+        $query = LedgerEntry::query();
 
         if (! empty($filters['account_id'])) {
             $query->where('account_id', $filters['account_id']);
@@ -85,15 +92,11 @@ class GeneralLedgerService
 
         $totalDebit = (int) (clone $query)->sum('debit_minor');
         $totalCredit = (int) (clone $query)->sum('credit_minor');
-        $netMovement = $totalDebit - $totalCredit;
-
-        $entries = $query->paginate($filters['per_page'] ?? 50)->withQueryString();
 
         return [
-            'entries' => $entries,
             'total_debit' => $totalDebit,
             'total_credit' => $totalCredit,
-            'net_movement' => $netMovement,
+            'net_movement' => $totalDebit - $totalCredit,
         ];
     }
 

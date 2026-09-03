@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Accounting;
 use App\Application\Accounting\GeneralLedgerPageData;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,7 +16,7 @@ class GeneralLedgerController extends Controller
 
     public function __construct(private readonly GeneralLedgerPageData $pageData) {}
 
-    public function __invoke(Request $request): Response
+    public function index(Request $request): Response
     {
         $this->authorizePermission($request, 'accounting.view');
 
@@ -28,5 +29,12 @@ class GeneralLedgerController extends Controller
         ]);
 
         return Inertia::render('Accounting/GeneralLedger', $this->pageData->indexData($validated));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'accounting.view');
+
+        return $this->pageData->datatable($request->all());
     }
 }

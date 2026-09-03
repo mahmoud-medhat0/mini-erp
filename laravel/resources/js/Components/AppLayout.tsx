@@ -363,19 +363,33 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [adminExpanded, setAdminExpanded] = useState(() => active.startsWith('settings'));
-  const [accountingExpanded, setAccountingExpanded] = useState(() => active.startsWith('accounting'));
-  const [arExpanded, setArExpanded] = useState(() => active.startsWith('customer') || active.startsWith('receivable'));
-  const [apExpanded, setApExpanded] = useState(() => active.startsWith('supplier') || active.startsWith('payable'));
-  const [expensesExpanded, setExpensesExpanded] = useState(() => active.startsWith('expense'));
-  const [payrollExpanded, setPayrollExpanded] = useState(() => active.startsWith('payroll'));
-  const [rentalsExpanded, setRentalsExpanded] = useState(() => active.startsWith('rentals'));
-  const [cashBankExpanded, setCashBankExpanded] = useState(() => active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury'));
-  const [catalogExpanded, setCatalogExpanded] = useState(() => active.startsWith('catalog') || active.includes('product') || active.includes('uom'));
-  const [inventoryExpanded, setInventoryExpanded] = useState(() => active.includes('inventory') || active.includes('warehouse') || active.includes('stock-'));
-  const [fixedAssetsExpanded, setFixedAssetsExpanded] = useState(() => active.startsWith('fixed-asset'));
-  const [projectsCostCentersExpanded, setProjectsCostCentersExpanded] = useState(() => active.startsWith('projects') || active.startsWith('cost-center') || active.startsWith('budgeting'));
-  const [reportsExpanded, setReportsExpanded] = useState(() => active.startsWith('reports'));
+  const isAccountingActive = active.startsWith('accounting') || active.startsWith('taxes');
+  const isArActive = active.startsWith('customer') || active.startsWith('receivable');
+  const isApActive = active.startsWith('supplier') || active.startsWith('payable');
+  const isExpensesActive = active.startsWith('expense') || active.startsWith('prepaid') || active.startsWith('accrual');
+  const isPayrollActive = active.startsWith('payroll');
+  const isRentalsActive = active.startsWith('rentals');
+  const isCashBankActive = active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury');
+  const isCatalogActive = active.startsWith('catalog') || active.includes('product') || active.includes('uom');
+  const isInventoryActive = active.includes('inventory') || active.includes('warehouse') || active.includes('stock-');
+  const isFixedAssetsActive = active.startsWith('fixed-asset');
+  const isProjectsActive = active.startsWith('project') || active.startsWith('cost-center') || active.startsWith('budgeting');
+  const isReportsActive = active.startsWith('reports');
+  const isAdminActive = active.startsWith('settings') || active.startsWith('audit');
+
+  const [adminExpanded, setAdminExpanded] = useState(() => isAdminActive);
+  const [accountingExpanded, setAccountingExpanded] = useState(() => isAccountingActive);
+  const [arExpanded, setArExpanded] = useState(() => isArActive);
+  const [apExpanded, setApExpanded] = useState(() => isApActive);
+  const [expensesExpanded, setExpensesExpanded] = useState(() => isExpensesActive);
+  const [payrollExpanded, setPayrollExpanded] = useState(() => isPayrollActive);
+  const [rentalsExpanded, setRentalsExpanded] = useState(() => isRentalsActive);
+  const [cashBankExpanded, setCashBankExpanded] = useState(() => isCashBankActive);
+  const [catalogExpanded, setCatalogExpanded] = useState(() => isCatalogActive);
+  const [inventoryExpanded, setInventoryExpanded] = useState(() => isInventoryActive);
+  const [fixedAssetsExpanded, setFixedAssetsExpanded] = useState(() => isFixedAssetsActive);
+  const [projectsCostCentersExpanded, setProjectsCostCentersExpanded] = useState(() => isProjectsActive);
+  const [reportsExpanded, setReportsExpanded] = useState(() => isReportsActive);
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
@@ -772,7 +786,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
-                      active.startsWith('accounting')
+                      isAccountingActive
                         ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
@@ -785,7 +799,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     >
                       <svg
                         className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          active.startsWith('accounting') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                          isAccountingActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
@@ -983,7 +997,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
-                      active.startsWith('expense')
+                      isExpensesActive
                         ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
@@ -994,7 +1008,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.expensesOperations : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${active.startsWith('expense') ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isExpensesActive ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6m-6-4h6m-7 10h8a2 2 0 002-2V7.5L14.5 4H8a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.expensesOperations}</span> : null}
