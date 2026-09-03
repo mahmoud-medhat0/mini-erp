@@ -5,14 +5,14 @@ import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, ta
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
+import type { AccountOption, CurrencyOption, PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
 
 type BankAccountRow = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   account_number: string;
-  bank_name: string;
+  bank_name: TranslatedName;
   branch_id?: string | null;
   branch?: { id: string; code: string; name: Record<string, string> | string } | null;
   currency: string;
@@ -72,9 +72,9 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
     setEditingAccount(acc);
     setData({
       code: acc.code,
-      name: acc.name,
+      name: getLocalizedName(acc.name, locale),
       account_number: acc.account_number,
-      bank_name: acc.bank_name,
+      bank_name: getLocalizedName(acc.bank_name, locale),
       branch_id: acc.branch_id || '',
       currency: acc.currency,
       gl_account_id: acc.gl_account_id,
@@ -221,7 +221,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
               {bankAccounts.data.map((acc) => (
                 <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{acc.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{acc.bank_name} - {acc.name}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(acc.bank_name, locale)} - {getLocalizedName(acc.name, locale)}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{acc.account_number}</td>
                   <td className={tableClasses.td}>
                     {acc.branch ? `${acc.branch.code} - ${getLocalizedName(acc.branch.name, locale)}` : pageDict.noBranch}

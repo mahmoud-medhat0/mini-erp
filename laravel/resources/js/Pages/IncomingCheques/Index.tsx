@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
@@ -252,7 +252,7 @@ export default function IncomingChequesIndex({
                   <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                     <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
                     <td className={`${tableClasses.td} font-semibold`}>
-                      {row.customer ? `${row.customer.code} - ${row.customer.name}` : accDict.notAvailable}
+                      {row.customer ? `${row.customer.code} - ${getLocalizedName(row.customer.name, locale)}` : accDict.notAvailable}
                     </td>
                     <td className={tableClasses.td}>{row.bank_name}</td>
                     <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>

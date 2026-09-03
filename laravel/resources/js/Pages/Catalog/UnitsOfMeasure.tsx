@@ -3,13 +3,14 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
 
 type UnitOfMeasureRow = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   symbol: string;
   is_active: boolean;
   lock_version: number;
@@ -54,7 +55,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
     setEditingUom(uom);
     setData({
       code: uom.code,
-      name: uom.name,
+      name: getLocalizedName(uom.name, locale),
       symbol: uom.symbol,
       is_active: uom.is_active,
       lock_version: uom.lock_version,
@@ -84,7 +85,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
   };
 
   const handleDelete = (uom: UnitOfMeasureRow) => {
-    if (confirm(dict.app.pages.catalogUnitsOfMeasure.confirmDeleteUom.replace('{name}', uom.name || uom.code))) {
+    if (confirm(dict.app.pages.catalogUnitsOfMeasure.confirmDeleteUom.replace('{name}', getLocalizedName(uom.name, locale) || uom.code))) {
       destroy(`/catalog/uoms/${uom.id}`, { preserveScroll: true });
     }
   };
@@ -156,7 +157,7 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                 {uoms.data.map((uom) => (
                   <tr key={uom.id}>
                     <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>{uom.code}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{uom.name}</td>
+                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(uom.name, locale)}</td>
                     <td className={tableClasses.td}>{uom.symbol}</td>
                     <td className={tableClasses.td}>
                       <StatusBadge tone={uom.is_active ? 'ok' : 'muted'}>

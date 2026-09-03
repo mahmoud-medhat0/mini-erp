@@ -5,6 +5,7 @@ import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
+import { getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
@@ -167,7 +168,7 @@ export default function CustomerReceiptsIndex({
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.number}</td>
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.customer ? `${row.customer.code} - ${row.customer.name}` : accDict.notAvailable}
+                    {row.customer ? `${row.customer.code} - ${getLocalizedName(row.customer.name, locale)}` : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.receipt_date}</td>
                   <td className={tableClasses.td}>

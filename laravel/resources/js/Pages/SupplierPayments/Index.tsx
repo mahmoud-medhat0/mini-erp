@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
@@ -167,7 +167,7 @@ export default function SupplierPaymentsIndex({
                 <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.number}</td>
                   <td className={`${tableClasses.td} font-semibold`}>
-                    {row.supplier ? `${row.supplier.code} - ${row.supplier.name}` : accDict.notAvailable}
+                    {row.supplier ? `${row.supplier.code} - ${getLocalizedName(row.supplier.name, locale)}` : accDict.notAvailable}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.payment_date}</td>
                   <td className={tableClasses.td}>

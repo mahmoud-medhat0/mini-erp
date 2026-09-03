@@ -27,41 +27,41 @@ type ServerDataTableProps = {
 
 const language = (locale: string): Config['language'] => locale === 'ar'
   ? {
-      emptyTable: 'لا توجد بيانات متاحة',
-      info: 'عرض _START_ إلى _END_ من إجمالي _TOTAL_ سجل',
-      infoEmpty: 'لا توجد سجلات للعرض',
-      infoFiltered: '(تمت التصفية من إجمالي _MAX_ سجل)',
-      lengthMenu: 'عرض _MENU_ سجل',
-      loadingRecords: 'جارٍ التحميل…',
-      processing: 'جارٍ تجهيز البيانات…',
-      search: 'بحث سريع:',
-      searchPlaceholder: 'ابحث في النتائج…',
-      zeroRecords: 'لا توجد نتائج مطابقة',
-      paginate: {
-        first: 'الأولى',
-        last: 'الأخيرة',
-        next: 'التالي',
-        previous: 'السابق',
-      },
-    }
+    emptyTable: 'لا توجد بيانات متاحة',
+    info: 'عرض _START_ إلى _END_ من إجمالي _TOTAL_ سجل',
+    infoEmpty: 'لا توجد سجلات للعرض',
+    infoFiltered: '(تمت التصفية من إجمالي _MAX_ سجل)',
+    lengthMenu: 'عرض _MENU_ سجل',
+    loadingRecords: 'جارٍ التحميل…',
+    processing: 'جارٍ تجهيز البيانات…',
+    search: 'بحث سريع:',
+    searchPlaceholder: 'ابحث في النتائج…',
+    zeroRecords: 'لا توجد نتائج مطابقة',
+    paginate: {
+      first: 'الأولى',
+      last: 'الأخيرة',
+      next: 'التالي',
+      previous: 'السابق',
+    },
+  }
   : {
-      emptyTable: 'No data available',
-      info: 'Showing _START_ to _END_ of _TOTAL_ records',
-      infoEmpty: 'No records to show',
-      infoFiltered: '(filtered from _MAX_ total records)',
-      lengthMenu: 'Show _MENU_ records',
-      loadingRecords: 'Loading…',
-      processing: 'Processing…',
-      search: 'Quick search:',
-      searchPlaceholder: 'Search results…',
-      zeroRecords: 'No matching records found',
-      paginate: {
-        first: 'First',
-        last: 'Last',
-        next: 'Next',
-        previous: 'Previous',
-      },
-    };
+    emptyTable: 'No data available',
+    info: 'Showing _START_ to _END_ of _TOTAL_ records',
+    infoEmpty: 'No records to show',
+    infoFiltered: '(filtered from _MAX_ total records)',
+    lengthMenu: 'Show _MENU_ records',
+    loadingRecords: 'Loading…',
+    processing: 'Processing…',
+    search: 'Quick search:',
+    searchPlaceholder: 'Search results…',
+    zeroRecords: 'No matching records found',
+    paginate: {
+      first: 'First',
+      last: 'Last',
+      next: 'Next',
+      previous: 'Previous',
+    },
+  };
 
 export default function ServerDataTable({
   ajaxUrl,
@@ -98,7 +98,13 @@ export default function ServerDataTable({
   const options = useMemo<Config>(() => ({
     autoWidth: false,
     deferRender: true,
-    language: language(locale),
+    language: {
+      ...language(locale),
+      processing: `
+        <div class="sdt-spinner"></div>
+        <span class="sdt-spinner-label">${locale === 'ar' ? 'جارٍ تجهيز البيانات…' : 'Loading…'}</span>
+      `,
+    },
     layout: {
       topStart: 'pageLength',
       topEnd: 'search',
@@ -132,4 +138,4 @@ export default function ServerDataTable({
   );
 }
 
-export type { DataTableSlots };
+export type { DataTableSlots, ServerDataTableProps };

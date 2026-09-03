@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Button, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import SensitiveActionModal from '../../Components/SensitiveActionModal';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -142,7 +142,7 @@ export default function ReceivableSettlements({
   const fmtMoney = (amount: number, curr: string) => formatMoney(amount, curr);
   const customerSelectOptions = customers.map((customer) => ({
     value: customer.id,
-    label: `${customer.code} - ${customer.name}`,
+    label: `${customer.code} - ${getLocalizedName(customer.name, locale)}`,
   }));
   const sourceEntrySelectOptions = creditEntries.map((entry) => ({
     value: entry.id,
@@ -212,7 +212,7 @@ export default function ReceivableSettlements({
             <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-blue-500/20 pb-3 gap-2">
               <div>
                 <h3 className="text-base font-bold text-[var(--text-primary)]">
-                  {pageDict.settlingCreditFor} {selectedSourceEntry.customer?.name}
+                  {pageDict.settlingCreditFor} {getLocalizedName(selectedSourceEntry.customer?.name, locale)}
                 </h3>
                 <p className="text-xs text-[var(--text-muted)]">
                   {pageDict.sourceId}: {selectedSourceEntry.id} | {pageDict.entryDate}: {selectedSourceEntry.entry_date} | {pageDict.currency}: {selectedSourceEntry.currency}
@@ -338,7 +338,7 @@ export default function ReceivableSettlements({
                   existingSettlements.data.map((s) => (
                     <tr key={s.id} className="hover:bg-[var(--background)]/50">
                       <td className="p-3 font-mono">{new Date(s.settled_at).toLocaleString()}</td>
-                      <td className="p-3 font-semibold">{s.customer?.name}</td>
+                      <td className="p-3 font-semibold">{getLocalizedName(s.customer?.name, locale)}</td>
                       <td className="p-3 font-mono text-[10px]">{s.source_receivable_entry_id.substring(0, 8)}</td>
                       <td className="p-3 font-mono text-[10px]">{s.target_receivable_entry_id.substring(0, 8)}</td>
                       <td className="p-3 text-end font-extrabold">{fmtMoney(s.amount_minor, s.currency)}</td>

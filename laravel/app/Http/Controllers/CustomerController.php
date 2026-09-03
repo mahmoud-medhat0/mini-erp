@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Application\MasterData\CustomerPageData;
 use App\Application\MasterData\CustomerService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Yajra\DataTables\Facades\DataTables;
 
 class CustomerController extends Controller
 {
@@ -19,6 +22,44 @@ class CustomerController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Customers/Index', $this->pageData->indexData($request->only(['search', 'status'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('customers.view');
+
+        $status = $request->input('status', '');
+
+        $query = \App\Models\Customer::query()
+            ->select(['id', 'code', 'name', 'email', 'phone', 'tax_number', 'status', 'lock_version', 'created_at'])
+            ->when($status && in_array($status, ['active', 'inactive'], true), fn ($q) => $q->where('status', $status))
+            ->orderBy('code', 'asc');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('name', function ($q, $keyword) {
+                $q->where(function ($inner) use ($keyword) {
+                    $inner->where('code', 'like', "%{$keyword}%")
+                          ->orWhereRaw("LOWER(CAST(name AS TEXT)) LIKE ?", ['%'.mb_strtolower($keyword).'%'])
+                          ->orWhere('email', 'like', "%{$keyword}%")
+                          ->orWhere('phone', 'like', "%{$keyword}%");
+                });
+            })
+            ->editColumn('name', fn ($row) => $this->translatableName($row->name))
+            ->editColumn('status', fn ($row) => $row->status)
+            ->addColumn('actions', fn ($row) => '')
+            ->rawColumns(['actions'])
+            ->toJson();
+    }
+
+    private function translatableName(mixed $name): array|string
+    {
+        if (! is_string($name)) {
+            return is_array($name) ? $name : (string) $name;
+        }
+
+        $decoded = json_decode($name, true);
+
+        return is_array($decoded) ? $decoded : $name;
     }
 
     public function store(Request $request): RedirectResponse

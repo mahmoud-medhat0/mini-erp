@@ -100,7 +100,7 @@ export default function TreasuryTransfersIndex({
   const endpointLabel = (account?: EndpointAccount | null) => {
     if (!account) return accDict.notAvailable;
     const branch = account.branch ? ` · ${account.branch.code}` : ` · ${pageDict.noBranch}`;
-    return `${account.code} - ${account.name}${branch}`;
+    return `${account.code} - ${getLocalizedName(account.name, locale)}${branch}`;
   };
 
   const rowEndpoint = (row: TreasuryTransferRow, side: 'source' | 'destination') => {

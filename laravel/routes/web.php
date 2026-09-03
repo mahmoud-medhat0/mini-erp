@@ -247,6 +247,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 3 Operational Master Data & Accounting Routes
     Route::get('/customers', [CustomerController::class, 'index'])->middleware('can:customers.view')->name('customers.index');
+    Route::get('/customers/data', [CustomerController::class, 'datatable'])->middleware('can:customers.view')->name('customers.datatable');
     Route::post('/customers', [CustomerController::class, 'store'])->middleware('can:customers.create')->name('customers.store');
     Route::patch('/customers/{id}', [CustomerController::class, 'update'])->middleware('can:customers.edit')->name('customers.update');
 

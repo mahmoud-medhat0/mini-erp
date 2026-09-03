@@ -5,12 +5,12 @@ import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, ta
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { AccountOption, CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
+import type { AccountOption, CurrencyOption, PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
 
 type CashAccountRow = {
   id: string;
   code: string;
-  name: string;
+  name: TranslatedName;
   branch_id?: string | null;
   branch?: { id: string; code: string; name: Record<string, string> | string } | null;
   currency: string;
@@ -64,7 +64,7 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
     setEditingAccount(acc);
     setData({
       code: acc.code,
-      name: acc.name,
+      name: getLocalizedName(acc.name, locale),
       branch_id: acc.branch_id || '',
       currency: acc.currency,
       gl_account_id: acc.gl_account_id,
@@ -208,7 +208,7 @@ export default function CashAccountsIndex({ locale, cashAccounts, glAccounts = [
               {cashAccounts.data.map((acc) => (
                 <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
                   <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{acc.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{acc.name}</td>
+                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(acc.name, locale)}</td>
                   <td className={tableClasses.td}>
                     {acc.branch ? `${acc.branch.code} - ${getLocalizedName(acc.branch.name, locale)}` : pageDict.noBranch}
                   </td>

@@ -62,119 +62,272 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* DataTables 2 server-side tables */
+/* =====================================================
+   DataTables 2 — Premium Design
+   ===================================================== */
+
+/* ── Container ── */
 .server-data-table {
     color: var(--text-primary);
+    font-size: .8125rem;
 }
 
+/* ── Top/bottom control bars ── */
 .server-data-table .dt-container {
-    padding: 1rem;
+    padding: 0;
 }
 
 .server-data-table .dt-layout-row {
+    display: flex;
     align-items: center;
     gap: .75rem;
-    margin: 0 0 1rem;
+    margin: 0;
+    padding: .75rem 1rem;
+    background: color-mix(in srgb, var(--background) 40%, var(--surface));
+    border-bottom: 1px solid var(--border);
 }
 
 .server-data-table .dt-layout-row:last-child {
-    margin: 1rem 0 0;
+    border-bottom: 0;
+    border-top: 1px solid var(--border);
 }
 
+/* ── Length + Search labels ── */
 .server-data-table .dt-search,
 .server-data-table .dt-length {
     display: flex;
     align-items: center;
     gap: .5rem;
     color: var(--text-secondary);
-    font-size: .8125rem;
+    font-size: .75rem;
+    font-weight: 500;
 }
 
+/* ── Inputs ── */
 .server-data-table .dt-input {
-    min-height: 2.5rem;
+    height: 2.1rem;
     border: 1px solid var(--border) !important;
-    border-radius: .65rem !important;
+    border-radius: .6rem !important;
     background: var(--surface) !important;
     color: var(--text-primary) !important;
-    padding: .5rem .75rem !important;
+    padding: 0 .75rem !important;
+    font-size: .8125rem !important;
+    transition: border-color .15s, box-shadow .15s;
+    outline: none !important;
+}
+
+.server-data-table .dt-input:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px var(--primary-glow) !important;
 }
 
 .server-data-table .dt-search .dt-input {
-    min-width: min(18rem, 55vw);
+    min-width: min(16rem, 55vw);
 }
 
+/* ── Table head ── */
 .server-data-table table.dataTable > thead > tr > th {
-    border-bottom: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface) 88%, var(--background));
+    padding: .65rem 1rem;
+    border-bottom: 2px solid var(--border);
+    background: color-mix(in srgb, var(--background) 55%, var(--surface));
     color: var(--text-secondary);
-    font-size: .75rem;
+    font-size: .7rem;
     font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
     white-space: nowrap;
 }
 
+/* Sort arrows */
+.server-data-table table.dataTable > thead > tr > th.dt-orderable-asc,
+.server-data-table table.dataTable > thead > tr > th.dt-orderable-desc {
+    cursor: pointer;
+}
+
+.server-data-table table.dataTable > thead > tr > th.dt-ordering-asc span.dt-column-order::before,
+.server-data-table table.dataTable > thead > tr > th.dt-ordering-desc span.dt-column-order::after {
+    color: var(--primary);
+    opacity: 1;
+}
+
+/* ── Table body rows ── */
 .server-data-table table.dataTable > tbody > tr {
     background: var(--surface);
+    transition: background .12s;
 }
 
-.server-data-table table.dataTable > tbody > tr:hover {
-    background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+.server-data-table table.dataTable > tbody > tr:nth-child(even) {
+    background: color-mix(in srgb, var(--background) 30%, var(--surface));
 }
 
+.server-data-table table.dataTable > tbody > tr:hover,
+.server-data-table table.dataTable > tbody > tr:nth-child(even):hover {
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+}
+
+/* ── Table cells ── */
 .server-data-table table.dataTable > tbody > tr > td {
-    border-bottom: 1px solid var(--border);
+    padding: .65rem 1rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     color: var(--text-primary);
     font-size: .8125rem;
     vertical-align: middle;
 }
 
+.server-data-table table.dataTable > tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+/* ── Info text ── */
 .server-data-table .dt-info {
-    color: var(--text-secondary);
-    font-size: .75rem;
+    color: var(--text-muted);
+    font-size: .72rem;
+}
+
+/* ── Pagination ── */
+.server-data-table .dt-paging {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
 }
 
 .server-data-table .dt-paging .dt-paging-button {
-    min-width: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 .5rem;
     border: 1px solid var(--border) !important;
-    border-radius: .55rem !important;
+    border-radius: .5rem !important;
     background: var(--surface) !important;
     color: var(--text-secondary) !important;
+    font-size: .75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
 }
 
-.server-data-table .dt-paging .dt-paging-button.current,
-.server-data-table .dt-paging .dt-paging-button:hover {
+.server-data-table .dt-paging .dt-paging-button:hover:not(.disabled) {
+    border-color: var(--primary) !important;
+    background: color-mix(in srgb, var(--primary) 8%, var(--surface)) !important;
+    color: var(--primary) !important;
+}
+
+.server-data-table .dt-paging .dt-paging-button.current {
     border-color: var(--primary) !important;
     background: var(--primary) !important;
-    color: white !important;
+    color: #fff !important;
+    font-weight: 700;
+}
+
+.server-data-table .dt-paging .dt-paging-button.disabled {
+    opacity: .35;
+    cursor: not-allowed;
+}
+
+/* ── Processing overlay ── */
+
+/* Positioning context = the inner container, so the overlay
+   covers only the table area (not the search/paging bars) */
+.server-data-table .dt-container {
+    position: relative;
+}
+
+/* Hide DataTables default animated-dots div */
+.server-data-table .dt-processing > div {
+    display: none !important;
 }
 
 .server-data-table .dt-processing {
-    border: 1px solid var(--border);
-    border-radius: .75rem;
-    background: var(--surface);
-    box-shadow: 0 12px 30px rgb(15 23 42 / .14);
-    color: var(--text-primary);
+    /* Cover only the table body — skip top + bottom control bars (~3.6rem each) */
+    position: absolute;
+    top: 3.6rem;
+    bottom: 3.6rem;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .85rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    backdrop-filter: blur(4px);
+    box-shadow: none;
+    z-index: 20;
+    transform: none;
 }
 
+.server-data-table .dt-processing:not([style*="display: none"]) {
+    display: flex !important;
+}
+
+.server-data-table .dt-processing[style*="display: none"] {
+    display: none !important;
+}
+
+/* Spinner ring */
+.sdt-spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 3px solid color-mix(in srgb, var(--primary) 18%, transparent);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: sdt-spin .65s linear infinite;
+    flex-shrink: 0;
+}
+
+/* Label below spinner */
+.sdt-spinner-label {
+    color: var(--text-secondary);
+    font-size: .78rem;
+    font-weight: 500;
+    letter-spacing: .025em;
+}
+
+@keyframes sdt-spin {
+    to { transform: rotate(360deg); }
+}
+
+
+
+/* ── Responsive collapsed rows ── */
+.server-data-table table.dataTable > tbody > tr.child {
+    background: color-mix(in srgb, var(--primary) 4%, var(--surface)) !important;
+}
+
+.server-data-table table.dataTable > tbody > tr.child td.child ul.dtr-details {
+    display: block;
+}
+
+/* ── Responsive breakpoint ── */
 @media (max-width: 640px) {
     .server-data-table .dt-layout-row {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .server-data-table .dt-layout-cell {
-        width: 100%;
+        flex-wrap: wrap;
+        gap: .5rem;
     }
 
     .server-data-table .dt-search,
     .server-data-table .dt-length {
+        width: 100%;
         justify-content: space-between;
     }
 
     .server-data-table .dt-search .dt-input {
         min-width: 0;
-        width: 100%;
+        flex: 1;
+    }
+
+    .server-data-table .dt-paging {
+        flex-wrap: wrap;
     }
 }
+
 
 .code,
 .identifier {

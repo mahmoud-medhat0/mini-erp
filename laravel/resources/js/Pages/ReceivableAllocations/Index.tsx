@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { PaginationLink, SharedPageProps } from '../../Types';
@@ -206,7 +206,7 @@ export default function ReceivableAllocationsIndex({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--text-secondary)]">{dict.app.pages.receivableAllocations.customer}</span>
-                  <span className="font-semibold">{selectedReceipt.customer?.name}</span>
+                  <span className="font-semibold">{getLocalizedName(selectedReceipt.customer?.name, locale)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[var(--text-secondary)]">{dict.app.pages.receivableAllocations.totalAmount}</span>
