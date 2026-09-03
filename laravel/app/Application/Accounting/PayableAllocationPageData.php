@@ -34,12 +34,34 @@ class PayableAllocationPageData
             $selectedPayment = SupplierPayment::query()->with('supplier')->find($paymentId);
 
             if ($selectedPayment) {
-                $openPayables = PayableEntry::query()
+                $entries = PayableEntry::query()
                     ->where('supplier_id', $selectedPayment->supplier_id)
                     ->where('currency', $selectedPayment->currency)
-                    ->where('unapplied_minor', '>', 0)
+                    ->whereRaw('credit_minor > debit_minor')
                     ->orderBy('entry_date', 'asc')
                     ->get();
+
+                $activeAllocations = PayableAllocation::query()
+                    ->whereIn('payable_entry_id', $entries->pluck('id'))
+                    ->where('status', 'active')
+                    ->selectRaw('payable_entry_id, SUM(amount_minor) as total_allocated')
+                    ->groupBy('payable_entry_id')
+                    ->pluck('total_allocated', 'payable_entry_id');
+
+                $openPayables = $entries->map(function (PayableEntry $entry) use ($activeAllocations): array {
+                    $originalMinor = max(0, $entry->credit_minor - $entry->debit_minor);
+                    $allocatedMinor = (int) ($activeAllocations[$entry->id] ?? 0);
+                    $unappliedMinor = max(0, $originalMinor - $allocatedMinor);
+
+                    return array_merge($entry->toArray(), [
+                        'original_amount_minor' => $originalMinor,
+                        'unapplied_minor' => $unappliedMinor,
+                        'remaining_minor' => $unappliedMinor,
+                    ]);
+                })
+                ->filter(fn (array $entry): bool => $entry['unapplied_minor'] > 0)
+                ->values()
+                ->toArray();
             }
         }
 

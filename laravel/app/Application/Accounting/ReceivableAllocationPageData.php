@@ -36,12 +36,34 @@ class ReceivableAllocationPageData
             $selectedReceipt = CustomerReceipt::query()->with('customer')->find($receiptId);
 
             if ($selectedReceipt) {
-                $openReceivables = ReceivableEntry::query()
+                $entries = ReceivableEntry::query()
                     ->where('customer_id', $selectedReceipt->customer_id)
                     ->where('currency', $selectedReceipt->currency)
-                    ->where('unapplied_minor', '>', 0)
+                    ->whereRaw('debit_minor > credit_minor')
                     ->orderBy('entry_date', 'asc')
                     ->get();
+
+                $activeAllocations = ReceivableAllocation::query()
+                    ->whereIn('receivable_entry_id', $entries->pluck('id'))
+                    ->where('status', 'active')
+                    ->selectRaw('receivable_entry_id, SUM(amount_minor) as total_allocated')
+                    ->groupBy('receivable_entry_id')
+                    ->pluck('total_allocated', 'receivable_entry_id');
+
+                $openReceivables = $entries->map(function (ReceivableEntry $entry) use ($activeAllocations): array {
+                    $originalMinor = max(0, $entry->debit_minor - $entry->credit_minor);
+                    $allocatedMinor = (int) ($activeAllocations[$entry->id] ?? 0);
+                    $unappliedMinor = max(0, $originalMinor - $allocatedMinor);
+
+                    return array_merge($entry->toArray(), [
+                        'original_amount_minor' => $originalMinor,
+                        'unapplied_minor' => $unappliedMinor,
+                        'remaining_minor' => $unappliedMinor,
+                    ]);
+                })
+                ->filter(fn (array $entry): bool => $entry['unapplied_minor'] > 0)
+                ->values()
+                ->toArray();
             }
         }
 

@@ -24,8 +24,9 @@
     --success-subtle: #dcfce7;
     --danger: #dc2626;
     --danger-subtle: #fee2e2;
-    --scrollbar-thumb: #cbd5e1;
-    --scrollbar-thumb-hover: #94a3b8;
+    --scrollbar-thumb: #94a3b8;
+    --scrollbar-thumb-hover: #64748b;
+    --scrollbar-track: rgba(0, 0, 0, 0.04);
 }
 
 [data-theme='dark'] {
@@ -42,8 +43,9 @@
     --success-subtle: #052e16;
     --danger: #ef4444;
     --danger-subtle: #450a0a;
-    --scrollbar-thumb: #334155;
-    --scrollbar-thumb-hover: #475569;
+    --scrollbar-thumb: #475569;
+    --scrollbar-thumb-hover: #64748b;
+    --scrollbar-track: rgba(255, 255, 255, 0.04);
 }
 
 html {
@@ -70,6 +72,29 @@ body {
 .server-data-table {
     color: var(--text-primary);
     font-size: .8125rem;
+    width: 100%;
+}
+
+.server-data-table .sdt-table-scroll {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+}
+
+.server-data-table .dt-scroll {
+    width: 100% !important;
+}
+
+.server-data-table .dt-scroll-body {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.server-data-table table.dataTable {
+    width: 100% !important;
+    margin: 0 !important;
 }
 
 /* ── Top/bottom control bars ── */
@@ -517,23 +542,23 @@ body {
 /* Global Custom Professional Scrollbar System */
 * {
     scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--scrollbar-track);
     border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
     background-color: var(--scrollbar-thumb);
     border-radius: 9999px;
-    border: 1px solid transparent;
+    border: 2px solid transparent;
     background-clip: content-box;
     transition: background-color 0.2s ease;
 }

@@ -109,6 +109,19 @@ export default function ServerDataTable({
         <span class="sdt-spinner-label">${dtDict.processing}</span>
       `,
     },
+    initComplete: function () {
+      try {
+        const tableNode = (this.api() as any).table().node();
+        if (tableNode && tableNode.parentElement && !tableNode.parentElement.classList.contains('sdt-table-scroll')) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'sdt-table-scroll w-full overflow-x-auto';
+          tableNode.parentNode.insertBefore(wrapper, tableNode);
+          wrapper.appendChild(tableNode);
+        }
+      } catch (err) {
+        // Fallback handled by useEffect
+      }
+    },
     layout: {
       topStart: null,
       topEnd: null,
@@ -118,7 +131,8 @@ export default function ServerDataTable({
     order,
     pageLength: currentPageLength,
     processing: true,
-    responsive: true,
+    responsive: false,
+    scrollX: false,
     search: initialSearch
       ? ({ search: initialSearch } as NonNullable<Config['search']> & { search: string })
       : undefined,
@@ -138,6 +152,27 @@ export default function ServerDataTable({
       }
     }
   };
+
+  useEffect(() => {
+    const wrapTable = () => {
+      if (dtRef.current) {
+        const dt = dtRef.current.dt ? dtRef.current.dt() : dtRef.current;
+        if (dt && typeof dt.table === 'function') {
+          const tableNode = dt.table().node();
+          if (tableNode && tableNode.parentElement && !tableNode.parentElement.classList.contains('sdt-table-scroll')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'sdt-table-scroll w-full overflow-x-auto';
+            tableNode.parentNode.insertBefore(wrapper, tableNode);
+            wrapper.appendChild(tableNode);
+          }
+        }
+      }
+    };
+
+    wrapTable();
+    const timer = setTimeout(wrapTable, 100);
+    return () => clearTimeout(timer);
+  }, [tableId]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -205,7 +240,7 @@ export default function ServerDataTable({
         id={tableId}
         options={options}
         slots={slots}
-        className="display responsive nowrap w-full"
+        className="display nowrap w-full"
       />
     </div>
   );
