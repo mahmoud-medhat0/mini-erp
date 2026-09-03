@@ -201,6 +201,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/coa/groups', [ChartOfAccountsController::class, 'storeGroup'])->middleware('permission.any:accounting.create,settings.configure')->name('accounting.coa.groups.store');
         Route::post('/coa/accounts', [ChartOfAccountsController::class, 'storeAccount'])->middleware('permission.any:accounting.create,settings.configure')->name('accounting.coa.accounts.store');
         Route::get('/journal', [JournalController::class, 'index'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.journal');
+        Route::get('/journal/data', [JournalController::class, 'datatable'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.journal.datatable');
         Route::get('/journal/create', [JournalController::class, 'create'])->middleware('permission.any:accounting.create,settings.configure')->name('accounting.journal.create');
         Route::post('/journal', [JournalController::class, 'store'])->middleware('permission.any:accounting.create,settings.configure')->name('accounting.journal.store');
         Route::get('/journal/{journalEntry}', [JournalController::class, 'show'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.journal.show');

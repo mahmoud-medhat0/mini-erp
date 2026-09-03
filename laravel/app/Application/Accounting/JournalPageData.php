@@ -9,31 +9,73 @@ use App\Models\Currency;
 use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
 use App\Models\Project;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
+use Yajra\DataTables\Facades\DataTables;
 
 class JournalPageData
 {
-    public function __construct(private readonly GeneralLedgerService $generalLedgerService) {}
-
     /**
+     * The grid streams its rows from {@see self::datatable()}; the index page
+     * itself no longer needs a paginated `journals` collection.
+     *
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     journals: LengthAwarePaginator,
      *     periods: EloquentCollection<int, FinancialPeriod>,
-     *     branches: EloquentCollection<int, Branch>,
      *     filters: array<string, mixed>
      * }
      */
     public function indexData(array $filters): array
     {
         return [
-            'journals' => $this->generalLedgerService->getGeneralJournal($filters),
-            'periods' => FinancialPeriod::query()->with('fiscalYear')->orderBy('start_date', 'desc')->get(),
-            'branches' => Branch::query()->orderBy('code')->get(['id', 'code', 'name', 'is_active']),
+            'periods' => FinancialPeriod::query()
+                ->with('fiscalYear:id,year')
+                ->orderBy('start_date', 'desc')
+                ->get(['id', 'month', 'status', 'start_date', 'end_date', 'fiscal_year_id']),
             'filters' => Arr::only($filters, ['status', 'period_id', 'start_date', 'end_date', 'branch_id']),
         ];
+    }
+
+    /**
+     * Server-side DataTables feed for the general journal grid.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $status = (string) ($filters['status'] ?? '');
+        $periodId = (string) ($filters['period_id'] ?? '');
+        $branchId = (string) ($filters['branch_id'] ?? '');
+        $startDate = (string) ($filters['start_date'] ?? '');
+        $endDate = (string) ($filters['end_date'] ?? '');
+
+        $query = JournalEntry::query()
+            ->with(['createdBy:id,name'])
+            ->when($status !== '', fn ($q) => $q->where('status', $status))
+            ->when($periodId !== '', fn ($q) => $q->where('financial_period_id', $periodId))
+            ->when($branchId !== '', function ($q) use ($branchId): void {
+                $q->where(function ($branchQuery) use ($branchId): void {
+                    $branchQuery->where('branch_id', $branchId)
+                        ->orWhereHas('lines', fn ($lineQuery) => $lineQuery->where('branch_id', $branchId));
+                });
+            })
+            ->when($startDate !== '', fn ($q) => $q->where('entry_date', '>=', $startDate))
+            ->when($endDate !== '', fn ($q) => $q->where('entry_date', '<=', $endDate))
+            ->orderByDesc('entry_date')
+            ->orderByDesc('created_at');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function ($q, $keyword): void {
+                $needle = '%'.$keyword.'%';
+                $q->where(function ($inner) use ($needle): void {
+                    $inner->where('number', 'like', $needle)
+                        ->orWhere('description', 'like', $needle)
+                        ->orWhere('reference', 'like', $needle);
+                });
+            })
+            ->addColumn('creator_name', fn ($row) => $row->createdBy?->name)
+            ->toJson();
     }
 
     /**

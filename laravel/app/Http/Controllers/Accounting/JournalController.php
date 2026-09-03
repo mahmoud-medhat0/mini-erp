@@ -9,6 +9,7 @@ use App\Application\Accounting\ReversalService;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
 use App\Models\JournalEntry;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,6 +31,13 @@ class JournalController extends Controller
         $this->authorizePermission($request, 'accounting.view');
 
         return Inertia::render('Accounting/GeneralJournal', $this->pageData->indexData($request->all()));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'accounting.view');
+
+        return $this->pageData->datatable($request->all());
     }
 
     public function create(Request $request): Response

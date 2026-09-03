@@ -91,8 +91,14 @@ class AccountingDemoSeederTest extends TestCase
         $responseJournal->assertOk();
         $responseJournal->assertInertia(fn ($page) => $page
             ->component('Accounting/GeneralJournal')
-            ->where('journals.data', [])
         );
+
+        // The grid streams its own rows now, so the empty state is asserted
+        // against the datatable feed rather than an inline `journals` prop.
+        $this->actingAs($user)
+            ->getJson(route('accounting.journal.datatable'))
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 0);
 
         // 3. Trial Balance
         $responseTb = $this->actingAs($user)->get(route('accounting.trial_balance'));
