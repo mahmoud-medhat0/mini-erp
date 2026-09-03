@@ -270,6 +270,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/treasury-transfers/{id}/cancel', [TreasuryTransferController::class, 'cancel'])->middleware('permission.any:cash.edit,banks.edit')->name('treasury-transfers.cancel');
 
     Route::get('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'index'])->middleware('can:customers.view')->name('customer-opening-balances.index');
+    Route::get('/customer-opening-balances/data', [CustomerOpeningBalanceController::class, 'datatable'])->middleware('can:customers.view')->name('customer-opening-balances.datatable');
     Route::post('/customer-opening-balances', [CustomerOpeningBalanceController::class, 'store'])->middleware('can:customers.opening_balances')->name('customer-opening-balances.store');
     Route::post('/customer-opening-balances/{id}/post', [CustomerOpeningBalanceController::class, 'post'])->middleware(['permission.all:customers.opening_balances,view_financials', 'sensitive.confirm'])->name('customer-opening-balances.post');
 
@@ -278,6 +279,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/supplier-opening-balances/{id}/post', [SupplierOpeningBalanceController::class, 'post'])->middleware(['permission.all:suppliers.opening_balances,view_financials', 'sensitive.confirm'])->name('supplier-opening-balances.post');
 
     Route::get('/customer-receipts', [CustomerReceiptController::class, 'index'])->middleware('can:customers.view')->name('customer-receipts.index');
+    Route::get('/customer-receipts/data', [CustomerReceiptController::class, 'datatable'])->middleware('can:customers.view')->name('customer-receipts.datatable');
     Route::post('/customer-receipts', [CustomerReceiptController::class, 'store'])->middleware('can:customers.receipts')->name('customer-receipts.store');
     Route::post('/customer-receipts/{id}/post', [CustomerReceiptController::class, 'post'])->middleware(['permission.all:customers.receipts,view_financials', 'sensitive.confirm'])->name('customer-receipts.post');
 
@@ -286,6 +288,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/supplier-payments/{id}/post', [SupplierPaymentController::class, 'post'])->middleware(['permission.all:suppliers.payments,view_financials', 'sensitive.confirm'])->name('supplier-payments.post');
 
     Route::get('/receivable-allocations', [ReceivableAllocationController::class, 'index'])->middleware('can:customers.view')->name('receivable-allocations.index');
+    Route::get('/receivable-allocations/data', [ReceivableAllocationController::class, 'datatable'])->middleware('can:customers.view')->name('receivable-allocations.datatable');
     Route::post('/receivable-allocations', [ReceivableAllocationController::class, 'store'])->middleware('can:customers.allocations')->name('receivable-allocations.store');
     Route::post('/receivable-allocations/{id}/reverse', [ReceivableAllocationController::class, 'reverse'])->middleware(['can:customers.allocations', 'sensitive.confirm'])->name('receivable-allocations.reverse');
 

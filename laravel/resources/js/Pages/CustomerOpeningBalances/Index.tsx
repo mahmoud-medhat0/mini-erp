@@ -1,11 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import { getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
 
@@ -24,6 +24,19 @@ type CustomerOBRow = {
   created_at: string;
 };
 
+/** Row shape served by /customer-opening-balances/data (flat, joined customer). */
+type CustomerOBTableRow = {
+  id: string;
+  customer_id: string;
+  customer_code: string;
+  customer_name: Record<string, string> | string;
+  entry_date: string;
+  reference?: string | null;
+  currency: string;
+  amount_minor: number;
+  status: 'draft' | 'posted';
+};
+
 type CustomerOBProps = SharedPageProps & {
   balances: {
     data: CustomerOBRow[];
@@ -37,7 +50,6 @@ type CustomerOBProps = SharedPageProps & {
 
 export default function CustomerOpeningBalancesIndex({
   locale,
-  balances,
   customers = [],
   fiscalYears = [],
   periods = [],
@@ -51,6 +63,7 @@ export default function CustomerOpeningBalancesIndex({
 
   const [showModal, setShowModal] = useState(false);
   const [postingBalanceId, setPostingBalanceId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     customer_id: '',
@@ -88,6 +101,85 @@ export default function CustomerOpeningBalancesIndex({
   const handlePost = (id: string) => {
     setPostingBalanceId(id);
   };
+
+  // ── grid configuration ────────────────────────────────────────────────────
+  const statusOptions = useMemo(() => ([
+    { value: 'draft', label: dict.app.pages.customerOpeningBalances.draft },
+    { value: 'posted', label: dict.app.pages.customerOpeningBalances.posted },
+  ]), [dict]);
+
+  // `name` is what slots target (datatables.net-react maps them via `<name>:name`),
+  // so it must equal the slot key. Ambiguous joined columns are disambiguated
+  // server-side with orderColumn overrides rather than a qualified name here.
+  const columns = useMemo(() => [
+    { data: 'customer_name', name: 'customer_name', title: dict.app.pages.customerOpeningBalances.customer },
+    { data: 'entry_date', name: 'entry_date', title: dict.app.pages.customerOpeningBalances.date, className: 'font-mono text-xs', width: '110px' },
+    { data: 'reference', name: 'reference', title: dict.app.pages.customerOpeningBalances.reference, className: 'font-mono text-xs' },
+    { data: 'currency', name: 'currency', title: dict.app.pages.customerOpeningBalances.currency, className: 'font-mono text-xs font-bold', width: '90px' },
+    { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.customerOpeningBalances.amount, searchable: false, className: 'text-end', width: '140px' },
+    { data: 'status', name: 'status', title: dict.app.pages.customerOpeningBalances.status, searchable: false, width: '100px' },
+    { data: 'id', name: 'id', title: dict.app.pages.customerOpeningBalances.actions, orderable: false, searchable: false, width: '110px', className: 'text-end' },
+  ], [dict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    // The feed sends the raw translations object, so the active locale wins here.
+    customer_name: (data: CustomerOBTableRow['customer_name'], row: CustomerOBTableRow): ReactElement => (
+      <div className="flex flex-col leading-tight">
+        <span className="font-semibold">{getLocalizedName(data, locale)}</span>
+        <span className="font-mono text-[11px] text-[var(--text-muted)]">{row.customer_code}</span>
+      </div>
+    ),
+    reference: (data: string | null): ReactElement => (
+      <span className="font-mono text-xs">{data || accDict.notAvailable}</span>
+    ),
+    amount_minor: (data: number, row: CustomerOBTableRow): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatMoney(data, row.currency)}</span>
+    ),
+    status: (data: string): ReactElement => (
+      <StatusBadge tone={data === 'posted' ? 'ok' : 'warning'}>
+        {data === 'posted' ? dict.app.pages.customerOpeningBalances.posted : dict.app.pages.customerOpeningBalances.draft}
+      </StatusBadge>
+    ),
+    id: (data: string, row: CustomerOBTableRow): ReactElement => (
+      row.status === 'draft' ? (
+        canPostOpeningBalance ? (
+          <button
+            type="button"
+            onClick={() => handlePost(data)}
+            title={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
+            aria-label={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
+            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+          >
+            {dict.app.pages.customerOpeningBalances.post}
+          </button>
+        ) : (
+          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+        )
+      ) : (
+        <span className="text-xs text-[var(--text-muted)] font-mono">{dict.app.pages.customerOpeningBalances.immutable}</span>
+      )
+    ),
+  } as unknown as DataTableSlots), [dict, accDict, locale, canPostOpeningBalance]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+
+  const toolbar = (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-xs font-bold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] whitespace-nowrap shrink-0">
+        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        <span>{dict.common.datatable.filterStatus}</span>
+      </div>
+      <SearchableSelect
+        options={[{ value: '', label: accDict.allStatuses }, ...statusOptions]}
+        value={statusFilter}
+        onChange={(v) => setStatusFilter(v || '')}
+        className="w-44"
+        isSearchable={false}
+      />
+    </div>
+  );
 
   const customerSelectOptions = customers.map((c) => ({
     value: c.id,
@@ -129,69 +221,19 @@ export default function CustomerOpeningBalancesIndex({
         }
       />
 
-      {balances.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.customerOpeningBalances.noOpeningBalancesFound}
-          description={dict.app.pages.customerOpeningBalances.getStartedByRecordingCustomerOpening}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/customer-opening-balances/data"
+          columns={columns}
+          filters={tableFilters}
+          locale={locale}
+          order={[[1, 'desc']]}
+          pageLength={25}
+          slots={slots}
+          tableId="customer-opening-balances-table"
+          toolbar={toolbar}
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.customer}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.date}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.reference}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.currency}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.amount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.status}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerOpeningBalances.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {balances.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-semibold`}>
-                    {row.customer ? `${row.customer.code} - ${getLocalizedName(row.customer.name, locale)}` : accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.entry_date}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.reference || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{row.currency}</td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatMoney(row.amount_minor, row.currency)}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={row.status === 'posted' ? 'ok' : 'warning'}>
-                      {row.status === 'posted' ? dict.app.pages.customerOpeningBalances.posted : dict.app.pages.customerOpeningBalances.draft}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {row.status === 'draft' ? (
-                        canPostOpeningBalance ? (
-                          <button
-                            type="button"
-                            onClick={() => handlePost(row.id)}
-                            title={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
-                            aria-label={dict.app.pages.customerOpeningBalances.confirmPostOpeningBalance}
-                            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                          >
-                            {dict.app.pages.customerOpeningBalances.post}
-                          </button>
-                        ) : (
-                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                        )
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)] font-mono">{dict.app.pages.customerOpeningBalances.immutable}</span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Modal Form */}
       {showModal ? (

@@ -3113,7 +3113,17 @@
         "pleaseEnterAtLeastOneValid_2": "Please enter at least one valid allocation amount.",
         "areYouSureYouWantTo_2": "Are you sure you want to reverse this allocation?",
         "processing_2": "Processing...",
-        "executeAllocation_2": "Execute Allocation"
+        "executeAllocation_2": "Execute New Allocation",
+        "filterByCustomer": "Filter by Customer:",
+        "selectPostedReceiptToAllocate": "Select Posted Receipt to Allocate:",
+        "chooseReceipt": "Choose receipt...",
+        "selectedReceiptNo": "Selected Receipt No",
+        "unappliedReceiptCredit": "Unapplied Receipt Credit",
+        "noOpenReceivablesInvoicesFoundForThisCustomerIn": "No open invoices found for this customer in this currency.",
+        "openReceivablesForAllocation": "Open Invoices & Receivables Available for Allocation",
+        "cannotAllocateMoreThanOpenBalance": "Cannot allocate an amount greater than the invoice open balance.",
+        "pleaseEnterAtLeastOneAmountToAllocate": "Please enter at least one allocation amount in the fields above.",
+        "totalAllocatedAmountExceedsReceiptUnapplied": "Total allocated amount exceeds the available receipt credit."
       },
       "receivableSettlements": {
         "headTitle": "AR Credit Settlement - Mini ERP",

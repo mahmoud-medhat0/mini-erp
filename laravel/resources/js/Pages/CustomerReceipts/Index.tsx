@@ -1,23 +1,24 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import { getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type CustomerReceiptRow = {
   id: string;
   number: string;
   customer_id: string;
-  customer?: { id: string; code: string; name: string };
+  customer_code?: string;
+  customer_name?: Record<string, string> | string;
   cash_account_id?: string | null;
-  cash_account?: { id: string; name: string };
+  cash_account_name?: Record<string, string> | string;
   bank_account_id?: string | null;
-  bank_account?: { id: string; name: string };
+  bank_account_name?: Record<string, string> | string;
   receipt_date: string;
   reference?: string | null;
   currency: string;
@@ -32,10 +33,6 @@ type CustomerReceiptRow = {
 type CashBankDestinationType = 'cash' | 'bank';
 
 type CustomerReceiptProps = SharedPageProps & {
-  receipts: {
-    data: CustomerReceiptRow[];
-    links: PaginationLink[];
-  };
   customers: Array<{ id: string; code: string; name: string }>;
   cashAccounts: Array<{ id: string; code: string; name: string }>;
   bankAccounts: Array<{ id: string; code: string; name: string }>;
@@ -50,7 +47,6 @@ function toCashBankDestinationType(value: string): CashBankDestinationType {
 
 export default function CustomerReceiptsIndex({
   locale,
-  receipts,
   customers = [],
   cashAccounts = [],
   bankAccounts = [],
@@ -67,6 +63,7 @@ export default function CustomerReceiptsIndex({
   const [showModal, setShowModal] = useState(false);
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
   const [postingReceiptId, setPostingReceiptId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     customer_id: '',
@@ -118,6 +115,101 @@ export default function CustomerReceiptsIndex({
   const periodSelectOptions = periods.map((p) => ({ value: p.id, label: p.name }));
   const currencyOptions = currencies.map((c) => ({ value: c.code, label: `${c.code} (${getLocalizedName(c.name, locale)})` }));
 
+  // ── DataTables columns ────────────────────────────────────────────────────
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: dict.app.pages.customerReceipts.receiptNo, className: 'font-mono font-bold text-xs', width: '130px' },
+    { data: 'customer_name', name: 'customer_name', title: dict.app.pages.customerReceipts.customer },
+    { data: 'receipt_date', name: 'receipt_date', title: dict.app.pages.customerReceipts.date, width: '110px' },
+    { data: 'destination', name: 'destination', title: dict.app.pages.customerReceipts.destination, orderable: false, searchable: false },
+    { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.customerReceipts.totalAmount, width: '120px' },
+    { data: 'unapplied_minor', name: 'unapplied_minor', title: dict.app.pages.customerReceipts.unapplied, width: '120px' },
+    { data: 'status', name: 'status', title: dict.app.pages.customerReceipts.status, searchable: false, width: '100px' },
+    { data: 'actions', name: 'actions', title: dict.app.pages.customerReceipts.actions, orderable: false, searchable: false, width: '90px', className: 'text-end' },
+  ], [dict]);
+
+  // ── DataTables slots ──────────────────────────────────────────────────────
+  const slots = useMemo<DataTableSlots>(() => ({
+    customer_name: (d: any, row: any) => (
+      <span className="font-semibold">
+        {row.customer_code ? `${row.customer_code} - ${getLocalizedName(d, locale)}` : getLocalizedName(d, locale) || accDict.notAvailable}
+      </span>
+    ),
+    receipt_date: (d: any) => <span className="font-mono text-xs">{d}</span>,
+    destination: (_d: any, row: any) => (
+      <span>
+        {row.cash_account_name
+          ? `${dict.app.pages.customerReceipts.cashAccount}: ${getLocalizedName(row.cash_account_name, locale)}`
+          : row.bank_account_name
+          ? `${dict.app.pages.customerReceipts.bankAccount}: ${getLocalizedName(row.bank_account_name, locale)}`
+          : accDict.notAvailable}
+      </span>
+    ),
+    amount_minor: (d: any, row: any) => <span className="font-mono font-bold text-xs">{formatMoney(d, row.currency)}</span>,
+    unapplied_minor: (d: any, row: any) => (
+      <span className={`font-mono text-xs font-bold ${Number(d) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+        {formatMoney(d, row.currency)}
+      </span>
+    ),
+    status: (d: any) => (
+      <StatusBadge tone={d === 'posted' ? 'ok' : 'warning'}>
+        {d === 'posted' ? dict.app.pages.customerReceipts.posted : dict.app.pages.customerReceipts.draft}
+      </StatusBadge>
+    ),
+    actions: (_d: any, row: any) => (
+      <div className="flex items-center justify-end gap-2">
+        {row.status === 'draft' ? (
+          canPostReceipt ? (
+            <button
+              type="button"
+              onClick={() => handlePost(row.id)}
+              title={dict.app.pages.customerReceipts.confirmPostReceipt}
+              aria-label={dict.app.pages.customerReceipts.confirmPostReceipt}
+              className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
+            >
+              {dict.app.pages.customerReceipts.post}
+            </button>
+          ) : (
+            <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+          )
+        ) : (
+          <Link
+            href={`/receivable-allocations?receipt_id=${row.id}`}
+            title={dict.app.pages.customerReceipts.allocate}
+            aria-label={dict.app.pages.customerReceipts.allocate}
+            className="text-xs font-bold text-[var(--primary)] hover:underline"
+          >
+            {dict.app.pages.customerReceipts.allocate}
+          </Link>
+        )}
+      </div>
+    ),
+  } as Record<string, (data: any, row: any) => ReactElement>), [dict, accDict, locale, canPostReceipt]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+
+  const statusOptions = [
+    { value: 'draft', label: dict.app.pages.customerReceipts.draft },
+    { value: 'posted', label: dict.app.pages.customerReceipts.posted },
+  ];
+
+  const toolbar = (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] text-xs font-bold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] whitespace-nowrap shrink-0">
+        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        <span>{dict.common.datatable.filterStatus}</span>
+      </div>
+      <SearchableSelect
+        options={[{ value: '', label: locale === 'ar' ? 'جميع الحالات' : 'All Statuses' }, ...statusOptions]}
+        value={statusFilter}
+        onChange={(v) => setStatusFilter(v || '')}
+        className="w-44"
+        isSearchable={false}
+      />
+    </div>
+  );
+
   return (
     <AppLayout active="customer-receipts.index">
       <Head title={dict.app.pages.customerReceipts.customerReceiptsMiniErp} />
@@ -143,86 +235,19 @@ export default function CustomerReceiptsIndex({
         }
       />
 
-      {receipts.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.customerReceipts.noCustomerReceiptsFound}
-          description={dict.app.pages.customerReceipts.getStartedByCreatingYourFirst}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/customer-receipts/data"
+          columns={columns}
+          filters={tableFilters}
+          locale={locale}
+          order={[[0, 'desc']]}
+          pageLength={25}
+          slots={slots}
+          tableId="customer-receipts-data-table"
+          toolbar={toolbar}
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.receiptNo}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.customer}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.date}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.destination}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.totalAmount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.unapplied}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.status}</th>
-                <th className={tableClasses.th}>{dict.app.pages.customerReceipts.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {receipts.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.number}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>
-                    {row.customer ? `${row.customer.code} - ${getLocalizedName(row.customer.name, locale)}` : accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.receipt_date}</td>
-                  <td className={tableClasses.td}>
-                    {row.cash_account
-                      ? `${dict.app.pages.customerReceipts.cashAccount}: ${getLocalizedName(row.cash_account.name, locale)}`
-                      : row.bank_account
-                      ? `${dict.app.pages.customerReceipts.bankAccount}: ${getLocalizedName(row.bank_account.name, locale)}`
-                      : accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatMoney(row.amount_minor, row.currency)}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold ${row.unapplied_minor > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                    {formatMoney(row.unapplied_minor, row.currency)}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={row.status === 'posted' ? 'ok' : 'warning'}>
-                      {row.status === 'posted' ? dict.app.pages.customerReceipts.posted : dict.app.pages.customerReceipts.draft}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {row.status === 'draft' ? (
-                        canPostReceipt ? (
-                          <button
-                            type="button"
-                            onClick={() => handlePost(row.id)}
-                            title={dict.app.pages.customerReceipts.confirmPostReceipt}
-                            aria-label={dict.app.pages.customerReceipts.confirmPostReceipt}
-                            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
-                          >
-                            {dict.app.pages.customerReceipts.post}
-                          </button>
-                        ) : (
-                          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                        )
-                      ) : (
-                        <Link
-                          href={`/receivable-allocations?receipt_id=${row.id}`}
-                          title={dict.app.pages.customerReceipts.allocate}
-                          aria-label={dict.app.pages.customerReceipts.allocate}
-                          className="text-xs font-bold text-[var(--primary)] hover:underline"
-                        >
-                          {dict.app.pages.customerReceipts.allocate}
-                        </Link>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Modal Form */}
       {showModal ? (
