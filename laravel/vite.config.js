@@ -9,21 +9,18 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks(id) {
-                    if (id.includes('/resources/js/locales/')) {
-                        return 'locales';
-                    }
+                    // Each locale is its own chunk so a user only downloads the
+                    // language they actually use (not both ar + en at once).
+                    if (id.includes('/resources/js/locales/ar.json')) return 'locale-ar';
+                    if (id.includes('/resources/js/locales/en.json')) return 'locale-en';
 
-                    if (id.includes('/node_modules/datatables.net')) {
-                        return 'datatables';
-                    }
+                    if (id.includes('/node_modules/datatables.net')) return 'datatables';
+                    if (id.includes('/node_modules/@inertiajs/'))     return 'inertia';
 
-                    if (id.includes('/node_modules/@inertiajs/')) {
-                        return 'inertia';
-                    }
-
-                    if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) {
-                        return 'react-vendor';
-                    }
+                    if (
+                        id.includes('/node_modules/react/') ||
+                        id.includes('/node_modules/react-dom/')
+                    ) return 'react-vendor';
                 },
             },
         },

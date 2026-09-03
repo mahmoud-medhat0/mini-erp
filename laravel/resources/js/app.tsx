@@ -5,12 +5,15 @@ import type { ResolvedComponent } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 
-import { syncDomLocale } from './lib/i18n';
+import { loadLocale, syncDomLocale } from './lib/i18n';
 
 // Synchronize locale and direction with HTML element on client navigation & requests
 router.on('navigate', (event) => {
   const pageProps = event.detail.page.props as { locale?: string; direction?: string };
   syncDomLocale(pageProps?.locale, pageProps?.direction);
+  if (pageProps?.locale) {
+    loadLocale(pageProps.locale);
+  }
 });
 
 router.on('success', (event) => {
