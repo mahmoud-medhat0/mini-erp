@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Card, EmptyState, PageHeader, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney } from '../../lib/accountingHelpers';
+import { formatDate, formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
@@ -153,7 +153,7 @@ export default function BankReconciliationShow({
 
       <PageHeader
         title={interpolate(dict.app.pages.bankReconciliationsShow.workspaceTitle, { name: reconciliation.bankAccount?.name || '' })}
-        description={interpolate(dict.app.pages.bankReconciliationsShow.periodRange, { from: reconciliation.date_from, to: reconciliation.date_to })}
+        description={interpolate(dict.app.pages.bankReconciliationsShow.periodRange, { from: formatDate(reconciliation.date_from), to: formatDate(reconciliation.date_to) })}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {canEditReconciliation ? (

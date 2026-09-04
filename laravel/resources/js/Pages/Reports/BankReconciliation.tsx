@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
+import { Button, Card, PageHeader, StatusBadge } from '../../Components/Primitives';
+import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
@@ -141,15 +141,13 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
                 <tr key={recon.id} className="hover:bg-[var(--background)]/30">
                   <td className="p-3 font-bold">{recon.bank_account.code} - {getLocalizedName(recon.bank_account.name, locale)}</td>
                   <td className="p-3 font-mono">{recon.statement_reference}</td>
-                  <td className="p-3 text-[var(--text-secondary)]">{recon.date_from} → {recon.date_to}</td>
+                  <td className="p-3 text-[var(--text-secondary)]">{formatDate(recon.date_from)} → {formatDate(recon.date_to)}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                      recon.status === 'reconciled'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : 'bg-amber-100 text-amber-800 border border-amber-300'
-                    }`}>
-                      {recon.status.toUpperCase()}
-                    </span>
+                    <StatusBadge tone={recon.status === 'reconciled' ? 'ok' : 'warning'}>
+                      {recon.status === 'reconciled'
+                        ? dict.app.pages.reportsBankReconciliation.reconciled
+                        : dict.app.pages.reportsBankReconciliation.draft}
+                    </StatusBadge>
                   </td>
                   <td className="p-3 text-end font-mono">
                     {recon.summary.matched_statement_lines_count} / {recon.summary.total_statement_lines_count}

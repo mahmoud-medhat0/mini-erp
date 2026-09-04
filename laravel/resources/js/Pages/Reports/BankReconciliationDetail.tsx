@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, PageHeader } from '../../Components/Primitives';
-import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
+import { Button, Card, PageHeader, StatusBadge } from '../../Components/Primitives';
+import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary, interpolate } from '../../lib/i18n';
@@ -63,7 +63,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
 
       <PageHeader
         title={interpolate(dict.app.pages.bankReconciliationDetail.reportTitle, { ref: reconciliation.statement_reference })}
-        description={`${reconciliation.bank_account.code} - ${getLocalizedName(reconciliation.bank_account.name, locale)} (${reconciliation.date_from} → ${reconciliation.date_to})`}
+        description={`${reconciliation.bank_account.code} - ${getLocalizedName(reconciliation.bank_account.name, locale)} (${formatDate(reconciliation.date_from)} → ${formatDate(reconciliation.date_to)})`}
         actions={
           <div className="flex items-center gap-3">
             {canPrint ? (
@@ -101,13 +101,11 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
           <div className="bg-[var(--card)] p-3 rounded-lg border border-[var(--border-color)]">
             <div className="text-xs text-[var(--text-secondary)] mb-1">{dict.app.pages.reportsBankReconciliationDetail.reconStatus}</div>
             <div className="text-sm font-bold text-[var(--text-primary)]">
-              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                reconciliation.status === 'reconciled'
-                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                  : 'bg-amber-100 text-amber-800 border border-amber-300'
-              }`}>
-                {reconciliation.status.toUpperCase()}
-              </span>
+              <StatusBadge tone={reconciliation.status === 'reconciled' ? 'ok' : 'warning'}>
+                {reconciliation.status === 'reconciled'
+                  ? dict.app.pages.reportsBankReconciliation.reconciled
+                  : dict.app.pages.reportsBankReconciliation.draft}
+              </StatusBadge>
             </div>
           </div>
         </div>
@@ -133,7 +131,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
 
                 return (
                   <tr key={line.id} className="hover:bg-[var(--background)]/30">
-                    <td className="p-3 font-mono">{line.statement_date}</td>
+                    <td className="p-3 font-mono">{formatDate(line.statement_date)}</td>
                     <td className="p-3">
                       <div className="font-semibold">{line.reference}</div>
                       <div className="text-[var(--text-secondary)] text-[11px]">{line.description}</div>
@@ -147,7 +145,7 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
                           <span className="font-mono font-bold text-blue-600">
                             {line.matched_ledger_entry.journal_number || dict.app.pages.reportsBankReconciliationDetail.missingGlJournalReference}
                           </span>
-                          <span className="text-[var(--text-secondary)] ms-2">({line.matched_ledger_entry.entry_date})</span>
+                          <span className="text-[var(--text-secondary)] ms-2">({formatDate(line.matched_ledger_entry.entry_date)})</span>
                         </div>
                       ) : (
                         <span className="text-slate-400 italic">{dict.app.pages.reportsBankReconciliationDetail.unmatched}</span>

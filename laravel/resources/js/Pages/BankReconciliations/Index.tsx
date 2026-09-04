@@ -1,9 +1,9 @@
-﻿import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
-import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
+import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
@@ -180,7 +180,7 @@ export default function BankReconciliationsIndex({
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>{row.statement_reference || accDict.notAvailable}</td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>
-                    {row.date_from} → {row.date_to}
+                    {formatDate(row.date_from)} → {formatDate(row.date_to)}
                   </td>
                   <td className={`${tableClasses.td} font-mono text-xs`}>
                     {formatBankAmount(row.statement_opening_balance_minor, row.bank_account?.currency)}
