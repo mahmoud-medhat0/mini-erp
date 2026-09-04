@@ -1,11 +1,11 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
-import type { PaginationLink } from '../../Types';
 
 type CategoryOption = {
   id: string;
@@ -36,13 +36,10 @@ type AssetRow = {
 };
 
 type IndexProps = SharedPageProps & {
-  assets: {
-    data: AssetRow[];
-    links: PaginationLink[];
-  };
+  assets?: any;
   categories: CategoryOption[];
-  branches: Array<{ id: string; code: string; name: Record<string, string> | string }>;
-  locations: Array<{ id: string; code: string; name: Record<string, string> | string }>;
+  branches?: Array<{ id: string; code: string; name: Record<string, string> | string }>;
+  locations?: Array<{ id: string; code: string; name: Record<string, string> | string }>;
   filters: {
     search?: string;
     category_id?: string;
@@ -61,75 +58,234 @@ type IndexProps = SharedPageProps & {
   };
 };
 
-export default function FixedAssetsIndex({ locale, assets, categories, branches = [], locations = [], filters, can }: IndexProps) {
+export default function FixedAssetsIndex({
+  locale,
+  categories = [],
+  branches = [],
+  locations = [],
+  filters = {},
+  can = { create: false, edit: false, delete: false, post: false, transfer: false, export: false, view_financials: false },
+}: IndexProps) {
   const dict = getDictionary(locale);
   const appDict = dict.app.accounting;
 
-  const [search, setSearch] = useState(filters.search || '');
   const [selectedCat, setSelectedCat] = useState(filters.category_id || '');
   const [selectedStatus, setSelectedStatus] = useState(filters.status || '');
   const [selectedBranch, setSelectedBranch] = useState(filters.branch_id || '');
   const [selectedLocation, setSelectedLocation] = useState(filters.location_id || '');
-  const categoryOptions = useMemo(() => categories.map((cat) => ({
-    value: cat.id,
-    label: `${formatName(cat.name)} (${cat.code})`,
-  })), [categories, locale]);
-  const branchOptions = useMemo(() => branches.map((branch) => ({
-    value: branch.id,
-    label: `${branch.code} - ${getLocalizedName(branch.name, locale)}`,
-  })), [branches, locale]);
-  const locationOptions = useMemo(() => locations.map((location) => ({
-    value: location.id,
-    label: `${location.code} - ${getLocalizedName(location.name, locale)}`,
-  })), [locations, locale]);
-  const statusOptions = [
+
+  const categoryOptions = useMemo(() => [
+    { value: '', label: appDict.allAssetCategories },
+    ...categories.map((cat) => ({
+      value: cat.id,
+      label: `${getLocalizedName(cat.name, locale)} (${cat.code})`,
+    })),
+  ], [categories, locale, appDict.allAssetCategories]);
+
+  const branchOptions = useMemo(() => [
+    { value: '', label: appDict.allBranches },
+    ...branches.map((branch) => ({
+      value: branch.id,
+      label: `${branch.code} - ${getLocalizedName(branch.name, locale)}`,
+    })),
+  ], [branches, locale, appDict.allBranches]);
+
+  const locationOptions = useMemo(() => [
+    { value: '', label: appDict.allAssetLocations },
+    ...locations.map((location) => ({
+      value: location.id,
+      label: `${location.code} - ${getLocalizedName(location.name, locale)}`,
+    })),
+  ], [locations, locale, appDict.allAssetLocations]);
+
+  const statusOptions = useMemo(() => [
+    { value: '', label: appDict.allStatuses },
     { value: 'draft', label: appDict.fixedAssetStatusDraft },
     { value: 'active', label: appDict.fixedAssetStatusActive },
     { value: 'fully_depreciated', label: appDict.fixedAssetStatusFullyDepreciated },
     { value: 'disposed', label: appDict.fixedAssetStatusDisposed },
-  ];
-  const activeFilterCount = [search, selectedCat, selectedStatus, selectedBranch, selectedLocation].filter(Boolean).length;
+  ], [appDict]);
 
-  function handleFilter() {
-    router.get('/fixed-assets', {
-      search,
-      category_id: selectedCat,
-      status: selectedStatus,
-      branch_id: selectedBranch,
-      location_id: selectedLocation,
-    }, { preserveState: true, preserveScroll: true });
-  }
+  const extraFilters = useMemo(() => ({
+    category_id: selectedCat,
+    status: selectedStatus,
+    branch_id: selectedBranch,
+    location_id: selectedLocation,
+  }), [selectedCat, selectedStatus, selectedBranch, selectedLocation]);
 
-  function clearFilters() {
-    setSearch('');
-    setSelectedCat('');
-    setSelectedStatus('');
-    setSelectedBranch('');
-    setSelectedLocation('');
-    router.get('/fixed-assets', {}, { preserveState: true, preserveScroll: true });
-  }
-
-  function formatName(name: { en: string; ar: string } | string): string {
-    if (typeof name === 'object' && name !== null) {
-      return locale === 'ar' ? name.ar || name.en : name.en || name.ar;
-    }
-    return String(name);
-  }
-
-  function formatStatus(status: string): { label: string; className: string } {
+  function getStatusTone(status: string): 'ok' | 'warning' | 'info' | 'muted' {
     switch (status) {
       case 'active':
-        return { label: appDict.fixedAssetStatusActive, className: 'bg-emerald-100 text-emerald-800' };
+        return 'ok';
       case 'draft':
-        return { label: appDict.fixedAssetStatusDraft, className: 'bg-amber-100 text-amber-800' };
+        return 'warning';
       case 'fully_depreciated':
-        return { label: appDict.fixedAssetStatusFullyDepreciated, className: 'bg-blue-100 text-blue-800' };
+        return 'info';
       case 'disposed':
-        return { label: appDict.fixedAssetStatusDisposed, className: 'bg-slate-100 text-slate-800' };
       default:
-        return { label: appDict.statusUnknown, className: 'bg-slate-100 text-slate-800' };
+        return 'muted';
     }
   }
+
+  function getStatusLabel(status: string): string {
+    switch (status) {
+      case 'active':
+        return appDict.fixedAssetStatusActive;
+      case 'draft':
+        return appDict.fixedAssetStatusDraft;
+      case 'fully_depreciated':
+        return appDict.fixedAssetStatusFullyDepreciated;
+      case 'disposed':
+        return appDict.fixedAssetStatusDisposed;
+      default:
+        return status;
+    }
+  }
+
+  const columns = useMemo(
+    () => [
+      {
+        data: 'asset_number',
+        name: 'asset_number',
+        title: appDict.assetNumber,
+        className: 'font-mono text-sm',
+      },
+      {
+        data: 'name_text',
+        name: 'name_text',
+        title: appDict.name,
+      },
+      {
+        data: 'category_name',
+        name: 'category_name',
+        title: appDict.assetCategory,
+      },
+      {
+        data: 'branch_name',
+        name: 'branch_name',
+        title: appDict.branch,
+      },
+      {
+        data: 'location_name',
+        name: 'location_name',
+        title: appDict.assetLocation,
+      },
+      {
+        data: 'acquisition_date',
+        name: 'acquisition_date',
+        title: appDict.acquisitionDate,
+      },
+      {
+        data: 'cost_minor',
+        name: 'cost_minor',
+        title: appDict.cost,
+      },
+      {
+        data: 'status',
+        name: 'status',
+        title: appDict.status,
+      },
+      {
+        data: 'id',
+        name: 'id',
+        title: appDict.actions,
+        orderable: false,
+        searchable: false,
+      },
+    ],
+    [appDict],
+  );
+
+  const slots: DataTableSlots = useMemo(
+    () => ({
+      asset_number: (_data: any, _type: any, row: AssetRow) => (
+        <Link
+          href={`/fixed-assets/${row.id}`}
+          className="font-mono text-sm text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold"
+        >
+          {row.asset_number}
+        </Link>
+      ),
+      name_text: (_data: any, _type: any, row: AssetRow) => getLocalizedName(row.name, locale),
+      category_name: (_data: any, _type: any, row: AssetRow) => (row.category ? getLocalizedName(row.category.name, locale) : appDict.notAvailable),
+      branch_name: (_data: any, _type: any, row: AssetRow) => (row.branch ? `${row.branch.code} - ${getLocalizedName(row.branch.name, locale)}` : appDict.notAssigned),
+      location_name: (_data: any, _type: any, row: AssetRow) => (row.location ? `${row.location.code} - ${getLocalizedName(row.location.name, locale)}` : appDict.notAssigned),
+      cost_minor: (_data: any, _type: any, row: AssetRow) => (can.view_financials ? formatMoney(row.cost_minor, row.currency) : appDict.restrictedValue),
+      status: (_data: any, _type: any, row: AssetRow) => (
+        <StatusBadge tone={getStatusTone(row.status)}>
+          {getStatusLabel(row.status)}
+        </StatusBadge>
+      ),
+      id: (_data: any, _type: any, row: AssetRow) => (
+        <div className="flex items-center gap-2.5">
+          <Link
+            href={`/fixed-assets/${row.id}`}
+            className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>{appDict.view}</span>
+          </Link>
+          {can.edit && row.status === 'draft' && (
+            <Link
+              href={`/fixed-assets/${row.id}/edit`}
+              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span>{appDict.editFixedAsset}</span>
+            </Link>
+          )}
+        </div>
+      ),
+    }),
+    [locale, can, appDict],
+  );
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-52 shrink-0">
+        <SearchableSelect
+          value={selectedCat}
+          options={categoryOptions}
+          onChange={(val) => setSelectedCat(val || '')}
+          placeholder={appDict.allAssetCategories}
+          isClearable={false}
+        />
+      </div>
+      <div className="w-40 shrink-0">
+        <SearchableSelect
+          value={selectedStatus}
+          options={statusOptions}
+          onChange={(val) => setSelectedStatus(val || '')}
+          placeholder={appDict.allStatuses}
+          isClearable={false}
+          isSearchable={false}
+        />
+      </div>
+      <div className="w-48 shrink-0">
+        <SearchableSelect
+          value={selectedBranch}
+          options={branchOptions}
+          onChange={(val) => setSelectedBranch(val || '')}
+          placeholder={appDict.allBranches}
+          isClearable={false}
+        />
+      </div>
+      <div className="w-48 shrink-0">
+        <SearchableSelect
+          value={selectedLocation}
+          options={locationOptions}
+          onChange={(val) => setSelectedLocation(val || '')}
+          placeholder={appDict.allAssetLocations}
+          isClearable={false}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <AppLayout active="fixed-assets.index">
@@ -140,16 +296,16 @@ export default function FixedAssetsIndex({ locale, assets, categories, branches 
           title={appDict.fixedAssets}
           description={appDict.fixedAssets}
           actions={
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <div className="flex items-center gap-2.5">
               <Link
                 href="/fixed-asset-categories"
-                className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+                className="px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
               >
                 {appDict.fixedAssetCategories}
               </Link>
               <Link
                 href="/fixed-asset-locations"
-                className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+                className="px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
               >
                 {appDict.fixedAssetLocations}
               </Link>
@@ -165,99 +321,14 @@ export default function FixedAssetsIndex({ locale, assets, categories, branches 
           }
         />
 
-        <Card>
-          <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap gap-4 items-center">
-            <input
-              type="text"
-              placeholder={appDict.searchFixedAssetsPlaceholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-            />
-            <SearchableSelect options={[{ value: '', label: appDict.allAssetCategories }, ...categoryOptions]} value={selectedCat || null} onChange={(value) => setSelectedCat(value || '')} label={appDict.assetCategory} />
-            <SearchableSelect options={[{ value: '', label: appDict.allStatuses }, ...statusOptions]} value={selectedStatus || null} onChange={(value) => setSelectedStatus(value || '')} label={appDict.status} />
-            <SearchableSelect options={[{ value: '', label: appDict.allBranches }, ...branchOptions]} value={selectedBranch || null} onChange={(value) => setSelectedBranch(value || '')} label={appDict.branch} />
-            <SearchableSelect options={[{ value: '', label: appDict.allAssetLocations }, ...locationOptions]} value={selectedLocation || null} onChange={(value) => setSelectedLocation(value || '')} label={appDict.assetLocation} />
-            <Button onClick={handleFilter}>{appDict.filter}</Button>
-            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{appDict.clearFilters}</Button>
-          </div>
-
-          {assets.data.length === 0 ? (
-            <EmptyState
-              title={appDict.noFixedAssets}
-              description={appDict.noFixedAssets}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className={tableClasses.table}>
-                <thead>
-                  <tr>
-                    <th className={tableClasses.th}>{appDict.assetNumber}</th>
-                    <th className={tableClasses.th}>{appDict.name}</th>
-                    <th className={tableClasses.th}>{appDict.assetCategory}</th>
-                    <th className={tableClasses.th}>{appDict.branch}</th>
-                    <th className={tableClasses.th}>{appDict.assetLocation}</th>
-                    <th className={tableClasses.th}>{appDict.acquisitionDate}</th>
-                    <th className={tableClasses.th}>{appDict.cost}</th>
-                    <th className={tableClasses.th}>{appDict.status}</th>
-                    <th className={tableClasses.th}>{appDict.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assets.data.map((asset) => {
-                    const st = formatStatus(asset.status);
-                    return (
-                      <tr key={asset.id}>
-                        <td className={`${tableClasses.td} font-mono`}>
-                          <Link href={`/fixed-assets/${asset.id}`} className="text-indigo-600 hover:text-indigo-900 font-mono">
-                            {asset.asset_number}
-                          </Link>
-                        </td>
-                        <td className={tableClasses.td}>{formatName(asset.name)}</td>
-                        <td className={tableClasses.td}>
-                          {asset.category ? formatName(asset.category.name) : appDict.notAvailable}
-                        </td>
-                        <td className={tableClasses.td}>
-                          {asset.branch ? `${asset.branch.code} - ${getLocalizedName(asset.branch.name, locale)}` : appDict.notAssigned}
-                        </td>
-                        <td className={tableClasses.td}>
-                          {asset.location ? `${asset.location.code} - ${getLocalizedName(asset.location.name, locale)}` : appDict.notAssigned}
-                        </td>
-                        <td className={tableClasses.td}>{asset.acquisition_date}</td>
-                        <td className={tableClasses.td}>
-                          {can.view_financials ? formatMoney(asset.cost_minor, asset.currency) : appDict.restrictedValue}
-                        </td>
-                        <td className={tableClasses.td}>
-                          <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${st.className}`}>
-                            {st.label}
-                          </span>
-                        </td>
-                        <td className={tableClasses.td}>
-                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                            <Link
-                              href={`/fixed-assets/${asset.id}`}
-                              className="text-xs font-medium text-slate-600 hover:text-slate-900"
-                            >
-                              {appDict.view}
-                            </Link>
-                            {can.edit && (
-                              <Link
-                                href={`/fixed-assets/${asset.id}/edit`}
-                                className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
-                              >
-                                {appDict.editFixedAsset}
-                              </Link>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <ServerDataTable
+          ajaxUrl="/fixed-assets/data"
+          columns={columns}
+          slots={slots}
+          toolbar={toolbar}
+          filters={extraFilters}
+          locale={locale}
+        />
       </div>
     </AppLayout>
   );

@@ -669,6 +669,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/fixed-asset-locations/{id}', [FixedAssetLocationController::class, 'destroy'])->middleware('can:fixedAssets.delete')->name('fixed-asset-locations.destroy');
 
     Route::get('/fixed-assets', [FixedAssetController::class, 'index'])->middleware('can:fixedAssets.view')->name('fixed-assets.index');
+    Route::get('/fixed-assets/data', [FixedAssetController::class, 'datatable'])->middleware('can:fixedAssets.view')->name('fixed-assets.datatable');
     Route::get('/fixed-assets/create', [FixedAssetController::class, 'create'])->middleware('can:fixedAssets.create')->name('fixed-assets.create');
     Route::post('/fixed-assets', [FixedAssetController::class, 'store'])->middleware('can:fixedAssets.create')->name('fixed-assets.store');
     Route::get('/fixed-assets/{id}', [FixedAssetController::class, 'show'])->middleware('can:fixedAssets.view')->name('fixed-assets.show');

@@ -6,6 +6,7 @@ use App\Application\FixedAssets\FixedAssetPageData;
 use App\Application\FixedAssets\FixedAssetRegisterService;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +28,13 @@ class FixedAssetController extends Controller
         $filters = $request->only(['search', 'category_id', 'status', 'branch_id', 'location_id']);
 
         return Inertia::render('FixedAssets/Index', $this->pageData->indexData($filters, $request->user()));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+
+        return $this->pageData->datatable($request->only(['category_id', 'status', 'branch_id', 'location_id']));
     }
 
     public function create(Request $request): Response
