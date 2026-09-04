@@ -55,13 +55,13 @@ export default function ChequeRegisterDataTable({ filters, labels, locale }: Che
     party_name: (data, row) => (
       <div className="flex items-center gap-2">
         <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold ${row.direction === 'incoming' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300'}`}>
-          {String(row.direction).toUpperCase()}
+          {row.direction === 'incoming' ? (locale === 'ar' ? 'وارد' : 'INCOMING') : (locale === 'ar' ? 'صادر' : 'OUTGOING')}
         </span>
         <span className="font-semibold">{row.party_code} - {getLocalizedName(data, locale)}</span>
       </div>
     ),
     cheque_number: (data) => <span className="font-mono font-bold">{String(data)}</span>,
-    due_date: (data) => <span className="font-mono">{String(data)}</span>,
+    due_date: (data) => <span className="font-mono">{data ? String(data).split('T')[0] : ''}</span>,
     bank_account_name: (data, row) => (
       <span className="text-[var(--text-secondary)]">
         {row.bank_account_code ? `${row.bank_account_code} - ` : ''}{getLocalizedName(data, locale)}
