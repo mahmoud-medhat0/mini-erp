@@ -87,6 +87,7 @@ use App\Http\Controllers\Reports\CostCenterActualsReportController;
 use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
 use App\Http\Controllers\Reports\DeliveryNoteReportController;
+use App\Http\Controllers\Reports\FinancialRatiosReportController;
 use App\Http\Controllers\Reports\FixedAssetReportController;
 use App\Http\Controllers\Reports\GoodsReceiptReportController;
 use App\Http\Controllers\Reports\IncomeStatementReportController;
@@ -417,6 +418,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/income-statement/export', [IncomeStatementReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.income_statement.export');
         Route::get('/cash-flow', [CashFlowReportController::class, 'index'])->name('reports.cash_flow');
         Route::get('/cash-flow/export', [CashFlowReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.cash_flow.export');
+        Route::get('/financial-ratios', [FinancialRatiosReportController::class, 'index'])->name('reports.financial-ratios');
+        Route::get('/financial-ratios/export', [FinancialRatiosReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.financial-ratios.export');
 
         // Phase 7 Slice 5 VAT Reports
         Route::get('/vat-register', [VatReportController::class, 'register'])->middleware('can:view_financials')->name('reports.vat-register');

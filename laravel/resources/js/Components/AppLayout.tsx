@@ -105,6 +105,7 @@ export type NavKey =
   | 'reports.balance_sheet'
   | 'reports.income_statement'
   | 'reports.cash_flow'
+  | 'reports.financial-ratios'
   | 'reports.ar-gl-reconciliation'
   | 'reports.ap-gl-reconciliation'
   | 'reports.vat-register'
@@ -341,6 +342,7 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'reports.balance_sheet': 'view_financials',
   'reports.income_statement': 'view_financials',
   'reports.cash_flow': 'view_financials',
+  'reports.financial-ratios': 'view_financials',
   'reports.branch-operations': 'view_financials',
   'reports.branch-profitability': 'view_financials',
   'reports.rentals': 'view_financials',
@@ -1664,6 +1666,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'reports.balance_sheet' as NavKey, href: '/reports/balance-sheet', label: accDict.balanceSheet },
                         { key: 'reports.income_statement' as NavKey, href: '/reports/income-statement', label: accDict.incomeStatement },
                         { key: 'reports.cash_flow' as NavKey, href: '/reports/cash-flow', label: accDict.cashFlowStatement },
+                        { key: 'reports.financial-ratios' as NavKey, href: '/reports/financial-ratios', label: accDict.financialRatios },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (

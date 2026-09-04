@@ -138,6 +138,66 @@ class FinancialStatementCsvExporter
     }
 
     /**
+     * @param  array{mode: string, periods: list<array<string, mixed>>}  $report
+     */
+    public function financialRatios(array $report): StreamedResponse
+    {
+        $periods = $report['periods'];
+        $firstLabel = $periods[0]['period']['label'] ?? 'period';
+        $filename = $report['mode'] === 'trend'
+            ? 'financial_ratios_trend_'.count($periods).'_periods.csv'
+            : "financial_ratios_{$firstLabel}.csv";
+
+        return $this->csvReportResponse->stream($filename, function ($handle) use ($periods): void {
+            fputcsv($handle, ['FINANCIAL RATIOS REPORT']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Ratio', ...array_map(fn (array $p): string => $p['period']['label'], $periods)]);
+
+            $rows = [
+                ['Current Ratio', 'liquidity', 'current_ratio', 'ratio'],
+                ['Quick Ratio', 'liquidity', 'quick_ratio', 'ratio'],
+                ['Working Capital (Minor)', 'liquidity', 'working_capital_minor', 'minor'],
+                ['Gross Profit Margin', 'profitability', 'gross_profit_margin', 'percent'],
+                ['Operating Margin', 'profitability', 'operating_margin', 'percent'],
+                ['Net Profit Margin', 'profitability', 'net_profit_margin', 'percent'],
+                ['Return on Assets (ROA)', 'profitability', 'return_on_assets', 'percent'],
+                ['Return on Equity (ROE)', 'profitability', 'return_on_equity', 'percent'],
+                ['Debt to Equity', 'leverage', 'debt_to_equity', 'ratio'],
+                ['Debt to Assets', 'leverage', 'debt_to_assets', 'percent'],
+                ['Equity Ratio', 'leverage', 'equity_ratio', 'percent'],
+                ['Inventory Turnover', 'efficiency', 'inventory_turnover', 'ratio'],
+                ['Receivables Turnover', 'efficiency', 'receivables_turnover', 'ratio'],
+                ['Average Collection Period (Days)', 'efficiency', 'average_collection_period_days', 'days'],
+                ['Asset Turnover', 'efficiency', 'asset_turnover', 'ratio'],
+            ];
+
+            foreach ($rows as [$label, $category, $key, $type]) {
+                $row = [$label];
+
+                foreach ($periods as $period) {
+                    $row[] = $this->formatRatioValue($period[$category][$key] ?? null, $type);
+                }
+
+                fputcsv($handle, $row);
+            }
+        });
+    }
+
+    private function formatRatioValue(mixed $value, string $type): string
+    {
+        if ($value === null) {
+            return 'N/A';
+        }
+
+        return match ($type) {
+            'percent' => number_format($value * 100, 2).'%',
+            'days' => number_format($value, 1),
+            'minor' => (string) $value,
+            default => number_format($value, 2),
+        };
+    }
+
+    /**
      * @param  array{inflows_minor: mixed, outflows_minor: mixed, net_minor: mixed}  $totals
      */
     private function cashFlowSection(mixed $handle, string $heading, string $labelPrefix, array $totals): void

@@ -1059,6 +1059,9 @@
       "cashFlowStatementMiniErp": "Cash Flow Statement - Mini ERP",
       "cashFlowStatement": "Cash Flow Statement",
       "cashFlowStatementDesc": "Statement of cash flows classifying operating, investing, and financing activities.",
+      "financialRatiosMiniErp": "Financial Ratios - Mini ERP",
+      "financialRatios": "Financial Ratios",
+      "financialRatiosDesc": "Key liquidity, profitability, leverage, and efficiency ratios derived from the Balance Sheet and Income Statement.",
       "openingCashBalance": "Opening Cash & Cash Equivalents",
       "closingCashBalance": "Closing Cash & Cash Equivalents",
       "operatingActivities": "CASH FLOWS FROM OPERATING ACTIVITIES",
@@ -4113,9 +4116,6 @@
         "pleaseSelectAWarehouseAndPeriod": "Please select a warehouse and period to generate the statement."
       },
       "reportsFinancialRatios": {
-        "financialRatiosMiniErp": "Financial Ratios - Mini ERP",
-        "financialRatios": "Financial Ratios",
-        "keyLiquidityProfitabilityLeverageAndEfficiency": "Key liquidity, profitability, leverage, and efficiency ratios derived from the Balance Sheet and Income Statement.",
         "exportCsv": "Export CSV",
         "modeSingle": "Single Period",
         "modeTrend": "Compare Periods",

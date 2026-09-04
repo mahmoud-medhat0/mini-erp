@@ -1059,6 +1059,9 @@
       "cashFlowStatementMiniErp": "قائمة التدفقات النقدية - Mini ERP",
       "cashFlowStatement": "قائمة التدفقات النقدية",
       "cashFlowStatementDesc": "قائمة التدفقات النقدية لتصنيف الأنشطة التشغيلية والاستثمارية والتمويلية.",
+      "financialRatiosMiniErp": "النسب المالية - Mini ERP",
+      "financialRatios": "النسب المالية",
+      "financialRatiosDesc": "أهم نسب السيولة والربحية والرفع المالي والكفاءة المستخرجة من قائمة المركز المالي وقائمة الدخل.",
       "openingCashBalance": "النقد وما في حكمه في بداية الفترة",
       "closingCashBalance": "النقد وما في حكمه في نهاية الفترة",
       "operatingActivities": "التدفقات النقدية من الأنشطة التشغيلية",
@@ -4113,9 +4116,6 @@
         "pleaseSelectAWarehouseAndPeriod": "يرجى اختيار المخزن وتحديد الفترة لعرض كشف الحساب."
       },
       "reportsFinancialRatios": {
-        "financialRatiosMiniErp": "النسب المالية - Mini ERP",
-        "financialRatios": "النسب المالية",
-        "keyLiquidityProfitabilityLeverageAndEfficiency": "أهم نسب السيولة والربحية والرفع المالي والكفاءة المستخرجة من قائمة المركز المالي وقائمة الدخل.",
         "exportCsv": "تصدير CSV",
         "modeSingle": "فترة واحدة",
         "modeTrend": "مقارنة بين فترات",

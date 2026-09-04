@@ -69,6 +69,13 @@ export default function ReportsIndex({ locale }: SharedPageProps) {
                 href: '/reports/cash-flow',
                 categoryKey: 'financials',
               },
+              {
+                id: 'financial-ratios',
+                name: accDict.financialRatios,
+                desc: accDict.financialRatiosDesc,
+                href: '/reports/financial-ratios',
+                categoryKey: 'financials',
+              },
             ],
           },
         ]
