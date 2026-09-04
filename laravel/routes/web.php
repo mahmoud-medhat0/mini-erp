@@ -690,6 +690,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 6 Slice 6 Fixed Asset Disposal Routes
     Route::get('/fixed-assets-disposals', [FixedAssetDisposalController::class, 'index'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets-disposals.index');
+    Route::get('/fixed-assets-disposals/data', [FixedAssetDisposalController::class, 'datatable'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets-disposals.datatable');
     Route::get('/fixed-assets-disposals/{id}', [FixedAssetDisposalController::class, 'show'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets-disposals.show');
     Route::post('/fixed-assets/{assetId}/disposals/preview', [FixedAssetDisposalController::class, 'preview'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.disposals.preview');
     Route::post('/fixed-assets/{assetId}/disposals', [FixedAssetDisposalController::class, 'store'])->middleware(['permission.all:fixedAssets.post,view_financials', 'sensitive.confirm'])->name('fixed-assets.disposals.store');

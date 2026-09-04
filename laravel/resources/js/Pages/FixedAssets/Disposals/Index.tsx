@@ -1,7 +1,8 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { Button, Card, PageHeader, SearchableSelect } from '../../../Components/Primitives';
+import { PageHeader, SearchableSelect, StatusBadge } from '../../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../../Components/ServerDataTable';
 import { formatMoney } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -13,7 +14,7 @@ type FixedAsset = {
   currency: string;
 };
 
-type FixedAssetDisposal = {
+type FixedAssetDisposalRow = {
   id: string;
   number: string;
   fixed_asset_id: string;
@@ -29,39 +30,39 @@ type FixedAssetDisposal = {
   created_at: string;
 };
 
-type PaginatedDisposals = {
-  data: FixedAssetDisposal[];
-  current_page: number;
-  last_page: number;
-  total: number;
-};
-
 type IndexProps = SharedPageProps & {
-  disposals: PaginatedDisposals;
-  filters: {
+  disposals?: any;
+  filters?: {
     search?: string;
     status?: string;
     disposal_type?: string;
   };
 };
 
-export default function DisposalsIndex({ locale, disposals, filters }: IndexProps) {
+export default function DisposalsIndex({ locale, filters = {} }: IndexProps) {
   const dict = getDictionary(locale);
   const appDict = dict.app.fixedAssetsDisposals;
 
-  const [search, setSearch] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
   const [typeFilter, setTypeFilter] = useState(filters.disposal_type || '');
-  const typeOptions = [
+
+  const typeOptions = useMemo(() => [
+    { value: '', label: appDict.allTypes },
     { value: 'sale', label: appDict.sale },
     { value: 'scrap', label: appDict.scrap },
     { value: 'retirement', label: appDict.retirement },
-  ];
-  const statusOptions = [
+  ], [appDict]);
+
+  const statusOptions = useMemo(() => [
+    { value: '', label: appDict.allStatuses },
     { value: 'posted', label: appDict.statusPosted },
     { value: 'reversed', label: appDict.statusReversed },
-  ];
-  const activeFilterCount = [search, statusFilter, typeFilter].filter(Boolean).length;
+  ], [appDict]);
+
+  const extraFilters = useMemo(() => ({
+    status: statusFilter,
+    disposal_type: typeFilter,
+  }), [statusFilter, typeFilter]);
 
   function getAssetName(asset?: FixedAsset | null): string {
     if (!asset) return appDict.notAvailable;
@@ -69,17 +70,17 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
     return asset.name[locale] || asset.name.en || asset.asset_number;
   }
 
-  function formatDisposalType(type: FixedAssetDisposal['disposal_type']): string {
-    const labels: Record<FixedAssetDisposal['disposal_type'], string> = {
+  function formatDisposalType(type: FixedAssetDisposalRow['disposal_type']): string {
+    const labels: Record<FixedAssetDisposalRow['disposal_type'], string> = {
       sale: appDict.sale,
       scrap: appDict.scrap,
       retirement: appDict.retirement,
     };
 
-    return labels[type];
+    return labels[type] || type;
   }
 
-  function formatDisposalStatus(status: FixedAssetDisposal['status']): string {
+  function formatDisposalStatus(status: FixedAssetDisposalRow['status']): string {
     return status === 'posted' ? appDict.statusPosted : appDict.statusReversed;
   }
 
@@ -87,20 +88,148 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
     return asset?.currency ? formatMoney(amountMinor, asset.currency) : appDict.notAvailable;
   }
 
-  function handleFilterChange() {
-    router.get(
-      '/fixed-assets-disposals',
-      { search, status: statusFilter, disposal_type: typeFilter },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
-  }
+  const columns = useMemo(
+    () => [
+      {
+        data: 'number',
+        name: 'number',
+        title: appDict.disposalNumber,
+        className: 'font-mono text-sm',
+      },
+      {
+        data: 'asset_name',
+        name: 'asset_name',
+        title: appDict.fixedAsset,
+      },
+      {
+        data: 'disposal_date',
+        name: 'disposal_date',
+        title: appDict.disposalDate,
+      },
+      {
+        data: 'disposal_type',
+        name: 'disposal_type',
+        title: appDict.disposalType,
+      },
+      {
+        data: 'proceeds_minor',
+        name: 'proceeds_minor',
+        title: appDict.proceeds,
+        className: 'text-right font-mono',
+      },
+      {
+        data: 'net_book_value_minor',
+        name: 'net_book_value_minor',
+        title: appDict.netBookValue,
+        className: 'text-right font-mono',
+      },
+      {
+        data: 'gain_minor',
+        name: 'gain_minor',
+        title: appDict.gainLoss,
+        className: 'text-right font-mono',
+      },
+      {
+        data: 'status',
+        name: 'status',
+        title: appDict.status,
+      },
+      {
+        data: 'id',
+        name: 'id',
+        title: appDict.action,
+        orderable: false,
+        searchable: false,
+        className: 'text-right',
+      },
+    ],
+    [appDict],
+  );
 
-  function clearFilters() {
-    setSearch('');
-    setStatusFilter('');
-    setTypeFilter('');
-    router.get('/fixed-assets-disposals', {}, { preserveState: true, preserveScroll: true, replace: true });
-  }
+  const slots: DataTableSlots = useMemo(
+    () => ({
+      number: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        <Link
+          href={`/fixed-assets-disposals/${row.id}`}
+          className="font-mono text-sm text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold"
+        >
+          {row.number}
+        </Link>
+      ),
+      asset_name: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        <div>
+          <div className="font-medium text-slate-900 dark:text-slate-100">{getAssetName(row.asset)}</div>
+          <div className="text-xs font-mono text-slate-500">{row.asset?.asset_number}</div>
+        </div>
+      ),
+      disposal_date: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        row.disposal_date ? String(row.disposal_date).split('T')[0] : ''
+      ),
+      disposal_type: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 capitalize">
+          {formatDisposalType(row.disposal_type)}
+        </span>
+      ),
+      proceeds_minor: (_data: any, _type: any, row: FixedAssetDisposalRow) => formatAssetMoney(row.proceeds_minor, row.asset),
+      net_book_value_minor: (_data: any, _type: any, row: FixedAssetDisposalRow) => formatAssetMoney(row.net_book_value_minor, row.asset),
+      gain_minor: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        <span className="font-semibold">
+          {row.gain_minor > 0 ? (
+            <span className="text-emerald-600 dark:text-emerald-400">+{formatAssetMoney(row.gain_minor, row.asset)}</span>
+          ) : row.loss_minor > 0 ? (
+            <span className="text-rose-600 dark:text-rose-400">-{formatAssetMoney(row.loss_minor, row.asset)}</span>
+          ) : (
+            <span className="text-slate-500">{formatAssetMoney(0, row.asset)}</span>
+          )}
+        </span>
+      ),
+      status: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        <StatusBadge tone={row.status === 'posted' ? 'ok' : 'danger'}>
+          {formatDisposalStatus(row.status)}
+        </StatusBadge>
+      ),
+      id: (_data: any, _type: any, row: FixedAssetDisposalRow) => (
+        <div className="flex justify-end">
+          <Link
+            href={`/fixed-assets-disposals/${row.id}`}
+            className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>{appDict.disposalDetails}</span>
+          </Link>
+        </div>
+      ),
+    }),
+    [locale, appDict],
+  );
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-48 shrink-0">
+        <SearchableSelect
+          value={typeFilter}
+          options={typeOptions}
+          onChange={(val) => setTypeFilter(val || '')}
+          placeholder={appDict.allTypes}
+          isClearable={false}
+          isSearchable={false}
+        />
+      </div>
+      <div className="w-40 shrink-0">
+        <SearchableSelect
+          value={statusFilter}
+          options={statusOptions}
+          onChange={(val) => setStatusFilter(val || '')}
+          placeholder={appDict.allStatuses}
+          isClearable={false}
+          isSearchable={false}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <AppLayout active="fixed-assets-disposals.index">
@@ -123,107 +252,14 @@ export default function DisposalsIndex({ locale, disposals, filters }: IndexProp
           }
         />
 
-        {/* Filter Card */}
-        <Card className="p-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_220px_220px_auto_auto] md:items-end">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                {appDict.search}
-              </label>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleFilterChange()}
-                placeholder={appDict.searchPlaceholder}
-                className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-sm"
-              />
-            </div>
-
-            <SearchableSelect options={[{ value: '', label: appDict.allTypes }, ...typeOptions]} value={typeFilter || null} onChange={(value) => setTypeFilter(value || '')} label={appDict.disposalType} />
-            <SearchableSelect options={[{ value: '', label: appDict.allStatuses }, ...statusOptions]} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} label={appDict.status} />
-            <Button onClick={handleFilterChange}>{appDict.applyFilters}</Button>
-            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{appDict.clearFilters}</Button>
-          </div>
-        </Card>
-
-        {/* Disposals Table */}
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left rtl:text-right">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3">{appDict.disposalNumber}</th>
-                  <th className="px-4 py-3">{appDict.fixedAsset}</th>
-                  <th className="px-4 py-3">{appDict.disposalDate}</th>
-                  <th className="px-4 py-3">{appDict.disposalType}</th>
-                  <th className="px-4 py-3 text-right">{appDict.proceeds}</th>
-                  <th className="px-4 py-3 text-right">{appDict.netBookValue}</th>
-                  <th className="px-4 py-3 text-right">{appDict.gainLoss}</th>
-                  <th className="px-4 py-3">{appDict.status}</th>
-                  <th className="px-4 py-3 text-right">{appDict.action}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {disposals.data.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
-                      {appDict.empty}
-                    </td>
-                  </tr>
-                ) : (
-                  disposals.data.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="px-4 py-3 font-mono font-medium text-indigo-600 dark:text-indigo-400">
-                        <Link href={`/fixed-assets-disposals/${item.id}`}>{item.number}</Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-slate-900 dark:text-slate-100">{getAssetName(item.asset)}</div>
-                        <div className="text-xs font-mono text-slate-500">{item.asset?.asset_number}</div>
-                      </td>
-                      <td className="px-4 py-3">{item.disposal_date}</td>
-                      <td className="px-4 py-3 capitalize">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
-                          {formatDisposalType(item.disposal_type)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono">{formatAssetMoney(item.proceeds_minor, item.asset)}</td>
-                      <td className="px-4 py-3 text-right font-mono">{formatAssetMoney(item.net_book_value_minor, item.asset)}</td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold">
-                        {item.gain_minor > 0 ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">+{formatAssetMoney(item.gain_minor, item.asset)}</span>
-                        ) : item.loss_minor > 0 ? (
-                          <span className="text-rose-600 dark:text-rose-400">-{formatAssetMoney(item.loss_minor, item.asset)}</span>
-                        ) : (
-                          <span className="text-slate-500">{formatAssetMoney(0, item.asset)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            item.status === 'posted'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
-                          }`}
-                        >
-                          {formatDisposalStatus(item.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/fixed-assets-disposals/${item.id}`}
-                          className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
-                        >
-                          {appDict.disposalDetails}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <ServerDataTable
+          ajaxUrl="/fixed-assets-disposals/data"
+          columns={columns}
+          slots={slots}
+          toolbar={toolbar}
+          filters={extraFilters}
+          locale={locale}
+        />
       </div>
     </AppLayout>
   );

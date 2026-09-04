@@ -31,6 +31,14 @@ class FixedAssetDisposalController extends Controller
         return Inertia::render('FixedAssets/Disposals/Index', $this->pageData->indexData($request->only(['search', 'status', 'disposal_type'])));
     }
 
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+        $this->authorizeSensitiveCapability($request, 'view_financials');
+
+        return $this->pageData->datatable($request->only(['status', 'disposal_type']));
+    }
+
     public function show(Request $request, string $id): Response
     {
         $this->authorizePermission($request, 'fixedAssets.view');
