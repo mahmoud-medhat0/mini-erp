@@ -14,14 +14,18 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div data-tour="page-header" className="mb-5 flex flex-wrap items-start gap-3">
-      <div className="min-w-0 flex-1">
+    <div data-tour="page-header" className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
+      <div className="min-w-0 sm:flex-1">
         <h1 className="m-0 text-2xl font-bold text-[var(--text-primary)]">{title}</h1>
         {description ? (
           <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">{description}</p>
         ) : null}
       </div>
-      {actions ? <div data-tour="page-actions" className="flex items-center gap-2 print:hidden">{actions}</div> : null}
+      {actions ? (
+        <div data-tour="page-actions" className="flex flex-wrap items-center gap-2 print:hidden">
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }

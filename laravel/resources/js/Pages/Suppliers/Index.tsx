@@ -141,21 +141,17 @@ export default function SuppliersIndex({ locale, filters = {} }: SuppliersProps)
       { data: 'email', name: 'email', title: pageDict.email },
       { data: 'tax_number', name: 'tax_number', title: pageDict.taxNumber },
       { data: 'status', name: 'status', title: pageDict.status, searchable: false, width: '90px' },
-      ...(can('suppliers.edit')
-        ? [
-            {
-              data: 'actions',
-              name: 'actions',
-              title: pageDict.actions,
-              orderable: false,
-              searchable: false,
-              width: '80px',
-              className: 'text-end',
-            },
-          ]
-        : []),
+      {
+        data: 'actions',
+        name: 'actions',
+        title: pageDict.actions,
+        orderable: false,
+        searchable: false,
+        width: '80px',
+        className: 'text-end',
+      },
     ],
-    [pageDict, can],
+    [pageDict],
   );
 
   // ── Slot Renderers ────────────────────────────────────────────────────────
@@ -172,18 +168,24 @@ export default function SuppliersIndex({ locale, filters = {} }: SuppliersProps)
           </StatusBadge>
         ),
         actions: (_d: any, _type: any, row: any) => (
-          <button
-            type="button"
-            onClick={() => openEditModal(row as SupplierRow)}
-            title={pageDict.edit}
-            aria-label={pageDict.edit}
-            className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-          >
-            {pageDict.edit}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {can('suppliers.edit') ? (
+              <button
+                type="button"
+                onClick={() => openEditModal(row as SupplierRow)}
+                title={pageDict.edit}
+                aria-label={pageDict.edit}
+                className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+              >
+                {pageDict.edit}
+              </button>
+            ) : (
+              <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+            )}
+          </div>
         ),
       } as Record<string, (data: any, type: any, row: any) => ReactElement>),
-    [pageDict, accDict, locale],
+    [dict, pageDict, accDict, locale, can],
   );
 
   const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);

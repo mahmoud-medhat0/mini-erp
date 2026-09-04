@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
-import { PageHeader, SearchableSelect, StatusBadge } from '../../../Components/Primitives';
+import { Button, PageHeader, SearchableSelect, StatusBadge } from '../../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../../Components/ServerDataTable';
 import { formatMoney } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
@@ -63,6 +63,13 @@ export default function DisposalsIndex({ locale, filters = {} }: IndexProps) {
     status: statusFilter,
     disposal_type: typeFilter,
   }), [statusFilter, typeFilter]);
+
+  const activeFilterCount = [statusFilter, typeFilter].filter(Boolean).length;
+
+  function clearFilters() {
+    setStatusFilter('');
+    setTypeFilter('');
+  }
 
   function getAssetName(asset?: FixedAsset | null): string {
     if (!asset) return appDict.notAvailable;
@@ -228,6 +235,9 @@ export default function DisposalsIndex({ locale, filters = {} }: IndexProps) {
           isSearchable={false}
         />
       </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>
+        {appDict.clearFilters}
+      </Button>
     </div>
   );
 

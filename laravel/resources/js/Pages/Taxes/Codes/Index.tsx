@@ -3,7 +3,7 @@ import { useState } from 'react';
 import AppLayout from '../../../Components/AppLayout';
 import { Button, Card, PageHeader, StatusBadge } from '../../../Components/Primitives';
 import { getLocalizedName } from '../../../lib/accountingHelpers';
-import { getDictionary } from '../../../lib/i18n';
+import { getDictionary, interpolate } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
 
 type TaxCode = {
@@ -246,7 +246,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
           {taxCodes.last_page > 1 && (
             <div className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--background)] px-4 py-3 text-xs">
               <span className="text-[var(--text-muted)] font-medium">
-                {locale === 'ar' ? `صفحة ${taxCodes.current_page} من ${taxCodes.last_page}` : `Page ${taxCodes.current_page} of ${taxCodes.last_page}`}
+                {interpolate(taxDict.pageOfPages, { current: taxCodes.current_page, total: taxCodes.last_page })}
               </span>
               <div className="flex items-center gap-2">
                 <Button
@@ -255,7 +255,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                   onClick={() => router.get('/taxes/codes', { ...filters, page: taxCodes.current_page - 1 }, { preserveScroll: true })}
                   className="px-3 py-1 text-xs"
                 >
-                  {locale === 'ar' ? 'السابق' : 'Previous'}
+                  {dict.app.actions.previous}
                 </Button>
                 <Button
                   variant="secondary"
@@ -263,7 +263,7 @@ export default function TaxCodesIndex({ locale, taxCodes, filters }: IndexProps)
                   onClick={() => router.get('/taxes/codes', { ...filters, page: taxCodes.current_page + 1 }, { preserveScroll: true })}
                   className="px-3 py-1 text-xs"
                 >
-                  {locale === 'ar' ? 'التالي' : 'Next'}
+                  {dict.app.actions.next}
                 </Button>
               </div>
             </div>

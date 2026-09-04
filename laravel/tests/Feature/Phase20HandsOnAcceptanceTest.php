@@ -445,7 +445,7 @@ class Phase20HandsOnAcceptanceTest extends TestCase
         }
     }
 
-    public function test_phase_20_slice_2_general_journal_paginator_contract(): void
+    public function test_phase_20_slice_2_general_journal_datatable_contract(): void
     {
         $this->withoutVite();
 
@@ -454,15 +454,18 @@ class Phase20HandsOnAcceptanceTest extends TestCase
         $response = $this->actingAs($accountant)->get('/accounting/journal');
         $response->assertStatus(200);
 
+        // The grid streams its own rows via /accounting/journal/data, so the
+        // index page itself no longer carries an inline `journals` paginator.
         $page = $response->viewData('page');
         $this->assertIsArray($page, 'Inertia response must contain page payload');
         $props = $page['props'] ?? [];
 
-        $this->assertArrayHasKey('journals', $props, 'General Journal must provide journals prop');
-        $this->assertArrayHasKey('data', $props['journals'], 'Journals prop must be paginated data array');
-        $this->assertArrayHasKey('links', $props['journals'], 'Journals prop must include paginator links array');
-        $this->assertArrayHasKey('current_page', $props['journals'], 'Journals prop must include current_page');
-        $this->assertArrayHasKey('total', $props['journals'], 'Journals prop must include total');
+        $this->assertArrayNotHasKey('journals', $props, 'General Journal no longer needs an inline journals prop');
+        $this->assertArrayHasKey('periods', $props, 'General Journal must provide periods for its filters');
+
+        $feed = $this->actingAs($accountant)->getJson('/accounting/journal/data');
+        $feed->assertOk();
+        $feed->assertJsonStructure(['data', 'recordsTotal', 'recordsFiltered']);
     }
 
     public function test_phase_20_slice_2_dictionary_full_parity_and_new_keys(): void

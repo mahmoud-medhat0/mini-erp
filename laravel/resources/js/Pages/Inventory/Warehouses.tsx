@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -176,6 +176,13 @@ export default function WarehousesIndex({
     [branchFilter, statusFilter],
   );
 
+  const activeFilterCount = [branchFilter, statusFilter].filter(Boolean).length;
+
+  function clearFilters() {
+    setBranchFilter('');
+    setStatusFilter('');
+  }
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-56 shrink-0">
@@ -197,6 +204,9 @@ export default function WarehousesIndex({
           isClearable={false}
         />
       </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>
+        {pageDict.clearFilters}
+      </Button>
     </div>
   );
 

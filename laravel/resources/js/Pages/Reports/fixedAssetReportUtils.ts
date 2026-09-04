@@ -60,7 +60,7 @@ export function fixedAssetStatusLabel(status: string, dict: any): string {
   };
 
   const key = keys[status];
-  return key ? dict.app.fixedAssets[key] : status;
+  return key ? dict.app.accounting[key] : status;
 }
 
 export function depreciationStatusLabel(status: string, dict: any): string {

@@ -223,7 +223,7 @@ class Phase6Slice7FixedAssetReportsTest extends TestCase
 
     public function test_slice7_source_files_do_not_reintroduce_known_report_risks(): void
     {
-        $files = [
+        $fixedAssetSpecificFiles = [
             app_path('Application/Reports/FixedAssetReportService.php'),
             app_path('Http/Controllers/Reports/FixedAssetReportController.php'),
             resource_path('js/Pages/Reports/FixedAssetRegisterReport.tsx'),
@@ -231,10 +231,9 @@ class Phase6Slice7FixedAssetReportsTest extends TestCase
             resource_path('js/Pages/Reports/FixedAssetDepreciationReport.tsx'),
             resource_path('js/Pages/Reports/FixedAssetDepreciationRunReport.tsx'),
             resource_path('js/Pages/Reports/FixedAssetDisposalReport.tsx'),
-            resource_path('js/Pages/Reports/Index.tsx'),
         ];
 
-        foreach ($files as $file) {
+        foreach ($fixedAssetSpecificFiles as $file) {
             $contents = file_get_contents($file);
 
             $this->assertStringNotContainsString('/ 100', $contents);
@@ -243,6 +242,15 @@ class Phase6Slice7FixedAssetReportsTest extends TestCase
             $this->assertDoesNotMatchRegularExpression('/locale\s*===|[\x{0600}-\x{06FF}]/u', $contents);
             $this->assertDoesNotMatchRegularExpression('/company_id|branch_id|tenant_id|currentCompany|currentBranch|custodian|employee|warehouse|location/', $contents);
         }
+
+        // Index.tsx is a multi-domain reports hub linking to every report in the
+        // app (including legitimate warehouse/product statements), so only the
+        // fixed-asset-specific risks apply here, not the cross-domain keyword scan.
+        $hubContents = file_get_contents(resource_path('js/Pages/Reports/Index.tsx'));
+        $this->assertStringNotContainsString('/ 100', $hubContents);
+        $this->assertStringNotContainsString('/100', $hubContents);
+        $this->assertStringNotContainsString('fixedAssets.view', $hubContents);
+        $this->assertDoesNotMatchRegularExpression('/locale\s*===|[\x{0600}-\x{06FF}]/u', $hubContents);
 
         $this->assertStringNotContainsString(
             'created_at',

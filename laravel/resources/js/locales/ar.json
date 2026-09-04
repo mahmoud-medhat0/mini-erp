@@ -1275,7 +1275,19 @@
       "statementLineNameEnExample": "Current Assets",
       "statementLineNameArExample": "الأصول المتداولة",
       "allScopes": "النطاق (الكل)",
-      "allMappingKeys": "مفتاح الربط (الكل)"
+      "allMappingKeys": "مفتاح الربط (الكل)",
+      "accountingEquation": "الأصول = الالتزامات + حقوق الملكية",
+      "unmappedAccountsCount": ":count غير مربوط",
+      "copied": "تم النسخ!",
+      "copy": "نسخ",
+      "balanceStatus": "حالة التوازن",
+      "balancedZero": "متوازن (0.00)",
+      "reversalFinancialPeriod": "الفترة المالية للعكس",
+      "reversalReason": "سبب العكس",
+      "voucherCreated": "تم إنشاء السند",
+      "postedBy": "رحّله",
+      "pendingPosting": "بانتظار الترحيل",
+      "notPostedYet": "لم يُرحَّل بعد"
     },
     "pages": {
       "stockBalances": {
@@ -1610,7 +1622,8 @@
           "ready": "جاهز",
           "partial": "جزئي",
           "not_configured": "غير مهيأ"
-        }
+        },
+        "clearSearch": "مسح البحث"
       },
       "branchProfitabilityReport": {
         "headTitle": "تقرير ربحية الفروع - Mini ERP",
@@ -3855,6 +3868,10 @@
         "readOnlyRegisterOfSupplierBills": "سجل تفصيلي لفواتير الموردين وربطها بالقيود والأستاذ والذمم.",
         "stockMovementsRegister": "سجل حركات المخزون",
         "immutableAuditLedgerOfStockMovements": "سجل حركة وتقييم المخزون المستند للأستاذ والتغيرات بالرصيد.",
+        "productStatementReport": "كشف حساب المنتج",
+        "detailedAccountStatementOfQuantityAndValue": "كشف حساب تفصيلي لحركات الكمية والقيمة لمنتج واحد.",
+        "warehouseStatementReport": "كشف حساب المخزن",
+        "detailedAccountStatementOfStockValue": "كشف حساب تفصيلي لحركات قيمة المخزون لمخزن واحد.",
         "rentalOperationsRegister": "تقرير تشغيل الإيجارات",
         "rentalOperationsRegisterDescription": "عرض واحد مناسب للمحاسب لحالة عقود الإيجار والمرتجعات والفوترة والضريبة والذمم والقيود.",
         "fixedAssetReports": "تقارير الأصول الثابتة",
@@ -3997,7 +4014,14 @@
         "scheduleStatusSkipped": "متجاوز",
         "disposalTypeSale": "بيع",
         "disposalTypeScrap": "تكهين",
-        "disposalTypeRetirement": "إخراج من الخدمة"
+        "disposalTypeRetirement": "إخراج من الخدمة",
+        "searchReportsPlaceholder": "بحث عن تقرير...",
+        "showingReportsCount": "عرض :shown من إجمالي :total تقريراً",
+        "allReportsTab": "جميع التقارير",
+        "noReportsFound": "لم يتم العثور على تقارير مطابقة",
+        "noReportsFoundDesc": "جرب البحث بكلمات أخرى أو اختر فئة مختلفة",
+        "resetSearchAndFilters": "إعادة ضبط البحث والفلترة",
+        "clearSearch": "مسح البحث"
       },
       "reportsSupplierStatement": {
         "supplierStatementMiniErp": "كشف حساب مورد - Mini ERP",
@@ -4023,6 +4047,70 @@
         "openingBalancePriorToRange": "الرصيد الافتتاحي قبل الفترة",
         "noMovementsFoundForTheSelected": "لا توجد حركات خاضعة للفترة المحددة.",
         "pleaseSelectASupplierAndPeriod": "يرجى اختيار المورد وتحديد الفترة لعرض كشف الحساب."
+      },
+      "reportsProductStatement": {
+        "productStatementMiniErp": "كشف حساب منتج - Mini ERP",
+        "productStatement": "كشف حساب المنتج",
+        "detailedStockLedgerStatementShowingOpeningBalance": "عرض كشف حساب تفصيلي لحركة المخزون شامل الرصيد الافتتاحي وحركات الكمية والقيمة والرصيد الختامي للمنتج.",
+        "exportCsv": "تصدير CSV",
+        "product": "المنتج",
+        "selectProduct": "اختر المنتج...",
+        "warehouse": "المخزن",
+        "allWarehouses": "كل المخازن",
+        "fromDate": "من تاريخ",
+        "toDate": "إلى تاريخ",
+        "viewReport": "عرض التقرير",
+        "openingBalanceQuantity": "الرصيد الافتتاحي (كمية)",
+        "openingBalanceValue": "الرصيد الافتتاحي (قيمة)",
+        "totalIn": "إجمالي الوارد (كمية)",
+        "totalOut": "إجمالي المنصرف (كمية)",
+        "closingBalanceQuantity": "الرصيد الختامي (كمية)",
+        "closingBalanceValue": "الرصيد الختامي (قيمة)",
+        "date": "التاريخ",
+        "type": "النوع",
+        "reference": "المرجع",
+        "description": "البيان",
+        "warehouseColumn": "المخزن",
+        "qtyDelta": "حركة الكمية",
+        "valueDelta": "حركة القيمة",
+        "balanceQuantity": "رصيد الكمية",
+        "balanceValue": "رصيد القيمة",
+        "openingBalancePriorToRange": "الرصيد الافتتاحي قبل الفترة",
+        "noMovementsFoundForTheSelected": "لا توجد حركات خاضعة للفترة المحددة.",
+        "pleaseSelectAProductAndPeriod": "يرجى اختيار المنتج وتحديد الفترة لعرض كشف الحساب."
+      },
+      "reportsWarehouseStatement": {
+        "warehouseStatementMiniErp": "كشف حساب مخزن - Mini ERP",
+        "warehouseStatement": "كشف حساب المخزن",
+        "detailedStockLedgerStatementShowingOpeningBalance": "عرض كشف حساب تفصيلي لحركة المخزون شامل الرصيد الافتتاحي وحركات الكمية والقيمة والرصيد الختامي للمخزن.",
+        "exportCsv": "تصدير CSV",
+        "warehouse": "المخزن",
+        "selectWarehouse": "اختر المخزن...",
+        "product": "المنتج",
+        "allProducts": "كل المنتجات (وحدات مختلطة)",
+        "fromDate": "من تاريخ",
+        "toDate": "إلى تاريخ",
+        "viewReport": "عرض التقرير",
+        "openingBalanceQuantity": "الرصيد الافتتاحي (كمية)",
+        "openingBalanceValue": "الرصيد الافتتاحي (قيمة)",
+        "totalIn": "إجمالي الوارد (كمية)",
+        "totalOut": "إجمالي المنصرف (كمية)",
+        "closingBalanceQuantity": "الرصيد الختامي (كمية)",
+        "closingBalanceValue": "الرصيد الختامي (قيمة)",
+        "date": "التاريخ",
+        "type": "النوع",
+        "reference": "المرجع",
+        "description": "البيان",
+        "productColumn": "المنتج",
+        "qtyDelta": "حركة الكمية",
+        "valueDelta": "حركة القيمة",
+        "balanceQuantity": "رصيد الكمية",
+        "balanceValue": "رصيد القيمة",
+        "mixedUnitsQuantity": "وحدات مختلطة",
+        "selectAProductToSeeQuantityBalance": "اختر منتجًا لعرض رصيد الكمية التراكمي. رصيد القيمة يعرض دائمًا كل المنتجات.",
+        "openingBalancePriorToRange": "الرصيد الافتتاحي قبل الفترة",
+        "noMovementsFoundForTheSelected": "لا توجد حركات خاضعة للفترة المحددة.",
+        "pleaseSelectAWarehouseAndPeriod": "يرجى اختيار المخزن وتحديد الفترة لعرض كشف الحساب."
       },
       "bankReconciliationDetail": {
         "headTitle": "تقرير تسوية - :ref",
@@ -5598,7 +5686,8 @@
         "filingNotes": "ملاحظات التقديم (اختياري)",
         "filing": "جار التقديم...",
         "confirmAndLockTaxPeriod": "تأكيد وقفل الفترة الضريبية"
-      }
+      },
+      "pageOfPages": "صفحة :current من :total"
     }
   }
 }

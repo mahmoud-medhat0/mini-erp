@@ -1275,7 +1275,19 @@
       "statementLineNameEnExample": "Current Assets",
       "statementLineNameArExample": "الأصول المتداولة",
       "allScopes": "Scope (All)",
-      "allMappingKeys": "Mapping Key (All)"
+      "allMappingKeys": "Mapping Key (All)",
+      "accountingEquation": "Assets = Liabilities + Equity",
+      "unmappedAccountsCount": ":count unmapped",
+      "copied": "Copied!",
+      "copy": "Copy",
+      "balanceStatus": "Balance Status",
+      "balancedZero": "Balanced (0.00)",
+      "reversalFinancialPeriod": "Reversal Financial Period",
+      "reversalReason": "Reversal Reason",
+      "voucherCreated": "Voucher Created",
+      "postedBy": "Posted by",
+      "pendingPosting": "Pending Posting",
+      "notPostedYet": "Not posted yet"
     },
     "pages": {
       "stockBalances": {
@@ -1610,7 +1622,8 @@
           "ready": "Ready",
           "partial": "Partial",
           "not_configured": "Not Configured"
-        }
+        },
+        "clearSearch": "Clear search"
       },
       "branchProfitabilityReport": {
         "headTitle": "Branch Profitability Report - Mini ERP",
@@ -3855,6 +3868,10 @@
         "readOnlyRegisterOfSupplierBills": "Read-only register of supplier bills with GL and AP entries.",
         "stockMovementsRegister": "Stock Movements Register",
         "immutableAuditLedgerOfStockMovements": "Immutable audit ledger of stock movements, valuation, and balance deltas.",
+        "productStatementReport": "Product Statement",
+        "detailedAccountStatementOfQuantityAndValue": "Detailed account statement of quantity and value movements for a single product.",
+        "warehouseStatementReport": "Warehouse Statement",
+        "detailedAccountStatementOfStockValue": "Detailed account statement of stock value movements for a single warehouse.",
         "rentalOperationsRegister": "Rental Operations Report",
         "rentalOperationsRegisterDescription": "Rental contract, return, billing, VAT, AR, and GL readiness in one accountant-friendly view.",
         "fixedAssetReports": "Fixed Asset Reports",
@@ -3997,7 +4014,14 @@
         "scheduleStatusSkipped": "Skipped",
         "disposalTypeSale": "Sale",
         "disposalTypeScrap": "Scrap",
-        "disposalTypeRetirement": "Retirement"
+        "disposalTypeRetirement": "Retirement",
+        "searchReportsPlaceholder": "Search reports by name or description...",
+        "showingReportsCount": "Showing :shown of :total reports",
+        "allReportsTab": "All Reports",
+        "noReportsFound": "No reports found",
+        "noReportsFoundDesc": "Try searching with different keywords or select another report category.",
+        "resetSearchAndFilters": "Reset search & filters",
+        "clearSearch": "Clear search"
       },
       "reportsSupplierStatement": {
         "supplierStatementMiniErp": "Supplier Statement - Mini ERP",
@@ -4023,6 +4047,70 @@
         "openingBalancePriorToRange": "Opening Balance Prior to Range",
         "noMovementsFoundForTheSelected": "No movements found for the selected period.",
         "pleaseSelectASupplierAndPeriod": "Please select a supplier and period to generate the statement."
+      },
+      "reportsProductStatement": {
+        "productStatementMiniErp": "Product Statement - Mini ERP",
+        "productStatement": "Product Statement",
+        "detailedStockLedgerStatementShowingOpeningBalance": "Detailed stock ledger statement showing opening balance, quantity/value movements, and running balance for a product.",
+        "exportCsv": "Export CSV",
+        "product": "Product",
+        "selectProduct": "Select product...",
+        "warehouse": "Warehouse",
+        "allWarehouses": "All Warehouses",
+        "fromDate": "From Date",
+        "toDate": "To Date",
+        "viewReport": "View Report",
+        "openingBalanceQuantity": "Opening Balance (Qty)",
+        "openingBalanceValue": "Opening Balance (Value)",
+        "totalIn": "Total In (Qty)",
+        "totalOut": "Total Out (Qty)",
+        "closingBalanceQuantity": "Closing Balance (Qty)",
+        "closingBalanceValue": "Closing Balance (Value)",
+        "date": "Date",
+        "type": "Type",
+        "reference": "Reference",
+        "description": "Description",
+        "warehouseColumn": "Warehouse",
+        "qtyDelta": "Qty Delta",
+        "valueDelta": "Value Delta",
+        "balanceQuantity": "Balance Qty",
+        "balanceValue": "Balance Value",
+        "openingBalancePriorToRange": "Opening Balance Prior to Range",
+        "noMovementsFoundForTheSelected": "No movements found for the selected period.",
+        "pleaseSelectAProductAndPeriod": "Please select a product and period to generate the statement."
+      },
+      "reportsWarehouseStatement": {
+        "warehouseStatementMiniErp": "Warehouse Statement - Mini ERP",
+        "warehouseStatement": "Warehouse Statement",
+        "detailedStockLedgerStatementShowingOpeningBalance": "Detailed stock ledger statement showing opening balance, quantity/value movements, and running balance for a warehouse.",
+        "exportCsv": "Export CSV",
+        "warehouse": "Warehouse",
+        "selectWarehouse": "Select warehouse...",
+        "product": "Product",
+        "allProducts": "All Products (mixed units)",
+        "fromDate": "From Date",
+        "toDate": "To Date",
+        "viewReport": "View Report",
+        "openingBalanceQuantity": "Opening Balance (Qty)",
+        "openingBalanceValue": "Opening Balance (Value)",
+        "totalIn": "Total In (Qty)",
+        "totalOut": "Total Out (Qty)",
+        "closingBalanceQuantity": "Closing Balance (Qty)",
+        "closingBalanceValue": "Closing Balance (Value)",
+        "date": "Date",
+        "type": "Type",
+        "reference": "Reference",
+        "description": "Description",
+        "productColumn": "Product",
+        "qtyDelta": "Qty Delta",
+        "valueDelta": "Value Delta",
+        "balanceQuantity": "Balance Qty",
+        "balanceValue": "Balance Value",
+        "mixedUnitsQuantity": "Mixed units",
+        "selectAProductToSeeQuantityBalance": "Select a product to see a running quantity balance. Value balance always reflects all products.",
+        "openingBalancePriorToRange": "Opening Balance Prior to Range",
+        "noMovementsFoundForTheSelected": "No movements found for the selected period.",
+        "pleaseSelectAWarehouseAndPeriod": "Please select a warehouse and period to generate the statement."
       },
       "bankReconciliationDetail": {
         "headTitle": "Recon Detail - :ref",
@@ -5598,7 +5686,8 @@
         "filingNotes": "Filing Notes (optional)",
         "filing": "Filing...",
         "confirmAndLockTaxPeriod": "Confirm & Lock Tax Period"
-      }
+      },
+      "pageOfPages": "Page :current of :total"
     }
   }
 }

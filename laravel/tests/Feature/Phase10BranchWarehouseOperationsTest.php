@@ -355,11 +355,14 @@ class Phase10BranchWarehouseOperationsTest extends TestCase
 
     public function test_inertia_pages_render_phase10_inventory_workspaces(): void
     {
+        // Warehouses, StockTransfers, and StockBalances all stream their rows
+        // from a ServerDataTable feed now; the index payload only carries the
+        // option lists their filters need, not a client-side paginator.
         $this->get('/inventory/warehouses')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Inventory/Warehouses')
-                ->has('warehouses.data')
+                ->has('warehouses')
                 ->has('branches')
                 ->has('warehouseTypes')
             );
@@ -368,7 +371,7 @@ class Phase10BranchWarehouseOperationsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Inventory/StockTransfers')
-                ->has('transfers.data')
+                ->has('transfers')
                 ->has('warehouses')
                 ->has('products')
             );
@@ -377,7 +380,7 @@ class Phase10BranchWarehouseOperationsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Inventory/StockBalances')
-                ->has('balances.data')
+                ->has('balances')
                 ->has('warehouses')
             );
 

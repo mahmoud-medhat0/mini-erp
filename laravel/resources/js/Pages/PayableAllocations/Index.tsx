@@ -69,11 +69,11 @@ export default function PayableAllocationsIndex({
 
   const { post, transform, processing } = useForm({});
 
-  const activeFilterCount = [filters?.supplier_id, filters?.payment_id].filter(Boolean).length;
+  const activeFilterCount = [filters.supplier_id, filters.payment_id].filter(Boolean).length;
 
   const applyFilters = (next: Record<string, string>) => {
-    const supplierId = next.supplier_id ?? filters?.supplier_id ?? '';
-    const paymentId = next.payment_id ?? filters?.payment_id ?? '';
+    const supplierId = next.supplier_id ?? filters.supplier_id ?? '';
+    const paymentId = next.payment_id ?? filters.payment_id ?? '';
     const params: Record<string, string> = {};
 
     if (supplierId) params.supplier_id = supplierId;
@@ -213,7 +213,7 @@ export default function PayableAllocationsIndex({
               </label>
               <SearchableSelect
                 options={[{ value: '', label: dict.app.pages.payableAllocations.allSuppliers }, ...supplierSelectOptions]}
-                value={filters?.supplier_id || ''}
+                value={filters.supplier_id || ''}
                 onChange={(val) => handleSupplierSelect(val)}
               />
             </div>

@@ -42,8 +42,10 @@ class AppLayoutFlashFeedbackTest extends TestCase
         $this->assertStringContainsString('paginationUrlWithCurrentQuery', $primitives);
         $this->assertStringContainsString('data-pagination-controls', $primitives);
 
+        // GeneralJournal.tsx was migrated to ServerDataTable (no more Laravel
+        // paginator prop), so AppLayout's automatic pagination detector has
+        // nothing to find there and the manual opt-out is no longer needed.
         $manualPages = [
-            'js/Pages/Accounting/GeneralJournal.tsx',
             'js/Pages/AuditLog/Index.tsx',
             'js/Pages/Budgeting/Budgets.tsx',
             'js/Pages/CostCenters/Index.tsx',

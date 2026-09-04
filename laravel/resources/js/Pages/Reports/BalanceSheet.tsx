@@ -5,7 +5,7 @@ import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import { Button, Card, MetricCard, PageHeader, StatusBadge } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
-import { getDictionary } from '../../lib/i18n';
+import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 
@@ -120,7 +120,7 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
           canPrint || canExport ? (
             <div className="flex items-center gap-2">
               {canPrint ? (
-                <Button variant="secondary" onClick={handlePrint} className="gap-2">
+                <Button variant="secondary" onClick={handlePrint} title={actionsDict.printReport} aria-label={actionsDict.printReport} className="gap-2">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                   </svg>
@@ -128,7 +128,7 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
                 </Button>
               ) : null}
               {canExport ? (
-                <a href={exportUrl}>
+                <a href={exportUrl} title={actionsDict.exportCsv} aria-label={actionsDict.exportCsv}>
                   <Button variant="secondary" className="gap-2">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -145,14 +145,19 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
       <div className="space-y-6">
         {/* Filter Card */}
         <Card className="p-4 border border-[var(--border-color)]">
-          <form onSubmit={handleFilterSubmit} className="flex flex-wrap items-end justify-between gap-4">
-            <div className="flex items-end gap-3 flex-1 min-w-[280px]">
-              <DatePicker label={accDict.asOfDate} value={asOfDate} onChange={(value) => setAsOfDate(value || '')} />
-              <Button type="submit" className="h-[42px] px-5">
+          <form onSubmit={handleFilterSubmit} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-1 sm:min-w-[280px] sm:flex-row sm:items-end">
+              <DatePicker
+                label={accDict.asOfDate}
+                value={asOfDate}
+                onChange={(value) => setAsOfDate(value || '')}
+                className="w-full sm:w-auto"
+              />
+              <Button type="submit" title={accDict.applyFilter} aria-label={accDict.applyFilter} className="h-[42px] w-full px-5 sm:w-auto">
                 {accDict.applyFilter}
               </Button>
             </div>
-            <div className="text-xs font-semibold text-[var(--text-secondary)] bg-[var(--background)] px-3 py-2 rounded-lg border border-[var(--border-color)]">
+            <div className="rounded-lg border border-[var(--border-color)] bg-[var(--background)] px-3 py-2 text-center text-xs font-semibold text-[var(--text-secondary)] sm:text-start">
               {accDict.asOfDate}: <span className="font-mono text-[var(--text-primary)] font-bold ms-1">{asOfDate}</span>
             </div>
           </form>
@@ -189,7 +194,7 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
                 {accDict.balanceSheetBalancedTitle}
               </span>
             </div>
-            <StatusBadge tone="ok">Assets = Liabilities + Equity</StatusBadge>
+            <StatusBadge tone="ok">{accDict.accountingEquation}</StatusBadge>
           </div>
         )}
 
@@ -201,7 +206,7 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
             tone="blue"
           />
           <MetricCard
-            label={accDict.currentLiabilities}
+            label={accDict.totalLiabilities}
             value={formatAmount(summary.total_liabilities_minor)}
             tone="amber"
           />
@@ -235,7 +240,7 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
                 </div>
               </div>
               <span className="rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2.5 py-0.5 text-xs font-bold font-mono">
-                {report.unmapped_accounts.length} unmapped
+                {interpolate(accDict.unmappedAccountsCount, { count: report.unmapped_accounts.length })}
               </span>
             </div>
             <div className="flex flex-wrap gap-2 pt-1">

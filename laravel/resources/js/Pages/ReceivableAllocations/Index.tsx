@@ -156,7 +156,7 @@ export default function ReceivableAllocationsIndex({
     amount_minor: (d: any, _type: any, row: any) => <span className="font-mono font-bold text-xs text-emerald-600">{formatMoney(d, row?.currency)}</span>,
     created_at: (d: any) => <span className="font-mono text-xs">{new Date(d).toLocaleString()}</span>,
     actions: (_d: any, _type: any, row: any) => (
-      <div className="flex items-center justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {canManageReceivableAllocations ? (
           <button
             type="button"

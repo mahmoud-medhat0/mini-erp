@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -112,6 +112,15 @@ export default function FixedAssetsIndex({
     branch_id: selectedBranch,
     location_id: selectedLocation,
   }), [selectedCat, selectedStatus, selectedBranch, selectedLocation]);
+
+  const activeFilterCount = [selectedCat, selectedStatus, selectedBranch, selectedLocation].filter(Boolean).length;
+
+  function clearFilters() {
+    setSelectedCat('');
+    setSelectedStatus('');
+    setSelectedBranch('');
+    setSelectedLocation('');
+  }
 
   function getStatusTone(status: string): 'ok' | 'warning' | 'info' | 'muted' {
     switch (status) {
@@ -284,6 +293,9 @@ export default function FixedAssetsIndex({
           isClearable={false}
         />
       </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>
+        {appDict.clearFilters}
+      </Button>
     </div>
   );
 

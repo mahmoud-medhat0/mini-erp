@@ -399,16 +399,21 @@ class Phase15ProductHardeningTest extends TestCase
                 'route' => '/fixed-assets',
                 'filter_keys' => ['selectedCat', 'selectedStatus', 'selectedBranch', 'selectedLocation'],
                 'dictionary' => 'dict.app.accounting',
+                // ServerDataTable-based: clearing filters resets local state and
+                // the grid refetches reactively, so there is no page navigation.
+                'usesServerDataTable' => true,
             ],
             'FixedAssets/Locations.tsx' => [
                 'route' => '/fixed-asset-locations',
                 'filter_keys' => ['branchId', 'status'],
                 'dictionary' => 'dict.app.accounting',
+                'usesServerDataTable' => false,
             ],
             'FixedAssets/Disposals/Index.tsx' => [
                 'route' => '/fixed-assets-disposals',
                 'filter_keys' => ['statusFilter', 'typeFilter'],
                 'dictionary' => 'dict.app.fixedAssetsDisposals',
+                'usesServerDataTable' => true,
             ],
         ] as $relativePath => $case) {
             $source = (string) file_get_contents(resource_path("js/Pages/{$relativePath}"));
@@ -417,7 +422,13 @@ class Phase15ProductHardeningTest extends TestCase
             $this->assertStringContainsString('const activeFilterCount', $source);
             $this->assertStringContainsString('function clearFilters()', $source);
             $this->assertStringContainsString('disabled={activeFilterCount === 0}', $source);
-            $this->assertStringContainsString("router.get('{$case['route']}', {},", $source);
+
+            if ($case['usesServerDataTable']) {
+                $this->assertStringContainsString('ServerDataTable', $source);
+            } else {
+                $this->assertStringContainsString("router.get('{$case['route']}', {},", $source);
+            }
+
             $this->assertStringContainsString('appDict.clearFilters', $source);
             $this->assertStringContainsString($case['dictionary'], $source);
 
@@ -4203,17 +4214,18 @@ class Phase15ProductHardeningTest extends TestCase
 
     public function test_ar_ap_cash_bank_pagination_links_are_typed(): void
     {
+        // CustomerReceipts, SupplierPayments, and both allocation pages have
+        // since moved to ServerDataTable (server-side, paginated by the grid
+        // itself), so the client-side PaginationLink type no longer applies
+        // to them — only the pages still doing Inertia-driven pagination need
+        // to type their links.
         foreach ([
             'CustomerOpeningBalances/Index.tsx',
-            'CustomerReceipts/Index.tsx',
             'SupplierOpeningBalances/Index.tsx',
-            'SupplierPayments/Index.tsx',
             'CashAccounts/Index.tsx',
             'BankAccounts/Index.tsx',
             'IncomingCheques/Index.tsx',
             'OutgoingCheques/Index.tsx',
-            'ReceivableAllocations/Index.tsx',
-            'PayableAllocations/Index.tsx',
             'BankReconciliations/Index.tsx',
             'Sales/CustomerInvoices.tsx',
             'Purchasing/SupplierBills.tsx',
@@ -4801,11 +4813,17 @@ class Phase15ProductHardeningTest extends TestCase
         $categories = (string) file_get_contents(resource_path('js/Pages/FixedAssets/Categories.tsx'));
         $locations = (string) file_get_contents(resource_path('js/Pages/FixedAssets/Locations.tsx'));
 
+        // The delete call now reloads the grid on success (reloadToken), so
+        // its options object carries an onSuccess callback alongside
+        // preserveScroll rather than being a single closed-literal — check
+        // both parts rather than the exact fused string.
+        $this->assertStringContainsString('router.delete(`/fixed-asset-categories/${id}`, {', $categories, 'Fixed Asset Category delete must target the category endpoint.');
+        $this->assertStringContainsString('preserveScroll: true,', $categories, 'Fixed Asset Category delete must preserve scroll position.');
+
         foreach ([
             'const categorySubmitLabel = processing ? appDict.saving : appDict.save;',
             'put(`/fixed-asset-categories/${editingCategory.id}`, {',
             'post(\'/fixed-asset-categories\', {',
-            'router.delete(`/fixed-asset-categories/${id}`, { preserveScroll: true });',
             'title={appDict.createAssetCategory}',
             'aria-label={appDict.createAssetCategory}',
             'title={appDict.editAssetCategory}',
@@ -5140,11 +5158,14 @@ class Phase15ProductHardeningTest extends TestCase
             $this->assertStringContainsString($fragment, $taxCodes, 'Tax Code actions must remain accessible and scroll-safe.');
         }
 
+        // Stock Balances is ServerDataTable-based: the warehouse SearchableSelect
+        // filters reactively on change (no separate "Apply" step is needed), and
+        // clearing resets that local state rather than navigating the page.
         foreach ([
-            "router.get('/inventory/stock-balances', { warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });",
-            "router.get('/inventory/stock-balances', {}, { preserveState: true, preserveScroll: true });",
-            'title={pageDict.applyFilter}',
-            'aria-label={pageDict.applyFilter}',
+            'ServerDataTable',
+            'const activeFilterCount',
+            'function clearFilter()',
+            'disabled={activeFilterCount === 0}',
             'title={pageDict.clearFilter}',
             'aria-label={pageDict.clearFilter}',
         ] as $fragment) {
@@ -6542,10 +6563,13 @@ class Phase15ProductHardeningTest extends TestCase
             }
         }
 
-        $this->assertStringContainsString('formatMoney(asset.cost_minor, asset.currency)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/Index.tsx')));
+        // The grid moved to ServerDataTable, whose slot callbacks name the row
+        // `row` rather than `asset` — same formatting, just the loop variable
+        // the migration settled on.
+        $this->assertStringContainsString('formatMoney(row.cost_minor, row.currency)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/Index.tsx')));
         $this->assertStringContainsString('appDict.restrictedValue', (string) file_get_contents(resource_path('js/Pages/FixedAssets/Index.tsx')));
         $this->assertStringContainsString('formatMoney(asset.cost_minor, asset.currency)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/Show.tsx')));
-        $this->assertStringContainsString('formatAssetMoney(item.proceeds_minor, item.asset)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/Disposals/Index.tsx')));
+        $this->assertStringContainsString('formatAssetMoney(row.proceeds_minor, row.asset)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/Disposals/Index.tsx')));
         $this->assertStringContainsString('formatAmount(run.total_depreciation_minor)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/DepreciationRuns/Index.tsx')));
         $this->assertStringContainsString('formatAmount(totalDepreciationMinor)', (string) file_get_contents(resource_path('js/Pages/FixedAssets/DepreciationRuns/Preview.tsx')));
 

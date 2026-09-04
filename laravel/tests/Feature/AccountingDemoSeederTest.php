@@ -66,10 +66,15 @@ class AccountingDemoSeederTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Accounting/GeneralLedger')
-            ->has('ledger.data', 2)
             ->where('totals.debit', 100000)
             ->where('totals.credit', 100000)
         );
+
+        // The grid streams its own rows now; the index page carries totals only.
+        $this->actingAs($user)
+            ->getJson(route('accounting.ledger.datatable'))
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 2);
     }
 
     public function test_empty_state_props_rendered_when_no_accounting_data_exists(): void
@@ -83,8 +88,12 @@ class AccountingDemoSeederTest extends TestCase
         $responseLedger->assertOk();
         $responseLedger->assertInertia(fn ($page) => $page
             ->component('Accounting/GeneralLedger')
-            ->has('ledger.data', 0)
         );
+
+        $this->actingAs($user)
+            ->getJson(route('accounting.ledger.datatable'))
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 0);
 
         // 2. General Journal
         $responseJournal = $this->actingAs($user)->get(route('accounting.journal'));

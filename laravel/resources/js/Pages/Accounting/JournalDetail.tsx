@@ -31,7 +31,7 @@ type JournalDetailProps = SharedPageProps & {
 
 export default function JournalDetail({ locale, journal, openPeriods = [] }: JournalDetailProps) {
   const dict = getDictionary(locale);
-  const accDict = dict.app.accounting as Record<string, any>;
+  const accDict = dict.app.accounting;
   const branchReportDict = dict.app.pages.branchOperationsReport;
   const can = useCan();
 
@@ -111,8 +111,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
           <button
             type="button"
             onClick={() => handleCopy(journal.id, 'id')}
-            title={copiedField === 'id' ? (accDict.copied || 'Copied!') : (accDict.copy || 'Copy')}
-            aria-label={accDict.copy || 'Copy'}
+            title={copiedField === 'id' ? accDict.copied : accDict.copy}
+            aria-label={accDict.copy}
             className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
           >
             {copiedField === 'id' ? (
@@ -145,8 +145,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 <button
                   type="button"
                   onClick={() => handleCopy(journal.number!, 'number')}
-                  title={copiedField === 'number' ? (accDict.copied || 'Copied!') : (accDict.copy || 'Copy')}
-                  aria-label={accDict.copy || 'Copy'}
+                  title={copiedField === 'number' ? accDict.copied : accDict.copy}
+                  aria-label={accDict.copy}
                   className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                 >
                   {copiedField === 'number' ? (
@@ -270,7 +270,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
         <Card className={`p-4 border-s-4 shadow-xs ${isBalanced ? 'border-s-emerald-500 bg-emerald-500/5' : 'border-s-red-500 bg-red-500/5'}`}>
           <span className="block text-xs font-bold uppercase text-[var(--text-muted)] tracking-wider">
-            {accDict.balanceStatus || 'Balance Status'}
+            {accDict.balanceStatus}
           </span>
           <div className="mt-1.5 flex items-center gap-2">
             {isBalanced ? (
@@ -278,7 +278,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span>{accDict.balancedZero || 'Balanced (0.00)'}</span>
+                <span>{accDict.balancedZero}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20">
@@ -416,7 +416,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
             >
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1 uppercase">
-                  {accDict.reversalFinancialPeriod || 'Reversal Financial Period'}
+                  {accDict.reversalFinancialPeriod}
                 </label>
                 <SearchableSelect
                   options={openPeriodOptions}
@@ -431,7 +431,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1 uppercase">
-                  {dict.app.sensitiveActions.reasonPlaceholder || accDict.reversalReason || 'Reversal Reason'}
+                  {dict.app.sensitiveActions.reasonPlaceholder || accDict.reversalReason}
                 </label>
                 <textarea
                   value={reverseForm.data.reason}
@@ -514,8 +514,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                   <button
                     type="button"
                     onClick={() => handleCopy(journal.reference!, 'ref')}
-                    title={copiedField === 'ref' ? (accDict.copied || 'Copied!') : (accDict.copy || 'Copy')}
-                    aria-label={accDict.copy || 'Copy'}
+                    title={copiedField === 'ref' ? accDict.copied : accDict.copy}
+                    aria-label={accDict.copy}
                     className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                   >
                     {copiedField === 'ref' ? (
@@ -601,7 +601,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </div>
               <div className="flex-1 rounded-xl bg-[var(--background)] p-3 border border-[var(--border)] group-last:mb-0 mb-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold text-[var(--text-primary)] m-0">{accDict.voucherCreated || 'Voucher Created'}</p>
+                  <p className="font-bold text-[var(--text-primary)] m-0">{accDict.voucherCreated}</p>
                   <span className="font-mono text-[11px] text-[var(--text-muted)]">{formatDate(journal.entry_date)}</span>
                 </div>
                 <span className="text-[var(--text-secondary)] text-[11px] block mt-1 font-medium">
@@ -637,12 +637,12 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                   <>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-[var(--text-muted)] m-0">
-                        {accDict.pendingPosting || 'Pending Posting'}
+                        {accDict.pendingPosting}
                       </p>
                       <span className="text-[11px] text-[var(--text-muted)] font-mono">—</span>
                     </div>
                     <span className="text-[var(--text-muted)] text-[11px] block mt-1 font-medium">
-                      {accDict.notPostedYet || 'Not posted yet'}
+                      {accDict.notPostedYet}
                     </span>
                   </>
                 )}

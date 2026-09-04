@@ -138,21 +138,19 @@ class GeneralJournalDataTableTest extends TestCase
             ->getJson('/accounting/journal/data?'.http_build_query($this->gridQuery($overrides)));
     }
 
-    public function test_index_page_still_exposes_a_valid_paginator_shape_with_no_relations(): void
+    public function test_index_page_no_longer_carries_an_inline_journals_paginator(): void
     {
         $response = $this->actingAs($this->user)->get('/accounting/journal');
 
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->component('Accounting/GeneralJournal')
-            ->has('journals.data')
-            ->has('journals.links')
-            ->has('journals.current_page')
-            ->has('journals.total')
+            ->missing('journals')
+            ->has('periods')
         );
     }
 
-    public function test_datatable_returns_rows_with_the_created_by_relation(): void
+    public function test_datatable_returns_the_creator_name_as_a_plain_string(): void
     {
         $response = $this->fetch();
         $response->assertOk();
@@ -162,7 +160,12 @@ class GeneralJournalDataTableTest extends TestCase
 
         $row = collect($rows)->firstWhere('reference', 'JV-SEARCH-001');
         $this->assertNotNull($row);
-        $this->assertSame($this->user->name, $row['createdBy']['name']);
+
+        // `createdBy()` would otherwise collide with the real `created_by` FK
+        // column once Eloquent snake-cases the relation key during
+        // serialization, silently replacing it with the nested object.
+        $this->assertArrayNotHasKey('createdBy', $row);
+        $this->assertSame($this->user->name, $row['creator_name']);
         $this->assertSame('draft', $row['status']);
     }
 

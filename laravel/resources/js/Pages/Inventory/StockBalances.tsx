@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -81,6 +81,12 @@ export default function StockBalances({ locale, warehouses, filters }: StockBala
     [warehouseFilter],
   );
 
+  const activeFilterCount = [warehouseFilter].filter(Boolean).length;
+
+  function clearFilter() {
+    setWarehouseFilter('');
+  }
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-64 shrink-0">
@@ -92,6 +98,15 @@ export default function StockBalances({ locale, warehouses, filters }: StockBala
           isClearable={false}
         />
       </div>
+      <Button
+        variant="secondary"
+        onClick={clearFilter}
+        disabled={activeFilterCount === 0}
+        title={pageDict.clearFilter}
+        aria-label={pageDict.clearFilter}
+      >
+        {pageDict.clearFilter}
+      </Button>
     </div>
   );
 
@@ -155,18 +170,15 @@ export default function StockBalances({ locale, warehouses, filters }: StockBala
     ),
     avg_unit_cost_e6: (d: any, _type: any, row: any) => (
       <span className="font-mono text-xs text-[var(--text-secondary)]">
-        {formatMoney(Number(d || 0) / 10000, row?.currency || 'USD')}
+        {formatMoney(Number(d || 0) / 10000, row?.currency)}
       </span>
     ),
     valuation_amount_minor: (d: any, _type: any, row: any) => (
       <span className="font-mono text-xs font-bold text-emerald-600">
-        {formatMoney(Number(d || 0), row?.currency || 'USD')}
+        {formatMoney(Number(d || 0), row?.currency)}
       </span>
     ),
   }), [accDict.notAvailable, locale, pageDict.notAssigned]);
-
-  // Compatibility signatures for automated test assertions:
-  // router.get('/inventory/stock-balances', { warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });
 
   return (
     <AppLayout active="stock-balances.index">

@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -157,6 +157,27 @@ export default function StockTransfersIndex({
   const canIssueInventory = can('inventory.post');
   const canReceiveInventory = can('inventory.receive');
 
+  const isStockTransferActionable = (row: any) =>
+    ['draft', 'submitted', 'approved', 'issued', 'partially_received'].includes(row.status);
+
+  const hasAvailableStockTransferAction = (row: any) => (
+    row.status === 'draft'
+      ? canTransferStock || canApproveInventory
+      : row.status === 'submitted'
+        ? canApproveInventory || canTransferStock
+        : row.status === 'approved'
+          ? canIssueInventory || canTransferStock
+          : ['issued', 'partially_received'].includes(row.status)
+            ? canReceiveInventory
+            : false
+  );
+
+  const getStockTransferActionState = (row: any) => {
+    if (hasAvailableStockTransferAction(row)) return null;
+
+    return isStockTransferActionable(row) ? dict.app.actions.restricted : dict.app.actions.noActions;
+  };
+
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
   const [warehouseFilter, setWarehouseFilter] = useState(filters.warehouse_id || '');
 
@@ -233,6 +254,13 @@ export default function StockTransfersIndex({
     [statusFilter, warehouseFilter],
   );
 
+  const activeFilterCount = [statusFilter, warehouseFilter].filter(Boolean).length;
+
+  function clearFilters() {
+    setStatusFilter('');
+    setWarehouseFilter('');
+  }
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
       <div className="w-56 shrink-0">
@@ -254,6 +282,9 @@ export default function StockTransfersIndex({
           isClearable={false}
         />
       </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>
+        {pageDict.clearFilters}
+      </Button>
     </div>
   );
 
@@ -467,13 +498,13 @@ export default function StockTransfersIndex({
       );
     },
     actions: (_d: any, _type: any, row: any) => (
-      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {row.status === 'draft' && canTransferStock ? (
           <button
             type="button"
             onClick={() => openEditTransfer(row)}
-            title={actionsDict.edit}
-            aria-label={actionsDict.edit}
+            title={pageDict.editTransfer}
+            aria-label={pageDict.editTransfer}
             className="inline-flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--primary)_22%,transparent)] transition-all cursor-pointer"
           >
             <span>{actionsDict.edit}</span>
@@ -526,8 +557,8 @@ export default function StockTransfersIndex({
             <button
               type="button"
               onClick={() => openReceivePanel(row)}
-              title={pageDict.receiveSelected}
-              aria-label={pageDict.receiveSelected}
+              title={pageDict.receive}
+              aria-label={pageDict.receive}
               className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
             >
               <span>{pageDict.receiveSelected}</span>
@@ -545,12 +576,12 @@ export default function StockTransfersIndex({
             <span>{pageDict.cancelTransfer}</span>
           </button>
         ) : null}
+        {getStockTransferActionState(row) ? (
+          <StatusBadge tone="muted">{getStockTransferActionState(row)}</StatusBadge>
+        ) : null}
       </div>
     ),
-  }), [accDict.notAvailable, actionsDict.edit, canApproveInventory, canIssueInventory, canReceiveInventory, canTransferStock, locale, pageDict]);
-
-  // Compatibility signatures for automated test assertions:
-  // router.get('/inventory/transfers', { search, status, warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });
+  }), [accDict.notAvailable, actionsDict.edit, canApproveInventory, canIssueInventory, canReceiveInventory, canTransferStock, dict, locale, pageDict]);
 
   return (
     <AppLayout active="stock-transfers.index">

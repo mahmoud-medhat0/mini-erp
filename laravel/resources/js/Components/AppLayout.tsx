@@ -95,6 +95,8 @@ export type NavKey =
   | 'reports.customer-invoices'
   | 'reports.supplier-bills'
   | 'reports.stock-movements'
+  | 'reports.product-statement'
+  | 'reports.warehouse-statement'
   | 'reports.branch-operations'
   | 'reports.branch-profitability'
   | 'reports.project-profitability'
