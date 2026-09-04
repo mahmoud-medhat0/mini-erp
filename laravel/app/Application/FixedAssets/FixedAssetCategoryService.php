@@ -5,14 +5,40 @@ namespace App\Application\FixedAssets;
 use App\Domain\Audit\AuditLogger;
 use App\Models\FixedAssetCategory;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class FixedAssetCategoryService
 {
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
+
+    /**
+     * Server-side DataTables feed for fixed asset categories grid.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $status = (string) ($filters['status'] ?? '');
+
+        $query = FixedAssetCategory::query()
+            ->withCount('fixedAssets')
+            ->select('fixed_asset_category.*')
+            ->when($status === 'active', fn ($q) => $q->where('fixed_asset_category.is_active', true))
+            ->when($status === 'inactive', fn ($q) => $q->where('fixed_asset_category.is_active', false));
+
+        return DataTables::of($query)
+            ->addColumn('name_text', fn (FixedAssetCategory $row) => is_array($row->name) ? ($row->name['en'] ?? '') : (string) $row->name)
+            ->filterColumn('name_text', fn ($q, $kw) => $q->where(function ($q2) use ($kw) {
+                $q2->where('fixed_asset_category.name->en', 'like', "%{$kw}%")
+                   ->orWhere('fixed_asset_category.name->ar', 'like', "%{$kw}%");
+            }))
+            ->make(true);
+    }
 
     /**
      * @return Collection<int, FixedAssetCategory>

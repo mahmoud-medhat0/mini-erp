@@ -1,7 +1,8 @@
-import { Head, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import { PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatAccountingAmount } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -17,7 +18,7 @@ type CategoryRow = {
 };
 
 type CategoriesProps = SharedPageProps & {
-  categories: CategoryRow[];
+  categories?: CategoryRow[];
   can: {
     create: boolean;
     edit: boolean;
@@ -26,13 +27,15 @@ type CategoriesProps = SharedPageProps & {
   };
 };
 
-export default function FixedAssetCategories({ locale, categories, can }: CategoriesProps) {
+export default function FixedAssetCategories({ locale, can }: CategoriesProps) {
   const dict = getDictionary(locale);
   const appDict = dict.app.accounting;
   const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
 
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const { data, setData, post, put, transform, processing, errors, reset } = useForm({
     code: '',
@@ -43,6 +46,16 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
     is_active: true,
   });
   const categorySubmitLabel = processing ? appDict.saving : appDict.save;
+
+  const statusOptions = useMemo(() => [
+    { value: '', label: appDict.allStatuses },
+    { value: 'active', label: appDict.fixedAssetStatusActive },
+    { value: 'inactive', label: appDict.inactive },
+  ], [appDict]);
+
+  const extraFilters = useMemo(() => ({
+    status: statusFilter,
+  }), [statusFilter]);
 
   function openCreateModal() {
     setEditingCategory(null);
@@ -80,6 +93,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
         onSuccess: () => {
           setShowModal(false);
           reset();
+          setReloadToken((prev) => prev + 1);
         },
       });
     } else {
@@ -88,6 +102,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
         onSuccess: () => {
           setShowModal(false);
           reset();
+          setReloadToken((prev) => prev + 1);
         },
       });
     }
@@ -95,7 +110,12 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
 
   function handleDelete(id: string) {
     if (confirm(appDict.confirmDeleteAssetCategory)) {
-      router.delete(`/fixed-asset-categories/${id}`, { preserveScroll: true });
+      router.delete(`/fixed-asset-categories/${id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setReloadToken((prev) => prev + 1);
+        },
+      });
     }
   }
 
@@ -105,6 +125,107 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
     }
     return String(name);
   }
+
+  const columns = useMemo(
+    () => [
+      {
+        data: 'code',
+        name: 'code',
+        title: appDict.code,
+        className: 'font-mono text-sm',
+      },
+      {
+        data: 'name_text',
+        name: 'name_text',
+        title: appDict.name,
+      },
+      {
+        data: 'useful_life_months',
+        name: 'useful_life_months',
+        title: appDict.usefulLifeMonths,
+      },
+      {
+        data: 'salvage_value_minor',
+        name: 'salvage_value_minor',
+        title: appDict.salvageValue,
+      },
+      {
+        data: 'is_active',
+        name: 'is_active',
+        title: appDict.status,
+      },
+      {
+        data: 'id',
+        name: 'id',
+        title: appDict.actions,
+        orderable: false,
+        searchable: false,
+      },
+    ],
+    [appDict],
+  );
+
+  const slots: DataTableSlots = useMemo(
+    () => ({
+      name_text: (_data: any, _type: any, row: CategoryRow) => formatName(row.name),
+      salvage_value_minor: (_data: any, _type: any, row: CategoryRow) => (
+        can.view_financials ? formatAmount(row.salvage_value_minor) : appDict.restrictedValue
+      ),
+      is_active: (_data: any, _type: any, row: CategoryRow) => (
+        <StatusBadge tone={row.is_active ? 'ok' : 'muted'}>
+          {row.is_active ? appDict.fixedAssetStatusActive : appDict.inactive}
+        </StatusBadge>
+      ),
+      id: (_data: any, _type: any, row: CategoryRow) => (
+        <div className="flex items-center gap-2.5">
+          {can.edit && (
+            <button
+              type="button"
+              onClick={() => openEditModal(row)}
+              title={appDict.editAssetCategory}
+              aria-label={appDict.editAssetCategory}
+              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span>{appDict.editAssetCategory}</span>
+            </button>
+          )}
+          {can.delete && (row.fixed_assets_count ?? 0) === 0 && (
+            <button
+              type="button"
+              onClick={() => handleDelete(row.id)}
+              title={appDict.delete}
+              aria-label={appDict.delete}
+              className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>{appDict.delete}</span>
+            </button>
+          )}
+        </div>
+      ),
+    }),
+    [locale, can, appDict],
+  );
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-40 shrink-0">
+        <SearchableSelect
+          value={statusFilter}
+          options={statusOptions}
+          onChange={(val) => setStatusFilter(val || '')}
+          placeholder={appDict.allStatuses}
+          isClearable={false}
+          isSearchable={false}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <AppLayout active="fixed-asset-categories.index">
@@ -129,72 +250,15 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
           }
         />
 
-        <Card>
-          {categories.length === 0 ? (
-            <EmptyState
-              title={appDict.noFixedAssetCategories}
-              description={appDict.noFixedAssetCategories}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className={tableClasses.table}>
-                <thead>
-                  <tr>
-                    <th className={tableClasses.th}>{appDict.code}</th>
-                    <th className={tableClasses.th}>{appDict.name}</th>
-                    <th className={tableClasses.th}>{appDict.usefulLifeMonths}</th>
-                    <th className={tableClasses.th}>{appDict.salvageValue}</th>
-                    <th className={tableClasses.th}>{appDict.status}</th>
-                    <th className={tableClasses.th}>{appDict.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map((cat) => (
-                    <tr key={cat.id}>
-                      <td className={`${tableClasses.td} font-mono`}>{cat.code}</td>
-                      <td className={tableClasses.td}>{formatName(cat.name)}</td>
-                      <td className={tableClasses.td}>{cat.useful_life_months}</td>
-                      <td className={tableClasses.td}>
-                        {can.view_financials ? formatAmount(cat.salvage_value_minor) : appDict.restrictedValue}
-                      </td>
-                      <td className={tableClasses.td}>
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${cat.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>
-                          {cat.is_active ? appDict.fixedAssetStatusActive : appDict.inactive}
-                        </span>
-                      </td>
-                      <td className={tableClasses.td}>
-                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                          {can.edit && (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(cat)}
-                              title={appDict.editAssetCategory}
-                              aria-label={appDict.editAssetCategory}
-                              className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
-                            >
-                              {appDict.editAssetCategory}
-                            </button>
-                          )}
-                          {can.delete && (cat.fixed_assets_count ?? 0) === 0 && (
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(cat.id)}
-                              title={appDict.delete}
-                              aria-label={appDict.delete}
-                              className="text-xs font-medium text-rose-600 hover:text-rose-900"
-                            >
-                              {appDict.delete}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <ServerDataTable
+          ajaxUrl="/fixed-asset-categories/data"
+          columns={columns}
+          slots={slots}
+          toolbar={toolbar}
+          filters={extraFilters}
+          locale={locale}
+          reloadToken={reloadToken}
+        />
       </div>
 
       {showModal && (
@@ -273,7 +337,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                 />
               </div>
 
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="cat_active"
@@ -286,7 +350,7 @@ export default function FixedAssetCategories({ locale, categories, can }: Catego
                 </label>
               </div>
 
-              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
+              <div className="flex justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

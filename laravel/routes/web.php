@@ -659,6 +659,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 6 Slice 2 Fixed Assets Routes
     Route::get('/fixed-asset-categories', [FixedAssetCategoryController::class, 'index'])->middleware('can:fixedAssets.view')->name('fixed-asset-categories.index');
+    Route::get('/fixed-asset-categories/data', [FixedAssetCategoryController::class, 'datatable'])->middleware('can:fixedAssets.view')->name('fixed-asset-categories.datatable');
     Route::post('/fixed-asset-categories', [FixedAssetCategoryController::class, 'store'])->middleware('can:fixedAssets.create')->name('fixed-asset-categories.store');
     Route::put('/fixed-asset-categories/{id}', [FixedAssetCategoryController::class, 'update'])->middleware('can:fixedAssets.edit')->name('fixed-asset-categories.update');
     Route::delete('/fixed-asset-categories/{id}', [FixedAssetCategoryController::class, 'destroy'])->middleware('can:fixedAssets.delete')->name('fixed-asset-categories.destroy');

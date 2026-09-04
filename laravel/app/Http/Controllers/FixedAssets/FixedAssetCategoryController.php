@@ -5,6 +5,7 @@ namespace App\Http\Controllers\FixedAssets;
 use App\Application\FixedAssets\FixedAssetCategoryService;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,10 +23,8 @@ class FixedAssetCategoryController extends Controller
     {
         $this->authorizePermission($request, 'fixedAssets.view');
 
-        $categories = $this->categoryService->listCategories();
-
         return Inertia::render('FixedAssets/Categories', [
-            'categories' => $categories,
+            'categories' => [],
             'can' => [
                 'create' => $request->user()?->can('fixedAssets.create') ?? false,
                 'edit' => $request->user()?->can('fixedAssets.edit') ?? false,
@@ -33,6 +32,13 @@ class FixedAssetCategoryController extends Controller
                 'view_financials' => $request->user()?->can('view_financials') ?? false,
             ],
         ]);
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+
+        return $this->categoryService->datatable($request->only(['status']));
     }
 
     public function store(Request $request): RedirectResponse
