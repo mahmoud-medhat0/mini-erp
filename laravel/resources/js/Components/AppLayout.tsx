@@ -718,9 +718,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
           <div
             ref={sidebarNavRef}
             className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 space-y-6 scroll-smooth ${
-              sidebarCollapsed
-                ? 'px-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
-                : 'px-3 sidebar-scrollbar'
+              sidebarCollapsed ? 'px-1.5 sidebar-scrollbar-hidden' : 'px-3 sidebar-scrollbar'
             }`}
           >
             {/* GROUP 1: STANDALONE INDIVIDUAL ITEMS */}
@@ -748,7 +746,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
                     <svg
                       className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
                         active === 'dashboard' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
@@ -778,7 +776,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
                     <div className="relative">
                       <svg
                         className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
@@ -822,7 +820,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
                     <svg
                       className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
                         active === 'foundation' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
@@ -858,20 +856,27 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isAccountingActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/accounting"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setAccountingExpanded(true);
+                      }}
                       data-active={(active as string) === 'accounting' ? 'true' : undefined}
                       title={sidebarCollapsed ? accDict.title : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
                       <svg
                         className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          isAccountingActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                          isAccountingActive
+                            ? sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400'
+                            : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
@@ -901,7 +906,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {accountingExpanded ? (
+                  {(accountingExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa, icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
@@ -961,18 +966,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isArActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/customers"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setArExpanded(true);
+                      }}
                       data-active={active === 'customers.index' || (active as string) === 'customers' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.customersAr_2 : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isArActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isArActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.customersAr}</span> : null}
@@ -986,7 +996,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {arExpanded ? (
+                  {(arExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'customers.index' as NavKey, href: '/customers', label: dict.app.nav.layoutKeys.customers },
@@ -1017,18 +1027,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isApActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/suppliers"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setApExpanded(true);
+                      }}
                       data-active={active === 'suppliers.index' || (active as string) === 'suppliers' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.suppliersAp_2 : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isApActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isApActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.suppliersAp}</span> : null}
@@ -1042,7 +1057,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {apExpanded ? (
+                  {(apExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'suppliers.index' as NavKey, href: '/suppliers', label: dict.app.nav.layoutKeys.suppliers },
@@ -1073,18 +1088,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isExpensesActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/expenses"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setExpensesExpanded(true);
+                      }}
                       data-active={active === 'expenses.index' || (active as string) === 'expenses' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.expensesOperations : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isExpensesActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isExpensesActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6m-6-4h6m-7 10h8a2 2 0 002-2V7.5L14.5 4H8a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.expensesOperations}</span> : null}
@@ -1098,7 +1118,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {expensesExpanded ? (
+                  {(expensesExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'expenses.index' as NavKey, href: '/expenses', label: dict.app.nav.layoutKeys.expenses },
@@ -1129,18 +1149,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isPayrollActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/payroll/runs"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setPayrollExpanded(true);
+                      }}
                       data-active={active === 'payroll.runs.index' || (active as string) === 'payroll' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.payrollOperations : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isPayrollActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isPayrollActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.payrollOperations}</span> : null}
@@ -1154,7 +1179,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {payrollExpanded ? (
+                  {(payrollExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'payroll.runs.index' as NavKey, href: '/payroll/runs', label: dict.app.nav.layoutKeys.payrollRuns },
@@ -1188,18 +1213,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isRentalsActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/rentals/items"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setRentalsExpanded(true);
+                      }}
                       data-active={active === 'rentals.items.index' || (active as string) === 'rentals' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.rentalsOperations : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isRentalsActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isRentalsActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8m-9 4h10M7 15h10M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 01-1-1z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.rentalsOperations}</span> : null}
@@ -1213,7 +1243,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {rentalsExpanded ? (
+                  {(rentalsExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'rentals.contracts.index' as NavKey, href: '/rentals/contracts', label: dict.app.nav.layoutKeys.rentalContracts },
@@ -1248,18 +1278,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isCashBankActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/cash-accounts"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setCashBankExpanded(true);
+                      }}
                       data-active={active === 'cash-accounts.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.cashBankCheques_2 : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isCashBankActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isCashBankActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.cashBankCheques}</span> : null}
@@ -1273,7 +1308,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {cashBankExpanded ? (
+                  {(cashBankExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: dict.app.nav.layoutKeys.cashAccounts },
@@ -1310,18 +1345,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isCatalogActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/catalog/products"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setCatalogExpanded(true);
+                      }}
                       data-active={active === 'products.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.catalog_2 : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isCatalogActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isCatalogActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.catalog}</span> : null}
@@ -1335,7 +1375,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {catalogExpanded ? (
+                  {(catalogExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: dict.app.nav.layoutKeys.productsServices },
@@ -1369,18 +1409,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isInventoryActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/inventory/stock-balances"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setInventoryExpanded(true);
+                      }}
                       data-active={active === 'stock-balances.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.inventoryOperations : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isInventoryActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isInventoryActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.inventoryOperations}</span> : null}
@@ -1394,7 +1439,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {inventoryExpanded ? (
+                  {(inventoryExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'warehouses.index' as NavKey, href: '/inventory/warehouses', label: dict.app.nav.layoutKeys.warehouses },
@@ -1430,18 +1475,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isFixedAssetsActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/fixed-assets"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setFixedAssetsExpanded(true);
+                      }}
                       data-active={active === 'fixed-assets.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? accDict.fixedAssets : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isFixedAssetsActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isFixedAssetsActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l8-4 6 3v15M9 9h1m-1 4h1m4-4h1m-1 4h1M9 17h1m4 0h1" />
                       </svg>
                       {!sidebarCollapsed ? <span>{accDict.fixedAssets}</span> : null}
@@ -1455,7 +1505,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {fixedAssetsExpanded ? (
+                  {(fixedAssetsExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'fixed-assets.index' as NavKey, href: '/fixed-assets', label: accDict.fixedAssets },
@@ -1491,18 +1541,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isProjectsActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/projects"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setProjectsCostCentersExpanded(true);
+                      }}
                       data-active={active === 'projects.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.projectsCostCenters : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isProjectsActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isProjectsActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.projectsCostCenters}</span> : null}
@@ -1522,7 +1577,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {projectsCostCentersExpanded ? (
+                  {(projectsCostCentersExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'projects.index' as NavKey, href: '/projects', label: dict.app.nav.layoutKeys.projects },
@@ -1557,18 +1612,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isReportsActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/reports"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setReportsExpanded(true);
+                      }}
                       data-active={active === 'reports.index' || (active as string) === 'reports' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.reportsSubledgers_2 : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
-                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isReportsActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isReportsActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.reportsSubledgers}</span> : null}
@@ -1582,7 +1642,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {reportsExpanded ? (
+                  {(reportsExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'reports.index' as NavKey, href: '/reports', label: dict.app.nav.layoutKeys.reportsHub },
@@ -1631,20 +1691,27 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
                     } ${
                       isAdminActive
-                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     <Link
                       href="/settings"
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setAdminExpanded(true);
+                      }}
                       data-active={active === 'settings' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.groups.administration : undefined}
-                      className="flex flex-1 items-center gap-3 no-underline text-inherit"
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
                     >
                       <svg
                         className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          isAdminActive ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                          isAdminActive
+                            ? sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400'
+                            : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
@@ -1674,7 +1741,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {adminExpanded ? (
+                  {(adminExpanded && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {/* Settings Main Overview Link */}
                       <Link
