@@ -1600,6 +1600,12 @@
         "inheritEntryBranch": "استخدام فرع القيد",
         "emptyTitle": "لا توجد فروع",
         "emptyDescription": "أضف فروعاً نشطة واربط بها المخازن وحسابات الخزينة والبنك والأصول الثابتة لعرض التغطية التشغيلية.",
+        "operationsOverview": "نظرة عامة على العمليات",
+        "moves": "حركات",
+        "branchSingular": "فرع",
+        "branchPlural": "فروع",
+        "searchPlaceholder": "البحث بالرمز أو اسم الفرع...",
+        "filtersTitle": "التصفية",
         "statuses": {
           "ready": "جاهز",
           "partial": "جزئي",

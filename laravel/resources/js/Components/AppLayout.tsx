@@ -392,6 +392,67 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const [reportsExpanded, setReportsExpanded] = useState(() => isReportsActive);
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const sidebarNavRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-expand active group when active route changes
+  useEffect(() => {
+    if (isAccountingActive) setAccountingExpanded(true);
+    if (isArActive) setArExpanded(true);
+    if (isApActive) setApExpanded(true);
+    if (isExpensesActive) setExpensesExpanded(true);
+    if (isPayrollActive) setPayrollExpanded(true);
+    if (isRentalsActive) setRentalsExpanded(true);
+    if (isCashBankActive) setCashBankExpanded(true);
+    if (isCatalogActive) setCatalogExpanded(true);
+    if (isInventoryActive) setInventoryExpanded(true);
+    if (isFixedAssetsActive) setFixedAssetsExpanded(true);
+    if (isProjectsActive) setProjectsCostCentersExpanded(true);
+    if (isReportsActive) setReportsExpanded(true);
+    if (isAdminActive) setAdminExpanded(true);
+  }, [
+    active,
+    isAccountingActive,
+    isArActive,
+    isApActive,
+    isExpensesActive,
+    isPayrollActive,
+    isRentalsActive,
+    isCashBankActive,
+    isCatalogActive,
+    isInventoryActive,
+    isFixedAssetsActive,
+    isProjectsActive,
+    isReportsActive,
+    isAdminActive,
+  ]);
+
+  // Auto position (scroll) active route into view inside sidebar container
+  useEffect(() => {
+    if (!sidebarNavRef.current) return;
+    const timer = setTimeout(() => {
+      const activeEl = sidebarNavRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [
+    active,
+    sidebarCollapsed,
+    accountingExpanded,
+    arExpanded,
+    apExpanded,
+    expensesExpanded,
+    payrollExpanded,
+    rentalsExpanded,
+    cashBankExpanded,
+    catalogExpanded,
+    inventoryExpanded,
+    fixedAssetsExpanded,
+    projectsCostCentersExpanded,
+    reportsExpanded,
+    adminExpanded,
+  ]);
 
   const locale = props.locale === 'ar' ? 'ar' : 'en';
   const isRtl = locale === 'ar';
@@ -579,7 +640,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
         {/* Collapsible Sidebar Container */}
         <aside
           data-tour="sidebar"
-          className={`fixed inset-y-0 start-0 z-50 flex flex-col border-e border-[var(--border)] bg-[var(--surface)] transition-all duration-300 ease-in-out lg:static ${
+          className={`fixed inset-y-0 start-0 z-50 flex h-screen max-h-screen shrink-0 flex-col border-e border-[var(--border)] bg-[var(--surface)] transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:max-h-screen print:hidden ${
             sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
           } ${
             mobileMenuOpen
@@ -590,7 +651,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
           }`}
         >
           {/* Brand Header & Desktop Collapse Toggle */}
-          <div className={`flex h-16 items-center border-b border-[var(--border)] px-3.5 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <div className={`flex h-16 shrink-0 items-center border-b border-[var(--border)] px-3.5 print:hidden ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
             {!sidebarCollapsed ? (
               <>
                 <Link href="/dashboard" className="flex items-center gap-3 no-underline overflow-hidden">
@@ -654,7 +715,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
           </div>
 
           {/* Navigation Items List */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+          <div ref={sidebarNavRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-6 sidebar-scrollbar scroll-smooth">
             {/* GROUP 1: STANDALONE INDIVIDUAL ITEMS */}
             <div className="space-y-1">
               {!sidebarCollapsed ? (
@@ -670,6 +731,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
+                  data-active={active === 'dashboard' ? 'true' : undefined}
                   title={sidebarCollapsed ? dict.app.nav.dashboard : undefined}
                   className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
                     sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
@@ -699,6 +761,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 <Link
                   href="/notifications"
                   onClick={() => setMobileMenuOpen(false)}
+                  data-active={active === 'notifications' ? 'true' : undefined}
                   title={sidebarCollapsed ? dict.app.nav.notifications : undefined}
                   className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
                     sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
@@ -742,6 +805,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 <Link
                   href="/foundation"
                   onClick={() => setMobileMenuOpen(false)}
+                  data-active={active === 'foundation' ? 'true' : undefined}
                   title={sidebarCollapsed ? dict.app.nav.diagnostics : undefined}
                   className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
                     sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
@@ -794,6 +858,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/accounting"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={(active as string) === 'accounting' ? 'true' : undefined}
                       title={sidebarCollapsed ? accDict.title : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -853,6 +918,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                             key={subItem.key}
                             href={subItem.href}
                             onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
                             title={sidebarCollapsed ? subItem.label : undefined}
                             className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
                               sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -895,6 +961,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/customers"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'customers.index' || (active as string) === 'customers' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.customersAr_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -950,6 +1017,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/suppliers"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'suppliers.index' || (active as string) === 'suppliers' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.suppliersAp_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1005,6 +1073,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/expenses"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'expenses.index' || (active as string) === 'expenses' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.expensesOperations : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1060,6 +1129,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/payroll/runs"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'payroll.runs.index' || (active as string) === 'payroll' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.payrollOperations : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1083,19 +1153,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'payroll.runs.index' as NavKey, href: '/payroll/runs', label: dict.app.nav.layoutKeys.payrollRuns },
                         { key: 'payroll.employees.index' as NavKey, href: '/payroll/employees', label: dict.app.nav.layoutKeys.employees },
                         { key: 'payroll.components.index' as NavKey, href: '/payroll/components', label: dict.app.nav.layoutKeys.payrollComponents },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1114,6 +1188,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/rentals/items"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'rentals.items.index' || (active as string) === 'rentals' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.rentalsOperations : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1139,19 +1214,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'rentals.handovers.index' as NavKey, href: '/rentals/handovers', label: dict.app.nav.layoutKeys.rentalHandovers },
                         { key: 'rentals.returns.index' as NavKey, href: '/rentals/returns', label: dict.app.nav.layoutKeys.rentalReturns },
                         { key: 'rentals.items.index' as NavKey, href: '/rentals/items', label: dict.app.nav.layoutKeys.rentalItems },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1169,6 +1248,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/cash-accounts"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'cash-accounts.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.cashBankCheques_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1195,19 +1275,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'incoming-cheques.index' as NavKey, href: '/incoming-cheques', label: dict.app.nav.layoutKeys.incomingCheques },
                         { key: 'outgoing-cheques.index' as NavKey, href: '/outgoing-cheques', label: dict.app.nav.layoutKeys.outgoingCheques },
                          { key: 'bank-reconciliations.index' as NavKey, href: '/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconciliations },
-                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key || (subItem.key === 'bank-reconciliations.index' && active === 'bank-reconciliations.show') ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                          const isSubActive = active === subItem.key || (subItem.key === 'bank-reconciliations.index' && active === 'bank-reconciliations.show');
+                          return (
+                            <Link
+                              key={subItem.key}
+                              href={subItem.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              data-active={isSubActive ? 'true' : undefined}
+                              title={sidebarCollapsed ? subItem.label : undefined}
+                              className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                                sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                              } ${isSubActive ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                            >
+                              {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                            </Link>
+                          );
+                        })}
                     </div>
                   ) : null}
                 </div>
@@ -1226,6 +1310,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/catalog/products"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'products.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.catalog_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1249,19 +1334,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: dict.app.nav.layoutKeys.productsServices },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: dict.app.nav.layoutKeys.productCategories },
                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: dict.app.nav.layoutKeys.unitsOfMeasure },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1280,6 +1369,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/inventory/stock-balances"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'stock-balances.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.inventoryOperations : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1305,19 +1395,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'stock-counts.index' as NavKey, href: '/inventory/stock-counts', label: dict.app.nav.layoutKeys.stockCounts },
                         { key: 'stock-adjustments.index' as NavKey, href: '/inventory/adjustments', label: dict.app.nav.layoutKeys.stockAdjustments },
                         { key: 'stock-balances.index' as NavKey, href: '/inventory/stock-balances', label: dict.app.nav.layoutKeys.stockBalances },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1336,6 +1430,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/fixed-assets"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'fixed-assets.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? accDict.fixedAssets : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1361,19 +1456,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'fixed-asset-locations.index' as NavKey, href: '/fixed-asset-locations', label: accDict.fixedAssetLocations },
                         { key: 'fixed-assets.depreciation-runs.index' as NavKey, href: '/fixed-assets-depreciation-runs', label: accDict.depreciationRuns },
                         { key: 'fixed-assets-disposals.index' as NavKey, href: '/fixed-assets-disposals', label: accDict.disposals },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1392,6 +1491,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/projects"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'projects.index' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.projectsCostCenters : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1422,19 +1522,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'cost-centers.index' as NavKey, href: '/cost-centers', label: dict.app.nav.layoutKeys.costCenters },
                         { key: 'budgeting.budgets' as NavKey, href: '/budgeting/budgets', label: dict.app.nav.layoutKeys.budgets },
                         { key: 'budgeting.variance' as NavKey, href: '/budgeting/variance', label: dict.app.nav.layoutKeys.budgetVariance },
-                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1453,6 +1557,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/reports"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'reports.index' || (active as string) === 'reports' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.layoutKeys.reportsSubledgers_2 : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1490,19 +1595,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'reports.balance_sheet' as NavKey, href: '/reports/balance-sheet', label: accDict.balanceSheet },
                         { key: 'reports.income_statement' as NavKey, href: '/reports/income-statement', label: accDict.incomeStatement },
                         { key: 'reports.cash_flow' as NavKey, href: '/reports/cash-flow', label: accDict.cashFlowStatement },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          title={sidebarCollapsed ? subItem.label : undefined}
-                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                          } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
-                        >
-                          {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
-                        </Link>
-                      ))}
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : null}
                 </div>
@@ -1522,6 +1631,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <Link
                       href="/settings"
                       onClick={() => setMobileMenuOpen(false)}
+                      data-active={active === 'settings' ? 'true' : undefined}
                       title={sidebarCollapsed ? dict.app.nav.groups.administration : undefined}
                       className="flex flex-1 items-center gap-3 no-underline text-inherit"
                     >
@@ -1563,6 +1673,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       <Link
                         href="/settings"
                         onClick={() => setMobileMenuOpen(false)}
+                        data-active={active === 'settings' ? 'true' : undefined}
                         title={sidebarCollapsed ? dict.app.nav.settings : undefined}
                         className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
                           sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1602,6 +1713,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                             key={subItem.key}
                             href={subItem.href}
                             onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
                             title={sidebarCollapsed ? subItem.label : undefined}
                             className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
                               sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1635,7 +1747,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
           </div>
 
           {/* Sidebar Footer System Health & Expand Toggle */}
-          <div className="border-t border-[var(--border)] p-3 space-y-2">
+          <div className="border-t border-[var(--border)] p-3 space-y-2 shrink-0">
             {sidebarCollapsed ? (
               <button
                 type="button"
@@ -1671,7 +1783,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
         {/* Main Content Viewport */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Top Bar Header */}
-          <header data-tour="topbar" className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/75 px-4 sm:px-6 backdrop-blur-xl shadow-sm shadow-[var(--border)]">
+          <header data-tour="topbar" className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--surface)]/75 px-4 sm:px-6 backdrop-blur-xl shadow-sm shadow-[var(--border)] print:hidden">
             {/* Mobile Menu Button + Workspace Context */}
             <div className="flex items-center gap-3">
               <button

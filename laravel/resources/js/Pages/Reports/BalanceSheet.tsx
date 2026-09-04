@@ -1,8 +1,9 @@
 import { Head, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
+
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, tableClasses } from '../../Components/Primitives';
+import { Button, Card, MetricCard, PageHeader, StatusBadge } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -112,247 +113,318 @@ export default function BalanceSheet({ locale, report, filters }: BalanceSheetPr
     <AppLayout active="reports.balance_sheet">
       <Head title={accDict.balanceSheetMiniErp} />
 
-      <div className="space-y-6 p-6">
-        <PageHeader
-          title={accDict.balanceSheet}
-          description={accDict.balanceSheetDesc}
-          actions={
-            canPrint || canExport ? (
-              <div className="flex items-center gap-2">
-                {canPrint ? (
-                  <button
-                    type="button"
-                    onClick={handlePrint}
-                    title={actionsDict.printReport}
-                    aria-label={actionsDict.printReport}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
-                  >
-                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                    {actionsDict.printReport}
-                  </button>
-                ) : null}
-                {canExport ? (
-                  <a
-                    href={exportUrl}
-                    title={actionsDict.exportCsv}
-                    aria-label={actionsDict.exportCsv}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all"
-                  >
-                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <PageHeader
+        title={accDict.balanceSheet}
+        description={accDict.balanceSheetDesc}
+        actions={
+          canPrint || canExport ? (
+            <div className="flex items-center gap-2">
+              {canPrint ? (
+                <Button variant="secondary" onClick={handlePrint} className="gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  {actionsDict.printReport}
+                </Button>
+              ) : null}
+              {canExport ? (
+                <a href={exportUrl}>
+                  <Button variant="secondary" className="gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     {actionsDict.exportCsv}
-                  </a>
-                ) : null}
-              </div>
-            ) : null
-          }
-        />
+                  </Button>
+                </a>
+              ) : null}
+            </div>
+          ) : undefined
+        }
+      />
 
-        <Card className="p-4 bg-[var(--surface)] border border-[var(--border)]">
-          <form onSubmit={handleFilterSubmit} className="flex flex-wrap items-end gap-4">
-            <DatePicker label={accDict.asOfDate} value={asOfDate} onChange={(value) => setAsOfDate(value || '')} />
-            <button
-              type="submit"
-              title={accDict.applyFilter}
-              aria-label={accDict.applyFilter}
-              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white shadow-md shadow-blue-500/20 hover:bg-blue-600"
-            >
-              {accDict.applyFilter}
-            </button>
+      <div className="space-y-6">
+        {/* Filter Card */}
+        <Card className="p-4 border border-[var(--border-color)]">
+          <form onSubmit={handleFilterSubmit} className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex items-end gap-3 flex-1 min-w-[280px]">
+              <DatePicker label={accDict.asOfDate} value={asOfDate} onChange={(value) => setAsOfDate(value || '')} />
+              <Button type="submit" className="h-[42px] px-5">
+                {accDict.applyFilter}
+              </Button>
+            </div>
+            <div className="text-xs font-semibold text-[var(--text-secondary)] bg-[var(--background)] px-3 py-2 rounded-lg border border-[var(--border-color)]">
+              {accDict.asOfDate}: <span className="font-mono text-[var(--text-primary)] font-bold ms-1">{asOfDate}</span>
+            </div>
           </form>
         </Card>
 
+        {/* Audit Status Banner */}
         {!summary.is_balanced ? (
-          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-600 dark:text-red-400">
-            <div className="flex items-center gap-3">
-              <svg className="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider">
-                  {accDict.balanceSheetUnbalancedTitle}
-                </h4>
-                <p className="text-xs mt-0.5">
-                  {accDict.imbalanceWarningDesc}{' '}
-                  {accDict.difference}: <span className="font-mono font-bold">{formatAmount(summary.imbalance_minor)}</span>
-                </p>
+          <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-700 dark:text-rose-300 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider">
+                    {accDict.balanceSheetUnbalancedTitle}
+                  </h4>
+                  <p className="text-xs mt-0.5 leading-relaxed">
+                    {accDict.imbalanceWarningDesc}{' '}
+                    {accDict.difference}: <span className="font-mono font-bold">{formatAmount(summary.imbalance_minor)}</span>
+                  </p>
+                </div>
               </div>
+              <StatusBadge tone="danger">{accDict.difference}: {formatAmount(summary.imbalance_minor)}</StatusBadge>
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-            <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            <span className="text-xs font-semibold">
-              {accDict.balanceSheetBalancedTitle}
-            </span>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-emerald-700 dark:text-emerald-300 flex items-center justify-between flex-wrap gap-3 shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <svg className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs font-bold tracking-wide">
+                {accDict.balanceSheetBalancedTitle}
+              </span>
+            </div>
+            <StatusBadge tone="ok">Assets = Liabilities + Equity</StatusBadge>
           </div>
         )}
 
+        {/* Top KPI Metrics Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <MetricCard
+            label={accDict.totalAssets}
+            value={formatAmount(summary.total_assets_minor)}
+            tone="blue"
+          />
+          <MetricCard
+            label={accDict.currentLiabilities}
+            value={formatAmount(summary.total_liabilities_minor)}
+            tone="amber"
+          />
+          <MetricCard
+            label={accDict.equity}
+            value={formatAmount(summary.total_equity_including_net_income_minor)}
+            tone="purple"
+          />
+          <MetricCard
+            label={accDict.currentPeriodNetIncome}
+            value={formatAmount(summary.current_period_net_income_minor)}
+            tone={summary.current_period_net_income_minor >= 0 ? 'emerald' : 'muted'}
+          />
+        </div>
+
+        {/* Unmapped Accounts Warning */}
         {report.has_unmapped_warning ? (
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-700 dark:text-amber-300 space-y-3">
-            <div className="flex items-center gap-3">
-              <svg className="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider">
-                  {accDict.unmappedAccounts}
-                </h4>
-                <p className="text-xs mt-0.5">
-                  {accDict.unmappedAccountsDesc}
-                </p>
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-amber-800 dark:text-amber-300 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2.5">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider">
+                    {accDict.unmappedAccounts}
+                  </h4>
+                  <p className="text-xs mt-0.5">
+                    {accDict.unmappedAccountsDesc}
+                  </p>
+                </div>
               </div>
+              <span className="rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2.5 py-0.5 text-xs font-bold font-mono">
+                {report.unmapped_accounts.length} unmapped
+              </span>
             </div>
             <div className="flex flex-wrap gap-2 pt-1">
               {report.unmapped_accounts.map((acc) => (
-                <span key={acc.id} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--surface)] px-2.5 py-1 text-[11px] font-medium border border-[var(--border)] text-[var(--text-primary)]">
+                <span key={acc.id} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--card)] px-3 py-1.5 text-xs font-medium border border-amber-500/30 text-[var(--text-primary)] shadow-sm">
                   <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{acc.code}</span>
                   <span>{getLocalizedName(acc.name, locale)}</span>
-                  <span className="font-mono text-xs font-semibold">({formatAmount(acc.net_minor)})</span>
+                  <span className="font-mono text-xs font-bold tabular-nums">({formatAmount(acc.net_minor)})</span>
                 </span>
               ))}
             </div>
           </div>
         ) : null}
 
+        {/* Balance Sheet Sections: Assets vs Liabilities & Equity */}
         <div className="grid gap-6 md:grid-cols-2">
+          {/* LEFT COLUMN: ASSETS */}
           <div className="space-y-4">
-            <h3 className="text-sm font-extrabold uppercase tracking-wider text-[var(--primary)] border-b border-[var(--border)] pb-2">
-              {accDict.assets}
-            </h3>
+            <div className="flex items-center justify-between border-b-2 border-blue-500 pb-2">
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {accDict.assets}
+              </h3>
+              <span className="font-mono text-xs font-bold text-[var(--text-secondary)]">
+                {formatAmount(summary.total_assets_minor)}
+              </span>
+            </div>
 
-            <Card className="overflow-hidden border border-[var(--border)]">
-              <div className="bg-[var(--surface-subtle)] px-4 py-2.5 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border)] flex justify-between">
+            {/* Current Assets */}
+            <Card className="overflow-hidden border border-[var(--border-color)] shadow-sm p-0">
+              <div className="bg-[var(--background)] px-4 py-3 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border-color)] flex justify-between items-center">
                 <span>{accDict.currentAssets}</span>
-                <span className="font-mono">{formatAmount(summary.total_current_assets_minor)}</span>
+                <span className="font-mono text-sm tabular-nums font-extrabold">{formatAmount(summary.total_current_assets_minor)}</span>
               </div>
               {sections.current_assets?.lines?.map((line) => (
-                <div key={line.id} className="p-3 border-b border-[var(--border)] last:border-b-0 space-y-1.5">
+                <div key={line.id} className="p-3.5 border-b border-[var(--border-color)] last:border-b-0 space-y-2 hover:bg-[var(--background)]/40 transition-colors">
                   <div className="flex justify-between text-xs font-bold text-[var(--text-primary)]">
                     <span>{getLocalizedName(line.name, locale)}</span>
-                    <span className="font-mono">{formatAmount(line.total_minor)}</span>
+                    <span className="font-mono tabular-nums">{formatAmount(line.total_minor)}</span>
                   </div>
                   {line.accounts?.map((acc) => (
-                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4">
-                      <span><code className="font-mono text-[var(--text-muted)] me-2">{acc.code}</code>{getLocalizedName(acc.name, locale)}</span>
-                      <span className="font-mono">{formatAmount(acc.net_minor)}</span>
+                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4 pe-1">
+                      <span className="flex items-center gap-2">
+                        <code className="font-mono text-[10px] font-bold text-[var(--primary)] bg-[var(--background)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">{acc.code}</code>
+                        <span>{getLocalizedName(acc.name, locale)}</span>
+                      </span>
+                      <span className="font-mono tabular-nums">{formatAmount(acc.net_minor)}</span>
                     </div>
                   ))}
                 </div>
               ))}
             </Card>
 
-            <Card className="overflow-hidden border border-[var(--border)]">
-              <div className="bg-[var(--surface-subtle)] px-4 py-2.5 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border)] flex justify-between">
+            {/* Non-Current Assets */}
+            <Card className="overflow-hidden border border-[var(--border-color)] shadow-sm p-0">
+              <div className="bg-[var(--background)] px-4 py-3 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border-color)] flex justify-between items-center">
                 <span>{accDict.nonCurrentAssets}</span>
-                <span className="font-mono">{formatAmount(summary.total_non_current_assets_minor)}</span>
+                <span className="font-mono text-sm tabular-nums font-extrabold">{formatAmount(summary.total_non_current_assets_minor)}</span>
               </div>
               {sections.non_current_assets?.lines?.map((line) => (
-                <div key={line.id} className="p-3 border-b border-[var(--border)] last:border-b-0 space-y-1.5">
+                <div key={line.id} className="p-3.5 border-b border-[var(--border-color)] last:border-b-0 space-y-2 hover:bg-[var(--background)]/40 transition-colors">
                   <div className="flex justify-between text-xs font-bold text-[var(--text-primary)]">
                     <span>{getLocalizedName(line.name, locale)}</span>
-                    <span className="font-mono">{formatAmount(line.total_minor)}</span>
+                    <span className="font-mono tabular-nums">{formatAmount(line.total_minor)}</span>
                   </div>
                   {line.accounts?.map((acc) => (
-                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4">
-                      <span><code className="font-mono text-[var(--text-muted)] me-2">{acc.code}</code>{getLocalizedName(acc.name, locale)}</span>
-                      <span className="font-mono">{formatAmount(acc.net_minor)}</span>
+                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4 pe-1">
+                      <span className="flex items-center gap-2">
+                        <code className="font-mono text-[10px] font-bold text-[var(--primary)] bg-[var(--background)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">{acc.code}</code>
+                        <span>{getLocalizedName(acc.name, locale)}</span>
+                      </span>
+                      <span className="font-mono tabular-nums">{formatAmount(acc.net_minor)}</span>
                     </div>
                   ))}
                 </div>
               ))}
             </Card>
 
-            <Card className="p-4 bg-[var(--primary)] text-white font-bold flex justify-between items-center text-sm shadow-md">
-              <span>{accDict.totalAssets}</span>
-              <span className="font-mono text-base">{formatAmount(summary.total_assets_minor)}</span>
-            </Card>
+            {/* Total Assets Summary Card */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold flex justify-between items-center text-sm shadow-md">
+              <span className="uppercase tracking-wider text-xs">{accDict.totalAssets}</span>
+              <span className="font-mono text-lg tabular-nums">{formatAmount(summary.total_assets_minor)}</span>
+            </div>
           </div>
 
+          {/* RIGHT COLUMN: LIABILITIES & EQUITY */}
           <div className="space-y-4">
-            <h3 className="text-sm font-extrabold uppercase tracking-wider text-[var(--primary)] border-b border-[var(--border)] pb-2">
-              {accDict.liabilitiesAndEquity}
-            </h3>
+            <div className="flex items-center justify-between border-b-2 border-amber-500 pb-2">
+              <h3 className="text-sm font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                </svg>
+                {accDict.liabilitiesAndEquity}
+              </h3>
+              <span className="font-mono text-xs font-bold text-[var(--text-secondary)]">
+                {formatAmount(summary.total_liabilities_and_equity_minor)}
+              </span>
+            </div>
 
-            <Card className="overflow-hidden border border-[var(--border)]">
-              <div className="bg-[var(--surface-subtle)] px-4 py-2.5 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border)] flex justify-between">
+            {/* Current Liabilities */}
+            <Card className="overflow-hidden border border-[var(--border-color)] shadow-sm p-0">
+              <div className="bg-[var(--background)] px-4 py-3 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border-color)] flex justify-between items-center">
                 <span>{accDict.currentLiabilities}</span>
-                <span className="font-mono">{formatAmount(summary.total_current_liabilities_minor)}</span>
+                <span className="font-mono text-sm tabular-nums font-extrabold">{formatAmount(summary.total_current_liabilities_minor)}</span>
               </div>
               {sections.current_liabilities?.lines?.map((line) => (
-                <div key={line.id} className="p-3 border-b border-[var(--border)] last:border-b-0 space-y-1.5">
+                <div key={line.id} className="p-3.5 border-b border-[var(--border-color)] last:border-b-0 space-y-2 hover:bg-[var(--background)]/40 transition-colors">
                   <div className="flex justify-between text-xs font-bold text-[var(--text-primary)]">
                     <span>{getLocalizedName(line.name, locale)}</span>
-                    <span className="font-mono">{formatAmount(line.total_minor)}</span>
+                    <span className="font-mono tabular-nums">{formatAmount(line.total_minor)}</span>
                   </div>
                   {line.accounts?.map((acc) => (
-                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4">
-                      <span><code className="font-mono text-[var(--text-muted)] me-2">{acc.code}</code>{getLocalizedName(acc.name, locale)}</span>
-                      <span className="font-mono">{formatAmount(acc.net_minor)}</span>
+                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4 pe-1">
+                      <span className="flex items-center gap-2">
+                        <code className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-[var(--background)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">{acc.code}</code>
+                        <span>{getLocalizedName(acc.name, locale)}</span>
+                      </span>
+                      <span className="font-mono tabular-nums">{formatAmount(acc.net_minor)}</span>
                     </div>
                   ))}
                 </div>
               ))}
             </Card>
 
-            <Card className="overflow-hidden border border-[var(--border)]">
-              <div className="bg-[var(--surface-subtle)] px-4 py-2.5 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border)] flex justify-between">
+            {/* Non-Current Liabilities */}
+            <Card className="overflow-hidden border border-[var(--border-color)] shadow-sm p-0">
+              <div className="bg-[var(--background)] px-4 py-3 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border-color)] flex justify-between items-center">
                 <span>{accDict.nonCurrentLiabilities}</span>
-                <span className="font-mono">{formatAmount(summary.total_non_current_liabilities_minor)}</span>
+                <span className="font-mono text-sm tabular-nums font-extrabold">{formatAmount(summary.total_non_current_liabilities_minor)}</span>
               </div>
               {sections.non_current_liabilities?.lines?.map((line) => (
-                <div key={line.id} className="p-3 border-b border-[var(--border)] last:border-b-0 space-y-1.5">
+                <div key={line.id} className="p-3.5 border-b border-[var(--border-color)] last:border-b-0 space-y-2 hover:bg-[var(--background)]/40 transition-colors">
                   <div className="flex justify-between text-xs font-bold text-[var(--text-primary)]">
                     <span>{getLocalizedName(line.name, locale)}</span>
-                    <span className="font-mono">{formatAmount(line.total_minor)}</span>
+                    <span className="font-mono tabular-nums">{formatAmount(line.total_minor)}</span>
                   </div>
                   {line.accounts?.map((acc) => (
-                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4">
-                      <span><code className="font-mono text-[var(--text-muted)] me-2">{acc.code}</code>{getLocalizedName(acc.name, locale)}</span>
-                      <span className="font-mono">{formatAmount(acc.net_minor)}</span>
+                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4 pe-1">
+                      <span className="flex items-center gap-2">
+                        <code className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-[var(--background)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">{acc.code}</code>
+                        <span>{getLocalizedName(acc.name, locale)}</span>
+                      </span>
+                      <span className="font-mono tabular-nums">{formatAmount(acc.net_minor)}</span>
                     </div>
                   ))}
                 </div>
               ))}
             </Card>
 
-            <Card className="overflow-hidden border border-[var(--border)]">
-              <div className="bg-[var(--surface-subtle)] px-4 py-2.5 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border)] flex justify-between">
+            {/* Equity */}
+            <Card className="overflow-hidden border border-[var(--border-color)] shadow-sm p-0">
+              <div className="bg-[var(--background)] px-4 py-3 font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider border-b border-[var(--border-color)] flex justify-between items-center">
                 <span>{accDict.equity}</span>
-                <span className="font-mono">{formatAmount(summary.total_equity_including_net_income_minor)}</span>
+                <span className="font-mono text-sm tabular-nums font-extrabold">{formatAmount(summary.total_equity_including_net_income_minor)}</span>
               </div>
               {sections.equity?.lines?.map((line) => (
-                <div key={line.id} className="p-3 border-b border-[var(--border)] space-y-1.5">
+                <div key={line.id} className="p-3.5 border-b border-[var(--border-color)] space-y-2 hover:bg-[var(--background)]/40 transition-colors">
                   <div className="flex justify-between text-xs font-bold text-[var(--text-primary)]">
                     <span>{getLocalizedName(line.name, locale)}</span>
-                    <span className="font-mono">{formatAmount(line.total_minor)}</span>
+                    <span className="font-mono tabular-nums">{formatAmount(line.total_minor)}</span>
                   </div>
                   {line.accounts?.map((acc) => (
-                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4">
-                      <span><code className="font-mono text-[var(--text-muted)] me-2">{acc.code}</code>{getLocalizedName(acc.name, locale)}</span>
-                      <span className="font-mono">{formatAmount(acc.net_minor)}</span>
+                    <div key={acc.id} className="flex justify-between text-[11px] text-[var(--text-secondary)] ps-4 pe-1">
+                      <span className="flex items-center gap-2">
+                        <code className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-[var(--background)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">{acc.code}</code>
+                        <span>{getLocalizedName(acc.name, locale)}</span>
+                      </span>
+                      <span className="font-mono tabular-nums">{formatAmount(acc.net_minor)}</span>
                     </div>
                   ))}
                 </div>
               ))}
-              <div className="p-3 bg-blue-500/5 dark:bg-blue-500/10 flex justify-between text-xs font-bold text-[var(--text-primary)]">
+              <div className="p-3.5 bg-emerald-500/10 border-t border-emerald-500/20 flex justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
                 <span>{accDict.currentPeriodNetIncome}</span>
-                <span className="font-mono text-[var(--primary)]">{formatAmount(summary.current_period_net_income_minor)}</span>
+                <span className="font-mono tabular-nums text-sm font-extrabold">{formatAmount(summary.current_period_net_income_minor)}</span>
               </div>
             </Card>
 
-            <Card className="p-4 bg-[var(--primary)] text-white font-bold flex justify-between items-center text-sm shadow-md">
-              <span>{accDict.totalLiabilitiesAndEquity}</span>
-              <span className="font-mono text-base">{formatAmount(summary.total_liabilities_and_equity_minor)}</span>
-            </Card>
+            {/* Total Liabilities & Equity Summary Card */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold flex justify-between items-center text-sm shadow-md">
+              <span className="uppercase tracking-wider text-xs">{accDict.totalLiabilitiesAndEquity}</span>
+              <span className="font-mono text-lg tabular-nums">{formatAmount(summary.total_liabilities_and_equity_minor)}</span>
+            </div>
           </div>
         </div>
       </div>
     </AppLayout>
   );
 }
+

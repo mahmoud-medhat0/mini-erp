@@ -21,7 +21,7 @@ export function PageHeader({
           <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">{description}</p>
         ) : null}
       </div>
-      {actions ? <div data-tour="page-actions" className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? <div data-tour="page-actions" className="flex items-center gap-2 print:hidden">{actions}</div> : null}
     </div>
   );
 }

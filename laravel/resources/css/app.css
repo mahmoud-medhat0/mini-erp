@@ -62,6 +62,26 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Sidebar scrollbar styling */
+.sidebar-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+.sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+    overscroll-behavior: contain;
+}
+
 /* =====================================================
    DataTables 2 — Premium Design
    ===================================================== */
@@ -614,4 +634,160 @@ body {
     border-radius: 9999px;
     background: linear-gradient(to bottom, var(--primary), #7c3aed);
     flex-shrink: 0;
+}
+
+/* =====================================================
+   Multi-Page Report Printing Styles
+   ===================================================== */
+@page {
+    size: A4 portrait;
+    margin: 12mm 15mm 15mm 15mm;
+}
+
+@media print {
+    /* 1. Page setup & Container Overflow override for continuous multi-page rendering */
+    html,
+    body,
+    #app,
+    main,
+    [data-theme] {
+        background: #ffffff !important;
+        color: #000000 !important;
+        color-scheme: light !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Remove overflow clipping so multi-page content flows smoothly across page breaks */
+    .overflow-x-auto,
+    .overflow-y-auto,
+    .overflow-auto,
+    .overflow-hidden,
+    .server-data-table,
+    .dt-container {
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    /* 2. Hide non-printable elements */
+    aside,
+    header,
+    nav,
+    .no-print,
+    .print\:hidden,
+    button:not(.print-keep),
+    form:not(.print-keep),
+    [role="tooltip"],
+    [data-tour="topbar"],
+    [data-tour="page-actions"],
+    .dt-paging,
+    .dt-search,
+    .dt-length {
+        display: none !important;
+    }
+
+    /* 3. Section and Table Break Control */
+    h1, h2, h3, h4, h5, h6 {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        orphans: 3;
+        widows: 3;
+    }
+
+    .report-header,
+    .page-header {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        margin-bottom: 1rem !important;
+    }
+
+    .report-card,
+    .metric-card-group,
+    .page-break-inside-avoid {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .page-break-before {
+        page-break-before: always !important;
+        break-before: page !important;
+    }
+
+    /* 4. Table Formatting for Multi-Page Tables */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin-top: 0.75rem !important;
+        margin-bottom: 1rem !important;
+        page-break-inside: auto !important;
+    }
+
+    thead {
+        display: table-header-group !important;
+    }
+
+    tbody {
+        display: table-row-group !important;
+    }
+
+    tfoot {
+        display: table-footer-group !important;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    th, td {
+        padding: 0.45rem 0.65rem !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        color: #000000 !important;
+        font-size: 10.5px !important;
+        line-height: 1.4 !important;
+    }
+
+    th {
+        background-color: #f1f5f9 !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 5. Clean surface backgrounds */
+    .bg-\[var\(--surface\)\],
+    .bg-\[var\(--card\)\],
+    .bg-\[var\(--background\)\],
+    section,
+    div {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    .border,
+    .border-b,
+    .border-t,
+    .border-s,
+    .border-e {
+        border-color: #e2e8f0 !important;
+    }
+
+    .print\:block {
+        display: block !important;
+    }
+
+    .print\:inline-block {
+        display: inline-block !important;
+    }
+
+    .print\:flex {
+        display: flex !important;
+    }
 }

@@ -1600,6 +1600,12 @@
         "inheritEntryBranch": "Use voucher branch",
         "emptyTitle": "No branches found",
         "emptyDescription": "Create active branches and link warehouses, treasury accounts, and fixed assets to see operational branch coverage.",
+        "operationsOverview": "Operations Overview",
+        "moves": "moves",
+        "branchSingular": "branch",
+        "branchPlural": "branches",
+        "searchPlaceholder": "Search branch code or name...",
+        "filtersTitle": "Filters",
         "statuses": {
           "ready": "Ready",
           "partial": "Partial",
