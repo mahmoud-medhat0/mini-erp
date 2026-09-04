@@ -715,7 +715,14 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
           </div>
 
           {/* Navigation Items List */}
-          <div ref={sidebarNavRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-6 sidebar-scrollbar scroll-smooth">
+          <div
+            ref={sidebarNavRef}
+            className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 space-y-6 scroll-smooth ${
+              sidebarCollapsed
+                ? 'px-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
+                : 'px-3 sidebar-scrollbar'
+            }`}
+          >
             {/* GROUP 1: STANDALONE INDIVIDUAL ITEMS */}
             <div className="space-y-1">
               {!sidebarCollapsed ? (
@@ -894,7 +901,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(accountingExpanded || sidebarCollapsed) ? (
+                  {accountingExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa, icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
@@ -979,7 +986,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(arExpanded || sidebarCollapsed) ? (
+                  {arExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'customers.index' as NavKey, href: '/customers', label: dict.app.nav.layoutKeys.customers },
@@ -1035,7 +1042,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(apExpanded || sidebarCollapsed) ? (
+                  {apExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'suppliers.index' as NavKey, href: '/suppliers', label: dict.app.nav.layoutKeys.suppliers },
@@ -1091,7 +1098,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(expensesExpanded || sidebarCollapsed) ? (
+                  {expensesExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'expenses.index' as NavKey, href: '/expenses', label: dict.app.nav.layoutKeys.expenses },
@@ -1147,7 +1154,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(payrollExpanded || sidebarCollapsed) ? (
+                  {payrollExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'payroll.runs.index' as NavKey, href: '/payroll/runs', label: dict.app.nav.layoutKeys.payrollRuns },
@@ -1206,7 +1213,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(rentalsExpanded || sidebarCollapsed) ? (
+                  {rentalsExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'rentals.contracts.index' as NavKey, href: '/rentals/contracts', label: dict.app.nav.layoutKeys.rentalContracts },
@@ -1266,7 +1273,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(cashBankExpanded || sidebarCollapsed) ? (
+                  {cashBankExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: dict.app.nav.layoutKeys.cashAccounts },
@@ -1328,7 +1335,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(catalogExpanded || sidebarCollapsed) ? (
+                  {catalogExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: dict.app.nav.layoutKeys.productsServices },
@@ -1387,7 +1394,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(inventoryExpanded || sidebarCollapsed) ? (
+                  {inventoryExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'warehouses.index' as NavKey, href: '/inventory/warehouses', label: dict.app.nav.layoutKeys.warehouses },
@@ -1448,7 +1455,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(fixedAssetsExpanded || sidebarCollapsed) ? (
+                  {fixedAssetsExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'fixed-assets.index' as NavKey, href: '/fixed-assets', label: accDict.fixedAssets },
@@ -1515,7 +1522,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(projectsCostCentersExpanded || sidebarCollapsed) ? (
+                  {projectsCostCentersExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'projects.index' as NavKey, href: '/projects', label: dict.app.nav.layoutKeys.projects },
@@ -1575,7 +1582,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(reportsExpanded || sidebarCollapsed) ? (
+                  {reportsExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'reports.index' as NavKey, href: '/reports', label: dict.app.nav.layoutKeys.reportsHub },
@@ -1667,7 +1674,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(adminExpanded || sidebarCollapsed) ? (
+                  {adminExpanded ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {/* Settings Main Overview Link */}
                       <Link

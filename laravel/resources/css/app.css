@@ -66,6 +66,11 @@ body {
 .sidebar-scrollbar::-webkit-scrollbar {
     width: 5px;
 }
+.sidebar-scrollbar::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
 .sidebar-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
