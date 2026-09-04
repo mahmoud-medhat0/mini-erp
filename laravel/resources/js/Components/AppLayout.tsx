@@ -1247,19 +1247,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: dict.app.nav.layoutKeys.productsServices },
-                        { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: dict.app.nav.layoutKeys.salesOrders },
-                        { key: 'delivery-notes.index' as NavKey, href: '/sales/delivery-notes', label: dict.app.nav.layoutKeys.deliveryNotes },
-                        { key: 'customer-invoices.index' as NavKey, href: '/sales/invoices', label: dict.app.nav.layoutKeys.customerInvoices },
-                        { key: 'sales-returns.index' as NavKey, href: '/sales/returns', label: dict.app.nav.layoutKeys.salesReturns },
-                        { key: 'customer-credit-notes.index' as NavKey, href: '/sales/credit-notes', label: dict.app.nav.layoutKeys.creditNotes },
-                        { key: 'invoice-revisions.index' as NavKey, href: '/sales/invoice-revisions', label: dict.app.nav.layoutKeys.invoiceRevisions },
-                        { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: dict.app.nav.layoutKeys.purchaseOrders },
-                        { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: dict.app.nav.layoutKeys.goodsReceipts },
-                        { key: 'landed-costs.index' as NavKey, href: '/purchasing/landed-costs', label: dict.app.nav.layoutKeys.landedCosts },
-                        { key: 'purchase-returns.index' as NavKey, href: '/purchasing/returns', label: dict.app.nav.layoutKeys.purchaseReturns },
-                        { key: 'supplier-adjustment-notes.index' as NavKey, href: '/purchasing/adjustment-notes', label: dict.app.nav.layoutKeys.adjustmentNotes },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: dict.app.nav.layoutKeys.productCategories },
-                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: dict.app.nav.layoutKeys.unitsOfMeasure },
+                        { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: dict.app.nav.layoutKeys.unitsOfMeasure },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}

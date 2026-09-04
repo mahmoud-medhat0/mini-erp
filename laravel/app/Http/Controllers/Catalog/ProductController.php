@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Catalog;
 use App\Application\Catalog\ProductPageData;
 use App\Application\Catalog\ProductService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +22,13 @@ class ProductController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Catalog/Products', $this->pageData->indexData($request->only(['search', 'type', 'status', 'product_category_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('products.view');
+
+        return $this->pageData->datatable($request->only(['type', 'status', 'product_category_id']));
     }
 
     public function store(Request $request): RedirectResponse

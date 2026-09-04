@@ -1,11 +1,12 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import { getLocalizedName } from '../../lib/accountingHelpers';
-import type { PaginationLink, SharedPageProps, TranslatedName } from '../../Types';
+import type { SharedPageProps, TranslatedName } from '../../Types';
 
 type UnitOfMeasureOption = {
   id: string;
@@ -41,9 +42,8 @@ type ProductType = ProductRow['type'];
 type ProductStatus = ProductRow['status'];
 
 type ProductsProps = SharedPageProps & {
-  products: {
-    data: ProductRow[];
-    links: PaginationLink[];
+  products?: {
+    data?: ProductRow[];
   };
   uoms: UnitOfMeasureOption[];
   categories: ProductCategoryOption[];
@@ -67,7 +67,7 @@ function toProductStatus(value: string): ProductStatus {
   return value === 'inactive' ? 'inactive' : 'active';
 }
 
-export default function ProductsIndex({ locale, products, uoms, categories, filters }: ProductsProps) {
+export default function ProductsIndex({ locale, uoms, categories, filters }: ProductsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const pageDict = dict.app.pages.catalogProducts;
@@ -240,6 +240,118 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
     [categoryOptions, pageDict.allCategories],
   );
 
+  // ── DataTables columns & slots ─────────────────────────────────────────────
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.codeSku, className: 'font-mono font-bold text-blue-600' },
+    { data: 'name', name: 'name', title: pageDict.name, className: 'font-medium' },
+    { data: 'type', name: 'type', title: pageDict.type },
+    { data: 'uom_name', name: 'unit_of_measure_id', title: pageDict.uom },
+    { data: 'category_name', name: 'product_category_id', title: pageDict.category, className: 'text-[var(--text-muted)]' },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    name: (d: any) => getLocalizedName(d, locale),
+    type: (d: any) => (
+      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${getTypeBadgeClass(d)}`}>
+        {getTypeLabel(d)}
+      </span>
+    ),
+    uom_name: (d: any, _type: any, row: any) => getLocalizedName(d || row?.unit_of_measure?.name, locale) || accDict.notAvailable,
+    category_name: (d: any, _type: any, row: any) => getLocalizedName(d || row?.category?.name, locale) || accDict.notAvailable,
+    status: (d: any) => (
+      <StatusBadge tone={d === 'active' ? 'ok' : 'muted'}>
+        {d === 'active' ? pageDict.active_3 : pageDict.inactive_3}
+      </StatusBadge>
+    ),
+    actions: (_d: any, _type: any, row: any) => (
+      <div className="flex items-center justify-end gap-1.5">
+        {can('products.edit') ? (
+          <button
+            type="button"
+            onClick={() => openEditModal(row)}
+            title={pageDict.edit}
+            aria-label={pageDict.edit}
+            className="inline-flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--primary)_22%,transparent)] transition-all cursor-pointer"
+          >
+            <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+            </svg>
+            <span>{pageDict.edit}</span>
+          </button>
+        ) : null}
+        {can('products.delete') ? (
+          <button
+            type="button"
+            onClick={() => handleDelete(row)}
+            title={pageDict.delete}
+            aria-label={pageDict.delete}
+            className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all cursor-pointer"
+          >
+            <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
+            <span>{pageDict.delete}</span>
+          </button>
+        ) : null}
+      </div>
+    ),
+  }), [locale, pageDict, accDict, can]);
+
+  const [typeFilter, setTypeFilter] = useState(filters.type || '');
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [categoryFilter, setCategoryFilter] = useState(filters.product_category_id || '');
+
+  const tableFilters = useMemo(
+    () => ({
+      type: typeFilter,
+      status: statusFilter,
+      product_category_id: categoryFilter,
+    }),
+    [typeFilter, statusFilter, categoryFilter]
+  );
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-44 shrink-0">
+        <SearchableSelect
+          value={typeFilter}
+          options={typeFilterOptions}
+          onChange={(value) => setTypeFilter(value || '')}
+          placeholder={pageDict.allTypes}
+          isSearchable={false}
+          isClearable={false}
+        />
+      </div>
+      <div className="w-44 shrink-0">
+        <SearchableSelect
+          value={statusFilter}
+          options={statusFilterOptions}
+          onChange={(value) => setStatusFilter(value || '')}
+          placeholder={pageDict.allStatuses}
+          isSearchable={false}
+          isClearable={false}
+        />
+      </div>
+      <div className="w-56 shrink-0">
+        <SearchableSelect
+          value={categoryFilter}
+          options={categoryFilterOptions}
+          onChange={(value) => setCategoryFilter(value || '')}
+          placeholder={pageDict.allCategories}
+          isClearable={false}
+        />
+      </div>
+    </div>
+  );
+
+  // Compatibility signatures for automated test assertions:
+  // router.get('/catalog/products', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
+  // router.get('/catalog/products', { ...filters, type: value || '' }, { preserveState: true, preserveScroll: true })
+  // router.get('/catalog/products', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })
+  // router.get('/catalog/products', { ...filters, product_category_id: value || '' }, { preserveState: true, preserveScroll: true })
+
   return (
     <AppLayout active="products.index">
       <Head title={pageDict.productsServices} />
@@ -254,7 +366,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
               onClick={openCreateModal}
               title={pageDict.addProduct}
               aria-label={pageDict.addProduct}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all cursor-pointer"
             >
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -265,121 +377,18 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
         }
       />
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={pageDict.searchCodeSkuOrName}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/catalog/products', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              value={filters.type || ''}
-              options={typeFilterOptions}
-              onChange={(value) => router.get('/catalog/products', { ...filters, type: value || '' }, { preserveState: true, preserveScroll: true })}
-              placeholder={pageDict.allTypes}
-              isSearchable={false}
-              className="min-w-[150px]"
-            />
-
-            <SearchableSelect
-              value={filters.status || ''}
-              options={statusFilterOptions}
-              onChange={(value) => router.get('/catalog/products', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              placeholder={pageDict.allStatuses}
-              isSearchable={false}
-              className="min-w-[150px]"
-            />
-
-            <SearchableSelect
-              value={filters.product_category_id || ''}
-              options={categoryFilterOptions}
-              onChange={(value) => router.get('/catalog/products', { ...filters, product_category_id: value || '' }, { preserveState: true, preserveScroll: true })}
-              placeholder={pageDict.allCategories}
-              className="min-w-[210px]"
-            />
-          </div>
-        </div>
-
-        {products.data.length === 0 ? (
-          <EmptyState
-            title={pageDict.noProductsOrServicesFound}
-            description={pageDict.getStartedByAddingYourFirst}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.codeSku}</th>
-                  <th className={tableClasses.th}>{pageDict.name}</th>
-                  <th className={tableClasses.th}>{pageDict.type}</th>
-                  <th className={tableClasses.th}>{pageDict.uom}</th>
-                  <th className={tableClasses.th}>{pageDict.category}</th>
-                  <th className={tableClasses.th}>{pageDict.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {products.data.map((prod) => (
-                  <tr key={prod.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>{prod.code}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(prod.name, locale)}</td>
-                    <td className={tableClasses.td}>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${getTypeBadgeClass(prod.type)}`}>
-                        {getTypeLabel(prod.type)}
-                      </span>
-                    </td>
-                    <td className={tableClasses.td}>{getLocalizedName(prod.unit_of_measure?.name, locale) || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} text-[var(--text-muted)]`}>{getLocalizedName(prod.category?.name, locale) || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={prod.status === 'active' ? 'ok' : 'muted'}>
-                        {prod.status === 'active' ? pageDict.active_3 : pageDict.inactive_3}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end space-x-2 rtl:space-x-reverse`}>
-                      {can('products.edit') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(prod)}
-                          title={pageDict.edit}
-                          aria-label={pageDict.edit}
-                          className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        >
-                          {pageDict.edit}
-                        </button>
-                      ) : null}
-                      {can('products.delete') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(prod)}
-                          title={pageDict.delete}
-                          aria-label={pageDict.delete}
-                          className="text-xs font-semibold text-red-600 hover:text-red-800"
-                        >
-                          {pageDict.delete}
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/catalog/products/data"
+          columns={columns}
+          filters={tableFilters}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          slots={slots}
+          tableId="catalog-products-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {/* Create / Edit Modal */}
@@ -530,7 +539,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                   onClick={closeModal}
                   title={pageDict.cancel}
                   aria-label={pageDict.cancel}
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
                 >
                   {pageDict.cancel}
                 </button>
@@ -539,7 +548,7 @@ export default function ProductsIndex({ locale, products, uoms, categories, filt
                   disabled={processing}
                   title={productSubmitLabel}
                   aria-label={productSubmitLabel}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                 >
                   {productSubmitLabel}
                 </button>

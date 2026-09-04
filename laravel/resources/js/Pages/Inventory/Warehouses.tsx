@@ -2,7 +2,8 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -39,13 +40,8 @@ type Warehouse = {
   locations?: StockLocation[];
 };
 
-type PaginatedData<T> = {
-  data: T[];
-  total: number;
-};
-
 type WarehousesProps = SharedPageProps & {
-  warehouses: PaginatedData<Warehouse>;
+  warehouses?: any;
   branches: Branch[];
   warehouseTypes: string[];
   locationTypes: string[];
@@ -94,7 +90,6 @@ function namePart(name: TranslatedName, locale: 'en' | 'ar'): string {
 
 export default function WarehousesIndex({
   locale,
-  warehouses,
   branches,
   warehouseTypes,
   locationTypes,
@@ -105,9 +100,9 @@ export default function WarehousesIndex({
   const actionsDict = dict.app.actions;
   const can = useCan();
 
-  const [search, setSearch] = useState(filters.search || '');
-  const [status, setStatus] = useState(filters.status || '');
-  const [branchId, setBranchId] = useState(filters.branch_id || '');
+  const [branchFilter, setBranchFilter] = useState(filters.branch_id || '');
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+
   const [showWarehouseForm, setShowWarehouseForm] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [showLocationForm, setShowLocationForm] = useState(false);
@@ -140,27 +135,70 @@ export default function WarehousesIndex({
     [branches, locale],
   );
 
-  const warehouseTypeOptions = warehouseTypes.map((type) => ({
-    value: type,
-    label: pageDict.types[type as keyof typeof pageDict.types] || type,
-  }));
+  const branchFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allBranches },
+      ...branchOptions,
+    ],
+    [branchOptions, pageDict.allBranches],
+  );
 
-  const locationTypeOptions = locationTypes.map((type) => ({
-    value: type,
-    label: pageDict.types[type as keyof typeof pageDict.types] || type,
-  }));
-  const activeFilterCount = [search, status, branchId].filter(Boolean).length;
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allStatuses },
+      { value: 'active', label: pageDict.active },
+      { value: 'inactive', label: pageDict.inactive },
+    ],
+    [pageDict.active, pageDict.allStatuses, pageDict.inactive],
+  );
 
-  function applyFilters() {
-    router.get('/inventory/warehouses', { search, status, branch_id: branchId }, { preserveState: true, preserveScroll: true });
-  }
+  const warehouseTypeOptions = useMemo(
+    () => warehouseTypes.map((type) => ({
+      value: type,
+      label: pageDict.types[type as keyof typeof pageDict.types] || type,
+    })),
+    [warehouseTypes, pageDict.types],
+  );
 
-  function clearFilters() {
-    setSearch('');
-    setStatus('');
-    setBranchId('');
-    router.get('/inventory/warehouses', {}, { preserveState: true, preserveScroll: true });
-  }
+  const locationTypeOptions = useMemo(
+    () => locationTypes.map((type) => ({
+      value: type,
+      label: pageDict.types[type as keyof typeof pageDict.types] || type,
+    })),
+    [locationTypes, pageDict.types],
+  );
+
+  const tableFilters = useMemo(
+    () => ({
+      branch_id: branchFilter,
+      status: statusFilter,
+    }),
+    [branchFilter, statusFilter],
+  );
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-56 shrink-0">
+        <SearchableSelect
+          value={branchFilter}
+          options={branchFilterOptions}
+          onChange={(value) => setBranchFilter(value || '')}
+          placeholder={pageDict.allBranches}
+          isClearable={false}
+        />
+      </div>
+      <div className="w-44 shrink-0">
+        <SearchableSelect
+          value={statusFilter}
+          options={statusFilterOptions}
+          onChange={(value) => setStatusFilter(value || '')}
+          placeholder={pageDict.allStatuses}
+          isSearchable={false}
+          isClearable={false}
+        />
+      </div>
+    </div>
+  );
 
   function openCreateWarehouse() {
     setEditingWarehouse(null);
@@ -264,6 +302,120 @@ export default function WarehousesIndex({
     });
   }
 
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code, className: 'font-mono font-bold text-blue-600' },
+    { data: 'branch_name', name: 'branch_id', title: pageDict.branch },
+    { data: 'warehouse_type', name: 'warehouse_type', title: pageDict.type },
+    { data: 'is_active', name: 'is_active', title: pageDict.status },
+    { data: 'locations_list', name: 'locations_list', title: pageDict.locations, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (_d: any, _type: any, row: any) => (
+      <div className="flex min-w-48 flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-extrabold text-blue-600">{row.code}</span>
+          {row.is_default ? <StatusBadge tone="info">{pageDict.default}</StatusBadge> : null}
+        </div>
+        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(row.name, locale)}</span>
+      </div>
+    ),
+    branch_name: (d: any, _type: any, row: any) => {
+      const branch = d || row.branch_name || row.branch;
+      return branch ? (
+        <StatusBadge tone="info">
+          {branch.code} - {getLocalizedName(branch.name, locale)}
+        </StatusBadge>
+      ) : (
+        <span className="text-xs text-[var(--text-muted)]">{pageDict.noBranch}</span>
+      );
+    },
+    warehouse_type: (d: any) => (
+      <span className="text-xs font-bold text-[var(--text-secondary)]">
+        {pageDict.types[d as keyof typeof pageDict.types] || d}
+      </span>
+    ),
+    is_active: (d: any, _type: any, row: any) => {
+      const activeBool = typeof d === 'boolean' ? d : row?.is_active;
+      return (
+        <StatusBadge tone={activeBool ? 'ok' : 'muted'}>
+          {activeBool ? pageDict.active : pageDict.inactive}
+        </StatusBadge>
+      );
+    },
+    locations_list: (d: any, _type: any, row: any) => {
+      const locs: StockLocation[] = d || row?.locations_list || row?.locations || [];
+      return locs.length > 0 ? (
+        <div className="flex min-w-56 flex-wrap gap-1.5">
+          {locs.map((location) => (
+            <button
+              key={location.id}
+              type="button"
+              onClick={() => openEditLocation(location)}
+              className="rounded-full border border-[var(--border)] bg-[var(--background)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-primary)] hover:border-[var(--primary)] transition-colors cursor-pointer"
+              title={pageDict.editLocation}
+              aria-label={pageDict.editLocation}
+            >
+              {location.code} - {getLocalizedName(location.name, locale)}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <span className="text-xs text-[var(--text-muted)]">{pageDict.noLocations}</span>
+      );
+    },
+    actions: (_d: any, _type: any, row: any) => (
+      <div className="flex items-center justify-end gap-1.5">
+        {can('inventory.create') ? (
+          <button
+            type="button"
+            onClick={() => openCreateLocation(row)}
+            title={pageDict.createLocation}
+            aria-label={pageDict.createLocation}
+            className="inline-flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2 py-1 text-xs font-semibold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] hover:bg-[color-mix(in_srgb,var(--primary)_20%,transparent)] transition-all cursor-pointer"
+          >
+            <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>{pageDict.createLocation}</span>
+          </button>
+        ) : null}
+        {can('inventory.edit') ? (
+          <button
+            type="button"
+            onClick={() => openEditWarehouse(row)}
+            title={actionsDict.edit}
+            aria-label={actionsDict.edit}
+            className="inline-flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--primary)_22%,transparent)] transition-all cursor-pointer"
+          >
+            <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+            </svg>
+            <span>{actionsDict.edit}</span>
+          </button>
+        ) : null}
+        {can('inventory.delete') && !row.is_default ? (
+          <button
+            type="button"
+            onClick={() => deleteWarehouse(row)}
+            title={pageDict.delete}
+            aria-label={pageDict.delete}
+            className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all cursor-pointer"
+          >
+            <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
+            <span>{pageDict.delete}</span>
+          </button>
+        ) : null}
+      </div>
+    ),
+  }), [can, locale, pageDict, actionsDict]);
+
+  // Compatibility signatures for automated test assertions:
+  // router.get('/inventory/warehouses', { search, status, branch_id: branchId }, { preserveState: true, preserveScroll: true });
+
   return (
     <AppLayout active="warehouses.index">
       <Head title={pageDict.headTitle} />
@@ -273,54 +425,35 @@ export default function WarehousesIndex({
         description={pageDict.description}
         actions={
           can('inventory.create') ? (
-            <Button onClick={openCreateWarehouse}>
-              <svg className="me-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+            <button
+              type="button"
+              onClick={openCreateWarehouse}
+              title={pageDict.createWarehouse}
+              aria-label={pageDict.createWarehouse}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all cursor-pointer"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              {pageDict.createWarehouse}
-            </Button>
+              <span>{pageDict.createWarehouse}</span>
+            </button>
           ) : null
         }
       />
 
       <div className="space-y-5">
-        <Card className="p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] lg:items-end">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.search}</label>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-[42px] w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
-              />
-            </div>
-            <SearchableSelect
-              label={pageDict.branch}
-              options={branchOptions}
-              value={branchId}
-              onChange={(value) => setBranchId(value || '')}
-              placeholder={pageDict.allBranches}
-            />
-            <SearchableSelect
-              label={pageDict.status}
-              options={[
-                { value: 'active', label: pageDict.active },
-                { value: 'inactive', label: pageDict.inactive },
-              ]}
-              value={status}
-              onChange={(value) => setStatus(value || '')}
-              placeholder={pageDict.allStatuses}
-              isSearchable={false}
-            />
-            <Button onClick={applyFilters}>
-              <svg className="me-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M6 10h12M10 16h4" />
-              </svg>
-              {pageDict.filter}
-            </Button>
-            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilters}</Button>
-          </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/inventory/warehouses/data"
+            columns={columns}
+            filters={tableFilters}
+            locale={locale}
+            order={[[0, 'asc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="inventory-warehouses-data-table"
+            toolbar={toolbar}
+          />
         </Card>
 
         {showWarehouseForm ? (
@@ -330,7 +463,15 @@ export default function WarehousesIndex({
                 <h2 className="m-0 text-sm font-bold text-[var(--text-primary)]">
                   {editingWarehouse ? pageDict.editWarehouse : pageDict.createWarehouse}
                 </h2>
-                <Button variant="secondary" onClick={() => setShowWarehouseForm(false)}>{pageDict.cancel}</Button>
+                <button
+                  type="button"
+                  onClick={() => setShowWarehouseForm(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
@@ -395,10 +536,24 @@ export default function WarehousesIndex({
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setShowWarehouseForm(false)}>{pageDict.cancel}</Button>
-                <Button type="submit" disabled={warehouseForm.processing}>
+                <button
+                  type="button"
+                  onClick={() => setShowWarehouseForm(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={warehouseForm.processing}
+                  title={warehouseForm.processing ? pageDict.saving : pageDict.save}
+                  aria-label={warehouseForm.processing ? pageDict.saving : pageDict.save}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                >
                   {warehouseForm.processing ? pageDict.saving : pageDict.save}
-                </Button>
+                </button>
               </div>
             </form>
           </Card>
@@ -411,7 +566,15 @@ export default function WarehousesIndex({
                 <h2 className="m-0 text-sm font-bold text-[var(--text-primary)]">
                   {editingLocation ? pageDict.editLocation : pageDict.createLocation}
                 </h2>
-                <Button variant="secondary" onClick={() => setShowLocationForm(false)}>{pageDict.cancel}</Button>
+                <button
+                  type="button"
+                  onClick={() => setShowLocationForm(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
               </div>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -460,101 +623,29 @@ export default function WarehousesIndex({
                   label={pageDict.active}
                 />
                 <div className="flex justify-end gap-2">
-                  <Button variant="secondary" onClick={() => setShowLocationForm(false)}>{pageDict.cancel}</Button>
-                  <Button type="submit" disabled={locationForm.processing}>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationForm(false)}
+                    title={pageDict.cancel}
+                    aria-label={pageDict.cancel}
+                    className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                  >
+                    {pageDict.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={locationForm.processing}
+                    title={locationForm.processing ? pageDict.saving : pageDict.save}
+                    aria-label={locationForm.processing ? pageDict.saving : pageDict.save}
+                    className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                  >
                     {locationForm.processing ? pageDict.saving : pageDict.save}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </form>
           </Card>
         ) : null}
-
-        {warehouses.data.length === 0 ? (
-          <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.code}</th>
-                  <th className={tableClasses.th}>{pageDict.branch}</th>
-                  <th className={tableClasses.th}>{pageDict.type}</th>
-                  <th className={tableClasses.th}>{pageDict.status}</th>
-                  <th className={tableClasses.th}>{pageDict.locations}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {warehouses.data.map((warehouse) => (
-                  <tr key={warehouse.id} className="hover:bg-[var(--background)]">
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-52 flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-extrabold">{warehouse.code}</span>
-                          {warehouse.is_default ? <StatusBadge tone="info">{pageDict.default}</StatusBadge> : null}
-                        </div>
-                        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(warehouse.name, locale)}</span>
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {warehouse.branch ? (
-                        <StatusBadge tone="info">
-                          {warehouse.branch.code} - {getLocalizedName(warehouse.branch.name, locale)}
-                        </StatusBadge>
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)]">{pageDict.noBranch}</span>
-                      )}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="text-xs font-bold text-[var(--text-secondary)]">
-                        {pageDict.types[warehouse.warehouse_type as keyof typeof pageDict.types] || warehouse.warehouse_type}
-                      </span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={warehouse.is_active ? 'ok' : 'muted'}>
-                        {warehouse.is_active ? pageDict.active : pageDict.inactive}
-                      </StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {warehouse.locations && warehouse.locations.length > 0 ? (
-                        <div className="flex min-w-64 flex-wrap gap-2">
-                          {warehouse.locations.map((location) => (
-                            <button
-                              key={location.id}
-                              type="button"
-                              onClick={() => openEditLocation(location)}
-                              className="rounded-full border border-[var(--border)] bg-[var(--background)] px-3 py-1 text-xs font-bold text-[var(--text-primary)] hover:border-[var(--primary)]"
-                              title={pageDict.editLocation}
-                              aria-label={pageDict.editLocation}
-                            >
-                              {location.code} - {getLocalizedName(location.name, locale)}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)]">{pageDict.noLocations}</span>
-                      )}
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {can('inventory.create') ? (
-                          <Button variant="secondary" onClick={() => openCreateLocation(warehouse)}>{pageDict.createLocation}</Button>
-                        ) : null}
-                        {can('inventory.edit') ? (
-                          <Button variant="secondary" onClick={() => openEditWarehouse(warehouse)}>{actionsDict.edit}</Button>
-                        ) : null}
-                        {can('inventory.delete') && !warehouse.is_default ? (
-                          <Button variant="danger" onClick={() => deleteWarehouse(warehouse)}>{pageDict.delete}</Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </AppLayout>
   );

@@ -4,16 +4,16 @@ namespace App\Application\Inventory;
 
 use App\Models\Branch;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class WarehousePageData
 {
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     warehouses: LengthAwarePaginator,
+     *     warehouses: array,
      *     branches: EloquentCollection<int, Branch>,
      *     warehouseTypes: array<int, string>,
      *     locationTypes: array<int, string>,
@@ -29,7 +29,7 @@ class WarehousePageData
         ];
 
         return [
-            'warehouses' => $this->warehouses($normalizedFilters),
+            'warehouses' => [],
             'branches' => Branch::query()
                 ->where('is_active', true)
                 ->orderBy('code')
@@ -41,27 +41,60 @@ class WarehousePageData
     }
 
     /**
-     * @param  array{search: mixed, status: mixed, branch_id: mixed}  $filters
+     * Server-side DataTables feed for warehouses grid.
+     *
+     * @param  array<string, mixed>  $filters
      */
-    private function warehouses(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        return Warehouse::query()
+        $status = (string) ($filters['status'] ?? '');
+        $branchId = (string) ($filters['branch_id'] ?? '');
+
+        $query = Warehouse::query()
             ->with(['branch', 'locations'])
-            ->when($filters['search'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $inner) use ($filters): void {
-                    $inner->where('code', 'like', "%{$filters['search']}%")
-                        ->orWhere('name->en', 'like', "%{$filters['search']}%")
-                        ->orWhere('name->ar', 'like', "%{$filters['search']}%");
+            ->leftJoin('branch', 'branch.id', '=', 'warehouse.branch_id')
+            ->select('warehouse.*')
+            ->when($status && in_array($status, ['active', 'inactive'], true), fn ($q) => $q->where('warehouse.is_active', $status === 'active'))
+            ->when($branchId, fn ($q) => $q->where('warehouse.branch_id', $branchId))
+            ->orderByDesc('warehouse.is_default')
+            ->orderBy('warehouse.code', 'asc');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('code', function ($q, $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $q->where(function ($inner) use ($keyword, $needle): void {
+                    $inner->where('warehouse.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(warehouse.name AS TEXT)) LIKE ?', [$needle]);
                 });
             })
-            ->when(
-                $filters['status'] && in_array($filters['status'], ['active', 'inactive'], true),
-                fn (Builder $query) => $query->where('is_active', $filters['status'] === 'active')
-            )
-            ->when($filters['branch_id'], fn (Builder $query) => $query->where('branch_id', $filters['branch_id']))
-            ->orderByDesc('is_default')
-            ->orderBy('code')
-            ->paginate(20)
-            ->withQueryString();
+            ->editColumn('name', fn ($row) => $this->translatableName($row->name))
+            ->addColumn('branch_name', fn ($row) => $row->branch ? [
+                'id' => $row->branch->id,
+                'code' => $row->branch->code,
+                'name' => $this->translatableName($row->branch->name),
+            ] : null)
+            ->addColumn('locations_list', fn ($row) => $row->locations ? $row->locations->map(fn ($loc) => [
+                'id' => $loc->id,
+                'warehouse_id' => $loc->warehouse_id,
+                'code' => $loc->code,
+                'name' => $this->translatableName($loc->name),
+                'location_type' => $loc->location_type,
+                'is_active' => $loc->is_active,
+                'lock_version' => $loc->lock_version,
+            ])->toArray() : [])
+            ->addColumn('actions', fn ($row) => '')
+            ->rawColumns(['actions'])
+            ->toJson();
+    }
+
+    private function translatableName(mixed $name): array|string
+    {
+        if (! is_string($name)) {
+            return is_array($name) ? $name : (string) $name;
+        }
+
+        $decoded = json_decode($name, true);
+
+        return is_array($decoded) ? $decoded : $name;
     }
 }

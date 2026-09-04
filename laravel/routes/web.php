@@ -431,6 +431,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/catalog/categories/{category}', [ProductCategoryController::class, 'destroy'])->middleware('can:products.delete')->name('product-categories.destroy');
 
     Route::get('/catalog/products', [ProductController::class, 'index'])->middleware('can:products.view')->name('products.index');
+    Route::get('/catalog/products/data', [ProductController::class, 'datatable'])->middleware('can:products.view')->name('products.datatable');
     Route::post('/catalog/products', [ProductController::class, 'store'])->middleware('can:products.create')->name('products.store');
     Route::put('/catalog/products/{product}', [ProductController::class, 'update'])->middleware('can:products.edit')->name('products.update');
     Route::delete('/catalog/products/{product}', [ProductController::class, 'destroy'])->middleware('can:products.delete')->name('products.destroy');
@@ -571,6 +572,7 @@ Route::middleware('auth')->group(function (): void {
     // Phase 4 Slice 8 Inventory Costing Routes
     Route::get('/inventory/stock-balances', [StockBalanceController::class, 'index'])->middleware('can:inventory.view')->name('stock-balances.index');
     Route::get('/inventory/warehouses', [WarehouseController::class, 'index'])->middleware('can:inventory.view')->name('warehouses.index');
+    Route::get('/inventory/warehouses/data', [WarehouseController::class, 'datatable'])->middleware('can:inventory.view')->name('warehouses.datatable');
     Route::post('/inventory/warehouses', [WarehouseController::class, 'store'])->middleware('can:inventory.create')->name('warehouses.store');
     Route::put('/inventory/warehouses/{id}', [WarehouseController::class, 'update'])->middleware('can:inventory.edit')->name('warehouses.update');
     Route::delete('/inventory/warehouses/{id}', [WarehouseController::class, 'destroy'])->middleware('can:inventory.delete')->name('warehouses.destroy');
