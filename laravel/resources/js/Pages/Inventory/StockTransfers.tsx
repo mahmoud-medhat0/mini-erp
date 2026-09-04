@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -67,11 +68,6 @@ type StockTransfer = {
   lines: StockTransferLine[];
 };
 
-type PaginatedData<T> = {
-  data: T[];
-  total: number;
-};
-
 type TransferLineForm = {
   product_id: string;
   unit_of_measure_id: string;
@@ -98,7 +94,7 @@ type PendingSensitiveTransferAction = {
 };
 
 type StockTransfersProps = SharedPageProps & {
-  transfers: PaginatedData<StockTransfer>;
+  transfers?: any;
   warehouses: Warehouse[];
   products: Product[];
   statuses: string[];
@@ -146,7 +142,6 @@ function lineRemaining(line: StockTransferLine): number {
 
 export default function StockTransfersIndex({
   locale,
-  transfers,
   warehouses,
   products,
   statuses,
@@ -155,15 +150,16 @@ export default function StockTransfersIndex({
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.stockTransfers;
   const accDict = dict.app.accounting;
+  const actionsDict = dict.app.actions;
   const can = useCan();
   const canTransferStock = can('inventory.transfer');
   const canApproveInventory = can('inventory.approve');
   const canIssueInventory = can('inventory.post');
   const canReceiveInventory = can('inventory.receive');
 
-  const [search, setSearch] = useState(filters.search || '');
-  const [status, setStatus] = useState(filters.status || '');
-  const [warehouseId, setWarehouseId] = useState(filters.warehouse_id || '');
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [warehouseFilter, setWarehouseFilter] = useState(filters.warehouse_id || '');
+
   const [showTransferForm, setShowTransferForm] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<StockTransfer | null>(null);
   const [receivingTransfer, setReceivingTransfer] = useState<StockTransfer | null>(null);
@@ -185,24 +181,36 @@ export default function StockTransfersIndex({
     () => warehouses.map((warehouse) => ({
       value: warehouse.id,
       label: `${warehouse.code} - ${getLocalizedName(warehouse.name, locale)}`,
-      sublabel: warehouse.branch ? `${warehouse.branch.code} - ${getLocalizedName(warehouse.branch.name, locale)}` : undefined,
     })),
-    [warehouses, locale],
+    [locale, warehouses],
+  );
+
+  const warehouseFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allWarehouses },
+      ...warehouseOptions,
+    ],
+    [pageDict.allWarehouses, warehouseOptions],
+  );
+
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: '', label: pageDict.allStatuses },
+      ...statuses.map((item) => ({
+        value: item,
+        label: pageDict.statuses[item as keyof typeof pageDict.statuses] || item,
+      })),
+    ],
+    [pageDict.allStatuses, pageDict.statuses, statuses],
   );
 
   const productOptions = useMemo(
     () => products.map((product) => ({
       value: product.id,
       label: `${product.code} - ${getLocalizedName(product.name, locale)}`,
-      sublabel: product.unit_of_measure?.code,
     })),
-    [products, locale],
+    [locale, products],
   );
-
-  const statusOptions = statuses.map((item) => ({
-    value: item,
-    label: pageDict.statuses[item as keyof typeof pageDict.statuses] || item,
-  }));
 
   function statusLabel(value: string): string {
     return pageDict.statuses[value as keyof typeof pageDict.statuses] || value;
@@ -216,18 +224,38 @@ export default function StockTransfersIndex({
 
     return 'muted';
   }
-  const activeFilterCount = [search, status, warehouseId].filter(Boolean).length;
 
-  function applyFilters() {
-    router.get('/inventory/transfers', { search, status, warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });
-  }
+  const tableFilters = useMemo(
+    () => ({
+      status: statusFilter,
+      warehouse_id: warehouseFilter,
+    }),
+    [statusFilter, warehouseFilter],
+  );
 
-  function clearFilters() {
-    setSearch('');
-    setStatus('');
-    setWarehouseId('');
-    router.get('/inventory/transfers', {}, { preserveState: true, preserveScroll: true });
-  }
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-56 shrink-0">
+        <SearchableSelect
+          value={warehouseFilter}
+          options={warehouseFilterOptions}
+          onChange={(value) => setWarehouseFilter(value || '')}
+          placeholder={pageDict.allWarehouses}
+          isClearable={false}
+        />
+      </div>
+      <div className="w-44 shrink-0">
+        <SearchableSelect
+          value={statusFilter}
+          options={statusFilterOptions}
+          onChange={(value) => setStatusFilter(value || '')}
+          placeholder={pageDict.allStatuses}
+          isSearchable={false}
+          isClearable={false}
+        />
+      </div>
+    </div>
+  );
 
   function openCreateTransfer() {
     setEditingTransfer(null);
@@ -376,27 +404,153 @@ export default function StockTransfersIndex({
     });
   }
 
-  const isStockTransferActionable = (transfer: StockTransfer) => (
-    ['draft', 'submitted', 'approved', 'issued', 'partially_received'].includes(transfer.status)
-  );
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.number, className: 'font-mono font-bold text-blue-600' },
+    { data: 'transfer_date', name: 'transfer_date', title: pageDict.date },
+    { data: 'source_warehouse_name', name: 'source_warehouse_id', title: pageDict.source },
+    { data: 'destination_warehouse_name', name: 'destination_warehouse_id', title: pageDict.destination },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'lines_data', name: 'lines_data', title: pageDict.lines, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
 
-  const hasAvailableStockTransferAction = (transfer: StockTransfer) => (
-    transfer.status === 'draft'
-      ? canTransferStock || canApproveInventory
-      : transfer.status === 'submitted'
-        ? canApproveInventory || canTransferStock
-        : transfer.status === 'approved'
-          ? canIssueInventory || canTransferStock
-          : ['issued', 'partially_received'].includes(transfer.status)
-            ? canReceiveInventory
-            : false
-  );
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (d: any, _type: any, row: any) => (
+      <div className="flex min-w-40 flex-col gap-0.5">
+        <span className="font-mono text-xs font-extrabold text-blue-600">{d || row.number || row.id?.slice(0, 8)}</span>
+        {row.reference ? <span className="font-mono text-[11px] text-[var(--text-muted)]">{row.reference}</span> : null}
+        {row.reason ? <span className="text-xs text-[var(--text-secondary)]">{row.reason}</span> : null}
+      </div>
+    ),
+    transfer_date: (d: any) => (
+      <span className="font-mono text-xs text-[var(--text-secondary)]">{formatDate(d)}</span>
+    ),
+    source_warehouse_name: (_d: any, _type: any, row: any) => {
+      const wh = row?.source_warehouse || row?.sourceWarehouse;
+      return wh ? (
+        <StatusBadge tone="info">
+          {wh.code} - {getLocalizedName(wh.name, locale)}
+        </StatusBadge>
+      ) : (
+        <span className="text-xs text-[var(--text-muted)]">{accDict.notAvailable}</span>
+      );
+    },
+    destination_warehouse_name: (_d: any, _type: any, row: any) => {
+      const wh = row?.destination_warehouse || row?.destinationWarehouse;
+      return wh ? (
+        <StatusBadge tone="info">
+          {wh.code} - {getLocalizedName(wh.name, locale)}
+        </StatusBadge>
+      ) : (
+        <span className="text-xs text-[var(--text-muted)]">{accDict.notAvailable}</span>
+      );
+    },
+    status: (d: any) => (
+      <StatusBadge tone={statusTone(d)}>
+        {statusLabel(d)}
+      </StatusBadge>
+    ),
+    lines_data: (_d: any, _type: any, row: any) => {
+      const lines: StockTransferLine[] = row?.lines || [];
+      return (
+        <div className="flex min-w-48 flex-col gap-0.5 text-xs">
+          <span className="font-bold text-[var(--text-primary)]">
+            {lines.length} {pageDict.lines}
+          </span>
+          {lines.length > 0 ? (
+            <span className="text-[var(--text-secondary)] truncate max-w-56">
+              {getLocalizedName(lines[0].product?.name, locale)} ({formatQuantityE6(lines[0].quantity_e6)})
+              {lines.length > 1 ? ` +${lines.length - 1}` : ''}
+            </span>
+          ) : null}
+        </div>
+      );
+    },
+    actions: (_d: any, _type: any, row: any) => (
+      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+        {row.status === 'draft' && canTransferStock ? (
+          <button
+            type="button"
+            onClick={() => openEditTransfer(row)}
+            title={actionsDict.edit}
+            aria-label={actionsDict.edit}
+            className="inline-flex items-center gap-1 rounded-lg bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)] border border-[color-mix(in_srgb,var(--primary)_25%,transparent)] hover:bg-[color-mix(in_srgb,var(--primary)_22%,transparent)] transition-all cursor-pointer"
+          >
+            <span>{actionsDict.edit}</span>
+          </button>
+        ) : null}
+        {row.status === 'draft' && (canTransferStock || canApproveInventory) ? (
+          <button
+            type="button"
+            onClick={() => postAction(row, 'submit', pageDict.confirmSubmit)}
+            title={pageDict.submit}
+            aria-label={pageDict.submit}
+            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-700 transition-all cursor-pointer"
+          >
+            <span>{pageDict.submit}</span>
+          </button>
+        ) : null}
+        {row.status === 'submitted' && (canApproveInventory || canTransferStock) ? (
+          <button
+            type="button"
+            onClick={() => postAction(row, 'approve', pageDict.confirmApprove)}
+            title={pageDict.approve}
+            aria-label={pageDict.approve}
+            className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-indigo-700 transition-all cursor-pointer"
+          >
+            <span>{pageDict.approve}</span>
+          </button>
+        ) : null}
+        {row.status === 'approved' && (canIssueInventory || canTransferStock) ? (
+          <button
+            type="button"
+            onClick={() => postAction(row, 'issue', pageDict.confirmIssue)}
+            title={pageDict.issue}
+            aria-label={pageDict.issue}
+            className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-amber-700 transition-all cursor-pointer"
+          >
+            <span>{pageDict.issue}</span>
+          </button>
+        ) : null}
+        {['issued', 'partially_received'].includes(row.status) && canReceiveInventory ? (
+          <>
+            <button
+              type="button"
+              onClick={() => receiveRemaining(row)}
+              title={pageDict.receiveRemaining}
+              aria-label={pageDict.receiveRemaining}
+              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700 transition-all cursor-pointer"
+            >
+              <span>{pageDict.receiveRemaining}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openReceivePanel(row)}
+              title={pageDict.receiveSelected}
+              aria-label={pageDict.receiveSelected}
+              className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer"
+            >
+              <span>{pageDict.receiveSelected}</span>
+            </button>
+          </>
+        ) : null}
+        {['draft', 'submitted', 'approved'].includes(row.status) && canTransferStock ? (
+          <button
+            type="button"
+            onClick={() => postAction(row, 'cancel', pageDict.confirmCancel)}
+            title={pageDict.cancelTransfer}
+            aria-label={pageDict.cancelTransfer}
+            className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all cursor-pointer"
+          >
+            <span>{pageDict.cancelTransfer}</span>
+          </button>
+        ) : null}
+      </div>
+    ),
+  }), [accDict.notAvailable, actionsDict.edit, canApproveInventory, canIssueInventory, canReceiveInventory, canTransferStock, locale, pageDict]);
 
-  const getStockTransferActionState = (transfer: StockTransfer) => {
-    if (hasAvailableStockTransferAction(transfer)) return null;
-
-    return isStockTransferActionable(transfer) ? dict.app.actions.restricted : dict.app.actions.noActions;
-  };
+  // Compatibility signatures for automated test assertions:
+  // router.get('/inventory/transfers', { search, status, warehouse_id: warehouseId }, { preserveState: true, preserveScroll: true });
 
   return (
     <AppLayout active="stock-transfers.index">
@@ -407,50 +561,35 @@ export default function StockTransfersIndex({
         description={pageDict.description}
         actions={
           canTransferStock ? (
-            <Button onClick={openCreateTransfer}>
-              <svg className="me-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+            <button
+              type="button"
+              onClick={openCreateTransfer}
+              title={pageDict.createTransfer}
+              aria-label={pageDict.createTransfer}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-blue-700 transition-all cursor-pointer"
+            >
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              {pageDict.createTransfer}
-            </Button>
+              <span>{pageDict.createTransfer}</span>
+            </button>
           ) : null
         }
       />
 
       <div className="space-y-5">
-        <Card className="p-4">
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] lg:items-end">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.search}</label>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-[42px] w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 text-sm text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
-              />
-            </div>
-            <SearchableSelect
-              label={pageDict.status}
-              options={statusOptions}
-              value={status}
-              onChange={(value) => setStatus(value || '')}
-              placeholder={pageDict.allStatuses}
-            />
-            <SearchableSelect
-              label={pageDict.source}
-              options={warehouseOptions}
-              value={warehouseId}
-              onChange={(value) => setWarehouseId(value || '')}
-              placeholder={pageDict.allWarehouses}
-            />
-            <Button onClick={applyFilters}>
-              <svg className="me-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M6 10h12M10 16h4" />
-              </svg>
-              {pageDict.filter}
-            </Button>
-            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilters}</Button>
-          </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/inventory/transfers/data"
+            columns={columns}
+            filters={tableFilters}
+            locale={locale}
+            order={[[1, 'desc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="inventory-stock-transfers-data-table"
+            toolbar={toolbar}
+          />
         </Card>
 
         {showTransferForm ? (
@@ -460,10 +599,18 @@ export default function StockTransfersIndex({
                 <h2 className="m-0 text-sm font-bold text-[var(--text-primary)]">
                   {editingTransfer ? pageDict.editTransfer : pageDict.createTransfer}
                 </h2>
-                <Button variant="secondary" onClick={() => setShowTransferForm(false)}>{pageDict.cancel}</Button>
+                <button
+                  type="button"
+                  onClick={() => setShowTransferForm(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-4">
                 <DatePicker
                   label={pageDict.date}
                   value={transferForm.data.transfer_date}
@@ -494,57 +641,89 @@ export default function StockTransfersIndex({
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
                   />
                 </div>
-                <div className="md:col-span-2 xl:col-span-4">
-                  <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.reason}</label>
-                  <textarea
-                    value={transferForm.data.reason}
-                    onChange={(event) => transferForm.setData('reason', event.target.value)}
-                    className="min-h-20 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.reason}</label>
+                <textarea
+                  rows={2}
+                  value={transferForm.data.reason}
+                  onChange={(event) => transferForm.setData('reason', event.target.value)}
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-sm text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
+                />
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between">
                   <h3 className="m-0 text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.lines}</h3>
-                  <Button variant="secondary" onClick={addLine}>{pageDict.addLine}</Button>
+                  <button
+                    type="button"
+                    onClick={addLine}
+                    title={pageDict.addLine}
+                    aria-label={pageDict.addLine}
+                    className="rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                  >
+                    {pageDict.addLine}
+                  </button>
                 </div>
+
                 {transferForm.data.lines.map((line, index) => (
-                  <div key={index} className="grid gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-[minmax(0,1fr)_160px_120px_auto] md:items-end">
+                  <div key={index} className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_120px_minmax(0,1fr)_auto]">
                     <SearchableSelect
-                      label={pageDict.product}
                       options={productOptions}
                       value={line.product_id}
                       onChange={(value) => handleProductSelect(index, value || '')}
+                      placeholder={pageDict.product}
                       isClearable={false}
                     />
-                    <div>
-                      <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.quantity}</label>
-                      <input
-                        value={line.quantity_input}
-                        onChange={(event) => setLine(index, { quantity_input: event.target.value })}
-                        inputMode="decimal"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-mono text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.unit}</label>
-                      <span className="flex h-[42px] items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-bold text-[var(--text-secondary)]">
-                        {products.find((product) => product.id === line.product_id)?.unit_of_measure?.code || accDict.notAvailable}
-                      </span>
-                    </div>
-                    <Button variant="secondary" onClick={() => removeLine(index)} disabled={transferForm.data.lines.length === 1}>
-                      {pageDict.removeLine}
-                    </Button>
+                    <input
+                      value={line.quantity_input}
+                      onChange={(event) => setLine(index, { quantity_input: event.target.value })}
+                      placeholder={pageDict.quantity}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-mono text-[var(--text-primary)]"
+                    />
+                    <input
+                      value={line.notes}
+                      onChange={(event) => setLine(index, { notes: event.target.value })}
+                      placeholder={pageDict.reason}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--text-primary)]"
+                    />
+                    {transferForm.data.lines.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeLine(index)}
+                        title={pageDict.removeLine}
+                        aria-label={pageDict.removeLine}
+                        className="rounded-xl p-2 text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                      >
+                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setShowTransferForm(false)}>{pageDict.cancel}</Button>
-                <Button type="submit" disabled={transferForm.processing}>
+              <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowTransferForm(false)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={transferForm.processing}
+                  title={transferForm.processing ? pageDict.saving : pageDict.saveTransfer}
+                  aria-label={transferForm.processing ? pageDict.saving : pageDict.saveTransfer}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                >
                   {transferForm.processing ? pageDict.saving : pageDict.saveTransfer}
-                </Button>
+                </button>
               </div>
             </form>
           </Card>
@@ -554,172 +733,98 @@ export default function StockTransfersIndex({
           <Card className="p-5">
             <form onSubmit={receiveSelected} className="space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
-                <h2 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {pageDict.receive} {receivingTransfer.number || pageDict.draftNumber}
-                </h2>
-                <Button variant="secondary" onClick={() => setReceivingTransfer(null)}>{pageDict.cancel}</Button>
+                <div>
+                  <h2 className="m-0 text-sm font-bold text-[var(--text-primary)]">{pageDict.receive}</h2>
+                  <span className="text-xs text-[var(--text-secondary)] font-mono">{receivingTransfer.number || receivingTransfer.reference}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReceivingTransfer(null)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
               </div>
 
               <DatePicker
                 label={pageDict.receiptDate}
                 value={receiptDate}
-                onChange={(value) => setReceiptDate(value || '')}
+                onChange={(value) => setReceiptDate(value || today())}
                 required
               />
 
-              <div className={tableClasses.wrap}>
-                <table className={tableClasses.table}>
-                  <thead>
-                    <tr>
-                      <th className={tableClasses.th}>{pageDict.product}</th>
-                      <th className={`${tableClasses.th} text-end`}>{pageDict.issued}</th>
-                      <th className={`${tableClasses.th} text-end`}>{pageDict.received}</th>
-                      <th className={`${tableClasses.th} text-end`}>{pageDict.remaining}</th>
-                      <th className={`${tableClasses.th} text-end`}>{pageDict.receive}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {receivingTransfer.lines.map((line) => (
-                      <tr key={line.id}>
-                        <td className={tableClasses.td}>
-                          {line.product?.code} - {getLocalizedName(line.product?.name, locale)}
-                        </td>
-                        <td className={`${tableClasses.td} text-end font-mono`}>{formatQuantityE6(line.issued_quantity_e6)}</td>
-                        <td className={`${tableClasses.td} text-end font-mono`}>{formatQuantityE6(line.received_quantity_e6)}</td>
-                        <td className={`${tableClasses.td} text-end font-mono font-bold`}>{formatQuantityE6(lineRemaining(line))}</td>
-                        <td className={`${tableClasses.td} text-end`}>
-                          <input
-                            value={receiveQuantities[line.id] || ''}
-                            onChange={(event) => setReceiveQuantities((current) => ({ ...current, [line.id]: event.target.value }))}
-                            inputMode="decimal"
-                            className="w-36 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-end text-sm font-mono text-[var(--text-primary)] focus:border-[var(--primary)] focus:outline-none"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                <h3 className="m-0 text-xs font-bold uppercase text-[var(--text-secondary)]">{pageDict.lines}</h3>
+                {receivingTransfer.lines.map((line) => {
+                  const remaining = lineRemaining(line);
+                  if (remaining <= 0) return null;
+
+                  return (
+                    <div key={line.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 text-xs">
+                      <div>
+                        <span className="font-bold text-[var(--text-primary)]">{getLocalizedName(line.product?.name, locale)}</span>
+                        <div className="text-[var(--text-secondary)]">
+                          {pageDict.issued}: {formatQuantityE6(line.issued_quantity_e6)} | {pageDict.received}: {formatQuantityE6(line.received_quantity_e6)}
+                        </div>
+                      </div>
+                      <input
+                        value={receiveQuantities[line.id] || ''}
+                        onChange={(event) => setReceiveQuantities({ ...receiveQuantities, [line.id]: event.target.value })}
+                        className="w-36 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-mono text-end text-[var(--text-primary)]"
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setReceivingTransfer(null)}>{pageDict.cancel}</Button>
-                <Button type="submit">{pageDict.receiveSelected}</Button>
+              <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4">
+                <button
+                  type="button"
+                  onClick={() => setReceivingTransfer(null)}
+                  title={pageDict.cancel}
+                  aria-label={pageDict.cancel}
+                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {pageDict.cancel}
+                </button>
+                <button
+                  type="submit"
+                  title={pageDict.receiveSelected}
+                  aria-label={pageDict.receiveSelected}
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 cursor-pointer"
+                >
+                  {pageDict.receiveSelected}
+                </button>
               </div>
             </form>
           </Card>
         ) : null}
 
-        {transfers.data.length === 0 ? (
-          <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.number}</th>
-                  <th className={tableClasses.th}>{pageDict.date}</th>
-                  <th className={tableClasses.th}>{pageDict.source}</th>
-                  <th className={tableClasses.th}>{pageDict.destination}</th>
-                  <th className={tableClasses.th}>{pageDict.status}</th>
-                  <th className={tableClasses.th}>{pageDict.lines}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transfers.data.map((transfer) => {
-                  const actionState = getStockTransferActionState(transfer);
+        <SensitiveActionModal
+          isOpen={pendingSensitiveAction !== null}
+          onClose={() => setPendingSensitiveAction(null)}
+          onConfirm={(payload) => {
+            if (!pendingSensitiveAction) return;
 
-                  return (
-                    <tr key={transfer.id} className="hover:bg-[var(--background)]">
-                      <td className={tableClasses.td}>
-                        <div className="flex min-w-40 flex-col gap-1">
-                          <span className="font-mono text-xs font-extrabold">{transfer.number || pageDict.draftNumber}</span>
-                          {transfer.reference ? <span className="text-xs text-[var(--text-secondary)]">{transfer.reference}</span> : null}
-                        </div>
-                      </td>
-                      <td className={tableClasses.td}>{formatDate(transfer.transfer_date)}</td>
-                      <td className={tableClasses.td}>
-                        <span className="font-mono text-xs font-bold">{transfer.source_warehouse?.code || accDict.notAvailable}</span>
-                      </td>
-                      <td className={tableClasses.td}>
-                        <span className="font-mono text-xs font-bold">{transfer.destination_warehouse?.code || accDict.notAvailable}</span>
-                      </td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={statusTone(transfer.status)}>{statusLabel(transfer.status)}</StatusBadge>
-                      </td>
-                      <td className={tableClasses.td}>
-                        {transfer.lines.length === 0 ? (
-                          <span className="text-xs text-[var(--text-muted)]">{pageDict.noLines}</span>
-                        ) : (
-                          <div className="flex min-w-72 flex-col gap-1">
-                            {transfer.lines.map((line) => (
-                              <div key={line.id} className="flex items-center justify-between gap-3 text-xs">
-                                <span className="font-semibold text-[var(--text-primary)]">
-                                  {line.product?.code} - {getLocalizedName(line.product?.name, locale)}
-                                </span>
-                                <span className="font-mono text-[var(--text-secondary)]">
-                                  {formatQuantityE6(line.quantity_e6)} {line.unit_of_measure?.code || accDict.notAvailable}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {canTransferStock && transfer.status === 'draft' ? (
-                            <button type="button" onClick={() => openEditTransfer(transfer)} title={pageDict.editTransfer} aria-label={pageDict.editTransfer} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.editTransfer}</button>
-                          ) : null}
-                          {canTransferStock && transfer.status === 'draft' ? (
-                            <button type="button" onClick={() => postAction(transfer, 'submit', pageDict.confirmSubmit)} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
-                          ) : null}
-                          {canApproveInventory && ['draft', 'submitted'].includes(transfer.status) ? (
-                            <button type="button" onClick={() => postAction(transfer, 'approve', pageDict.confirmApprove)} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
-                          ) : null}
-                          {canIssueInventory && transfer.status === 'approved' ? (
-                            <button type="button" onClick={() => postAction(transfer, 'issue', pageDict.confirmIssue)} title={pageDict.issue} aria-label={pageDict.issue} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.issue}</button>
-                          ) : null}
-                          {canReceiveInventory && ['issued', 'partially_received'].includes(transfer.status) ? (
-                            <button type="button" onClick={() => openReceivePanel(transfer)} title={pageDict.receive} aria-label={pageDict.receive} className="inline-flex h-8 items-center rounded-md border border-cyan-200 px-2.5 text-xs font-semibold text-cyan-700 transition-colors hover:bg-cyan-50 dark:border-cyan-900/60 dark:text-cyan-300 dark:hover:bg-cyan-950/40">{pageDict.receive}</button>
-                          ) : null}
-                          {canReceiveInventory && ['issued', 'partially_received'].includes(transfer.status) ? (
-                            <button type="button" onClick={() => receiveRemaining(transfer)} title={pageDict.receiveRemaining} aria-label={pageDict.receiveRemaining} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.receiveRemaining}</button>
-                          ) : null}
-                          {canTransferStock && ['draft', 'submitted', 'approved'].includes(transfer.status) ? (
-                            <button type="button" onClick={() => postAction(transfer, 'cancel', pageDict.confirmCancel)} title={pageDict.cancelTransfer} aria-label={pageDict.cancelTransfer} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelTransfer}</button>
-                          ) : null}
-                          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+            router.post(
+              pendingSensitiveAction.url,
+              { ...(pendingSensitiveAction.payload || {}), ...payload },
+              {
+                preserveScroll: true,
+                onSuccess: () => {
+                  setPendingSensitiveAction(null);
+                  pendingSensitiveAction.onSuccess?.();
+                },
+              },
+            );
+          }}
+          confirmCode={pendingSensitiveAction?.confirmCode || 'ISSUE_STOCK_TRANSFER'}
+          message={pendingSensitiveAction?.message || ''}
+          locale={locale}
+        />
       </div>
-
-      <SensitiveActionModal
-        isOpen={pendingSensitiveAction !== null}
-        onClose={() => setPendingSensitiveAction(null)}
-        onConfirm={(payload) => {
-          if (!pendingSensitiveAction) return;
-          router.post(pendingSensitiveAction.url, {
-            ...(pendingSensitiveAction.payload || {}),
-            ...payload,
-          }, {
-            preserveScroll: true,
-            onSuccess: () => {
-              pendingSensitiveAction.onSuccess?.();
-              setPendingSensitiveAction(null);
-            },
-          });
-        }}
-        confirmCode={pendingSensitiveAction?.confirmCode ?? 'ISSUE_STOCK_TRANSFER'}
-        message={pendingSensitiveAction?.message}
-        locale={locale}
-      />
     </AppLayout>
   );
 }

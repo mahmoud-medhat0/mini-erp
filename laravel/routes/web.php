@@ -571,6 +571,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 4 Slice 8 Inventory Costing Routes
     Route::get('/inventory/stock-balances', [StockBalanceController::class, 'index'])->middleware('can:inventory.view')->name('stock-balances.index');
+    Route::get('/inventory/stock-balances/data', [StockBalanceController::class, 'datatable'])->middleware('can:inventory.view')->name('stock-balances.datatable');
     Route::get('/inventory/warehouses', [WarehouseController::class, 'index'])->middleware('can:inventory.view')->name('warehouses.index');
     Route::get('/inventory/warehouses/data', [WarehouseController::class, 'datatable'])->middleware('can:inventory.view')->name('warehouses.datatable');
     Route::post('/inventory/warehouses', [WarehouseController::class, 'store'])->middleware('can:inventory.create')->name('warehouses.store');
@@ -579,6 +580,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/inventory/locations', [StockLocationController::class, 'store'])->middleware('can:inventory.create')->name('stock-locations.store');
     Route::put('/inventory/locations/{id}', [StockLocationController::class, 'update'])->middleware('can:inventory.edit')->name('stock-locations.update');
     Route::get('/inventory/transfers', [StockTransferController::class, 'index'])->middleware('can:inventory.view')->name('stock-transfers.index');
+    Route::get('/inventory/transfers/data', [StockTransferController::class, 'datatable'])->middleware('can:inventory.view')->name('stock-transfers.datatable');
     Route::post('/inventory/transfers', [StockTransferController::class, 'store'])->middleware('can:inventory.transfer')->name('stock-transfers.store');
     Route::put('/inventory/transfers/{id}', [StockTransferController::class, 'update'])->middleware('can:inventory.transfer')->name('stock-transfers.update');
     Route::post('/inventory/transfers/{id}/submit', [StockTransferController::class, 'submit'])->middleware('can:inventory.transfer')->name('stock-transfers.submit');

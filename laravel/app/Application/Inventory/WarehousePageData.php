@@ -68,20 +68,8 @@ class WarehousePageData
                 });
             })
             ->editColumn('name', fn ($row) => $this->translatableName($row->name))
-            ->addColumn('branch_name', fn ($row) => $row->branch ? [
-                'id' => $row->branch->id,
-                'code' => $row->branch->code,
-                'name' => $this->translatableName($row->branch->name),
-            ] : null)
-            ->addColumn('locations_list', fn ($row) => $row->locations ? $row->locations->map(fn ($loc) => [
-                'id' => $loc->id,
-                'warehouse_id' => $loc->warehouse_id,
-                'code' => $loc->code,
-                'name' => $this->translatableName($loc->name),
-                'location_type' => $loc->location_type,
-                'is_active' => $loc->is_active,
-                'lock_version' => $loc->lock_version,
-            ])->toArray() : [])
+            ->addColumn('branch_name', fn ($row) => $row->branch?->code ?? '')
+            ->addColumn('locations_list', fn ($row) => (string) ($row->locations?->count() ?? 0))
             ->addColumn('actions', fn ($row) => '')
             ->rawColumns(['actions'])
             ->toJson();

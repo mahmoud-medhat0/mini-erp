@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Inventory\StockTransferPageData;
 use App\Application\Inventory\StockTransferService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class StockTransferController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Inventory/StockTransfers', $this->pageData->indexData($request->only(['search', 'status', 'warehouse_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['search', 'status', 'warehouse_id']));
     }
 
     public function store(Request $request): RedirectResponse

@@ -315,14 +315,14 @@ export default function WarehousesIndex({
     code: (_d: any, _type: any, row: any) => (
       <div className="flex min-w-48 flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-extrabold text-blue-600">{row.code}</span>
-          {row.is_default ? <StatusBadge tone="info">{pageDict.default}</StatusBadge> : null}
+          <span className="font-mono text-xs font-extrabold text-blue-600">{row?.code}</span>
+          {row?.is_default ? <StatusBadge tone="info">{pageDict.default}</StatusBadge> : null}
         </div>
-        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(row.name, locale)}</span>
+        <span className="text-xs text-[var(--text-secondary)]">{getLocalizedName(row?.name, locale)}</span>
       </div>
     ),
-    branch_name: (d: any, _type: any, row: any) => {
-      const branch = d || row.branch_name || row.branch;
+    branch_name: (_d: any, _type: any, row: any) => {
+      const branch = row?.branch;
       return branch ? (
         <StatusBadge tone="info">
           {branch.code} - {getLocalizedName(branch.name, locale)}
@@ -344,8 +344,8 @@ export default function WarehousesIndex({
         </StatusBadge>
       );
     },
-    locations_list: (d: any, _type: any, row: any) => {
-      const locs: StockLocation[] = d || row?.locations_list || row?.locations || [];
+    locations_list: (_d: any, _type: any, row: any) => {
+      const locs: StockLocation[] = row?.locations || [];
       return locs.length > 0 ? (
         <div className="flex min-w-56 flex-wrap gap-1.5">
           {locs.map((location) => (

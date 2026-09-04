@@ -5,9 +5,10 @@ namespace App\Application\Inventory;
 use App\Models\Product;
 use App\Models\StockTransfer;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class StockTransferPageData
 {
@@ -18,7 +19,7 @@ class StockTransferPageData
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     transfers: LengthAwarePaginator,
+     *     transfers: array,
      *     warehouses: Collection<int, Warehouse>,
      *     products: Collection<int, Product>,
      *     statuses: array<int, string>,
@@ -34,7 +35,7 @@ class StockTransferPageData
         ];
 
         return [
-            'transfers' => $this->transfers($normalizedFilters),
+            'transfers' => [],
             'warehouses' => $this->inventoryPageOptions->activeWarehouses(),
             'products' => $this->inventoryPageOptions->stockProducts(),
             'statuses' => StockTransferService::ALLOWED_STATUSES,
@@ -43,32 +44,41 @@ class StockTransferPageData
     }
 
     /**
-     * @param  array{search: mixed, status: mixed, warehouse_id: mixed}  $filters
+     * Server-side DataTables feed for stock transfers grid.
+     *
+     * @param  array<string, mixed>  $filters
      */
-    private function transfers(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        return StockTransfer::query()
+        $status = (string) ($filters['status'] ?? '');
+        $warehouseId = (string) ($filters['warehouse_id'] ?? '');
+
+        $query = StockTransfer::query()
             ->with(['sourceWarehouse.branch', 'destinationWarehouse.branch', 'lines.product', 'lines.unitOfMeasure', 'receipts.lines'])
-            ->when($filters['search'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $inner) use ($filters): void {
-                    $inner->where('number', 'like', "%{$filters['search']}%")
-                        ->orWhere('reference', 'like', "%{$filters['search']}%")
-                        ->orWhere('reason', 'like', "%{$filters['search']}%");
+            ->when($status && in_array($status, StockTransferService::ALLOWED_STATUSES, true), fn ($q) => $q->where('stock_transfer.status', $status))
+            ->when($warehouseId, function (Builder $query) use ($warehouseId): void {
+                $query->where(function (Builder $inner) use ($warehouseId): void {
+                    $inner->where('stock_transfer.source_warehouse_id', $warehouseId)
+                        ->orWhere('stock_transfer.destination_warehouse_id', $warehouseId);
                 });
             })
-            ->when(
-                $filters['status'] && in_array($filters['status'], StockTransferService::ALLOWED_STATUSES, true),
-                fn (Builder $query) => $query->where('status', $filters['status'])
-            )
-            ->when($filters['warehouse_id'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $inner) use ($filters): void {
-                    $inner->where('source_warehouse_id', $filters['warehouse_id'])
-                        ->orWhere('destination_warehouse_id', $filters['warehouse_id']);
+            ->orderBy('stock_transfer.transfer_date', 'desc')
+            ->orderBy('stock_transfer.created_at', 'desc');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function ($q, $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $q->where(function ($inner) use ($keyword, $needle): void {
+                    $inner->where('stock_transfer.number', 'like', "%{$keyword}%")
+                        ->orWhere('stock_transfer.reference', 'like', "%{$keyword}%")
+                        ->orWhere('stock_transfer.reason', 'like', "%{$keyword}%");
                 });
             })
-            ->orderBy('transfer_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+            ->addColumn('source_warehouse_name', fn ($row) => $row->sourceWarehouse?->code ?? '')
+            ->addColumn('destination_warehouse_name', fn ($row) => $row->destinationWarehouse?->code ?? '')
+            ->addColumn('lines_data', fn ($row) => (string) ($row->lines?->count() ?? 0))
+            ->addColumn('actions', fn ($row) => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 }
