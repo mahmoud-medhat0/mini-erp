@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+/*
+ * Without this, Tailwind v4's `dark:` variant defaults to the OS-level
+ * `prefers-color-scheme` media query, which fights the app's own
+ * `data-theme` attribute (set by the theme toggle / user preference in
+ * app.tsx and AppLayout.tsx). That mismatch is what makes pages using
+ * `dark:` utility classes appear to switch to dark mode on their own,
+ * independent of what the user actually picked in the app.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../views/**/*.blade.php';
