@@ -47,6 +47,10 @@
     },
     "language": {
       "en": "EN",
+      "ar": "AR"
+    },
+    "languageName": {
+      "en": "English",
       "ar": "العربية"
     },
     "select": {

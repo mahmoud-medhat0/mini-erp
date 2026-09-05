@@ -103,8 +103,8 @@ function UserFormModal({
 }) {
   const roleOptions = roles.map((r) => ({ value: String(r.id), label: r.name }));
   const languageOptions = [
-    { value: 'en', label: dict.common.language.en },
-    { value: 'ar', label: dict.common.language.ar },
+    { value: 'en', label: dict.common.languageName.en },
+    { value: 'ar', label: dict.common.languageName.ar },
   ];
 
   const initialRoleId = user?.roles[0]?.id ? String(user.roles[0].id) : (roleOptions[0]?.value ?? '');

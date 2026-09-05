@@ -47,7 +47,11 @@
     },
     "language": {
       "en": "EN",
-      "ar": "Arabic"
+      "ar": "AR"
+    },
+    "languageName": {
+      "en": "English",
+      "ar": "العربية"
     },
     "select": {
       "placeholder": "Select an option...",
