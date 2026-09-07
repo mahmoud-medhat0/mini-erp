@@ -1488,12 +1488,19 @@
         }
 
         .ai-widget-trigger {
-            width: 56px;
-            height: 56px;
-            font-size: 1.65rem;
-            border: 3px solid rgba(255, 255, 255, 0.92);
+            width: 52px;
+            height: 52px;
+            font-size: 1rem;
+            line-height: 1;
+            border: 2px solid rgba(255, 255, 255, 0.92);
             box-shadow: 0 12px 28px rgba(37, 99, 235, 0.28);
             transition: transform 0.22s ease, opacity 0.18s ease, box-shadow 0.22s ease;
+        }
+
+        .ai-widget-trigger > .ai-icon {
+            width: 26px;
+            height: 26px;
+            stroke-width: 2;
         }
 
         .ai-widget-trigger:hover {
@@ -1508,10 +1515,10 @@
         }
 
         .ai-widget-trigger .ai-badge-dot {
-            width: 11px;
-            height: 11px;
-            top: 1px;
-            right: 1px;
+            width: 10px;
+            height: 10px;
+            top: 0;
+            right: 0;
             border-color: var(--ai-bg);
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
         }
@@ -1796,9 +1803,13 @@
 
         @media (max-width: 640px) {
             .ai-widget-trigger {
-                width: 54px;
-                height: 54px;
-                font-size: 1.55rem;
+                width: 50px;
+                height: 50px;
+            }
+
+            .ai-widget-trigger > .ai-icon {
+                width: 25px;
+                height: 25px;
             }
 
             .ai-widget-window {
