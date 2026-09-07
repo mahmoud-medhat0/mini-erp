@@ -30,7 +30,6 @@ type MiniErpAiConfig = {
   secondaryColor: string;
   accentColor: string;
   fontFamily: string;
-  icon: string;
   persistHistory: boolean;
   autoTour: boolean;
   enableVoice: boolean;
@@ -108,7 +107,6 @@ function cleanupWidget(preserveHistory = false): void {
     document.querySelectorAll('.ai-widget-wrapper').forEach((element) => element.remove());
     document.getElementById('ai-widget-styles')?.remove();
     document.getElementById('ai-widget-font')?.remove();
-    document.getElementById('ai-widget-fontawesome')?.remove();
     window.MiniErpAiWidgetLoaded = false;
     delete window.MiniErpAiConfig;
   }
@@ -168,12 +166,12 @@ function renderWidget(pageProps: AiWidgetPageProps): void {
     lang,
     title: lang === 'ar' ? 'مساعد Mini ERP' : 'Mini ERP Assistant',
     theme,
-    position: lang === 'ar' ? 'right' : 'left',
+    // Keep the assistant opposite the RTL/LTR navigation sidebar.
+    position: lang === 'ar' ? 'left' : 'right',
     primaryColor: '#2563EB',
     secondaryColor: '#1D4ED8',
     accentColor: '#4F46E5',
     fontFamily: "'Alexandria', 'Instrument Sans', system-ui, sans-serif",
-    icon: 'fa-solid fa-chart-line',
     persistHistory: false,
     autoTour: false,
     enableVoice: config.voiceEnabled === true,

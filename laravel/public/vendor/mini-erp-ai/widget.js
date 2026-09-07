@@ -48,8 +48,10 @@
     const i18n = {
         ar: {
             title: 'مساعد Mini ERP',
-            online: 'متصل · الدعم الفني',
-            welcome: 'أهلاً بك! 👋 أنا مساعد Mini ERP التوجيهي.<br>أشرح لك خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك، ويمكنك إرفاق مستند أو لقطة شاشة. 📷🎙️',
+            online: 'متصل · مساعد إرشادي',
+            footerNote: 'إرشادات <bdi dir="ltr">Mini ERP</bdi> بالذكاء الاصطناعي',
+            inputLabel: 'اكتب سؤالك للمساعد',
+            welcome: 'أهلًا بك، أنا مساعد <bdi dir="ltr">Mini ERP</bdi>.<br>أشرح لك خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك، ويمكنك استخدام الصوت أو إرفاق صورة.',
             listenMsg: 'استماع للرسالة',
             listenBtn: 'استماع',
             pauseBtn: 'إيقاف مؤقت',
@@ -58,11 +60,11 @@
             pauseMsg: 'إيقاف القراءة مؤقتاً',
             resumeMsg: 'استكمال قراءة الرسالة',
             faqTitle: 'أسئلة شائعة:',
-            faq1Title: '⚙️ التهيئة لأول مرة',
+            faq1Title: 'التهيئة لأول مرة',
             faq1Q: 'ما ترتيب التهيئة لأول مرة قبل التشغيل الفعلي؟',
-            faq2Title: '🧾 دورة البيع والتحصيل',
+            faq2Title: 'دورة البيع والتحصيل',
             faq2Q: 'كيف أنفذ دورة البيع من أمر البيع حتى القبض والتخصيص؟',
-            faq3Title: '🛒 دورة الشراء والسداد',
+            faq3Title: 'دورة الشراء والسداد',
             faq3Q: 'كيف أنفذ دورة الشراء من أمر الشراء حتى الدفع والتخصيص؟',
             imgAttachedInfo: '🖼️ تم إرفاق صورة (جاهزة للتحليل والقراءة)',
             placeholder: 'اكتب سؤالك، تحدث، أو ارفق صورة...',
@@ -80,7 +82,7 @@
             voiceListening: 'المساعد جاهز للاستماع إلى سؤالك الصوتي بالنظام...',
             listeningNow: '🎙️ جاري الاستماع... يمكنك التحدث الآن',
             listeningSub: 'الميكروفون مفتوح ويستمع لسؤالك...',
-            welcomeBack: 'أهلاً بك مجدداً! 👋 كيف يمكنني مساعدتك اليوم؟',
+            welcomeBack: 'أهلًا بك مجددًا. كيف يمكنني مساعدتك اليوم؟',
             errServer: 'عذراً، حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى.',
             browserNotSupported: 'خاصية التعرف الصوتي غير مدعومة مباشرة في متصفحك. يرجى استخدام متصفح Chrome أو Edge.',
             tourHelpTitle: 'الجولة التعليمية (كيفية الاستخدام)',
@@ -91,9 +93,9 @@
             tourStepOf: 'من',
             tourSteps: [
                 {
-                    targetId: 'aiWidgetTrigger',
-                    title: 'مساعد Mini ERP 📊',
-                    desc: 'اضغط على هذا الزر العائم في أي وقت لفتح أو إغلاق نافذة المحادثة المباشرة.'
+                    targetId: 'aiWidgetTitle',
+                    title: 'مساعد Mini ERP',
+                    desc: 'هذه نافذة مساعد Mini ERP التي تظل متاحة أثناء استخدام النظام.'
                 },
                 {
                     targetId: 'aiWidgetVoiceModeBtn',
@@ -114,8 +116,10 @@
         },
         en: {
             title: 'Mini ERP Assistant',
-            online: 'Online · Technical Support',
-            welcome: 'Welcome! 👋 I am your Mini ERP guidance assistant.<br>I can explain Accounting, Sales, Purchasing, Inventory, and Reports based on your permissions. You may also attach a document or screenshot. 📷🎙️',
+            online: 'Online · System guide',
+            footerNote: 'Mini ERP · AI-guided help',
+            inputLabel: 'Ask the assistant a question',
+            welcome: 'Welcome, I am your Mini ERP assistant.<br>I can explain Accounting, Sales, Purchasing, Inventory, and Reports based on your permissions. You can use voice or attach an image.',
             listenMsg: 'Listen to message',
             listenBtn: 'Listen',
             pauseBtn: 'Pause',
@@ -124,11 +128,11 @@
             pauseMsg: 'Pause reading',
             resumeMsg: 'Resume reading message',
             faqTitle: 'Frequently Asked Questions:',
-            faq1Title: '⚙️ First-time setup',
+            faq1Title: 'First-time setup',
             faq1Q: 'What is the correct first-time setup order before go-live?',
-            faq2Title: '🧾 Sales and collection cycle',
+            faq2Title: 'Sales and collection cycle',
             faq2Q: 'How do I complete the sales cycle through receipt allocation?',
-            faq3Title: '🛒 Purchasing and payment cycle',
+            faq3Title: 'Purchasing and payment cycle',
             faq3Q: 'How do I complete the purchasing cycle through payment allocation?',
             imgAttachedInfo: '🖼️ Image attached (ready for vision analysis)',
             placeholder: 'Type your question, speak, or attach image...',
@@ -146,7 +150,7 @@
             voiceListening: 'Assistant is ready and listening to your voice request...',
             listeningNow: '🎙️ Listening now... speak your question',
             listeningSub: 'Microphone is active and listening...',
-            welcomeBack: 'Welcome back! 👋 How can I assist you today?',
+            welcomeBack: 'Welcome back. How can I assist you today?',
             errServer: 'Sorry, a server error occurred. Please try again.',
             browserNotSupported: 'Speech recognition is not supported in your current browser. Please use Chrome or Edge.',
             tourHelpTitle: 'Usage Tour Guide',
@@ -157,9 +161,9 @@
             tourStepOf: 'of',
             tourSteps: [
                 {
-                    targetId: 'aiWidgetTrigger',
-                    title: 'Mini ERP Assistant 📊',
-                    desc: 'Click this floating button anytime to open or close your AI chat assistant.'
+                    targetId: 'aiWidgetTitle',
+                    title: 'Mini ERP Assistant',
+                    desc: 'This Mini ERP assistant stays available while you use the system.'
                 },
                 {
                     targetId: 'aiWidgetVoiceModeBtn',
@@ -183,24 +187,58 @@
     const t = i18n[isEnglish ? 'en' : 'ar'];
     if (!ENABLE_VOICE && ENABLE_VISION) {
         t.welcome = isEnglish
-            ? 'Welcome! 👋 I am your Mini ERP guide. I explain accounting, sales, purchasing, inventory, and reporting workflows based on your access, and you can attach a document or screenshot. 📷'
-            : 'أهلاً بك! 👋 أنا مساعد Mini ERP التوجيهي. أشرح لك خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك، ويمكنك إرفاق مستند أو لقطة شاشة. 📷';
+            ? 'Welcome, I am your Mini ERP guide. I explain accounting, sales, purchasing, inventory, and reporting workflows based on your access, and you can attach a document or screenshot.'
+            : 'أهلًا بك، أنا مساعد <bdi dir="ltr">Mini ERP</bdi>. أشرح لك خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك، ويمكنك إرفاق مستند أو لقطة شاشة.';
         t.placeholder = isEnglish
             ? 'Type your question or attach an image...'
             : 'اكتب سؤالك أو أرفق صورة...';
     } else if (ENABLE_VOICE && !ENABLE_VISION) {
         t.welcome = isEnglish
-            ? 'Welcome! 👋 I am your Mini ERP guide. I explain accounting, sales, purchasing, inventory, and reporting workflows based on your access, and you can use voice input. 🎙️'
-            : 'أهلاً بك! 👋 أنا مساعد Mini ERP التوجيهي. أشرح لك خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك، ويمكنك استخدام الإدخال الصوتي. 🎙️';
+            ? 'Welcome, I am your Mini ERP guide. I explain accounting, sales, purchasing, inventory, and reporting workflows based on your access, and you can use voice input.'
+            : 'أهلًا بك، أنا مساعد <bdi dir="ltr">Mini ERP</bdi>. أشرح لك خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك، ويمكنك استخدام الإدخال الصوتي.';
         t.placeholder = isEnglish
             ? 'Type or speak your question...'
             : 'اكتب سؤالك أو تحدث...';
     } else if (!ENABLE_VOICE && !ENABLE_VISION) {
         t.welcome = isEnglish
-            ? 'Welcome! 👋 I am your Mini ERP guide for accounting, sales, purchasing, inventory, and reporting workflows based on your access.'
-            : 'أهلاً بك! 👋 أنا مساعد Mini ERP التوجيهي لشرح خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك.';
+            ? 'Welcome, I am your Mini ERP guide for accounting, sales, purchasing, inventory, and reporting workflows based on your access.'
+            : 'أهلًا بك، أنا مساعد <bdi dir="ltr">Mini ERP</bdi> لشرح خطوات المحاسبة والمبيعات والمشتريات والمخزون والتقارير حسب صلاحياتك.';
         t.placeholder = isEnglish ? 'Type your question...' : 'اكتب سؤالك...';
     }
+    const WIDGET_ICONS = Object.freeze({
+        assistant: '<rect x="4" y="6.5" width="16" height="13" rx="4"/><path d="M9 3.5h6M12 3.5v3M4 12H2.5v3H4M20 12h1.5v3H20"/><circle cx="9" cy="12.5" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r="1" fill="currentColor" stroke="none"/><path d="M9 16h6"/>',
+        help: '<circle cx="12" cy="12" r="9"/><path d="M9.8 9a2.4 2.4 0 1 1 3.6 2.1c-.9.5-1.4 1-1.4 2.1"/><path d="M12 17h.01"/>',
+        mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/>',
+        micOff: '<path d="m4 4 16 16"/><path d="M9 9v2.5a3 3 0 0 0 5.2 2M15 10V6a3 3 0 0 0-5.6-1.5M6 11.5a6 6 0 0 0 9.5 4.9M18 11.5a6 6 0 0 1-.4 2.1M12 18v3M9 21h6"/>',
+        trash: '<path d="M4 7h16M9 7V4h6v3M6.5 7l.8 13h9.4l.8-13M10 11v5M14 11v5"/>',
+        close: '<path d="m6 6 12 12M18 6 6 18"/>',
+        volume: '<path d="M5 10v4h3l4 3V7l-4 3H5zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
+        volumeOff: '<path d="M5 10v4h3l4 3V7l-4 3H5zM16 10l5 5M21 10l-5 5"/>',
+        bulb: '<path d="M9 18h6M10 21h4"/><path d="M8.4 15.2A7 7 0 1 1 15.6 15.2c-.8.6-1.1 1.2-1.1 1.8h-5c0-.6-.3-1.2-1.1-1.8z"/>',
+        image: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.5"/><path d="m4 17 4.5-4.5 3 3 2-2 6.5 6.5"/>',
+        send: '<path d="m3 11 18-8-8 18-2.5-7.5L3 11zM10.5 13.5 21 3"/>',
+        wave: '<path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/>',
+        phoneOff: '<path d="m3 3 18 18M8.5 8.5 6.8 6.8c-.8-.8-2.1-.8-2.9 0L2.7 8c-.5.5-.7 1.2-.4 1.9 2.3 5.8 6.9 10.4 12.7 12.7.7.3 1.4.1 1.9-.4l1.2-1.2c.8-.8.8-2.1 0-2.9l-2.6-2.6c-.8-.8-2.1-.8-2.9 0l-.8.8"/>',
+        zoomIn: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6M7.5 10.5h6"/>',
+        zoomOut: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7.5 10.5h6"/>',
+        reset: '<path d="M4 8V3m0 0h5M4 3l3.2 3.2A8 8 0 1 1 4 12"/>',
+        play: '<path d="m9 6 9 6-9 6V6z"/>',
+        pause: '<path d="M9 6v12M15 6v12"/>',
+        user: '<circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>',
+        brain: '<path d="M9.5 4.5A3.5 3.5 0 0 0 6 8v.3A3.5 3.5 0 0 0 4 14.7 3.5 3.5 0 0 0 9.5 19M14.5 4.5A3.5 3.5 0 0 1 18 8v.3a3.5 3.5 0 0 1 2 6.4 3.5 3.5 0 0 1-5.5 4.3M9.5 4.5V19M14.5 4.5V19M9.5 9H7M14.5 9H17M9.5 14H7M14.5 14H17"/>',
+        gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/>',
+        receipt: '<path d="M6 3h12v18l-2-1.5L14 21l-2-1.5L10 21l-2-1.5L6 21V3zM9 8h6M9 12h6M9 16h4"/>',
+        cart: '<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.4 10.2a2 2 0 0 0 2 1.5h7.9a2 2 0 0 0 2-1.6L21 7H6"/>',
+        chevron: '<path d="m9 6 6 6-6 6"/>'
+    });
+
+    function widgetIcon(name, extraClass = '') {
+        const safeClass = String(extraClass || '').replace(/[^a-zA-Z0-9 _-]/g, '').trim();
+        const classes = 'ai-icon' + (safeClass ? ' ' + safeClass : '');
+        const body = WIDGET_ICONS[name] || WIDGET_ICONS.assistant;
+        return '<svg class="' + classes + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + body + '</svg>';
+    }
+
     const WIDGET_TITLE = cfg.title || currentScript.getAttribute('data-title') || t.title;
     const POSITION = (cfg.position || currentScript.getAttribute('data-position') || 'right').toLowerCase(); // 'right' or 'left'
     const THEME = (cfg.theme || currentScript.getAttribute('data-theme') || 'light').toLowerCase(); // 'dark' or 'light'
@@ -217,18 +255,16 @@
     const TEXT_COLOR = cfg.textColor || currentScript.getAttribute('data-text-color') || (isLight ? '#0F172A' : '#F8FAFC');
     const TEXT_MUTED = cfg.textMuted || currentScript.getAttribute('data-text-muted') || (isLight ? '#64748B' : '#94A3B8');
     const BORDER_COLOR = cfg.borderColor || currentScript.getAttribute('data-border-color') || (isLight ? 'rgba(226, 232, 240, 0.9)' : 'rgba(99, 102, 241, 0.3)');
-    const RADIUS = cfg.radius || currentScript.getAttribute('data-radius') || '24px';
-    const WIDTH = cfg.width || currentScript.getAttribute('data-width') || '395px';
-    const HEIGHT = cfg.height || currentScript.getAttribute('data-height') || '600px';
-    const BOTTOM_OFFSET = cfg.bottom || currentScript.getAttribute('data-bottom') || '24px';
-    const SIDE_OFFSET = cfg.side || currentScript.getAttribute('data-side') || currentScript.getAttribute('data-side-offset') || '24px';
+    const RADIUS = cfg.radius || currentScript.getAttribute('data-radius') || '20px';
+    const WIDTH = cfg.width || currentScript.getAttribute('data-width') || '390px';
+    const HEIGHT = cfg.height || currentScript.getAttribute('data-height') || '580px';
+    const BOTTOM_OFFSET = cfg.bottom || currentScript.getAttribute('data-bottom') || '20px';
+    const SIDE_OFFSET = cfg.side || currentScript.getAttribute('data-side') || currentScript.getAttribute('data-side-offset') || '20px';
     const Z_INDEX = cfg.zIndex || currentScript.getAttribute('data-z-index') || '999990';
     const FONT_FAMILY = cfg.fontFamily || currentScript.getAttribute('data-font-family') || currentScript.getAttribute('data-font') || "'Alexandria', 'Instrument Sans', system-ui, -apple-system, sans-serif";
-    const TRIGGER_ICON = cfg.icon || currentScript.getAttribute('data-icon') || currentScript.getAttribute('data-trigger-icon') || 'fa-solid fa-chart-line';
 
-    // Inject Google Fonts & FontAwesome if missing
+    // Inject Google Fonts if missing
     let injectedFontLink = null;
-    let injectedFontAwesomeLink = null;
     if (!document.getElementById('ai-widget-font')) {
         const fontLink = document.createElement('link');
         fontLink.id = 'ai-widget-font';
@@ -236,15 +272,6 @@
         fontLink.href = 'https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap';
         document.head.appendChild(fontLink);
         injectedFontLink = fontLink;
-    }
-
-    if (!document.getElementById('ai-widget-fontawesome')) {
-        const faLink = document.createElement('link');
-        faLink.id = 'ai-widget-fontawesome';
-        faLink.rel = 'stylesheet';
-        faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
-        document.head.appendChild(faLink);
-        injectedFontAwesomeLink = faLink;
     }
 
     // Inject Widget Styles
@@ -276,23 +303,6 @@
             padding: 0;
             font-family: var(--ai-font, 'Alexandria', 'Instrument Sans', system-ui, sans-serif);
             direction: ${DIR};
-        }
-
-        .ai-widget-wrapper i,
-        .ai-widget-wrapper i[class*="fa-"],
-        .ai-widget-wrapper .fa,
-        .ai-widget-wrapper .fas,
-        .ai-widget-wrapper .far,
-        .ai-widget-wrapper .fa-solid,
-        .ai-widget-wrapper .fa-regular {
-            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
-            font-weight: 900 !important;
-            font-style: normal !important;
-            display: inline-block;
-        }
-
-        .ai-widget-wrapper i.fa-regular {
-            font-weight: 400 !important;
         }
 
         /* Floating Trigger Button */
@@ -1451,6 +1461,427 @@
             transform: scale(1.02);
             filter: brightness(1.05);
         }
+
+        /* Mini ERP visual system */
+        .ai-widget-wrapper {
+            text-align: start;
+            isolation: isolate;
+            color-scheme: light dark;
+        }
+
+        .ai-widget-wrapper [hidden] {
+            display: none !important;
+        }
+
+        .ai-widget-wrapper button,
+        .ai-widget-wrapper input {
+            font: inherit;
+        }
+
+        .ai-widget-wrapper .ai-icon {
+            width: 1em;
+            height: 1em;
+            display: block;
+            flex: 0 0 auto;
+            direction: ltr;
+            overflow: visible;
+        }
+
+        .ai-widget-trigger {
+            width: 56px;
+            height: 56px;
+            font-size: 1.65rem;
+            border: 3px solid rgba(255, 255, 255, 0.92);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.28);
+            transition: transform 0.22s ease, opacity 0.18s ease, box-shadow 0.22s ease;
+        }
+
+        .ai-widget-trigger:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 16px 34px rgba(37, 99, 235, 0.34);
+        }
+
+        .ai-widget-trigger[aria-expanded="true"] {
+            opacity: 0;
+            transform: translateY(8px) scale(0.82);
+            pointer-events: none;
+        }
+
+        .ai-widget-trigger .ai-badge-dot {
+            width: 11px;
+            height: 11px;
+            top: 1px;
+            right: 1px;
+            border-color: var(--ai-bg);
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+        }
+
+        .ai-widget-window {
+            bottom: var(--ai-bottom, 20px);
+            max-height: calc(100dvh - 40px);
+            border-radius: var(--ai-radius, 20px);
+            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2), 0 8px 24px rgba(37, 99, 235, 0.08);
+            overscroll-behavior: contain;
+        }
+
+        .ai-widget-header {
+            padding: 0.85rem 1rem;
+            background: var(--ai-bg);
+            gap: 0.65rem;
+        }
+
+        .ai-widget-header .ai-brand {
+            gap: 0.65rem;
+        }
+
+        .ai-widget-header .ai-brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            font-size: 1.35rem;
+            box-shadow: 0 7px 18px rgba(37, 99, 235, 0.22);
+        }
+
+        .ai-widget-header .ai-brand-title h4 {
+            display: flex;
+            align-items: baseline;
+            gap: 0.28rem;
+            font-size: 0.9rem;
+            line-height: 1.35;
+            font-weight: 700;
+            text-align: start;
+        }
+
+        .ai-widget-header .ai-brand-title h4 bdi {
+            direction: ltr;
+            unicode-bidi: isolate;
+        }
+
+        .ai-widget-header .ai-brand-title p {
+            margin-top: 0.12rem;
+            font-size: 0.68rem;
+            line-height: 1.4;
+        }
+
+        .ai-widget-header .ai-actions {
+            gap: 0.15rem;
+        }
+
+        .ai-widget-header .ai-action-btn {
+            width: 36px;
+            height: 36px;
+            color: var(--ai-text-muted);
+            font-size: 1rem;
+            border-radius: 10px;
+        }
+
+        .ai-widget-header .ai-action-btn:hover {
+            color: var(--ai-primary);
+            background: color-mix(in srgb, var(--ai-primary) 10%, transparent);
+        }
+
+        .ai-widget-wrapper button:focus-visible {
+            outline: 3px solid color-mix(in srgb, var(--ai-primary) 30%, transparent);
+            outline-offset: 2px;
+        }
+
+        .ai-widget-wrapper .ai-widget-input:focus-visible {
+            outline: none;
+        }
+
+        .ai-widget-body {
+            padding: 0.9rem;
+            gap: 0.75rem;
+            background: var(--ai-bg);
+        }
+
+        .ai-widget-body::-webkit-scrollbar-thumb {
+            background: color-mix(in srgb, var(--ai-text-muted) 38%, transparent);
+        }
+
+        .ai-widget-msg {
+            max-width: 92%;
+            gap: 0.5rem;
+        }
+
+        .ai-widget-msg.assistant {
+            align-self: flex-start;
+            flex-direction: row;
+        }
+
+        .ai-widget-msg.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .ai-widget-msg .ai-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+
+        .ai-widget-msg .ai-bubble {
+            padding: 0.72rem 0.85rem;
+            border-radius: 14px;
+            color: var(--ai-text);
+            font-size: 0.84rem;
+            font-weight: 400;
+            line-height: 1.75;
+            text-align: start;
+            unicode-bidi: plaintext;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        .ai-widget-msg.assistant .ai-bubble {
+            color: var(--ai-text);
+            background: var(--ai-card-bg);
+            border: 1px solid var(--ai-border);
+            border-radius: 14px;
+            border-end-start-radius: 4px;
+        }
+
+        .ai-widget-msg.user .ai-bubble {
+            color: #FFFFFF;
+            border-radius: 14px;
+            border-end-end-radius: 4px;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+        }
+
+        .ai-msg-speak-btn {
+            align-self: flex-start;
+            color: var(--ai-text-muted);
+            font-size: 0.72rem;
+            min-height: 28px;
+            padding: 0.2rem 0.45rem;
+        }
+
+        .ai-widget-suggestions {
+            margin-top: 0.25rem;
+            padding-top: 0.2rem;
+        }
+
+        .ai-widget-suggestions-title {
+            color: var(--ai-text-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .ai-widget-suggestion-card {
+            width: 100%;
+            min-height: 44px;
+            margin-bottom: 0.45rem;
+            padding: 0.62rem 0.7rem;
+            border-radius: 12px;
+            border: 1px solid var(--ai-border);
+            background: var(--ai-card-bg);
+            color: var(--ai-text);
+            font-size: 0.78rem;
+            font-weight: 500;
+            line-height: 1.45;
+            text-align: start;
+            appearance: none;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .ai-widget-suggestion-card:hover {
+            color: var(--ai-primary);
+            background: color-mix(in srgb, var(--ai-primary) 8%, var(--ai-bg));
+            border-color: color-mix(in srgb, var(--ai-primary) 32%, var(--ai-border));
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(37, 99, 235, 0.1);
+        }
+
+        .ai-widget-suggestion-card .ai-suggestion-icon {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: var(--ai-primary);
+            background: color-mix(in srgb, var(--ai-primary) 10%, transparent);
+            font-size: 0.9rem;
+            flex: 0 0 auto;
+        }
+
+        .ai-widget-suggestion-card .ai-suggestion-label {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ai-widget-suggestion-card .ai-suggestion-chevron {
+            color: var(--ai-text-muted);
+            font-size: 0.8rem;
+            transition: transform 0.18s ease, color 0.18s ease;
+        }
+
+        .ai-widget-wrapper[dir="rtl"] .ai-suggestion-chevron {
+            transform: rotate(180deg);
+        }
+
+        .ai-widget-footer {
+            padding: 0.72rem 0.85rem 0.62rem;
+            background: var(--ai-header-bg);
+            border-top: 1px solid var(--ai-border);
+        }
+
+        .ai-widget-input-wrapper {
+            min-height: 48px;
+            gap: 0.25rem;
+            padding: 0.25rem 0.3rem;
+            border-radius: 14px;
+            background: var(--ai-bg);
+            border: 1px solid var(--ai-border);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .ai-widget-input-wrapper:focus-within {
+            border-color: var(--ai-primary);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ai-primary) 13%, transparent);
+        }
+
+        .ai-widget-input {
+            min-width: 0;
+            color: var(--ai-text);
+            font-size: 0.84rem;
+            font-weight: 400;
+            padding: 0.55rem 0.45rem;
+            text-align: start;
+            unicode-bidi: plaintext;
+        }
+
+        .ai-widget-input::placeholder {
+            color: var(--ai-text-muted);
+            opacity: 0.86;
+        }
+
+        .ai-widget-img-btn,
+        .ai-widget-mic-btn {
+            width: 36px;
+            height: 36px;
+            color: var(--ai-text-muted);
+            font-size: 1rem;
+            border-radius: 10px;
+            flex: 0 0 auto;
+        }
+
+        .ai-widget-send-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            font-size: 1rem;
+            flex: 0 0 auto;
+            box-shadow: 0 5px 12px rgba(37, 99, 235, 0.24);
+        }
+
+        .ai-widget-footer-note {
+            margin-top: 0.42rem;
+            color: var(--ai-text-muted);
+            font-size: 0.64rem;
+            font-weight: 400;
+            text-align: center;
+            direction: auto;
+        }
+
+        .ai-widget-img-preview-bar {
+            background: var(--ai-card-bg);
+            border-color: var(--ai-border);
+        }
+
+        .ai-widget-img-preview-info {
+            color: var(--ai-text);
+        }
+
+        @media (max-width: 640px) {
+            .ai-widget-trigger {
+                width: 54px;
+                height: 54px;
+                font-size: 1.55rem;
+            }
+
+            .ai-widget-window {
+                top: max(8px, env(safe-area-inset-top)) !important;
+                right: 8px !important;
+                bottom: max(8px, env(safe-area-inset-bottom)) !important;
+                left: 8px !important;
+                width: auto !important;
+                height: auto !important;
+                max-width: none !important;
+                max-height: none !important;
+                border: 1px solid var(--ai-border) !important;
+                border-radius: 20px !important;
+                box-shadow: 0 18px 55px rgba(15, 23, 42, 0.24) !important;
+            }
+
+            .ai-widget-header {
+                padding: 0.72rem 0.78rem;
+            }
+
+            .ai-widget-header .ai-action-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .ai-widget-body {
+                padding: 0.78rem;
+            }
+
+            .ai-widget-msg {
+                max-width: 96%;
+            }
+
+            .ai-widget-footer {
+                padding: 0.65rem 0.7rem max(0.65rem, env(safe-area-inset-bottom));
+            }
+
+            .ai-widget-input {
+                font-size: 16px;
+            }
+
+            .ai-widget-img-btn,
+            .ai-widget-mic-btn,
+            .ai-widget-send-btn {
+                width: 42px;
+                height: 42px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .ai-widget-header {
+                gap: 0.3rem;
+            }
+
+            .ai-widget-header .ai-brand {
+                gap: 0.45rem;
+            }
+
+            .ai-widget-header .ai-brand-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .ai-widget-header .ai-brand-title p {
+                display: none;
+            }
+
+            .ai-widget-header .ai-action-btn {
+                width: 36px;
+                height: 36px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ai-widget-wrapper *,
+            .ai-widget-wrapper *::before,
+            .ai-widget-wrapper *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     `;
 
     document.head.appendChild(style);
@@ -1458,60 +1889,82 @@
     // Create Main Widget DOM Structure
     const widgetWrapper = document.createElement('div');
     widgetWrapper.className = 'ai-widget-wrapper';
+    widgetWrapper.dir = DIR;
     widgetWrapper.innerHTML = `
         <!-- Hidden File Input for Image Upload -->
         <input type="file" id="aiWidgetFileInput" accept="image/png,image/jpeg,image/webp" style="display:none;">
 
         <!-- Floating Trigger Button -->
-        <button type="button" class="ai-widget-trigger" id="aiWidgetTrigger" title="${WIDGET_TITLE}">
-            <i class="${TRIGGER_ICON}"></i>
+        <button type="button" class="ai-widget-trigger" id="aiWidgetTrigger"
+                title="${escapeAttr(WIDGET_TITLE)}" aria-label="${escapeAttr(WIDGET_TITLE)}"
+                aria-controls="aiWidgetWindow" aria-expanded="false">
+            ${widgetIcon('assistant')}
             <span class="ai-badge-dot"></span>
         </button>
 
         <!-- Floating Chat Popup Window -->
-        <div class="ai-widget-window" id="aiWidgetWindow">
+        <div class="ai-widget-window" id="aiWidgetWindow" role="dialog" aria-modal="false"
+             aria-labelledby="aiWidgetTitle" aria-hidden="true" inert>
             <header class="ai-widget-header">
                 <div class="ai-brand">
-                    <div class="ai-brand-icon"><i class="${TRIGGER_ICON}"></i></div>
+                    <div class="ai-brand-icon">${widgetIcon('assistant')}</div>
                     <div class="ai-brand-title">
-                        <h4>${WIDGET_TITLE}</h4>
+                        <h4 id="aiWidgetTitle">${isEnglish
+                            ? '<bdi dir="ltr">Mini ERP</bdi><span>Assistant</span>'
+                            : '<span>مساعد</span><bdi dir="ltr">Mini ERP</bdi>'}</h4>
                         <p><span class="ai-status-dot"></span> ${t.online}</p>
                     </div>
                 </div>
                 <div class="ai-actions">
-                    <button type="button" class="ai-action-btn" id="aiWidgetTourBtn" title="${t.tourHelpTitle}">
-                        <i class="fa-regular fa-circle-question"></i>
+                    <button type="button" class="ai-action-btn" id="aiWidgetTourBtn"
+                            title="${t.tourHelpTitle}" aria-label="${t.tourHelpTitle}">
+                        ${widgetIcon('help')}
                     </button>
-                    <button type="button" class="ai-action-btn" id="aiWidgetVoiceModeBtn" title="${t.liveVoiceTitle}">
-                        <i class="fa-solid fa-microphone-lines"></i>
+                    <button type="button" class="ai-action-btn" id="aiWidgetVoiceModeBtn"
+                            title="${t.liveVoiceTitle}" aria-label="${t.liveVoiceTitle}">
+                        ${widgetIcon('mic')}
                     </button>
-                    <button type="button" class="ai-action-btn" id="aiWidgetClearBtn" title="${t.clearTitle}">
-                        <i class="fa-regular fa-trash-can"></i>
+                    <button type="button" class="ai-action-btn" id="aiWidgetClearBtn"
+                            title="${t.clearTitle}" aria-label="${t.clearTitle}">
+                        ${widgetIcon('trash')}
                     </button>
-                    <button type="button" class="ai-action-btn" id="aiWidgetCloseBtn" title="${t.closeTitle}">
-                        <i class="fa-solid fa-xmark"></i>
+                    <button type="button" class="ai-action-btn" id="aiWidgetCloseBtn"
+                            title="${t.closeTitle}" aria-label="${t.closeTitle}">
+                        ${widgetIcon('close')}
                     </button>
                 </div>
             </header>
 
-            <div class="ai-widget-body" id="aiWidgetBody">
+            <div class="ai-widget-body" id="aiWidgetBody" role="log" aria-live="polite" aria-relevant="additions">
                 <div class="ai-widget-msg assistant">
-                    <div class="ai-avatar"><i class="fa-solid fa-robot"></i></div>
+                    <div class="ai-avatar">${widgetIcon('assistant')}</div>
                     <div class="ai-bubble-container">
-                        <div class="ai-bubble">
+                        <div class="ai-bubble" dir="auto">
                             ${t.welcome}
                         </div>
                         <button type="button" class="ai-msg-speak-btn" title="${t.listenMsg}">
-                            <i class="fa-solid fa-volume-high"></i> ${t.listenBtn}
+                            ${widgetIcon('volume')} ${t.listenBtn}
                         </button>
                     </div>
                 </div>
 
                 <div class="ai-widget-suggestions" id="aiWidgetSuggestions">
-                    <div class="ai-widget-suggestions-title"><i class="fa-regular fa-lightbulb"></i> ${t.faqTitle}</div>
-                    <div class="ai-widget-suggestion-card" data-q="${t.faq1Q}">${t.faq1Title}</div>
-                    <div class="ai-widget-suggestion-card" data-q="${t.faq2Q}">${t.faq2Title}</div>
-                    <div class="ai-widget-suggestion-card" data-q="${t.faq3Q}">${t.faq3Title}</div>
+                    <div class="ai-widget-suggestions-title">${widgetIcon('bulb')} ${t.faqTitle}</div>
+                    <button type="button" class="ai-widget-suggestion-card" data-q="${t.faq1Q}">
+                        <span class="ai-suggestion-icon">${widgetIcon('gear')}</span>
+                        <span class="ai-suggestion-label">${t.faq1Title}</span>
+                        ${widgetIcon('chevron', 'ai-suggestion-chevron')}
+                    </button>
+                    <button type="button" class="ai-widget-suggestion-card" data-q="${t.faq2Q}">
+                        <span class="ai-suggestion-icon">${widgetIcon('receipt')}</span>
+                        <span class="ai-suggestion-label">${t.faq2Title}</span>
+                        ${widgetIcon('chevron', 'ai-suggestion-chevron')}
+                    </button>
+                    <button type="button" class="ai-widget-suggestion-card" data-q="${t.faq3Q}">
+                        <span class="ai-suggestion-icon">${widgetIcon('cart')}</span>
+                        <span class="ai-suggestion-label">${t.faq3Title}</span>
+                        ${widgetIcon('chevron', 'ai-suggestion-chevron')}
+                    </button>
                 </div>
             </div>
 
@@ -1520,8 +1973,9 @@
                 <div class="ai-widget-img-preview-bar" id="aiWidgetImgPreviewBar" style="display:none;">
                     <div class="ai-widget-img-preview-thumb">
                         <img id="aiWidgetImgPreviewImg" src="" alt="Image attached">
-                        <button type="button" class="ai-widget-img-remove-btn" id="aiWidgetImgRemoveBtn" title="${t.closeTitle}">
-                            <i class="fa-solid fa-xmark"></i>
+                        <button type="button" class="ai-widget-img-remove-btn" id="aiWidgetImgRemoveBtn"
+                                title="${t.closeTitle}" aria-label="${t.closeTitle}">
+                            ${widgetIcon('close')}
                         </button>
                     </div>
                     <div class="ai-widget-img-preview-info">
@@ -1531,31 +1985,34 @@
 
                 <form id="aiWidgetForm">
                     <div class="ai-widget-input-wrapper">
-                        <input type="text" id="aiWidgetInput" class="ai-widget-input" placeholder="${t.placeholder}" autocomplete="off" maxlength="4000">
-                        <button type="button" id="aiWidgetImgBtn" class="ai-widget-img-btn" title="${t.attachImgTitle}">
-                            <i class="fa-solid fa-image"></i>
+                        <input type="text" id="aiWidgetInput" class="ai-widget-input" placeholder="${t.placeholder}"
+                               aria-label="${t.inputLabel}" dir="auto" autocomplete="off" maxlength="4000">
+                        <button type="button" id="aiWidgetImgBtn" class="ai-widget-img-btn"
+                                title="${t.attachImgTitle}" aria-label="${t.attachImgTitle}">
+                            ${widgetIcon('image')}
                         </button>
-                        <button type="button" id="aiWidgetMicBtn" class="ai-widget-mic-btn" title="${t.voiceTitle}">
-                            <i class="fa-solid fa-microphone"></i>
+                        <button type="button" id="aiWidgetMicBtn" class="ai-widget-mic-btn"
+                                title="${t.voiceTitle}" aria-label="${t.voiceTitle}">
+                            ${widgetIcon('mic')}
                         </button>
-                        <button type="submit" id="aiWidgetSendBtn" class="ai-widget-send-btn" title="${t.sendTitle}">
-                            <i class="fa-solid fa-paper-plane"></i>
+                        <button type="submit" id="aiWidgetSendBtn" class="ai-widget-send-btn"
+                                title="${t.sendTitle}" aria-label="${t.sendTitle}">
+                            ${widgetIcon('send')}
                         </button>
                     </div>
                 </form>
-                <div style="text-align: center; font-size: 0.68rem; color: var(--ai-text-muted, #64748B); margin-top: 0.4rem;">
-                    Mini ERP · AI guidance only
-                </div>
+                <div class="ai-widget-footer-note">${t.footerNote}</div>
             </footer>
 
             <!-- Live Voice Overlay -->
             <div class="ai-voice-overlay" id="aiVoiceOverlay">
                 <div class="ai-voice-header">
                     <div class="ai-voice-badge">
-                        <i class="fa-solid fa-waveform"></i> Live Voice Chat
+                        ${widgetIcon('wave')} Live Voice Chat
                     </div>
-                    <button type="button" class="ai-voice-close-btn" id="aiVoiceCloseBtn" title="${t.closeVoiceTitle}">
-                        <i class="fa-solid fa-xmark"></i>
+                    <button type="button" class="ai-voice-close-btn" id="aiVoiceCloseBtn"
+                            title="${t.closeVoiceTitle}" aria-label="${t.closeVoiceTitle}">
+                        ${widgetIcon('close')}
                     </button>
                 </div>
 
@@ -1565,7 +2022,7 @@
                         <div class="ai-voice-ring"></div>
                         <div class="ai-voice-ring"></div>
                         <div class="ai-voice-orb" id="aiVoiceOrb">
-                            <i class="fa-solid fa-microphone"></i>
+                            ${widgetIcon('mic')}
                         </div>
                     </div>
 
@@ -1587,14 +2044,17 @@
                 </div>
 
                 <div class="ai-voice-controls">
-                    <button type="button" class="ai-voice-ctrl-btn" id="aiVoiceMuteMicBtn" title="${t.muteMicTitle}">
-                        <i class="fa-solid fa-microphone"></i>
+                    <button type="button" class="ai-voice-ctrl-btn" id="aiVoiceMuteMicBtn"
+                            title="${t.muteMicTitle}" aria-label="${t.muteMicTitle}">
+                        ${widgetIcon('mic')}
                     </button>
-                    <button type="button" class="ai-voice-ctrl-btn end-call" id="aiVoiceEndCallBtn" title="${t.endVoiceTitle}">
-                        <i class="fa-solid fa-phone-slash"></i>
+                    <button type="button" class="ai-voice-ctrl-btn end-call" id="aiVoiceEndCallBtn"
+                            title="${t.endVoiceTitle}" aria-label="${t.endVoiceTitle}">
+                        ${widgetIcon('phoneOff')}
                     </button>
-                    <button type="button" class="ai-voice-ctrl-btn" id="aiVoiceMuteSpeakerBtn" title="${t.muteSpeakerTitle}">
-                        <i class="fa-solid fa-volume-high"></i>
+                    <button type="button" class="ai-voice-ctrl-btn" id="aiVoiceMuteSpeakerBtn"
+                            title="${t.muteSpeakerTitle}" aria-label="${t.muteSpeakerTitle}">
+                        ${widgetIcon('volume')}
                     </button>
                 </div>
             </div>
@@ -1623,11 +2083,11 @@
         <div class="ai-img-modal" id="aiImgModal">
             <div class="ai-img-modal-backdrop" id="aiImgModalBackdrop"></div>
             <div class="ai-img-modal-toolbar">
-                <button type="button" class="ai-img-modal-btn" id="aiImgZoomIn" title="تكبير (+)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
-                <button type="button" class="ai-img-modal-btn" id="aiImgZoomOut" title="تصغير (-)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-                <button type="button" class="ai-img-modal-btn" id="aiImgZoomReset" title="إعادة الضبط"><i class="fa-solid fa-rotate-right"></i></button>
+                <button type="button" class="ai-img-modal-btn" id="aiImgZoomIn" title="تكبير (+)" aria-label="تكبير">${widgetIcon('zoomIn')}</button>
+                <button type="button" class="ai-img-modal-btn" id="aiImgZoomOut" title="تصغير (-)" aria-label="تصغير">${widgetIcon('zoomOut')}</button>
+                <button type="button" class="ai-img-modal-btn" id="aiImgZoomReset" title="إعادة الضبط" aria-label="إعادة الضبط">${widgetIcon('reset')}</button>
                 <span class="ai-img-modal-scale" id="aiImgZoomScale">100%</span>
-                <button type="button" class="ai-img-modal-btn ai-img-modal-close-btn" id="aiImgModalClose" title="إغلاق (Esc)"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" class="ai-img-modal-btn ai-img-modal-close-btn" id="aiImgModalClose" title="إغلاق (Esc)" aria-label="إغلاق">${widgetIcon('close')}</button>
             </div>
             <div class="ai-img-modal-content" id="aiImgModalContent">
                 <img id="aiImgModalImg" src="" alt="صورة مكبرة">
@@ -1683,6 +2143,7 @@
     let selectedImageBase64 = null;
     let isDestroyed = false;
     let liveVoiceRestartTimeout = null;
+    let previousBodyOverflow = null;
     const activeRequestControllers = new Set();
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
@@ -1755,33 +2216,58 @@
             .slice(-20);
     };
 
-    function toggleWindow() {
-        windowEl.classList.toggle('ai-widget-open');
-        const isOpen = windowEl.classList.contains('ai-widget-open');
+    function lockBodyScroll() {
+        if (previousBodyOverflow === null) {
+            previousBodyOverflow = document.body.style.overflow;
+        }
+        document.body.style.overflow = 'hidden';
+    }
+
+    function restoreBodyScroll() {
+        if (previousBodyOverflow === null) return;
+        document.body.style.overflow = previousBodyOverflow;
+        previousBodyOverflow = null;
+    }
+
+    function setWindowOpen(isOpen, restoreFocus = true) {
+        windowEl.classList.toggle('ai-widget-open', isOpen);
+        triggerBtn.setAttribute('aria-expanded', String(isOpen));
+        windowEl.setAttribute('aria-hidden', String(!isOpen));
+        windowEl.inert = !isOpen;
+
         if (isOpen) {
-            chatInput.focus();
+            windowEl.removeAttribute('inert');
+            window.requestAnimationFrame(() => chatInput.focus());
             if (window.innerWidth <= 640) {
-                document.body.style.overflow = 'hidden';
+                lockBodyScroll();
             }
         } else {
+            windowEl.setAttribute('inert', '');
             if (isVoiceModeActive) closeVoiceMode();
-            document.body.style.overflow = '';
+            restoreBodyScroll();
+            if (restoreFocus && document.body.contains(triggerBtn)) {
+                triggerBtn.focus();
+            }
         }
     }
 
+    function toggleWindow() {
+        setWindowOpen(!windowEl.classList.contains('ai-widget-open'));
+    }
+
     triggerBtn.addEventListener('click', toggleWindow);
-    closeBtn.addEventListener('click', toggleWindow);
+    closeBtn.addEventListener('click', () => setWindowOpen(false));
 
     clearBtn.addEventListener('click', () => {
         stopSpeechSynthesis();
         clearSelectedImage();
         chatBody.innerHTML = `
             <div class="ai-widget-msg assistant">
-                <div class="ai-avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="ai-avatar">${widgetIcon('assistant')}</div>
                 <div class="ai-bubble-container">
-                    <div class="ai-bubble">${t.welcomeBack}</div>
+                    <div class="ai-bubble" dir="auto">${t.welcomeBack}</div>
                     <button type="button" class="ai-msg-speak-btn" title="${t.listenMsg}">
-                        <i class="fa-solid fa-volume-high"></i> ${t.listenBtn}
+                        ${widgetIcon('volume')} ${t.listenBtn}
                     </button>
                 </div>
             </div>
@@ -1836,7 +2322,7 @@
     function resetSpeakButton(btn) {
         if (!btn) return;
         btn.classList.remove('speaking', 'paused');
-        btn.innerHTML = `<i class="fa-solid fa-volume-high"></i> ${t.listenBtn}`;
+        btn.innerHTML = widgetIcon('volume') + ' ' + t.listenBtn;
         btn.title = t.listenMsg;
     }
 
@@ -1856,7 +2342,7 @@
             window.speechSynthesis.pause();
             speakBtn.classList.remove('speaking');
             speakBtn.classList.add('paused');
-            speakBtn.innerHTML = `<i class="fa-solid fa-play"></i> ${t.resumeBtn}`;
+            speakBtn.innerHTML = widgetIcon('play') + ' ' + t.resumeBtn;
             speakBtn.title = t.resumeMsg;
             return;
         }
@@ -1866,7 +2352,7 @@
             window.speechSynthesis.resume();
             speakBtn.classList.remove('paused');
             speakBtn.classList.add('speaking');
-            speakBtn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
+            speakBtn.innerHTML = widgetIcon('pause') + ' ' + t.pauseBtn;
             speakBtn.title = t.pauseMsg;
             return;
         }
@@ -1876,7 +2362,7 @@
         activeSpeakBtn = speakBtn;
         speakBtn.classList.add('speaking');
         speakBtn.classList.remove('paused');
-        speakBtn.innerHTML = `<i class="fa-solid fa-pause"></i> ${t.pauseBtn}`;
+        speakBtn.innerHTML = widgetIcon('pause') + ' ' + t.pauseBtn;
         speakBtn.title = t.pauseMsg;
 
         speakText(text, () => {
@@ -1928,13 +2414,14 @@
 
         const avatar = document.createElement('div');
         avatar.className = 'ai-avatar';
-        avatar.innerHTML = sender === 'user' ? '<i class="fa-solid fa-user"></i>' : '<i class="fa-solid fa-robot"></i>';
+        avatar.innerHTML = widgetIcon(sender === 'user' ? 'user' : 'assistant');
 
         const bubbleContainer = document.createElement('div');
         bubbleContainer.className = 'ai-bubble-container';
 
         const bubble = document.createElement('div');
         bubble.className = 'ai-bubble';
+        bubble.dir = 'auto';
 
         if (imageSrc) {
             const img = document.createElement('img');
@@ -1957,7 +2444,7 @@
             speakBtn.type = 'button';
             speakBtn.className = 'ai-msg-speak-btn';
             speakBtn.title = t.listenMsg;
-            speakBtn.innerHTML = `<i class="fa-solid fa-volume-high"></i> ${t.listenBtn}`;
+            speakBtn.innerHTML = widgetIcon('volume') + ' ' + t.listenBtn;
 
             speakBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1984,7 +2471,7 @@
         row.className = 'ai-widget-msg assistant';
         row.id = 'aiWidgetTyping';
         row.innerHTML = `
-            <div class="ai-avatar"><i class="fa-solid fa-robot"></i></div>
+            <div class="ai-avatar">${widgetIcon('assistant')}</div>
             <div class="ai-bubble-container">
                 <div class="ai-bubble"><div class="ai-widget-dots"><span></span><span></span><span></span></div></div>
             </div>
@@ -2188,13 +2675,13 @@
         if (subtitleText) voiceSubtitle.innerHTML = formatWidgetText(subtitleText);
 
         if (state === 'listening') {
-            voiceOrb.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+            voiceOrb.innerHTML = widgetIcon('mic');
         } else if (state === 'thinking') {
-            voiceOrb.innerHTML = '<i class="fa-solid fa-brain"></i>';
+            voiceOrb.innerHTML = widgetIcon('brain');
         } else if (state === 'speaking') {
-            voiceOrb.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            voiceOrb.innerHTML = widgetIcon('volume');
         } else {
-            voiceOrb.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+            voiceOrb.innerHTML = widgetIcon('micOff');
         }
     }
 
@@ -2298,12 +2785,12 @@
         isMicMuted = !isMicMuted;
         if (isMicMuted) {
             voiceMuteMicBtn.classList.add('off');
-            voiceMuteMicBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+            voiceMuteMicBtn.innerHTML = widgetIcon('micOff');
             if (liveVoiceRecognition) try { liveVoiceRecognition.stop(); } catch(e){}
             setVoiceState('idle', '🔇 الميكروفون مكتوم حالياً', 'اضغط على زر الميكروفون أدناه لإعادة الفتح...');
         } else {
             voiceMuteMicBtn.classList.remove('off');
-            voiceMuteMicBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+            voiceMuteMicBtn.innerHTML = widgetIcon('mic');
             startLiveVoiceListening();
         }
     });
@@ -2312,11 +2799,11 @@
         isSpeakerMuted = !isSpeakerMuted;
         if (isSpeakerMuted) {
             voiceMuteSpeakerBtn.classList.add('off');
-            voiceMuteSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+            voiceMuteSpeakerBtn.innerHTML = widgetIcon('volumeOff');
             stopSpeechSynthesis();
         } else {
             voiceMuteSpeakerBtn.classList.remove('off');
-            voiceMuteSpeakerBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            voiceMuteSpeakerBtn.innerHTML = widgetIcon('volume');
         }
     });
 
@@ -2523,7 +3010,7 @@
                 imgModal.classList.add('active');
             });
         });
-        document.body.style.overflow = 'hidden';
+        lockBodyScroll();
     }
 
     function closeImageModal() {
@@ -2535,8 +3022,8 @@
                 imgModal.style.display = 'none';
             }
         }, 300);
-        if (!windowEl.classList.contains('ai-widget-open')) {
-            document.body.style.overflow = '';
+        if (!windowEl.classList.contains('ai-widget-open') || window.innerWidth > 640) {
+            restoreBodyScroll();
         }
     }
 
@@ -2637,6 +3124,10 @@
     function handleImageKeydown(e) {
         if (e.key === 'Escape' && imgModal && imgModal.classList.contains('active')) {
             closeImageModal();
+        } else if (e.key === 'Escape' && isVoiceModeActive) {
+            closeVoiceMode();
+        } else if (e.key === 'Escape' && windowEl.classList.contains('ai-widget-open')) {
+            setWindowOpen(false);
         }
     }
     window.addEventListener('keydown', handleImageKeydown);
@@ -2671,11 +3162,10 @@
             try { liveVoiceRecognition.abort(); } catch (e) {}
         }
         stopSpeechSynthesis();
-        document.body.style.overflow = '';
+        restoreBodyScroll();
         widgetWrapper.remove();
         style.remove();
         injectedFontLink?.remove();
-        injectedFontAwesomeLink?.remove();
         window.MiniErpAiWidgetLoaded = false;
         delete window.MiniErpAiWidgetDestroy;
         delete window.MiniErpAiWidgetGetHistory;
