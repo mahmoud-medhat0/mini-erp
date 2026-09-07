@@ -58,7 +58,7 @@ REPORT_PURPOSES = {
 
 
 WORKFLOW_LABELS = {
-    "المحاسبة العامة": "دورة القيد",
+    "النظام المحاسبي الرئيسي": "دورة القيد",
     "العملاء والتحصيل": "دورة التحصيل",
     "الموردون والمدفوعات": "دورة السداد",
     "المبيعات والكتالوج": "دورة البيع",
@@ -112,6 +112,181 @@ QUICK_INTENTS = [
 ]
 
 
+# This mirrors the labels and hierarchy rendered by AppLayout.tsx. Routes that
+# are absent here are real screens, but they are not direct sidebar links.
+SIDEBAR_NAVIGATION = [
+    (
+        "الصفحات الرئيسية",
+        None,
+        [
+            ("لوحة التحكم", "/dashboard"),
+            ("الإشعارات", "/notifications"),
+            ("تشخيصات النظام", "/foundation"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("النظام المحاسبي الرئيسي", "/accounting"),
+        [
+            ("دليل الحسابات", "/accounting/coa"),
+            ("تصنيفات الحسابات", "/accounting/account-categories"),
+            ("أنواع الحسابات", "/accounting/account-types"),
+            ("ربط القوائم المالية", "/accounting/statement-mappings"),
+            ("مابنج حسابات الترحيل", "/accounting/account-mappings"),
+            ("دفتر اليومية العامة", "/accounting/journal"),
+            ("دفتر الاستاد العام", "/accounting/ledger"),
+            ("ميزان المراجعة", "/accounting/trial-balance"),
+            ("الفترات المالية", "/accounting/periods"),
+            ("الأرصدة الافتتاحية", "/accounting/opening-balances"),
+            ("أسعار الصرف", "/accounting/fx-rates"),
+            ("العملات والنظام النقدي", "/accounting/currencies"),
+            ("أكواد ونسب الضرائب", "/taxes/codes"),
+            ("الفترات الضريبية والإقرارات", "/taxes/periods"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("العملاء والقبض", "/customers"),
+        [
+            ("العملاء", "/customers"),
+            ("أرصدة افتتاحية عملاء", "/customer-opening-balances"),
+            ("سندات القبض", "/customer-receipts"),
+            ("تسوية المستحقات", "/receivable-allocations"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("الموردين والصرف", "/suppliers"),
+        [
+            ("الموردين", "/suppliers"),
+            ("أرصدة افتتاحية موردين", "/supplier-opening-balances"),
+            ("سندات الصرف", "/supplier-payments"),
+            ("تسوية المستحقات", "/payable-allocations"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("المصروفات", "/expenses"),
+        [
+            ("المصروفات", "/expenses"),
+            ("فئات المصروفات", "/expenses/categories"),
+            ("المصروفات المقدمة", "/expenses/prepaids"),
+            ("المصروفات المستحقة", "/expenses/accruals"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("المرتبات", "/payroll/runs"),
+        [
+            ("كشوف المرتبات", "/payroll/runs"),
+            ("الموظفون", "/payroll/employees"),
+            ("مكونات المرتب", "/payroll/components"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("الإيجارات", "/rentals/items"),
+        [
+            ("عقود الإيجار", "/rentals/contracts"),
+            ("فواتير الإيجار", "/rentals/invoices"),
+            ("تسليمات الإيجار", "/rentals/handovers"),
+            ("مرتجعات الإيجار", "/rentals/returns"),
+            ("عناصر الإيجار", "/rentals/items"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("النقدية والبنوك", "/cash-accounts"),
+        [
+            ("حسابات الخزينة", "/cash-accounts"),
+            ("حسابات البنوك", "/bank-accounts"),
+            ("تحويلات الخزينة والبنك", "/treasury-transfers"),
+            ("الشيكات الواردة", "/incoming-cheques"),
+            ("الشيكات الصادرة", "/outgoing-cheques"),
+            ("تسوية البنك", "/bank-reconciliations"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("الكتالوج", "/catalog/products"),
+        [
+            ("المنتجات والخدمات", "/catalog/products"),
+            ("تصنيفات المنتجات", "/catalog/categories"),
+            ("وحدات القياس", "/catalog/uoms"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("عمليات المخزون", "/inventory/stock-balances"),
+        [
+            ("المخازن", "/inventory/warehouses"),
+            ("تحويلات المخزون", "/inventory/transfers"),
+            ("جرد المخزون", "/inventory/stock-counts"),
+            ("تسويات المخزون", "/inventory/adjustments"),
+            ("أرصدة المخزون", "/inventory/stock-balances"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("الأصول الثابتة", "/fixed-assets"),
+        [
+            ("الأصول الثابتة", "/fixed-assets"),
+            ("فئات الأصول الثابتة", "/fixed-asset-categories"),
+            ("مواقع الأصول الثابتة", "/fixed-asset-locations"),
+            ("جولات الإهلاك", "/fixed-assets-depreciation-runs"),
+            ("الاستبعادات", "/fixed-assets-disposals"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("المشاريع ومراكز التكلفة", "/projects"),
+        [
+            ("المشاريع", "/projects"),
+            ("مراكز التكلفة", "/cost-centers"),
+            ("الموازنات التقديرية", "/budgeting/budgets"),
+            ("الموازنة مقابل الفعلي", "/budgeting/variance"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("التقارير الفرعية", "/reports"),
+        [
+            ("مركز التقارير", "/reports"),
+            ("كشف حساب عميل", "/reports/customer-statement"),
+            ("كشف حساب مورد", "/reports/supplier-statement"),
+            ("أعمار ديون العملاء", "/reports/ar-aging"),
+            ("أعمار ديون الموردين", "/reports/ap-aging"),
+            ("دفتر الخزينة", "/reports/cash-book"),
+            ("دفتر البنك", "/reports/bank-book"),
+            ("سجل الشيكات", "/reports/cheque-register"),
+            ("تقرير تسوية البنك", "/reports/bank-reconciliations"),
+            ("مطابقة العملاء بالأستاذ", "/reports/ar-gl-reconciliation"),
+            ("مطابقة الموردين بالأستاذ", "/reports/ap-gl-reconciliation"),
+            ("تشغيل الفروع", "/reports/branch-operations"),
+            ("ربحية الفروع", "/reports/branch-profitability"),
+            ("تشغيل الإيجارات", "/reports/rentals"),
+            ("الميزانية العمومية", "/reports/balance-sheet"),
+            ("قائمة الدخل", "/reports/income-statement"),
+            ("قائمة التدفقات النقدية", "/reports/cash-flow"),
+            ("النسب المالية", "/reports/financial-ratios"),
+        ],
+    ),
+    (
+        "الوحدات والإدارة",
+        ("الإدارة والتهيئة", "/settings"),
+        [
+            ("الإعدادات", "/settings"),
+            ("بيانات النشاط", "/settings/company"),
+            ("الفروع", "/settings/branches"),
+            ("ترقيم المستندات", "/settings/numbering"),
+            ("قواعد اعتماد الفروع", "/settings/branch-approval-rules"),
+            ("المستخدمون والأدوار", "/settings/users"),
+            ("سجل التدقيق", "/audit-log"),
+        ],
+    ),
+]
+
+
 FAQS = [
     (
         "لماذا لا تظهر صفحة أو زر؟",
@@ -119,7 +294,7 @@ FAQS = [
     ),
     (
         "لماذا تظهر رسالة عدم الصلاحية؟",
-        "الحساب لا يملك الإذن المطلوب أو لا يملك صلاحية عرض البيانات المالية. اطلب من مدير النظام مراجعة الدور والصلاحيات.",
+        "الحساب لا يملك الإذن المطلوب للشاشة أو الإجراء. حدّد اسم الشاشة والإجراء ثم اطلب من مدير النظام مراجعة الصلاحية المرتبطة بهما؛ لا تفترض أن كل شاشة مالية تحتاج صلاحية عرض البيانات المالية.",
     ),
     (
         "لماذا لا تظهر نتائج بعد البحث أو الفلترة؟",
@@ -217,6 +392,21 @@ def build_markdown() -> str:
     route_count = sum(len(routes) for _, routes in ALL_ROUTE_GROUPS)
     reports = next(routes for title, routes in ALL_ROUTE_GROUPS if title == "التقارير")
     report_count = len(reports)
+    known_routes = {
+        route for _, route_group in ALL_ROUTE_GROUPS for route, _ in route_group
+    }
+    sidebar_rows: list[list[str]] = []
+    sidebar_routes: list[str] = []
+    for section, parent, items in SIDEBAR_NAVIGATION:
+        parent_path = section
+        if parent:
+            parent_label, parent_route = parent
+            parent_path = f"{section} ← {parent_label}"
+            sidebar_rows.append([parent_path, f"`{parent_route}`"])
+            sidebar_routes.append(parent_route)
+        for label, route in items:
+            sidebar_rows.append([f"{parent_path} ← {label}", f"`{route}`"])
+            sidebar_routes.append(route)
 
     if route_count != 135:
         raise ValueError(f"Expected 135 active screens, found {route_count}.")
@@ -225,6 +415,9 @@ def build_markdown() -> str:
     missing_report_guidance = [route for route, _ in reports if route not in REPORT_PURPOSES]
     if missing_report_guidance:
         raise ValueError(f"Missing report guidance: {missing_report_guidance}")
+    missing_sidebar_routes = sorted(set(sidebar_routes) - known_routes)
+    if missing_sidebar_routes:
+        raise ValueError(f"Unknown sidebar routes: {missing_sidebar_routes}")
 
     lines: list[str] = []
     add(
@@ -232,7 +425,7 @@ def build_markdown() -> str:
         "# دليل معرفة نظام Mini ERP للـAI Agent",
         "",
         f"إصدار دليل النظام: {GUIDE_VERSION}  ",
-        "إصدار قاعدة المعرفة: 1.0  ",
+        "إصدار قاعدة المعرفة: 1.1",
         f"آخر تحديث: {GUIDE_DATE_ISO}  ",
         "معرّف قاعدة المعرفة: `mini-erp-user-guide-ar`  ",
         "وضع المساعد: `guidance_only`  ",
@@ -250,6 +443,8 @@ def build_markdown() -> str:
         "- عندما يسأل المستخدم كيف ينفذ إجراءً، ابدأ مباشرة بالخطوات. إذا طلب من المساعد تنفيذ الإجراء نيابة عنه، وضح أن المساعد إرشادي ثم اشرح ما ينفذه المستخدم بنفسه.",
         "- استخدم لغة المستخدم. اجعل الرد العربي طبيعيًا وواضحًا، ولا تخلط كلمات إنجليزية داخل الجملة أو الكلمة إلا إذا كانت اسمًا رسميًا ظاهرًا في الواجهة ويحتاجه المستخدم.",
         "- المسارات التقنية في هذا الملف مراجع داخلية لتحديد الشاشات. في الإجابات العادية وجّه المستخدم باسم القسم ثم الشاشة وما ينفذه داخلها، ولا تعرض المسار إلا إذا طلب المستخدم صراحةً المسار التقني أو الرابط.",
+        "- عند سؤال المستخدم أين توجد شاشة أو كيف يصل إليها، استخدم الاسم المرئي الكامل من خريطة القائمة الجانبية أدناه ولا تستبدله باسم وحدة عام. أجب بمسار القائمة فقط، ولا تضف شرح الاستخدام أو النتيجة أو أسباب الفشل أو الصلاحيات إلا إذا سأل عنها.",
+        "- لا تستنتج صلاحية شاشة من اسم الدور أو من قاعدة مالية عامة. اذكر الصلاحية فقط إذا كانت موثقة صراحة للشاشة أو الإجراء المطلوب.",
         "- لا تدّع وجود زر أو صلاحية أو حالة غير مذكورة. ظهور الإجراءات يعتمد على الدور والصلاحية وحالة المستند.",
         "- لا تطلب أو تعرض كلمات مرور أو مفاتيح API أو رموز مصادقة أو بيانات بطاقات أو أسرار تشغيل.",
         "- لا تكشف بيانات مستخدم آخر أو بيانات مالية لا يملك السائل صلاحية رؤيتها.",
@@ -292,6 +487,23 @@ def build_markdown() -> str:
         "- زر الجولة الإرشادية يشرح عنوان الصفحة والإجراءات والمرشحات والجداول والتنقل وفق الصفحة الحالية والصلاحيات.",
         "- إذا لم تظهر صفحة في القائمة، راجع الصلاحية بدل محاولة فتح رابط غير مصرح به.",
         "",
+        "### خريطة القائمة الجانبية الفعلية",
+        "",
+        "هذه الخريطة تنقل النص العربي الظاهر في القائمة كما هو. استخدمها أولًا في أسئلة «أين» و«أجيب منين» و«كيف أصل». المسار التقني مرجع داخلي ولا يظهر في الرد إلا بطلب صريح.",
+        "",
+    )
+    lines.extend(table(["المسار المرئي داخل القائمة", "المرجع التقني الداخلي"], sidebar_rows))
+    add(
+        lines,
+        "",
+        "**ملاحظات إلزامية على التنقل:**",
+        "",
+        "- «شجرة الحسابات» و«دليل الحسابات» اسمان لنفس الشاشة. جواب المكان الصحيح هو: **الوحدات والإدارة ← النظام المحاسبي الرئيسي ← دليل الحسابات**.",
+        "- عرض «دليل الحسابات» يعتمد على `accounting.view`، ويسمح الخادم أيضًا بـ`settings.configure`. لا تحتاج هذه الشاشة `view_financials`.",
+        "- إنشاء مجموعة أو حساب داخل الدليل يحتاج `accounting.create` أو `settings.configure`.",
+        "- لا تربط الوصول باسم دور مثل VIEWER أو ACCOUNTANT؛ الحكم على الصلاحيات الفعلية المسندة للحساب.",
+        "- أي شاشة موجودة في الفهرس الكامل وغير موجودة في هذه الخريطة ليست رابطًا مباشرًا في القائمة الحالية. لا تخترع لها مجموعة جانبية؛ اشرح الوصول من شاشة أم أو اختصار موثق فقط، وإلا استخدم `[NOT_FOUND]`.",
+        "",
         "### الجداول والبحث والفلاتر",
         "",
         "- ابدأ بالبحث بالكود أو الاسم أو الرقم عندما يتوفر مربع البحث.",
@@ -330,9 +542,6 @@ def build_markdown() -> str:
         "استخدم الجدول التالي عندما يسأل المستخدم: أين أذهب لتنفيذ مهمة؟ المسار هو شاشة المستخدم، وليس عنوان طلب داخلي.",
         "",
     )
-    known_routes = {
-        route for _, route_group in ALL_ROUTE_GROUPS for route, _ in route_group
-    }
     missing_intent_routes = [
         route for _, route, _ in QUICK_INTENTS if route not in known_routes
     ]
@@ -500,7 +709,9 @@ def build_markdown() -> str:
         "",
         "### عند السؤال: أين توجد صفحة؟",
         "",
-        "استخدم الصيغة: **من القائمة الجانبية اختر [اسم القسم]، ثم افتح [اسم الصفحة]. إذا لم تظهر، راجع صلاحية حسابك مع مدير النظام.** لا تعرض المسار التقني إلا إذا طلبه المستخدم صراحةً.",
+        "استخدم أقصر صيغة من خريطة القائمة الفعلية: **من القائمة الجانبية، تحت [العنوان التنظيمي]، افتح [المجموعة الأب]، ثم اختر [اسم الشاشة].** لا تعرض المسار التقني، ولا تشرح محتوى الشاشة أو النتيجة المتوقعة أو الصلاحيات أو أسباب عدم الظهور إلا إذا طلب المستخدم ذلك.",
+        "",
+        "مثال: سؤال «أجيب منين شجرة الحسابات؟» جوابه: **من القائمة الجانبية، تحت «الوحدات والإدارة»، افتح «النظام المحاسبي الرئيسي»، ثم اختر «دليل الحسابات».**",
         "",
         "### عند السؤال: كيف أنفذ عملية؟",
         "",

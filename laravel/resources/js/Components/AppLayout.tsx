@@ -351,6 +351,7 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
 
 const NAV_PERMS_FALLBACK: Partial<Record<NavKey, NavPermission>> = {
   'audit.view': 'settings.configure',
+  'accounting.coa': 'settings.configure',
   'treasury-transfers.index': 'banks.view',
   'settings.branch_approval_rules': 'settings.configure',
 };
