@@ -228,17 +228,24 @@ export default function AccountingIndex({ locale, activeFiscalYear, recentJourna
         ) : (
           <div className="divide-y divide-[var(--border)]">
             {recentJournals.map((j) => (
-              <div key={j.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 font-mono text-xs font-bold">
-                    {j.number ? j.number : accDict.draftBadge}
+              <div key={j.id} className="flex items-center justify-between py-3 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   </div>
-                  <div>
-                    <span className="font-bold text-xs text-[var(--text-primary)] block">{j.description || accDict.manualJournal}</span>
-                    <span className="text-[11px] text-[var(--text-muted)] font-mono">{j.entry_date}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-xs text-[var(--text-primary)] truncate">{j.description || accDict.manualJournal}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono text-[11px] font-bold whitespace-nowrap shrink-0">
+                        {j.number ? j.number : accDict.draftBadge}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-[var(--text-muted)] font-mono block mt-0.5">{j.entry_date}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <StatusBadge tone={j.status === 'posted' ? 'ok' : j.status === 'reversed' ? 'danger' : 'warning'}>
                     {getStatusLabel(j.status)}
                   </StatusBadge>
