@@ -6,6 +6,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 
 import { loadLocale, syncDomLocale } from './lib/i18n';
+import { syncAiWidget, type AiWidgetPageProps } from './lib/aiWidget';
 
 // Synchronize locale and direction with HTML element on client navigation & requests
 router.on('navigate', (event) => {
@@ -14,11 +15,13 @@ router.on('navigate', (event) => {
   if (pageProps?.locale) {
     loadLocale(pageProps.locale);
   }
+  syncAiWidget(pageProps as AiWidgetPageProps);
 });
 
 router.on('success', (event) => {
   const pageProps = event.detail.page.props as { locale?: string; direction?: string };
   syncDomLocale(pageProps?.locale, pageProps?.direction);
+  syncAiWidget(pageProps as AiWidgetPageProps);
 });
 
 const appName = import.meta.env.VITE_APP_NAME || 'Mini ERP';
@@ -53,6 +56,8 @@ createInertiaApp({
     } else {
       document.documentElement.setAttribute('data-theme', themePreference);
     }
+
+    syncAiWidget(props.initialPage.props as AiWidgetPageProps);
 
     createRoot(el).render(<App {...props} />);
   },

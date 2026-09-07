@@ -13,6 +13,7 @@ use App\Http\Controllers\Accounting\OpeningBalanceController;
 use App\Http\Controllers\Accounting\TrialBalanceController;
 use App\Http\Controllers\AccountingAccountMappingController;
 use App\Http\Controllers\AccrualScheduleController;
+use App\Http\Controllers\AiChatProxyController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -162,6 +163,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 
 Route::middleware('auth')->group(function (): void {
     Route::redirect('/', '/dashboard')->name('foundation');
+    Route::post('/api/mini-erp-ai/chat', [AiChatProxyController::class, 'chat'])
+        ->middleware('throttle:30,1')
+        ->name('mini-erp-ai.chat');
     Route::get('/foundation', FoundationController::class)->middleware('permission.any:settings.configure,audit.view')->name('foundation.diagnostics');
     Route::get('/dashboard', DashboardController::class)->middleware('can:dashboard.view')->name('dashboard');
     Route::get('/settings', SettingsHomeController::class)->middleware('permission.any:settings.view,settings.configure,settings.company,settings.branches,settings.numbering,users.configure,approvals.configure,audit.view')->name('settings');

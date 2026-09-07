@@ -17,6 +17,7 @@ class RouteAuthorizationAuditor
     public const SERVICE_AUTHORIZED_ALLOWLIST = [
         'foundation' => 'Redirects authenticated user to dashboard without tenant/company context',
         'logout' => 'Standard authenticated session termination handler',
+        'mini-erp-ai.chat' => 'Authenticated user-scoped guidance proxy with server-side upstream credentials and request throttling',
         'notifications' => 'User-scoped notification feed authorized by authenticated session user',
         'notifications.data' => 'User-scoped server-side notification table authorized by authenticated session user',
         'notifications.read_all' => 'User-scoped notification state update authorized by authenticated session user',

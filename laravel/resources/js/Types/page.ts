@@ -20,6 +20,15 @@ export type SharedPageProps = {
   locale: 'en' | 'ar' | string;
   direction: 'ltr' | 'rtl';
   theme: 'light' | 'dark' | string;
+  csrfToken: string;
+  aiAssistant: {
+    enabled: boolean;
+    scriptUrl: string | null;
+    apiUrl: string | null;
+    contextId: string | null;
+    voiceEnabled: boolean;
+    visionEnabled: boolean;
+  };
   notifications: {
     unreadCount: number;
     recent?: NotificationItem[];

@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'mini_erp_ai' => [
+        'enabled' => (bool) env('MINI_ERP_AI_ENABLED', true),
+        'service_url' => env('MINI_ERP_AI_SERVICE_URL', 'https://mini-erp-ai.a2zenon.com'),
+        'secret' => env('MINI_ERP_AI_APP_SECRET'),
+        'require_secret' => (bool) env('MINI_ERP_AI_REQUIRE_SECRET', true),
+        'browser_api_url' => env('MINI_ERP_AI_BROWSER_API_URL', '/api/mini-erp-ai'),
+        'timeout_seconds' => (int) env('MINI_ERP_AI_TIMEOUT_SECONDS', 90),
+        'voice_enabled' => (bool) env('MINI_ERP_AI_VOICE_ENABLED', false),
+        'vision_enabled' => (bool) env('MINI_ERP_AI_VISION_ENABLED', true),
+    ],
+
 ];

@@ -44,6 +44,32 @@ composer run serve:no-xdebug
 
 Do not run `php artisan serve` directly on this machine unless Xdebug is disabled first.
 
+## Mini ERP AI Widget
+
+The authenticated Inertia application loads a pinned local copy of the AI widget and sends browser requests to the same-origin Laravel proxy at `/api/mini-erp-ai/chat`. Laravel then calls the hosted AI service server-to-server, so the shared application secret is never exposed to the browser.
+
+Configure Laravel with:
+
+```dotenv
+MINI_ERP_AI_ENABLED=true
+MINI_ERP_AI_SERVICE_URL=https://mini-erp-ai.a2zenon.com
+MINI_ERP_AI_APP_SECRET=replace-with-the-shared-production-secret
+MINI_ERP_AI_REQUIRE_SECRET=true
+MINI_ERP_AI_BROWSER_API_URL=/api/mini-erp-ai
+MINI_ERP_AI_TIMEOUT_SECONDS=90
+MINI_ERP_AI_VOICE_ENABLED=false
+MINI_ERP_AI_VISION_ENABLED=true
+```
+
+Configure the hosted AI service with the same `APP_SECRET`, set `APP_ENV=production`, and set `EXPOSE_DOCS=false`. After changing Laravel environment values, refresh its cached configuration:
+
+```powershell
+php artisan optimize:clear
+php artisan config:cache
+```
+
+The widget is intentionally available only to authenticated users. Voice input is disabled by default because the application security policy denies microphone access; enabling it requires both `MINI_ERP_AI_VOICE_ENABLED=true` and an explicit review of the `Permissions-Policy` header. The widget script is pinned at `public/vendor/mini-erp-ai/widget.js`; replace and verify that file deliberately when releasing a newer service widget.
+
 ## Development Login
 
 ```text
