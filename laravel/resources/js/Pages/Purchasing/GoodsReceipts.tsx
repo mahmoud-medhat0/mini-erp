@@ -2,11 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -31,6 +32,11 @@ type PurchaseOrderOption = {
       name: string;
     } | null;
     unitOfMeasure?: {
+      id: string;
+      code: string;
+      name: string;
+    } | null;
+    unit_of_measure?: {
       id: string;
       code: string;
       name: string;
@@ -70,6 +76,11 @@ type GoodsReceiptRow = {
     number?: string | null;
     supplier?: SupplierOption | null;
   } | null;
+  purchase_order?: {
+    id: string;
+    number?: string | null;
+    supplier?: SupplierOption | null;
+  } | null;
   warehouse?: WarehouseOption | null;
   lines: Array<{
     id: string;
@@ -87,14 +98,15 @@ type GoodsReceiptRow = {
       code: string;
       name: string;
     } | null;
+    unit_of_measure?: {
+      code: string;
+      name: string;
+    } | null;
   }>;
 };
 
 type GoodsReceiptsProps = SharedPageProps & {
-  goodsReceipts: {
-    data: GoodsReceiptRow[];
-    links: PaginationLink[];
-  };
+  goodsReceipts?: GoodsReceiptRow[];
   confirmedPurchaseOrders: PurchaseOrderOption[];
   warehouses: WarehouseOption[];
   filters: {
@@ -104,7 +116,7 @@ type GoodsReceiptsProps = SharedPageProps & {
   };
 };
 
-export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPurchaseOrders, warehouses, filters }: GoodsReceiptsProps) {
+export default function GoodsReceiptsIndex({ locale, confirmedPurchaseOrders, warehouses, filters }: GoodsReceiptsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const pageDict = dict.app.pages.purchasingGoodsReceipts;
@@ -112,6 +124,9 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
 
   const [showModal, setShowModal] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<GoodsReceiptRow | null>(null);
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [warehouseFilter, setWarehouseFilter] = useState(filters.warehouse_id || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -158,7 +173,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
         selectedPo.lines.map((l) => ({
           purchase_order_line_id: l.id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || dict.app.pages.purchasingGoodsReceipts.noUom,
+          uom_name: (l.unit_of_measure || l.unitOfMeasure)?.name || dict.app.pages.purchasingGoodsReceipts.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -197,7 +212,7 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
           id: l.id,
           purchase_order_line_id: l.purchase_order_line_id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || dict.app.pages.purchasingGoodsReceipts.noUom,
+          uom_name: (l.unit_of_measure || l.unitOfMeasure)?.name || dict.app.pages.purchasingGoodsReceipts.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -229,12 +244,18 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     if (editingReceipt) {
       router.put(`/purchasing/goods-receipts/${editingReceipt.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     } else {
       router.post('/purchasing/goods-receipts', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     }
   };
@@ -245,7 +266,10 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingGoodsReceipts.cancelThisGoodsReceipt;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/goods-receipts/${receiptId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/purchasing/goods-receipts/${receiptId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   };
 
@@ -285,6 +309,58 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
     return receipt.status === 'draft' ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.goodsReceipt },
+    { data: 'purchase_order_number', name: 'purchase_order_number', title: pageDict.purchaseOrder, orderable: false, searchable: false },
+    { data: 'supplier_name', name: 'supplier_name', title: pageDict.supplier, orderable: false, searchable: false },
+    { data: 'warehouse_name', name: 'warehouse_name', title: pageDict.warehouse, orderable: false, searchable: false },
+    { data: 'receipt_date', name: 'receipt_date', title: pageDict.receiptDate },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    purchase_order_number: (_value: any, _type: any, receipt: GoodsReceiptRow) => {
+      const purchaseOrder = receipt.purchase_order || receipt.purchaseOrder;
+      return <span className="font-mono">{purchaseOrder?.number || accDict.notAvailable}</span>;
+    },
+    supplier_name: (_value: any, _type: any, receipt: GoodsReceiptRow) => {
+      const purchaseOrder = receipt.purchase_order || receipt.purchaseOrder;
+      return <span className="font-medium">{getLocalizedName(purchaseOrder?.supplier?.name, locale) || accDict.notAvailable}</span>;
+    },
+    warehouse_name: (_value: any, _type: any, receipt: GoodsReceiptRow) => (
+      <span>{receipt.warehouse ? `${receipt.warehouse.code} - ${getLocalizedName(receipt.warehouse.name, locale)}` : accDict.notAvailable}</span>
+    ),
+    receipt_date: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    status: (value: any) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: any, _type: any, receipt: GoodsReceiptRow) => {
+      const actionState = getGoodsReceiptActionState(receipt);
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {receipt.status === 'draft' && canEditGoodsReceipts ? (
+            <button type="button" onClick={() => openEditModal(receipt)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {receipt.status === 'draft' && canConfirmGoodsReceipts ? (
+            <button type="button" onClick={() => handleAction(receipt.id, 'confirm')} title={pageDict.confirm} aria-label={pageDict.confirm} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.confirm}</button>
+          ) : null}
+          {receipt.status === 'draft' && canCancelGoodsReceipts ? (
+            <button type="button" onClick={() => handleAction(receipt.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canCancelGoodsReceipts, canConfirmGoodsReceipts, canEditGoodsReceipts, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter, warehouse_id: warehouseFilter }), [statusFilter, warehouseFilter]);
+  const toolbar = (
+    <div className="flex flex-wrap items-end gap-3">
+      <SearchableSelect options={warehouseFilterOptions} value={warehouseFilter || null} onChange={(value) => setWarehouseFilter(value || '')} label={pageDict.warehouse} />
+      <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} label={pageDict.status} />
+    </div>
+  );
+
   return (
     <AppLayout active="goods-receipts.index">
       <Head title={dict.app.pages.purchasingGoodsReceipts.goodsReceipts} />
@@ -311,130 +387,20 @@ export default function GoodsReceiptsIndex({ locale, goodsReceipts, confirmedPur
         }
       />
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.purchasingGoodsReceipts.searchNumberReferenceOrSupplier}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/goods-receipts', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={warehouseFilterOptions}
-              value={filters.warehouse_id || null}
-              onChange={(value) => router.get('/purchasing/goods-receipts', { ...filters, warehouse_id: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.purchasingGoodsReceipts.warehouse}
-            />
-
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/purchasing/goods-receipts', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.purchasingGoodsReceipts.status}
-            />
-          </div>
-        </div>
-
-        {goodsReceipts.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.purchasingGoodsReceipts.noGoodsReceiptsFound}
-            description={dict.app.pages.purchasingGoodsReceipts.confirmAPurchaseOrderFirstThen}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.goodsReceipt}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.purchaseOrder}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.supplier}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.warehouse}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.receiptDate}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingGoodsReceipts.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingGoodsReceipts.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {goodsReceipts.data.map((receipt) => {
-                  const actionState = getGoodsReceiptActionState(receipt);
-
-                  return (
-                    <tr key={receipt.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {receipt.number || dict.app.pages.purchasingGoodsReceipts.draft_2}
-                      </td>
-                      <td className={`${tableClasses.td} font-mono`}>{receipt.purchaseOrder?.number || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(receipt.purchaseOrder?.supplier?.name, locale) || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{receipt.warehouse ? `${receipt.warehouse.code} - ${getLocalizedName(receipt.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{receipt.receipt_date}</td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(receipt.status)}>
-                          {getStatusLabel(receipt.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {receipt.status === 'draft' && canEditGoodsReceipts ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(receipt)}
-                              title={dict.app.pages.purchasingGoodsReceipts.edit}
-                              aria-label={dict.app.pages.purchasingGoodsReceipts.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.purchasingGoodsReceipts.edit}
-                            </button>
-                          ) : null}
-
-                          {receipt.status === 'draft' && canConfirmGoodsReceipts ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(receipt.id, 'confirm')}
-                              title={dict.app.pages.purchasingGoodsReceipts.confirm}
-                              aria-label={dict.app.pages.purchasingGoodsReceipts.confirm}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.purchasingGoodsReceipts.confirm}
-                            </button>
-                          ) : null}
-
-                          {receipt.status === 'draft' && canCancelGoodsReceipts ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(receipt.id, 'cancel')}
-                              title={dict.app.pages.purchasingGoodsReceipts.cancel}
-                              aria-label={dict.app.pages.purchasingGoodsReceipts.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.purchasingGoodsReceipts.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/purchasing/goods-receipts/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[4, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="purchasing-goods-receipts-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {/* Create / Edit Modal */}

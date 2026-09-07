@@ -1,21 +1,15 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, Modal, PageHeader, PaginationControls, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CostCenterCategory, CostCenterRow, PaginationLink, SharedPageProps } from '../../Types';
-
-type PaginatedData<T> = {
-  data: T[];
-  total: number;
-  links: PaginationLink[];
-};
+import type { CostCenterCategory, CostCenterRow, SharedPageProps } from '../../Types';
 
 type Props = SharedPageProps & {
-  costCenters: PaginatedData<CostCenterRow>;
   filters: {
     search?: string;
     category?: string;
@@ -23,16 +17,16 @@ type Props = SharedPageProps & {
   };
 };
 
-export default function CostCentersIndex({ locale, costCenters, filters }: Props) {
+export default function CostCentersIndex({ locale, filters }: Props) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.costCenters;
   const accDict = dict.app.accounting;
-  const auditDict = dict.app.audit;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingCostCenter, setEditingCostCenter] = useState<CostCenterRow | null>(null);
   const [search, setSearch] = useState(filters.search || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm({
     code: '',
@@ -131,21 +125,30 @@ export default function CostCentersIndex({ locale, costCenters, filters }: Props
     if (editingCostCenter) {
       form.patch(`/cost-centers/${editingCostCenter.id}`, {
         preserveScroll: true,
-        onSuccess: () => setShowModal(false),
+        onSuccess: () => {
+          setShowModal(false);
+          setReloadToken((value) => value + 1);
+        },
       });
       return;
     }
 
     form.post('/cost-centers', {
       preserveScroll: true,
-      onSuccess: () => setShowModal(false),
+      onSuccess: () => {
+        setShowModal(false);
+        setReloadToken((value) => value + 1);
+      },
     });
   }
 
   function handleDelete(costCenter: CostCenterRow) {
     const costCenterName = getLocalizedName(costCenter.name, locale) || costCenter.code;
     if (window.confirm(pageDict.confirmDeleteCostCenter.replace('{name}', costCenterName))) {
-      router.delete(`/cost-centers/${costCenter.id}`, { preserveScroll: true });
+      router.delete(`/cost-centers/${costCenter.id}`, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   }
 
@@ -165,6 +168,45 @@ export default function CostCentersIndex({ locale, costCenters, filters }: Props
         return pageDict.noCategory;
     }
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'name', name: 'name', title: pageDict.nameEn },
+    { data: 'description', name: 'description', title: pageDict.descriptionLabel },
+    { data: 'category', name: 'category', title: pageDict.category },
+    { data: 'is_active', name: 'is_active', title: pageDict.active },
+    { data: 'id', name: 'id', title: pageDict.actions, orderable: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (data: string): ReactElement => <span className="font-mono text-xs font-bold">{data}</span>,
+    name: (data: CostCenterRow['name']): ReactElement => <span className="font-semibold">{getLocalizedName(data, locale)}</span>,
+    description: (data: string | null): ReactElement => (
+      <span className="block max-w-xs truncate text-xs text-[var(--text-secondary)]">{data || accDict.notAvailable}</span>
+    ),
+    category: (data: CostCenterCategory): ReactElement => data ? (
+      <span className="font-medium text-xs text-[var(--text-primary)]">{getCategoryLabel(data)}</span>
+    ) : (
+      <span className="text-xs text-[var(--text-muted)]">{pageDict.noCategory}</span>
+    ),
+    is_active: (data: boolean): ReactElement => (
+      <StatusBadge tone={data ? 'ok' : 'muted'}>{data ? pageDict.active : pageDict.inactive}</StatusBadge>
+    ),
+    id: (_data: string, _type: unknown, row: CostCenterRow): ReactElement => (
+      <div className="flex flex-wrap items-center gap-3">
+        {can('costCenters.edit') ? (
+          <button type="button" onClick={() => openEditModal(row)} title={pageDict.edit} aria-label={pageDict.edit} className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer">
+            {pageDict.edit}
+          </button>
+        ) : null}
+        {can('costCenters.delete') ? (
+          <button type="button" onClick={() => handleDelete(row)} title={pageDict.delete} aria-label={pageDict.delete} className="text-xs font-bold text-red-500 hover:underline cursor-pointer">
+            {pageDict.delete}
+          </button>
+        ) : null}
+      </div>
+    ),
+  } as unknown as DataTableSlots), [accDict.notAvailable, can, locale, pageDict]);
 
   return (
     <AppLayout active="cost-centers.index" pagination="manual">
@@ -226,87 +268,24 @@ export default function CostCentersIndex({ locale, costCenters, filters }: Props
         </div>
       </Card>
 
-      {costCenters.data.length === 0 ? (
-        <EmptyState
-          title={pageDict.noCostCenters}
-          description={pageDict.noCostCentersDescription}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/cost-centers/data"
+          columns={columns}
+          filters={{
+            cost_center_search: filters.search || '',
+            category: filters.category || '',
+            status: filters.status || '',
+          }}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="cost-centers-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.code}</th>
-                <th className={tableClasses.th}>{pageDict.nameEn}</th>
-                <th className={tableClasses.th}>{pageDict.descriptionLabel}</th>
-                <th className={tableClasses.th}>{pageDict.category}</th>
-                <th className={tableClasses.th}>{pageDict.active}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {costCenters.data.map((costCenter) => (
-                <tr key={costCenter.id} className="hover:bg-[var(--background)]/60 transition-colors">
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{costCenter.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(costCenter.name, locale)}</td>
-                  <td className={`${tableClasses.td} text-xs text-[var(--text-secondary)] max-w-xs truncate`}>
-                    {costCenter.description || accDict.notAvailable}
-                  </td>
-                  <td className={tableClasses.td}>
-                    {costCenter.category ? (
-                      <span className="font-medium text-xs text-[var(--text-primary)]">
-                        {getCategoryLabel(costCenter.category)}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-[var(--text-muted)]">
-                        {pageDict.noCategory}
-                      </span>
-                    )}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={costCenter.is_active ? 'ok' : 'muted'}>
-                      {costCenter.is_active ? pageDict.active : pageDict.inactive}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {can('costCenters.edit') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(costCenter)}
-                          title={pageDict.edit}
-                          aria-label={pageDict.edit}
-                          className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                        >
-                          {pageDict.edit}
-                        </button>
-                      ) : null}
-                      {can('costCenters.delete') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(costCenter)}
-                          title={pageDict.delete}
-                          aria-label={pageDict.delete}
-                          className="text-xs font-bold text-red-500 hover:underline cursor-pointer"
-                        >
-                          {pageDict.delete}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Pagination Controls */}
-      <PaginationControls
-        links={costCenters.links}
-        total={costCenters.total}
-        totalLabel={auditDict.totalRecords}
-      />
+      </Card>
 
       {/* Create / Edit Modal */}
       <Modal

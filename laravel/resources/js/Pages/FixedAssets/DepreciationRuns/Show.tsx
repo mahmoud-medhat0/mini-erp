@@ -5,6 +5,7 @@ import { Card, PageHeader, SensitiveActionModal, StatusBadge } from '../../../Co
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
+import ScheduleDataTable from './ScheduleDataTable';
 
 type ScheduleDetail = {
   id: string;
@@ -53,14 +54,6 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
     setShowReverseModal(true);
   }
 
-  function formatName(name?: { en: string; ar: string } | string | null): string {
-    if (!name) return appDict.notAvailable;
-    if (typeof name === 'object' && name !== null) {
-      return locale === 'ar' ? name.ar || name.en : name.en || name.ar;
-    }
-    return String(name);
-  }
-
   function formatRunStatus(status: DepreciationRunDetail['status']) {
     return status === 'posted' ? appDict.scheduleStatusPosted : appDict.scheduleStatusReversed;
   }
@@ -69,7 +62,6 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
     return status === 'posted' ? 'ok' : 'danger';
   }
 
-  const schedules = run.schedules || [];
   const actionState = run.status === 'posted' && !canReverseDepreciationRuns ? dict.app.actions.restricted : null;
 
   return (
@@ -147,48 +139,14 @@ export default function DepreciationRunShow({ locale, run, can }: ShowProps) {
 
         <Card className="p-6 space-y-4">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 border-b pb-2 border-slate-200 dark:border-slate-700">
-            {appDict.depreciationSchedule} ({schedules.length})
+            {appDict.depreciationSchedule} ({run.asset_count})
           </h3>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left rtl:text-right text-slate-600 dark:text-slate-300">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 uppercase text-[10px] text-slate-500 dark:text-slate-400">
-                <tr>
-                  <th className="px-3 py-2">{appDict.assetNumber}</th>
-                  <th className="px-3 py-2">{appDict.assetName}</th>
-                  <th className="px-3 py-2">{appDict.assetCategory}</th>
-                  <th className="px-3 py-2">{appDict.periodNumber}</th>
-                  <th className="px-3 py-2 text-right rtl:text-left">{appDict.depreciationAmount}</th>
-                  <th className="px-3 py-2 text-right rtl:text-left">{appDict.accumulatedDepreciation}</th>
-                  <th className="px-3 py-2 text-right rtl:text-left">{appDict.netBookValue}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {schedules.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                    <td className="px-3 py-2 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                      {row.asset ? (
-                        <Link href={`/fixed-assets/${row.asset.id}`}>{row.asset.asset_number}</Link>
-                      ) : (
-                        appDict.notAvailable
-                      )}
-                    </td>
-                    <td className="px-3 py-2">{row.asset ? formatName(row.asset.name) : appDict.notAvailable}</td>
-                    <td className="px-3 py-2">{row.asset?.category ? formatName(row.asset.category.name) : appDict.notAvailable}</td>
-                    <td className="px-3 py-2 font-mono">{row.period_number}</td>
-                    <td className="px-3 py-2 text-right rtl:text-left font-mono font-medium">
-                      {formatAmount(row.depreciation_minor)}
-                    </td>
-                    <td className="px-3 py-2 text-right rtl:text-left font-mono">
-                      {formatAmount(row.accumulated_depreciation_minor)}
-                    </td>
-                    <td className="px-3 py-2 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                      {formatAmount(row.net_book_value_minor)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
+            <ScheduleDataTable
+              ajaxUrl={`/fixed-assets-depreciation-runs/${run.id}/data`}
+              locale={locale}
+              tableId="fixed-asset-depreciation-run-schedules-table"
+            />
           </div>
         </Card>
       </div>

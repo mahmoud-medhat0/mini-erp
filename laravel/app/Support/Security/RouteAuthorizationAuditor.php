@@ -18,6 +18,7 @@ class RouteAuthorizationAuditor
         'foundation' => 'Redirects authenticated user to dashboard without tenant/company context',
         'logout' => 'Standard authenticated session termination handler',
         'notifications' => 'User-scoped notification feed authorized by authenticated session user',
+        'notifications.data' => 'User-scoped server-side notification table authorized by authenticated session user',
         'notifications.read_all' => 'User-scoped notification state update authorized by authenticated session user',
         'notifications.read' => 'User-scoped notification item update authorized by authenticated session user',
         'attachments.index' => 'Entity attachment access authorized internally by AttachmentService/model policy',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Projects;
 use App\Application\Projects\ProjectPageData;
 use App\Application\Projects\ProjectService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,21 @@ class ProjectController extends Controller
         return Inertia::render('Projects/Index', $this->pageData->indexData(
             $request->only(['search', 'status', 'is_billable'])
         ));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'project_search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'in:active,on_hold,completed,cancelled'],
+            'is_billable' => ['nullable', 'string', 'in:true,false'],
+        ]);
+
+        return $this->pageData->datatable([
+            'search' => $filters['project_search'] ?? '',
+            'status' => $filters['status'] ?? '',
+            'is_billable' => $filters['is_billable'] ?? '',
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

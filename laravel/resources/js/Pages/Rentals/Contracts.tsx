@@ -3,11 +3,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { AccountingAmount, Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Customer = { id: string; code: string; name: TranslatedName };
@@ -71,7 +72,7 @@ type EditableLine = {
   notes: string;
 };
 type Props = SharedPageProps & {
-  contracts: { data: Contract[]; total: number; links?: PaginationLink[] };
+  contracts?: Contract[];
   customers: Customer[];
   branches: Branch[];
   rentableItems: RentableItem[];
@@ -113,7 +114,6 @@ function namePart(name: TranslatedName, locale: 'en' | 'ar'): string {
 
 export default function RentalContractsIndex({
   locale,
-  contracts,
   customers = [],
   branches = [],
   rentableItems = [],
@@ -134,12 +134,14 @@ export default function RentalContractsIndex({
   const canActivateRentalContracts = can('rentals.deliver');
   const canCancelRentalContracts = can('rentals.cancel');
   const defaultCurrency = currencies[0]?.code || '';
-  const [search, setSearch] = useState(filters.search || '');
+  const [initialSearch, setInitialSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [customerId, setCustomerId] = useState(filters.customer_id || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Contract | null>(null);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [tableResetToken, setTableResetToken] = useState(0);
 
   const defaultStartDate = today();
   const defaultEndDate = today();
@@ -197,18 +199,14 @@ export default function RentalContractsIndex({
     };
   }
 
-  function applyFilters() {
-    router.get('/rentals/contracts', { search, status, customer_id: customerId, branch_id: branchId }, { preserveScroll: true, preserveState: true });
-  }
-
-  const activeFilterCount = [search, status, customerId, branchId].filter(Boolean).length;
+  const activeFilterCount = [initialSearch, status, customerId, branchId].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
+    setInitialSearch('');
     setStatus('');
     setCustomerId('');
     setBranchId('');
-    router.get('/rentals/contracts', {}, { preserveScroll: true, preserveState: true });
+    setTableResetToken((value) => value + 1);
   }
 
   function openCreate() {
@@ -295,18 +293,33 @@ export default function RentalContractsIndex({
     };
 
     if (editing) {
-      router.put(`/rentals/contracts/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/rentals/contracts/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setTableReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/rentals/contracts', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/rentals/contracts', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setTableReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function runAction(contract: Contract, action: 'submit' | 'approve' | 'activate' | 'cancel') {
     const message = pageDict.confirmations[action];
     if (message && !confirm(message)) return;
 
-    router.post(`/rentals/contracts/${contract.id}/${action}`, {}, { preserveScroll: true });
+    router.post(`/rentals/contracts/${contract.id}/${action}`, {}, {
+      preserveScroll: true,
+      onSuccess: () => setTableReloadToken((value) => value + 1),
+    });
   }
 
   const isRentalContractActionable = (contract: Contract) => ['draft', 'submitted', 'approved'].includes(contract.status);
@@ -327,6 +340,94 @@ export default function RentalContractsIndex({
     return isRentalContractActionable(contract) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'rental_contract.number', title: pageDict.number },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'period', name: 'rental_contract.start_date', title: pageDict.period },
+    { data: 'status', name: 'rental_contract.status', title: pageDict.status },
+    { data: 'items', name: 'items', title: pageDict.items, orderable: false, searchable: false },
+    { data: 'totals', name: 'totals', title: pageDict.total, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+    { data: 'created_at', name: 'rental_contract.created_at', title: '', visible: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null, _type: unknown, contract: Contract) => (
+      <div>
+        <div className="font-mono text-sm font-bold">{value || pageDict.notNumbered}</div>
+        {contract.reference ? <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.reference}</div> : null}
+      </div>
+    ),
+    customer_name: (_value: unknown, _type: unknown, contract: Contract) => (
+      <div>
+        <div className="font-semibold">{contract.customer ? `${contract.customer.code} - ${namePart(contract.customer.name, activeLocale)}` : pageDict.noCustomer}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.branch ? `${contract.branch.code} - ${namePart(contract.branch.name, activeLocale)}` : pageDict.noBranch}</div>
+      </div>
+    ),
+    period: (_value: unknown, _type: unknown, contract: Contract) => (
+      <div>
+        <div className="font-semibold">{formatDate(contract.start_date)} - {formatDate(contract.expected_end_date)}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{pageDict.contractDate}: {formatDate(contract.contract_date)}</div>
+      </div>
+    ),
+    status: (value: string) => (
+      <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>
+    ),
+    items: (_value: unknown, _type: unknown, contract: Contract) => (
+      <div className="space-y-1 text-xs">
+        {(contract.lines || []).map((line) => (
+          <div key={line.id}>{line.rentable_item ? `${line.rentable_item.code} - ${namePart(line.rentable_item.name, activeLocale)}` : line.rentable_item_id}</div>
+        ))}
+      </div>
+    ),
+    totals: (_value: unknown, _type: unknown, contract: Contract) => (
+      <div className="grid gap-1 text-xs">
+        <span>{pageDict.rent}: <AccountingAmount amountMinor={contract.estimated_rent_minor} currency={contract.currency} /></span>
+        <span>{pageDict.deposit}: <AccountingAmount amountMinor={contract.deposit_minor} currency={contract.currency} /></span>
+        <span>{pageDict.total}: <AccountingAmount amountMinor={contract.total_estimated_minor} currency={contract.currency} /></span>
+      </div>
+    ),
+    actions: (_value: unknown, _type: unknown, contract: Contract) => {
+      const actionState = getRentalContractActionState(contract);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canEditRentalContracts && contract.status === 'draft' ? (
+            <button type="button" onClick={() => openEdit(contract)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {canSubmitRentalContracts && contract.status === 'draft' ? (
+            <button type="button" onClick={() => runAction(contract, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {canApproveRentalContracts && contract.status === 'submitted' ? (
+            <button type="button" onClick={() => runAction(contract, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {canActivateRentalContracts && contract.status === 'approved' ? (
+            <button type="button" onClick={() => runAction(contract, 'activate')} title={pageDict.activate} aria-label={pageDict.activate} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.activate}</button>
+          ) : null}
+          {canCancelRentalContracts && isRentalContractActionable(contract) ? (
+            <button type="button" onClick={() => runAction(contract, 'cancel')} title={pageDict.cancelContract} aria-label={pageDict.cancelContract} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelContract}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [activeLocale, canActivateRentalContracts, canApproveRentalContracts, canCancelRentalContracts, canEditRentalContracts, canSubmitRentalContracts, dict.app.actions, pageDict]);
+
+  const tableFilters = useMemo(() => ({
+    status,
+    customer_id: customerId,
+    branch_id: branchId,
+  }), [branchId, customerId, status]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-44"><SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} /></div>
+      <div className="w-60"><SearchableSelect options={[{ value: '', label: pageDict.allCustomers }, ...customerOptions]} value={customerId || null} onChange={(value) => setCustomerId(value || '')} /></div>
+      <div className="w-52"><SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} /></div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
+
   return (
     <AppLayout active="rentals.contracts.index">
       <Head title={pageDict.headTitle} />
@@ -335,17 +436,6 @@ export default function RentalContractsIndex({
         description={pageDict.description}
         actions={canCreateRentalContracts ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 xl:grid-cols-[1fr_180px_260px_220px_auto_auto]">
-          <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allCustomers }, ...customerOptions]} value={customerId || null} onChange={(value) => setCustomerId(value || '')} label={pageDict.customer} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -429,84 +519,21 @@ export default function RentalContractsIndex({
         </Card>
       ) : null}
 
-      {contracts.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.customer}</th>
-                <th className={tableClasses.th}>{pageDict.period}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.items}</th>
-                <th className={tableClasses.th}>{pageDict.total}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {contracts.data.map((contract) => {
-                const actionState = getRentalContractActionState(contract);
-
-                return (
-                  <tr key={contract.id}>
-                    <td className={tableClasses.td}>
-                      <div className="font-mono text-sm font-bold">{contract.number || pageDict.notNumbered}</div>
-                      {contract.reference ? <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.reference}</div> : null}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="font-semibold">{contract.customer ? `${contract.customer.code} - ${namePart(contract.customer.name, activeLocale)}` : pageDict.noCustomer}</div>
-                      <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.branch ? `${contract.branch.code} - ${namePart(contract.branch.name, activeLocale)}` : pageDict.noBranch}</div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="font-semibold">{formatDate(contract.start_date)} - {formatDate(contract.expected_end_date)}</div>
-                      <div className="mt-1 text-xs text-[var(--text-muted)]">{pageDict.contractDate}: {formatDate(contract.contract_date)}</div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(contract.status)}>{pageDict.statuses[contract.status as keyof typeof pageDict.statuses] || contract.status}</StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="space-y-1 text-xs">
-                        {(contract.lines || []).map((line) => (
-                          <div key={line.id}>{line.rentable_item ? `${line.rentable_item.code} - ${namePart(line.rentable_item.name, activeLocale)}` : line.rentable_item_id}</div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="grid gap-1 text-xs">
-                        <span>{pageDict.rent}: <AccountingAmount amountMinor={contract.estimated_rent_minor} currency={contract.currency} /></span>
-                        <span>{pageDict.deposit}: <AccountingAmount amountMinor={contract.deposit_minor} currency={contract.currency} /></span>
-                        <span>{pageDict.total}: <AccountingAmount amountMinor={contract.total_estimated_minor} currency={contract.currency} /></span>
-                      </div>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {canEditRentalContracts && contract.status === 'draft' ? (
-                          <button type="button" onClick={() => openEdit(contract)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
-                        ) : null}
-                        {canSubmitRentalContracts && contract.status === 'draft' ? (
-                          <button type="button" onClick={() => runAction(contract, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
-                        ) : null}
-                        {canApproveRentalContracts && contract.status === 'submitted' ? (
-                          <button type="button" onClick={() => runAction(contract, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
-                        ) : null}
-                        {canActivateRentalContracts && contract.status === 'approved' ? (
-                          <button type="button" onClick={() => runAction(contract, 'activate')} title={pageDict.activate} aria-label={pageDict.activate} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.activate}</button>
-                        ) : null}
-                        {canCancelRentalContracts && isRentalContractActionable(contract) ? (
-                          <button type="button" onClick={() => runAction(contract, 'cancel')} title={pageDict.cancelContract} aria-label={pageDict.cancelContract} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelContract}</button>
-                        ) : null}
-                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          key={tableResetToken}
+          ajaxUrl="/rentals/contracts/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={initialSearch}
+          locale={locale}
+          order={[[7, 'desc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="rental-contracts-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

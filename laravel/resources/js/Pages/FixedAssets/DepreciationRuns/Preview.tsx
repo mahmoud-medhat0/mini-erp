@@ -5,6 +5,7 @@ import { Card, PageHeader, SensitiveActionModal } from '../../../Components/Prim
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
+import ScheduleDataTable from './ScheduleDataTable';
 
 type FinancialPeriod = {
   id: string;
@@ -62,14 +63,6 @@ export default function DepreciationRunPreview({
     });
   }
 
-  function formatName(name?: { en: string; ar: string } | string | null): string {
-    if (!name) return appDict.notAvailable;
-    if (typeof name === 'object' && name !== null) {
-      return locale === 'ar' ? name.ar || name.en : name.en || name.ar;
-    }
-    return String(name);
-  }
-
   const periodLabel = `${period.start_date} ${appDict.periodDateSeparator} ${period.end_date}`;
 
   return (
@@ -121,57 +114,12 @@ export default function DepreciationRunPreview({
           </Card>
         </div>
 
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left rtl:text-right text-slate-600 dark:text-slate-300">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 uppercase text-[10px] text-slate-500 dark:text-slate-400">
-                <tr>
-                  <th className="px-3 py-2">{appDict.assetNumber}</th>
-                  <th className="px-3 py-2">{appDict.assetName}</th>
-                  <th className="px-3 py-2">{appDict.assetCategory}</th>
-                  <th className="px-3 py-2">{appDict.periodNumber}</th>
-                  <th className="px-3 py-2 text-right rtl:text-left">{appDict.depreciationAmount}</th>
-                  <th className="px-3 py-2 text-right rtl:text-left">{appDict.accumulatedDepreciation}</th>
-                  <th className="px-3 py-2 text-right rtl:text-left">{appDict.netBookValue}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {schedules.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500 italic">
-                      {appDict.noDataFound}
-                    </td>
-                  </tr>
-                ) : (
-                  schedules.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                      <td className="px-3 py-2 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                        {row.asset ? (
-                          <Link href={`/fixed-assets/${row.asset.id}`}>{row.asset.asset_number}</Link>
-                        ) : (
-                          appDict.notAvailable
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{row.asset ? formatName(row.asset.name) : appDict.notAvailable}</td>
-                      <td className="px-3 py-2">
-                        {row.asset?.category ? formatName(row.asset.category.name) : appDict.notAvailable}
-                      </td>
-                      <td className="px-3 py-2 font-mono">{row.period_number}</td>
-                      <td className="px-3 py-2 text-right rtl:text-left font-mono font-medium">
-                        {formatAmount(row.depreciation_minor)}
-                      </td>
-                      <td className="px-3 py-2 text-right rtl:text-left font-mono">
-                        {formatAmount(row.accumulated_depreciation_minor)}
-                      </td>
-                      <td className="px-3 py-2 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                        {formatAmount(row.net_book_value_minor)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        <Card className="overflow-hidden p-0">
+          <ScheduleDataTable
+            ajaxUrl={`/fixed-assets-depreciation-runs/preview/${period.id}/data`}
+            locale={locale}
+            tableId="fixed-asset-depreciation-preview-table"
+          />
         </Card>
       </div>
 

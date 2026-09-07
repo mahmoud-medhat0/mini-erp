@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Application\Rentals\RentalContractPageData;
 use App\Application\Rentals\RentalContractService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +22,13 @@ class RentalContractController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Rentals/Contracts', $this->pageData->indexData($request->only(['search', 'status', 'customer_id', 'branch_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('rentals.view');
+
+        return $this->pageData->datatable($request->only(['status', 'customer_id', 'branch_id']));
     }
 
     public function store(Request $request): RedirectResponse

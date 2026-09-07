@@ -2,11 +2,12 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { AccountingAmount, Button, Card, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -39,9 +40,8 @@ type RentableItem = {
   branch?: Branch | null;
   warehouse?: Warehouse | null;
 };
-type PaginatedData<T> = { data: T[]; total: number; links?: PaginationLink[] };
 type Props = SharedPageProps & {
-  items: PaginatedData<RentableItem>;
+  items?: RentableItem[];
   branches: Branch[];
   warehouses: Warehouse[];
   products: Product[];
@@ -92,7 +92,6 @@ function conditionTone(value: string): 'ok' | 'muted' | 'danger' | 'warning' | '
 
 export default function RentableItemsIndex({
   locale,
-  items,
   branches = [],
   warehouses = [],
   products = [],
@@ -108,13 +107,15 @@ export default function RentableItemsIndex({
   const pageDict = dict.app.pages.rentableItems;
   const can = useCan();
   const defaultCurrency = currencies[0]?.code || '';
-  const [search, setSearch] = useState(filters.search || '');
+  const [initialSearch, setInitialSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [source, setSource] = useState(filters.item_source || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
   const [warehouseId, setWarehouseId] = useState(filters.warehouse_id || '');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RentableItem | null>(null);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [tableResetToken, setTableResetToken] = useState(0);
 
   const form = useForm({
     code: '',
@@ -174,19 +175,15 @@ export default function RentableItemsIndex({
   const sourceOptions = itemSources.map((item) => ({ value: item, label: pageDict.sources[item as keyof typeof pageDict.sources] || item }));
   const statusOptions = statuses.map((item) => ({ value: item, label: pageDict.statuses[item as keyof typeof pageDict.statuses] || item }));
   const conditionOptions = conditionStatuses.map((item) => ({ value: item, label: pageDict.conditions[item as keyof typeof pageDict.conditions] || item }));
-  const activeFilterCount = [search, status, source, branchId, warehouseId].filter(Boolean).length;
-
-  function applyFilters() {
-    router.get('/rentals/items', { search, status, item_source: source, branch_id: branchId, warehouse_id: warehouseId }, { preserveScroll: true, preserveState: true });
-  }
+  const activeFilterCount = [initialSearch, status, source, branchId, warehouseId].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
+    setInitialSearch('');
     setStatus('');
     setSource('');
     setBranchId('');
     setWarehouseId('');
-    router.get('/rentals/items', {}, { preserveScroll: true, preserveState: true });
+    setTableResetToken((value) => value + 1);
   }
 
   function openCreate() {
@@ -285,17 +282,106 @@ export default function RentableItemsIndex({
     };
 
     if (editing) {
-      router.put(`/rentals/items/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/rentals/items/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setTableReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/rentals/items', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/rentals/items', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setTableReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function deleteItem(item: RentableItem) {
     if (!confirm(pageDict.confirmDelete)) return;
-    router.delete(`/rentals/items/${item.id}`, { preserveScroll: true });
+    router.delete(`/rentals/items/${item.id}`, {
+      preserveScroll: true,
+      onSuccess: () => setTableReloadToken((value) => value + 1),
+    });
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'rentable_item.code', title: pageDict.code },
+    { data: 'name', name: 'rentable_item.name', title: pageDict.item },
+    { data: 'item_source', name: 'rentable_item.item_source', title: pageDict.itemSource },
+    { data: 'location', name: 'location', title: pageDict.location },
+    { data: 'status', name: 'rentable_item.status', title: pageDict.status },
+    { data: 'condition_status', name: 'rentable_item.condition_status', title: pageDict.condition },
+    { data: 'rates', name: 'rates', title: pageDict.rates, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (value: string, _type: unknown, item: RentableItem) => (
+      <div>
+        <div className="font-mono text-sm font-bold">{value}</div>
+        {item.serial_number ? <div className="mt-1 text-xs text-[var(--text-muted)]">{item.serial_number}</div> : null}
+      </div>
+    ),
+    name: (_value: unknown, _type: unknown, item: RentableItem) => (
+      <div>
+        <div className="font-semibold">{namePart(item.name, activeLocale)}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{item.is_active ? pageDict.active : pageDict.inactive}</div>
+      </div>
+    ),
+    item_source: (value: string, _type: unknown, item: RentableItem) => (
+      <div>
+        <div className="text-sm font-semibold">{pageDict.sources[value as keyof typeof pageDict.sources] || value}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{sourceLabel(item)}</div>
+      </div>
+    ),
+    location: (_value: unknown, _type: unknown, item: RentableItem) => (
+      <div>
+        <div className="text-sm font-semibold">{item.branch ? `${item.branch.code} - ${namePart(item.branch.name, activeLocale)}` : pageDict.noBranch}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{item.warehouse ? `${item.warehouse.code} - ${namePart(item.warehouse.name, activeLocale)}` : pageDict.noWarehouse}</div>
+      </div>
+    ),
+    status: (value: string) => (
+      <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>
+    ),
+    condition_status: (value: string) => (
+      <StatusBadge tone={conditionTone(value)}>{pageDict.conditions[value as keyof typeof pageDict.conditions] || value}</StatusBadge>
+    ),
+    rates: (_value: unknown, _type: unknown, item: RentableItem) => (
+      <div className="grid gap-1 text-xs">
+        <span>{pageDict.dailyRate}: <AccountingAmount amountMinor={item.daily_rate_minor || 0} currency={item.currency} /></span>
+        <span>{pageDict.monthlyRate}: <AccountingAmount amountMinor={item.monthly_rate_minor || 0} currency={item.currency} /></span>
+        <span>{pageDict.deposit}: <AccountingAmount amountMinor={item.deposit_minor || 0} currency={item.currency} /></span>
+      </div>
+    ),
+    actions: (_value: unknown, _type: unknown, item: RentableItem) => (
+      <div className="flex flex-wrap justify-end gap-2">
+        {can('rentals.edit') ? <Button variant="secondary" onClick={() => openEdit(item)}>{pageDict.edit}</Button> : null}
+        {can('rentals.delete') ? <Button variant="danger" onClick={() => deleteItem(item)}>{pageDict.delete}</Button> : null}
+      </div>
+    ),
+  }), [activeLocale, can, pageDict]);
+
+  const tableFilters = useMemo(() => ({
+    status,
+    item_source: source,
+    branch_id: branchId,
+    warehouse_id: warehouseId,
+  }), [branchId, source, status, warehouseId]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-44"><SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} /></div>
+      <div className="w-44"><SearchableSelect options={[{ value: '', label: pageDict.allSources }, ...sourceOptions]} value={source || null} onChange={(value) => setSource(value || '')} /></div>
+      <div className="w-52"><SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} /></div>
+      <div className="w-52"><SearchableSelect options={[{ value: '', label: pageDict.allWarehouses }, ...warehouseOptions]} value={warehouseId || null} onChange={(value) => setWarehouseId(value || '')} /></div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="rentals.items.index">
@@ -305,18 +391,6 @@ export default function RentableItemsIndex({
         description={pageDict.description}
         actions={can('rentals.create') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 xl:grid-cols-[1fr_180px_180px_220px_220px_auto_auto]">
-          <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allSources }, ...sourceOptions]} value={source || null} onChange={(value) => setSource(value || '')} label={pageDict.itemSource} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allWarehouses }, ...warehouseOptions]} value={warehouseId || null} onChange={(value) => setWarehouseId(value || '')} label={pageDict.warehouse} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -428,67 +502,21 @@ export default function RentableItemsIndex({
         </Card>
       ) : null}
 
-      {items.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.code}</th>
-                <th className={tableClasses.th}>{pageDict.item}</th>
-                <th className={tableClasses.th}>{pageDict.itemSource}</th>
-                <th className={tableClasses.th}>{pageDict.location}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.condition}</th>
-                <th className={tableClasses.th}>{pageDict.rates}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.data.map((item) => (
-                <tr key={item.id}>
-                  <td className={tableClasses.td}>
-                    <div className="font-mono text-sm font-bold">{item.code}</div>
-                    {item.serial_number ? <div className="mt-1 text-xs text-[var(--text-muted)]">{item.serial_number}</div> : null}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="font-semibold">{namePart(item.name, activeLocale)}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{item.is_active ? pageDict.active : pageDict.inactive}</div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="text-sm font-semibold">{pageDict.sources[item.item_source as keyof typeof pageDict.sources] || item.item_source}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{sourceLabel(item)}</div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="text-sm font-semibold">{item.branch ? `${item.branch.code} - ${namePart(item.branch.name, activeLocale)}` : pageDict.noBranch}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{item.warehouse ? `${item.warehouse.code} - ${namePart(item.warehouse.name, activeLocale)}` : pageDict.noWarehouse}</div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={statusTone(item.status)}>{pageDict.statuses[item.status as keyof typeof pageDict.statuses] || item.status}</StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={conditionTone(item.condition_status)}>{pageDict.conditions[item.condition_status as keyof typeof pageDict.conditions] || item.condition_status}</StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="grid gap-1 text-xs">
-                      <span>{pageDict.dailyRate}: <AccountingAmount amountMinor={item.daily_rate_minor || 0} currency={item.currency} /></span>
-                      <span>{pageDict.monthlyRate}: <AccountingAmount amountMinor={item.monthly_rate_minor || 0} currency={item.currency} /></span>
-                      <span>{pageDict.deposit}: <AccountingAmount amountMinor={item.deposit_minor || 0} currency={item.currency} /></span>
-                    </div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {can('rentals.edit') ? <Button variant="secondary" onClick={() => openEdit(item)}>{pageDict.edit}</Button> : null}
-                      {can('rentals.delete') ? <Button variant="danger" onClick={() => deleteItem(item)}>{pageDict.delete}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          key={tableResetToken}
+          ajaxUrl="/rentals/items/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={initialSearch}
+          locale={locale}
+          order={[[0, 'asc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="rentable-items-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

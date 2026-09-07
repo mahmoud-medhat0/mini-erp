@@ -13,15 +13,18 @@ use App\Models\ExpenseCategory;
 use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\TaxCode;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class ExpensePageData
 {
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     expenses: LengthAwarePaginator,
+     *     expenses: array,
+     *     summary: array{total_minor: int, currency: ?string, has_mixed_currencies: bool, posted_count: int, pipeline_count: int},
      *     categories: EloquentCollection<int, ExpenseCategory>,
      *     expenseAccounts: EloquentCollection<int, Account>,
      *     suppliers: EloquentCollection<int, Supplier>,
@@ -39,29 +42,11 @@ class ExpensePageData
      */
     public function indexData(array $filters): array
     {
-        $status = (string) ($filters['status'] ?? '');
-        $search = trim((string) ($filters['search'] ?? ''));
-        $branchId = (string) ($filters['branch_id'] ?? '');
-
-        $expenses = Expense::query()
-            ->with(['branch', 'supplier', 'cashAccount', 'bankAccount', 'lines.category', 'lines.expenseAccount', 'lines.project', 'lines.costCenter'])
-            ->when($status !== '' && in_array($status, ExpenseService::ALLOWED_STATUSES, true), fn ($query) => $query->where('status', $status))
-            ->when($branchId !== '', fn ($query) => $query->where('branch_id', $branchId))
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('number', 'like', "%{$search}%")
-                        ->orWhere('reference', 'like', "%{$search}%")
-                        ->orWhere('description', 'like', "%{$search}%")
-                        ->orWhere('payee_name', 'like', "%{$search}%");
-                });
-            })
-            ->orderByDesc('expense_date')
-            ->orderByDesc('created_at')
-            ->paginate(15)
-            ->withQueryString();
+        $normalizedFilters = $this->normalizeFilters($filters);
 
         return [
-            'expenses' => $expenses,
+            'expenses' => [],
+            'summary' => $this->summary($normalizedFilters),
             'categories' => ExpenseCategory::query()->where('is_active', true)->with(['defaultExpenseAccount', 'defaultTaxCode'])->orderBy('code')->get(),
             'expenseAccounts' => $this->expenseAccountOptions(),
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('code')->get(['id', 'code', 'name']),
@@ -74,11 +59,90 @@ class ExpensePageData
             'costCenters' => CostCenter::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'statuses' => ExpenseService::ALLOWED_STATUSES,
             'settlementMethods' => ExpenseService::SETTLEMENT_METHODS,
-            'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'branch_id' => $branchId,
-            ],
+            'filters' => $normalizedFilters,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $query = $this->filteredQuery($this->normalizeFilters($filters), false)
+            ->with(['branch', 'supplier', 'cashAccount', 'bankAccount', 'lines.category', 'lines.expenseAccount', 'lines.project', 'lines.costCenter']);
+
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $this->applySearch($query, $keyword);
+            })
+            ->addColumn('branch_name', fn (Expense $row) => $row->branch?->code ?? '')
+            ->addColumn('payee', fn (Expense $row) => $row->supplier?->code ?? $row->payee_name ?? '')
+            ->addColumn('actions', fn () => '')
+            ->toJson();
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{search: string, status: string, branch_id: string}
+     */
+    private function normalizeFilters(array $filters): array
+    {
+        return [
+            'search' => trim((string) ($filters['search'] ?? '')),
+            'status' => (string) ($filters['status'] ?? ''),
+            'branch_id' => (string) ($filters['branch_id'] ?? ''),
+        ];
+    }
+
+    /**
+     * @param  array{search: string, status: string, branch_id: string}  $filters
+     */
+    private function filteredQuery(array $filters, bool $includeSearch = true): Builder
+    {
+        return Expense::query()
+            ->when(
+                $filters['status'] !== '' && in_array($filters['status'], ExpenseService::ALLOWED_STATUSES, true),
+                fn (Builder $query) => $query->where('status', $filters['status'])
+            )
+            ->when($filters['branch_id'] !== '', fn (Builder $query) => $query->where('branch_id', $filters['branch_id']))
+            ->when($includeSearch && $filters['search'] !== '', fn (Builder $query) => $this->applySearch($query, $filters['search']));
+    }
+
+    private function applySearch(Builder $query, string $keyword): void
+    {
+        $needle = '%'.mb_strtolower($keyword).'%';
+
+        $query->where(function (Builder $inner) use ($needle): void {
+            $inner->whereRaw('LOWER(CAST(expense.number AS TEXT)) LIKE ?', [$needle])
+                ->orWhereRaw('LOWER(CAST(expense.reference AS TEXT)) LIKE ?', [$needle])
+                ->orWhereRaw('LOWER(CAST(expense.description AS TEXT)) LIKE ?', [$needle])
+                ->orWhereRaw('LOWER(CAST(expense.payee_name AS TEXT)) LIKE ?', [$needle])
+                ->orWhereHas('supplier', function (Builder $supplierQuery) use ($needle): void {
+                    $supplierQuery->whereRaw('LOWER(CAST(supplier.name AS TEXT)) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(CAST(supplier.code AS TEXT)) LIKE ?', [$needle]);
+                })
+                ->orWhereHas('branch', function (Builder $branchQuery) use ($needle): void {
+                    $branchQuery->whereRaw('LOWER(CAST(branch.name AS TEXT)) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(CAST(branch.code AS TEXT)) LIKE ?', [$needle]);
+                });
+        });
+    }
+
+    /**
+     * @param  array{search: string, status: string, branch_id: string}  $filters
+     * @return array{total_minor: int, currency: ?string, has_mixed_currencies: bool, posted_count: int, pipeline_count: int}
+     */
+    private function summary(array $filters): array
+    {
+        $query = $this->filteredQuery($filters);
+        $currencies = (clone $query)->whereNotNull('currency')->distinct()->limit(2)->pluck('currency');
+
+        return [
+            'total_minor' => (int) (clone $query)->sum('total_minor'),
+            'currency' => $currencies->count() === 1 ? (string) $currencies->first() : null,
+            'has_mixed_currencies' => $currencies->count() > 1,
+            'posted_count' => (clone $query)->where('status', 'posted')->count(),
+            'pipeline_count' => (clone $query)->whereIn('status', ['draft', 'submitted', 'approved'])->count(),
         ];
     }
 

@@ -1,17 +1,21 @@
 import { Head, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import ToggleSwitch from '../../Components/ToggleSwitch';
 import { getDictionary } from '../../lib/i18n';
 import type { RoleRow, SharedPageProps, UserRow } from '../../Types';
 
 type UsersProps = SharedPageProps & {
-  users: UserRow[];
+  userCount: number;
+  userOptions: UserLookup[];
   roles: RoleRow[];
   allPermissions?: string[];
 };
+
+type UserLookup = Pick<UserRow, 'id' | 'name' | 'email'>;
 
 function CategoryIcon({ categoryKey, className = 'size-4' }: { categoryKey: string; className?: string }) {
   const iconPaths: Record<string, string> = {
@@ -95,11 +99,13 @@ function UserFormModal({
   roles,
   dict,
   onClose,
+  onMutated,
 }: {
   user?: UserRow;
   roles: RoleRow[];
   dict: ReturnType<typeof getDictionary>;
   onClose: () => void;
+  onMutated: () => void;
 }) {
   const roleOptions = roles.map((r) => ({ value: String(r.id), label: r.name }));
   const languageOptions = [
@@ -124,13 +130,17 @@ function UserFormModal({
     if (user) {
       patch(`/settings/users/${user.id}`, {
         preserveScroll: true,
-        onSuccess: () => onClose(),
+        onSuccess: () => {
+          onMutated();
+          onClose();
+        },
       });
     } else {
       post('/settings/users', {
         preserveScroll: true,
         onSuccess: () => {
           reset();
+          onMutated();
           onClose();
         },
       });
@@ -275,11 +285,13 @@ function AssignRoleFormModal({
   roles,
   dict,
   onClose,
+  onMutated,
 }: {
-  users: UserRow[];
+  users: UserLookup[];
   roles: RoleRow[];
   dict: ReturnType<typeof getDictionary>;
   onClose: () => void;
+  onMutated: () => void;
 }) {
   const userOptions = users.map((user) => ({
     value: String(user.id),
@@ -302,6 +314,7 @@ function AssignRoleFormModal({
       preserveScroll: true,
       onSuccess: () => {
         reset();
+        onMutated();
         onClose();
       },
     });
@@ -382,11 +395,13 @@ function RoleFormModal({
   allPermissions,
   dict,
   onClose,
+  onMutated,
 }: {
   role?: RoleRow;
   allPermissions: string[];
   dict: ReturnType<typeof getDictionary>;
   onClose: () => void;
+  onMutated: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -435,13 +450,17 @@ function RoleFormModal({
     if (role) {
       patch(`/settings/roles/${role.id}`, {
         preserveScroll: true,
-        onSuccess: () => onClose(),
+        onSuccess: () => {
+          onMutated();
+          onClose();
+        },
       });
     } else {
       post('/settings/roles', {
         preserveScroll: true,
         onSuccess: () => {
           reset();
+          onMutated();
           onClose();
         },
       });
@@ -683,10 +702,12 @@ function RoleCard({
   role,
   dict,
   onEdit,
+  onMutated,
 }: {
   role: RoleRow;
   dict: ReturnType<typeof getDictionary>;
   onEdit: () => void;
+  onMutated: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const maxInitial = 10;
@@ -716,7 +737,7 @@ function RoleCard({
               </svg>
             </button>
 
-            {!role.isTemplate ? <DeleteRoleButton roleId={role.id} roleName={role.name} dict={dict} /> : null}
+            {!role.isTemplate ? <DeleteRoleButton roleId={role.id} roleName={role.name} dict={dict} onMutated={onMutated} /> : null}
           </div>
         </div>
 
@@ -758,17 +779,19 @@ function RevokeRoleButton({
   roleId,
   roleName,
   dict,
+  onMutated,
 }: {
   userId: number | string;
   roleId: number | string;
   roleName: string;
   dict: ReturnType<typeof getDictionary>;
+  onMutated: () => void;
 }) {
   const { delete: destroy, processing } = useForm({ user_id: userId, role_id: roleId });
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    destroy('/settings/users/roles', { preserveScroll: true });
+    destroy('/settings/users/roles', { preserveScroll: true, onSuccess: onMutated });
   }
 
   return (
@@ -791,14 +814,14 @@ function RevokeRoleButton({
   );
 }
 
-function DeleteRoleButton({ roleId, roleName, dict }: { roleId: number | string; roleName: string; dict: ReturnType<typeof getDictionary> }) {
+function DeleteRoleButton({ roleId, roleName, dict, onMutated }: { roleId: number | string; roleName: string; dict: ReturnType<typeof getDictionary>; onMutated: () => void }) {
   const { delete: destroy, processing } = useForm({});
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const msg = dict.app.messages.confirmDeleteRole.replace('{name}', roleName);
     if (confirm(msg)) {
-      destroy(`/settings/roles/${roleId}`, { preserveScroll: true });
+      destroy(`/settings/roles/${roleId}`, { preserveScroll: true, onSuccess: onMutated });
     }
   }
 
@@ -824,11 +847,13 @@ function DeleteUserButton({
   userName,
   currentUserId,
   dict,
+  onMutated,
 }: {
   userId: number | string;
   userName: string;
   currentUserId?: number | string;
   dict: ReturnType<typeof getDictionary>;
+  onMutated: () => void;
 }) {
   const { delete: destroy, processing } = useForm({});
   const isSelf = String(userId) === String(currentUserId);
@@ -843,7 +868,7 @@ function DeleteUserButton({
     setSelfDeleteMessage(null);
     const msg = dict.app.messages.confirmDeleteUser.replace('{name}', userName);
     if (confirm(msg)) {
-      destroy(`/settings/users/${userId}`, { preserveScroll: true });
+      destroy(`/settings/users/${userId}`, { preserveScroll: true, onSuccess: onMutated });
     }
   }
 
@@ -871,7 +896,7 @@ function DeleteUserButton({
   );
 }
 
-export default function Users({ users, roles, allPermissions = [], auth, locale }: UsersProps) {
+export default function Users({ userCount, userOptions, roles, allPermissions = [], auth, locale }: UsersProps) {
   const dict = getDictionary(locale);
   const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
   const [showAssignForm, setShowAssignForm] = useState(false);
@@ -879,6 +904,9 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
   const [editingUser, setEditingUser] = useState<UserRow | null>(null);
   const [showAddRoleForm, setShowAddRoleForm] = useState(false);
   const [editingRole, setEditingRole] = useState<RoleRow | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const refreshUsers = () => setReloadToken((token) => token + 1);
 
   // Default permissions fallback if empty from DB
   const defaultPermissions = allPermissions.length > 0 ? allPermissions : [
@@ -890,6 +918,69 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
     'numbering.manage',
     'reports.view',
   ];
+
+  const userColumns = useMemo(() => [
+    { data: 'name', name: 'name', title: dict.app.fields.user },
+    { data: 'roles', name: 'roles', title: dict.app.fields.roles, orderable: false },
+    { data: 'is_active', name: 'is_active', title: dict.app.fields.status, searchable: false },
+    { data: 'id', name: 'id', title: '', orderable: false, searchable: false, className: 'text-end' },
+  ], [dict]);
+
+  const userSlots = useMemo<DataTableSlots>(() => ({
+    name: (data: string, _type: unknown, row: UserRow): ReactElement => {
+      const initials = data
+        ? data.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
+        : 'U';
+
+      return (
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 font-extrabold text-white text-xs shadow-md shadow-blue-500/20">
+            {initials}
+          </div>
+          <div className="flex flex-col min-w-40">
+            <span className="font-bold text-[var(--text-primary)] text-sm">{data}</span>
+            <span className="font-mono text-xs text-[var(--text-muted)] mt-0.5">{row.email}</span>
+          </div>
+        </div>
+      );
+    },
+    roles: (data: UserRow['roles'], _type: unknown, row: UserRow): ReactElement => (
+      data.length === 0 ? (
+        <span className="text-xs text-[var(--text-muted)] italic">{dict.app.state.none}</span>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {data.map((role) => (
+            <RevokeRoleButton key={role.id} userId={row.id} roleId={role.id} roleName={role.name} dict={dict} onMutated={refreshUsers} />
+          ))}
+        </div>
+      )
+    ),
+    is_active: (data: boolean): ReactElement => (
+      <StatusBadge tone={data ? 'ok' : 'danger'}>
+        {data ? dict.app.status.active : dict.app.status.inactive}
+      </StatusBadge>
+    ),
+    id: (_data: number | string, _type: unknown, row: UserRow): ReactElement => (
+      <div className="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          aria-label={dict.app.actions.editUser}
+          onClick={() => {
+            setShowAssignForm(false);
+            setShowAddUserForm(false);
+            setEditingUser(row);
+          }}
+          className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-1.5 text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)] transition-colors"
+          title={dict.app.actions.editUser}
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
+        <DeleteUserButton userId={row.id} userName={row.name} currentUserId={auth?.user?.id} dict={dict} onMutated={refreshUsers} />
+      </div>
+    ),
+  }), [auth?.user?.id, dict]);
 
   return (
     <AppLayout active="settings.users">
@@ -971,7 +1062,7 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
-          <span>{dict.app.fields.user} ({users.length})</span>
+          <span>{dict.app.fields.user} ({userCount})</span>
         </button>
 
         <button
@@ -1001,6 +1092,7 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
               user={editingUser ?? undefined}
               roles={roles}
               dict={dict}
+              onMutated={refreshUsers}
               onClose={() => {
                 setShowAddUserForm(false);
                 setEditingUser(null);
@@ -1011,94 +1103,26 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
           {/* Assign Role Modal */}
           {showAssignForm ? (
             <AssignRoleFormModal
-              users={users}
+              users={userOptions}
               roles={roles}
               dict={dict}
+              onMutated={refreshUsers}
               onClose={() => setShowAssignForm(false)}
             />
           ) : null}
 
-          {users.length === 0 ? (
-            <EmptyState title={dict.app.settings.users.emptyUsers} />
-          ) : (
-            <div className={tableClasses.wrap}>
-              <table className={tableClasses.table}>
-                <thead>
-                  <tr>
-                    <th className={tableClasses.th}>{dict.app.fields.user}</th>
-                    <th className={tableClasses.th}>{dict.app.fields.roles}</th>
-                    <th className={tableClasses.th}>{dict.app.fields.status}</th>
-                    <th className={tableClasses.th} />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {users.map((user) => {
-                    const initials = user.name
-                      ? user.name
-                          .split(' ')
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase()
-                      : 'U';
-
-                    return (
-                      <tr key={user.id} className="group hover:bg-[var(--background)]/50 transition-colors">
-                        <td className={tableClasses.td}>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 font-extrabold text-white text-xs shadow-md shadow-blue-500/20">
-                              {initials}
-                            </div>
-                            <div className="flex flex-col min-w-40">
-                              <span className="font-bold text-[var(--text-primary)] text-sm">{user.name}</span>
-                              <span className="font-mono text-xs text-[var(--text-muted)] mt-0.5">{user.email}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className={tableClasses.td}>
-                          {user.roles.length === 0 ? (
-                            <span className="text-xs text-[var(--text-muted)] italic">{dict.app.state.none}</span>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {user.roles.map((role) => (
-                                <RevokeRoleButton key={role.id} userId={user.id} roleId={role.id} roleName={role.name} dict={dict} />
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td className={tableClasses.td}>
-                          <StatusBadge tone={user.isActive ? 'ok' : 'danger'}>
-                            {user.isActive ? dict.app.status.active : dict.app.status.inactive}
-                          </StatusBadge>
-                        </td>
-                        <td className={tableClasses.td}>
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              aria-label={dict.app.actions.editUser}
-                              onClick={() => {
-                                setShowAssignForm(false);
-                                setShowAddUserForm(false);
-                                setEditingUser(user);
-                              }}
-                              className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-1.5 text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--text-primary)] transition-colors"
-                              title={dict.app.actions.editUser}
-                            >
-                              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-
-                            <DeleteUserButton userId={user.id} userName={user.name} currentUserId={auth?.user?.id} dict={dict} />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <Card className="overflow-hidden p-0">
+            <ServerDataTable
+              ajaxUrl="/settings/users/data"
+              columns={userColumns}
+              locale={locale}
+              order={[[0, 'asc']]}
+              pageLength={25}
+              reloadToken={reloadToken}
+              slots={userSlots}
+              tableId="settings-users-table"
+            />
+          </Card>
         </div>
       ) : null}
 
@@ -1111,6 +1135,7 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
               role={editingRole ?? undefined}
               allPermissions={defaultPermissions}
               dict={dict}
+              onMutated={refreshUsers}
               onClose={() => {
                 setShowAddRoleForm(false);
                 setEditingRole(null);
@@ -1127,6 +1152,7 @@ export default function Users({ users, roles, allPermissions = [], auth, locale 
                   key={role.id}
                   role={role}
                   dict={dict}
+                  onMutated={refreshUsers}
                   onEdit={() => {
                     setShowAddRoleForm(false);
                     setEditingRole(role);

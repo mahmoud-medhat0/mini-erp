@@ -6,6 +6,7 @@ use App\Application\Accounting\GeneralLedgerService;
 use App\Application\Reports\FinancialPeriodReportOptions;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,10 +24,9 @@ class TrialBalanceController extends Controller
     {
         $this->authorizePermission($request, 'accounting.view');
 
-        $tbData = $this->glService->getTrialBalance($request->all());
+        $tbData = $this->glService->getTrialBalanceSummary($request->all());
 
         return Inertia::render('Accounting/TrialBalance', [
-            'rows' => $tbData['rows'],
             'totals' => [
                 'debit' => $tbData['total_debit'],
                 'credit' => $tbData['total_credit'],
@@ -36,5 +36,18 @@ class TrialBalanceController extends Controller
             'periods' => $this->periodOptions->all(),
             'filters' => $request->only(['period_id', 'start_date', 'end_date', 'include_zero']),
         ]);
+    }
+
+    public function data(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'accounting.view');
+
+        return $this->glService->trialBalanceDataTable($request->only([
+            'period_id',
+            'branch_id',
+            'start_date',
+            'end_date',
+            'include_zero',
+        ]));
     }
 }

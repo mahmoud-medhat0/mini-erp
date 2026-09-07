@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Application\Rentals\RentalInvoicePageData;
 use App\Application\Rentals\RentalInvoiceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,6 +26,13 @@ class RentalInvoiceController extends Controller
             'status' => $request->query('status'),
             'invoice_type' => $request->query('invoice_type'),
         ]));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('rentals.view');
+
+        return $this->rentalInvoicePageData->datatable($request->only(['status', 'invoice_type']));
     }
 
     public function store(Request $request): RedirectResponse

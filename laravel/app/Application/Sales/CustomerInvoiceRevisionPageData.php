@@ -3,15 +3,16 @@
 namespace App\Application\Sales;
 
 use App\Models\CustomerInvoiceRevision;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class CustomerInvoiceRevisionPageData
 {
     /**
      * @param  array{search?: mixed}  $filters
      * @return array{
-     *     customerInvoiceRevisions: LengthAwarePaginator,
+     *     customerInvoiceRevisions: array,
      *     filters: array{search: mixed}
      * }
      */
@@ -22,7 +23,7 @@ class CustomerInvoiceRevisionPageData
         ];
 
         return [
-            'customerInvoiceRevisions' => $this->customerInvoiceRevisions($normalizedFilters),
+            'customerInvoiceRevisions' => [],
             'filters' => $normalizedFilters,
         ];
     }
@@ -46,22 +47,39 @@ class CustomerInvoiceRevisionPageData
     /**
      * @param  array{search: mixed}  $filters
      */
-    private function customerInvoiceRevisions(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        $query = CustomerInvoiceRevision::query()->with($this->relations());
+        $query = CustomerInvoiceRevision::query()
+            ->with($this->relations())
+            ->leftJoin('customer_invoice as revision_invoice', 'revision_invoice.id', '=', 'customer_invoice_revision.customer_invoice_id')
+            ->leftJoin('customer as revision_customer', 'revision_customer.id', '=', 'revision_invoice.customer_id')
+            ->select('customer_invoice_revision.*');
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $query->where('display_string', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('customerInvoice', function (Builder $invoiceQuery) use ($filters): void {
-                        $invoiceQuery->where('number', 'like', "%{$filters['search']}%");
-                    });
-            });
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('customer_invoice_revision.display_string', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('customer_invoice_revision.display_string', 'like', "%{$keyword}%")
+                        ->orWhere('revision_invoice.number', 'like', "%{$keyword}%")
+                        ->orWhere('revision_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(revision_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('invoice_number', fn (Builder $query, string $keyword) => $query->where('revision_invoice.number', 'like', "%{$keyword}%"))
+            ->filterColumn('customer_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('revision_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(revision_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('invoice_number', 'revision_invoice.number $1')
+            ->orderColumn('customer_name', 'revision_customer.code $1')
+            ->addColumn('invoice_number', fn (CustomerInvoiceRevision $row) => $row->customerInvoice?->number ?? '')
+            ->addColumn('customer_name', fn (CustomerInvoiceRevision $row) => $row->customerInvoice?->customer?->name ?? '')
+            ->addColumn('actions', fn () => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 
     /**

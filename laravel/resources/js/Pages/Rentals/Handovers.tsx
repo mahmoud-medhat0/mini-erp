@@ -3,7 +3,8 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -49,7 +50,7 @@ type EditableLine = {
   notes: string;
 };
 type Props = SharedPageProps & {
-  handovers: { data: Handover[]; total: number };
+  handovers?: Handover[];
   contracts: Contract[];
   statuses: string[];
   conditions: string[];
@@ -72,7 +73,6 @@ function namePart(name: TranslatedName, locale: 'en' | 'ar'): string {
 
 export default function RentalHandoversIndex({
   locale,
-  handovers,
   contracts = [],
   statuses = [],
   conditions = [],
@@ -82,9 +82,11 @@ export default function RentalHandoversIndex({
   const activeLocale = locale === 'ar' ? 'ar' : 'en';
   const pageDict = dict.app.pages.rentalHandovers;
   const can = useCan();
-  const [search, setSearch] = useState(filters.search || '');
+  const [initialSearch, setInitialSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [showForm, setShowForm] = useState(false);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [tableResetToken, setTableResetToken] = useState(0);
 
   const form = useForm({
     rental_contract_id: contracts[0]?.id || '',
@@ -135,16 +137,12 @@ export default function RentalHandoversIndex({
     form.setData('lines', form.data.lines.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)));
   }
 
-  function applyFilters() {
-    router.get('/rentals/handovers', { search, status }, { preserveScroll: true, preserveState: true });
-  }
-
-  const activeFilterCount = [search, status].filter(Boolean).length;
+  const activeFilterCount = [initialSearch, status].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
+    setInitialSearch('');
     setStatus('');
-    router.get('/rentals/handovers', {}, { preserveScroll: true, preserveState: true });
+    setTableResetToken((value) => value + 1);
   }
 
   function submit(e: FormEvent) {
@@ -154,6 +152,7 @@ export default function RentalHandoversIndex({
       onSuccess: () => {
         setShowForm(false);
         form.reset();
+        setTableReloadToken((value) => value + 1);
       },
     });
   }
@@ -161,8 +160,51 @@ export default function RentalHandoversIndex({
   function action(path: string, confirmation?: string) {
     if (confirmation && !confirm(confirmation)) return;
 
-    router.post(path, {}, { preserveScroll: true });
+    router.post(path, {}, {
+      preserveScroll: true,
+      onSuccess: () => setTableReloadToken((value) => value + 1),
+    });
   }
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'rental_handover.number', title: pageDict.number },
+    { data: 'contract_number', name: 'contract_number', title: pageDict.contract },
+    { data: 'handover_date', name: 'rental_handover.handover_date', title: pageDict.handoverDate },
+    { data: 'status', name: 'rental_handover.status', title: pageDict.status },
+    { data: 'items', name: 'items', title: pageDict.items, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false },
+    { data: 'created_at', name: 'rental_handover.created_at', title: '', visible: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
+    contract_number: (_value: unknown, _type: unknown, handover: Handover) => (
+      <div>
+        <div className="font-semibold">{handover.contract?.number || pageDict.notNumbered}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{handover.customer ? `${handover.customer.code} - ${namePart(handover.customer.name, activeLocale)}` : ''}</div>
+      </div>
+    ),
+    handover_date: (value: string) => formatDate(value),
+    status: (value: string) => <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>,
+    items: (_value: unknown, _type: unknown, handover: Handover) => handover.lines?.map((line) => line.rentable_item?.code).filter(Boolean).join(', '),
+    actions: (_value: unknown, _type: unknown, handover: Handover) => (
+      <div className="flex flex-wrap gap-2">
+        {handover.status === 'draft' && can('rentals.deliver') ? <Button onClick={() => action(`/rentals/handovers/${handover.id}/confirm`, pageDict.confirmConfirm)}>{pageDict.confirm}</Button> : null}
+        {handover.status === 'draft' && can('rentals.cancel') ? <Button variant="danger" onClick={() => action(`/rentals/handovers/${handover.id}/cancel`, pageDict.confirmCancel)}>{pageDict.cancelHandover}</Button> : null}
+      </div>
+    ),
+  }), [activeLocale, can, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status }), [status]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-48">
+        <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} />
+      </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="rentals.handovers.index">
@@ -172,15 +214,6 @@ export default function RentalHandoversIndex({
         description={pageDict.description}
         actions={can('rentals.deliver') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
-
-      <Card className="mb-4 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_220px_auto_auto]">
-          <input className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)]" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-4 p-4">
@@ -248,44 +281,21 @@ export default function RentalHandoversIndex({
         </Card>
       ) : null}
 
-      {handovers.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <Card className="overflow-hidden">
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.contract}</th>
-                <th className={tableClasses.th}>{pageDict.handoverDate}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.items}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {handovers.data.map((handover) => (
-                <tr key={handover.id}>
-                  <td className={tableClasses.td}><span className="font-mono font-bold">{handover.number || pageDict.notNumbered}</span></td>
-                  <td className={tableClasses.td}>
-                    <div className="font-semibold">{handover.contract?.number || pageDict.notNumbered}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{handover.customer ? `${handover.customer.code} - ${namePart(handover.customer.name, activeLocale)}` : ''}</div>
-                  </td>
-                  <td className={tableClasses.td}>{formatDate(handover.handover_date)}</td>
-                  <td className={tableClasses.td}><StatusBadge tone={statusTone(handover.status)}>{pageDict.statuses[handover.status as keyof typeof pageDict.statuses] || handover.status}</StatusBadge></td>
-                  <td className={tableClasses.td}>{handover.lines?.map((line) => line.rentable_item?.code).filter(Boolean).join(', ')}</td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {handover.status === 'draft' && can('rentals.deliver') ? <Button onClick={() => action(`/rentals/handovers/${handover.id}/confirm`, pageDict.confirmConfirm)}>{pageDict.confirm}</Button> : null}
-                      {handover.status === 'draft' && can('rentals.cancel') ? <Button variant="danger" onClick={() => action(`/rentals/handovers/${handover.id}/cancel`, pageDict.confirmCancel)}>{pageDict.cancelHandover}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          key={tableResetToken}
+          ajaxUrl="/rentals/handovers/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={initialSearch}
+          locale={locale}
+          order={[[6, 'desc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="rental-handovers-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

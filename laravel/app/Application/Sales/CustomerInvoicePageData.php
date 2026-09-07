@@ -8,16 +8,17 @@ use App\Models\DeliveryNote;
 use App\Models\Product;
 use App\Models\SalesOrder;
 use App\Models\TaxCode;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class CustomerInvoicePageData
 {
     /**
      * @param  array{search?: mixed, status?: mixed}  $filters
      * @return array{
-     *     customerInvoices: LengthAwarePaginator,
+     *     customerInvoices: array,
      *     activeCustomers: Collection<int, Customer>,
      *     eligibleProducts: Collection<int, Product>,
      *     confirmedSalesOrders: Collection<int, SalesOrder>,
@@ -34,7 +35,7 @@ class CustomerInvoicePageData
         ];
 
         return [
-            'customerInvoices' => $this->customerInvoices($normalizedFilters),
+            'customerInvoices' => [],
             'activeCustomers' => Customer::query()->where('status', 'active')->orderBy('code', 'asc')->get(),
             'eligibleProducts' => $this->eligibleProducts(),
             'confirmedSalesOrders' => $this->confirmedSalesOrders(),
@@ -47,37 +48,47 @@ class CustomerInvoicePageData
     /**
      * @param  array{search: mixed, status: mixed}  $filters
      */
-    private function customerInvoices(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        $query = CustomerInvoice::query()->with([
-            'customer',
-            'salesOrder',
-            'deliveryNote',
-            'lines.product',
-            'lines.unitOfMeasure',
-            'journalEntry',
-            'receivableEntry',
-        ]);
+        $status = (string) ($filters['status'] ?? '');
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $search = (string) $filters['search'];
-                $query->where('number', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function (Builder $customerQuery) use ($search): void {
-                        $customerQuery->where('code', 'like', "%{$search}%")
-                            ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
-                    });
-            });
-        }
+        $query = CustomerInvoice::query()
+            ->with([
+                'customer',
+                'salesOrder',
+                'deliveryNote',
+                'lines.product',
+                'lines.unitOfMeasure',
+                'journalEntry',
+                'receivableEntry',
+            ])
+            ->leftJoin('customer as invoice_customer', 'invoice_customer.id', '=', 'customer_invoice.customer_id')
+            ->select('customer_invoice.*')
+            ->when($status && in_array($status, CustomerInvoiceService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('customer_invoice.status', $status));
 
-        if ($filters['status'] && in_array($filters['status'], CustomerInvoiceService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('customer_invoice.number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('customer_invoice.number', 'like', "%{$keyword}%")
+                        ->orWhere('customer_invoice.reference', 'like', "%{$keyword}%")
+                        ->orWhere('customer_invoice.description', 'like', "%{$keyword}%")
+                        ->orWhere('invoice_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(invoice_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('customer_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('invoice_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(invoice_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('customer_name', 'invoice_customer.code $1')
+            ->addColumn('customer_name', fn (CustomerInvoice $row) => $row->customer?->name ?? '')
+            ->addColumn('actions', fn () => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 
     /**

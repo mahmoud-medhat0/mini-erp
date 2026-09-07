@@ -1,18 +1,13 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatDate, formatMoney, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { BudgetLineRow, BudgetRow, BudgetStatus, PaginationLink, SharedPageProps } from '../../Types';
-
-type PaginatedData<T> = {
-  data: T[];
-  total: number;
-  links: PaginationLink[];
-};
+import type { BudgetLineRow, BudgetRow, BudgetStatus, SharedPageProps } from '../../Types';
 
 type FiscalYearOption = {
   id: string;
@@ -70,7 +65,6 @@ type CurrencyOption = {
 };
 
 type Props = SharedPageProps & {
-  budgets: PaginatedData<BudgetRow>;
   fiscalYears: FiscalYearOption[];
   financialPeriods: FinancialPeriodOption[];
   accounts: AccountOption[];
@@ -83,6 +77,12 @@ type Props = SharedPageProps & {
     fiscal_year_id?: string;
     status?: string;
   };
+};
+
+type BudgetTableRow = BudgetRow & {
+  fiscal_year_year?: number | null;
+  lines_count?: number;
+  total_amount_minor?: number;
 };
 
 type BudgetLineDraft = {
@@ -98,7 +98,6 @@ type BudgetLineDraft = {
 
 export default function BudgetsIndex({
   locale,
-  budgets,
   fiscalYears = [],
   financialPeriods = [],
   accounts = [],
@@ -123,6 +122,7 @@ export default function BudgetsIndex({
   const [viewingBudget, setViewingBudget] = useState<BudgetRow | null>(null);
   const [budgetSensitiveAction, setBudgetSensitiveAction] = useState<{ budget: BudgetRow; action: 'activate' | 'archive' | 'cancel' } | null>(null);
   const [search, setSearch] = useState(filters.search || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const defaultYearId = fiscalYears[0]?.id || '';
   const defaultCurrencyCode = currencies[0]?.code || '';
@@ -328,6 +328,7 @@ export default function BudgetsIndex({
         onSuccess: () => {
           setShowModal(false);
           setEditingBudget(null);
+          setReloadToken((token) => token + 1);
         },
       });
     } else {
@@ -335,6 +336,7 @@ export default function BudgetsIndex({
         preserveScroll: true,
         onSuccess: () => {
           setShowModal(false);
+          setReloadToken((token) => token + 1);
         },
       });
     }
@@ -345,7 +347,7 @@ export default function BudgetsIndex({
       router.post(
         `/budgeting/budgets/${budget.id}/submit`,
         { lock_version: budget.lock_version },
-        { preserveScroll: true },
+        { preserveScroll: true, onSuccess: () => setReloadToken((token) => token + 1) },
       );
     }
   }
@@ -355,7 +357,7 @@ export default function BudgetsIndex({
       router.post(
         `/budgeting/budgets/${budget.id}/approve`,
         { lock_version: budget.lock_version },
-        { preserveScroll: true },
+        { preserveScroll: true, onSuccess: () => setReloadToken((token) => token + 1) },
       );
     }
   }
@@ -374,7 +376,10 @@ export default function BudgetsIndex({
 
   function handleDelete(budget: BudgetRow) {
     if (window.confirm(pageDict.confirmDeleteBudget.replace('{code}', budget.code))) {
-      router.delete(`/budgeting/budgets/${budget.id}`, { preserveScroll: true });
+      router.delete(`/budgeting/budgets/${budget.id}`, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((token) => token + 1),
+      });
     }
   }
 
@@ -428,12 +433,109 @@ export default function BudgetsIndex({
     return map;
   }
 
-  function paginationLabel(label: string): string {
-    if (label.includes('&laquo;')) return pageDict.previousPage;
-    if (label.includes('&raquo;')) return pageDict.nextPage;
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'fiscal_year_year', name: 'fiscal_year_year', title: pageDict.fiscalYear },
+    { data: 'version_code', name: 'version_code', title: pageDict.versionCode },
+    { data: 'name', name: 'name', title: pageDict.nameEn },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'lines_count', name: 'lines_count', title: pageDict.linesCount, searchable: false },
+    { data: 'total_amount_minor', name: 'total_amount_minor', title: pageDict.totalAmount, searchable: false },
+    { data: 'id', name: 'id', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
 
-    return label.replace(/<[^>]*>/g, '');
-  }
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (data: string, _type: unknown, row: BudgetTableRow): ReactElement => (
+      <button
+        type="button"
+        onClick={() => openViewModal(row)}
+        title={data}
+        aria-label={data}
+        className="text-[var(--primary)] hover:underline font-semibold text-start cursor-pointer"
+      >
+        {data}
+      </button>
+    ),
+    fiscal_year_year: (data: number | null): ReactElement => <span>{data || '-'}</span>,
+    version_code: (data: string): ReactElement => (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-500">
+        {data}
+      </span>
+    ),
+    name: (data: BudgetTableRow['name']): ReactElement => <span>{getLocalizedName(data, locale)}</span>,
+    status: (data: BudgetStatus): ReactElement => (
+      <StatusBadge tone={getStatusTone(data)}>{getStatusLabel(data)}</StatusBadge>
+    ),
+    lines_count: (data: number): ReactElement => <span>{Number(data || 0)}</span>,
+    total_amount_minor: (_data: number, _type: unknown, row: BudgetTableRow): ReactElement => {
+      const rowTotals = computeRowTotals(row.lines);
+
+      if (Object.keys(rowTotals).length === 0) {
+        return <span className="text-[var(--text-muted)]">-</span>;
+      }
+
+      return (
+        <div className="space-y-0.5">
+          {Object.entries(rowTotals).map(([curr, amount]) => (
+            <div key={curr} className="font-mono text-xs">
+              {formatMoney(amount, curr)}
+            </div>
+          ))}
+        </div>
+      );
+    },
+    id: (_data: string, _type: unknown, row: BudgetTableRow): ReactElement => {
+      const isDraft = row.status === 'draft';
+      const isSubmitted = row.status === 'submitted';
+      const isApproved = row.status === 'approved';
+      const isActive = row.status === 'active';
+      const totalLines = Number(row.lines_count ?? row.lines?.length ?? 0);
+      const totalAmount = Object.values(computeRowTotals(row.lines)).reduce((sum, value) => sum + value, 0);
+
+      return (
+        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          <Button variant="secondary" className="px-2.5 py-1 text-xs" onClick={() => openViewModal(row)} title={pageDict.viewDetails} aria-label={pageDict.viewDetails}>
+            {pageDict.viewDetails}
+          </Button>
+          {isDraft && canEdit ? (
+            <Button variant="secondary" className="px-2.5 py-1 text-xs" onClick={() => openEditModal(row)} title={pageDict.edit} aria-label={pageDict.edit}>
+              {pageDict.edit}
+            </Button>
+          ) : null}
+          {isDraft && canEdit && totalLines > 0 && totalAmount > 0 ? (
+            <Button className="px-2.5 py-1 text-xs" onClick={() => handleSubmit(row)} title={pageDict.submit} aria-label={pageDict.submit}>
+              {pageDict.submit}
+            </Button>
+          ) : null}
+          {isSubmitted && canApprove ? (
+            <Button className="px-2.5 py-1 text-xs" onClick={() => handleApprove(row)} title={pageDict.approve} aria-label={pageDict.approve}>
+              {pageDict.approve}
+            </Button>
+          ) : null}
+          {isApproved && canApprove ? (
+            <Button className="px-2.5 py-1 text-xs" onClick={() => handleActivate(row)} title={pageDict.activate} aria-label={pageDict.activate}>
+              {pageDict.activate}
+            </Button>
+          ) : null}
+          {(isApproved || isActive) && canApprove ? (
+            <Button variant="secondary" className="px-2.5 py-1 text-xs" onClick={() => handleArchive(row)} title={pageDict.archive} aria-label={pageDict.archive}>
+              {pageDict.archive}
+            </Button>
+          ) : null}
+          {(isDraft || isSubmitted) && canEdit ? (
+            <Button variant="danger" className="px-2.5 py-1 text-xs" onClick={() => handleCancel(row)} title={pageDict.cancelBudget} aria-label={pageDict.cancelBudget}>
+              {pageDict.cancelBudget}
+            </Button>
+          ) : null}
+          {isDraft && canDelete ? (
+            <Button variant="danger" className="px-2.5 py-1 text-xs" onClick={() => handleDelete(row)} title={pageDict.delete} aria-label={pageDict.delete}>
+              {pageDict.delete}
+            </Button>
+          ) : null}
+        </div>
+      );
+    },
+  }), [canApprove, canDelete, canEdit, locale, pageDict]);
 
   return (
     <AppLayout active="budgeting.budgets" pagination="manual">
@@ -492,198 +594,24 @@ export default function BudgetsIndex({
         </div>
       </Card>
 
-      {/* Main Budgets Table */}
-      {budgets.data.length === 0 ? (
-        <EmptyState title={pageDict.noBudgets} description={pageDict.noBudgetsDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead className="border-b border-[var(--border)] bg-[var(--surface-hover)]">
-              <tr>
-                <th className={tableClasses.th}>{pageDict.code}</th>
-                <th className={tableClasses.th}>{pageDict.fiscalYear}</th>
-                <th className={tableClasses.th}>{pageDict.versionCode}</th>
-                <th className={tableClasses.th}>{pageDict.nameEn}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.linesCount}</th>
-                <th className={tableClasses.th}>{pageDict.totalAmount}</th>
-                <th className={`${tableClasses.th} text-end`}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {budgets.data.map((b) => {
-                const rowTotals = computeRowTotals(b.lines);
-                const isDraft = b.status === 'draft';
-                const isSubmitted = b.status === 'submitted';
-                const isApproved = b.status === 'approved';
-                const isActive = b.status === 'active';
-                const totalLines = b.lines ? b.lines.length : 0;
-                const totalAmountSum = Object.values(rowTotals).reduce((sum, v) => sum + v, 0);
-
-                return (
-                  <tr key={b.id} className="hover:bg-[var(--surface-hover)] transition-colors">
-                    <td className={`${tableClasses.td} font-medium`}>
-                      <button
-                        type="button"
-                        onClick={() => openViewModal(b)}
-                        title={b.code}
-                        aria-label={b.code}
-                        className="text-[var(--primary)] hover:underline font-semibold text-start cursor-pointer"
-                      >
-                        {b.code}
-                      </button>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {b.fiscal_year?.year || '-'}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-500">
-                        {b.version_code}
-                      </span>
-                    </td>
-                    <td className={tableClasses.td}>{getLocalizedName(b.name, locale)}</td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(b.status)}>{getStatusLabel(b.status)}</StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>{totalLines}</td>
-                    <td className={tableClasses.td}>
-                      {Object.keys(rowTotals).length === 0 ? (
-                        <span className="text-[var(--text-muted)]">-</span>
-                      ) : (
-                        <div className="space-y-0.5">
-                          {Object.entries(rowTotals).map(([curr, amt]) => (
-                            <div key={curr} className="font-mono text-xs">
-                              {formatMoney(amt, curr)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                        <Button
-                          variant="secondary"
-                          className="px-2.5 py-1 text-xs"
-                          onClick={() => openViewModal(b)}
-                          title={pageDict.viewDetails}
-                          aria-label={pageDict.viewDetails}
-                        >
-                          {pageDict.viewDetails}
-                        </Button>
-
-                        {/* Lifecycle buttons based on status & permissions */}
-                        {isDraft && canEdit ? (
-                          <Button
-                            variant="secondary"
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => openEditModal(b)}
-                            title={pageDict.edit}
-                            aria-label={pageDict.edit}
-                          >
-                            {pageDict.edit}
-                          </Button>
-                        ) : null}
-
-                        {isDraft && canEdit && totalLines > 0 && totalAmountSum > 0 ? (
-                          <Button
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => handleSubmit(b)}
-                            title={pageDict.submit}
-                            aria-label={pageDict.submit}
-                          >
-                            {pageDict.submit}
-                          </Button>
-                        ) : null}
-
-                        {isSubmitted && canApprove ? (
-                          <Button
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => handleApprove(b)}
-                            title={pageDict.approve}
-                            aria-label={pageDict.approve}
-                          >
-                            {pageDict.approve}
-                          </Button>
-                        ) : null}
-
-                        {isApproved && canApprove ? (
-                          <Button
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => handleActivate(b)}
-                            title={pageDict.activate}
-                            aria-label={pageDict.activate}
-                          >
-                            {pageDict.activate}
-                          </Button>
-                        ) : null}
-
-                        {(isApproved || isActive) && canApprove ? (
-                          <Button
-                            variant="secondary"
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => handleArchive(b)}
-                            title={pageDict.archive}
-                            aria-label={pageDict.archive}
-                          >
-                            {pageDict.archive}
-                          </Button>
-                        ) : null}
-
-                        {(isDraft || isSubmitted) && canEdit ? (
-                          <Button
-                            variant="danger"
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => handleCancel(b)}
-                            title={pageDict.cancelBudget}
-                            aria-label={pageDict.cancelBudget}
-                          >
-                            {pageDict.cancelBudget}
-                          </Button>
-                        ) : null}
-
-                        {isDraft && canDelete ? (
-                          <Button
-                            variant="danger"
-                            className="px-2.5 py-1 text-xs"
-                            onClick={() => handleDelete(b)}
-                            title={pageDict.delete}
-                            aria-label={pageDict.delete}
-                          >
-                            {pageDict.delete}
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Pagination Links */}
-      {budgets.links && budgets.links.length > 3 ? (
-        <div className="flex justify-center items-center gap-1 mt-6 flex-wrap">
-          {budgets.links.map((link, idx) => (
-            <Link
-              key={idx}
-              href={link.url || '#'}
-              preserveScroll
-              preserveState
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                link.active
-                  ? 'bg-[var(--primary)] text-white font-bold'
-                  : link.url
-                    ? 'bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] border border-[var(--border)]'
-                    : 'text-[var(--text-muted)] cursor-not-allowed border border-[var(--border)] opacity-50'
-              }`}
-            >
-              {paginationLabel(link.label)}
-            </Link>
-          ))}
-        </div>
-      ) : null}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/budgeting/budgets/data"
+          columns={columns}
+          filters={{
+            budget_search: filters.search || '',
+            fiscal_year_id: filters.fiscal_year_id || '',
+            status: filters.status || '',
+          }}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="budgets-table"
+        />
+      </Card>
 
       {/* Create / Edit Modal */}
       {showModal ? (
@@ -1217,7 +1145,10 @@ export default function BudgetsIndex({
             { ...payload, lock_version: budget.lock_version },
             {
               preserveScroll: true,
-              onSuccess: () => setBudgetSensitiveAction(null),
+              onSuccess: () => {
+                setBudgetSensitiveAction(null);
+                setReloadToken((token) => token + 1);
+              },
             },
           );
         }}

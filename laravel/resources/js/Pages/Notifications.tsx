@@ -1,8 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import { useMemo, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge } from '../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../Components/ServerDataTable';
+import { Card, PageHeader, StatusBadge } from '../Components/Primitives';
 import { getDictionary } from '../lib/i18n';
 import type { NotificationRow, PaginationLink, SharedPageProps } from '../Types';
 
@@ -127,6 +128,50 @@ export default function Notifications({ items, counts, filters, locale }: Notifi
     timeStyle: 'short',
   });
 
+  const columns = useMemo(() => [
+    { data: 'type', name: 'type', title: dict.app.notifications.type },
+    { data: 'target_ref', name: 'target_ref', title: dict.app.notifications.reference },
+    { data: 'at', name: 'at', title: dict.app.notifications.date },
+    { data: 'read', name: 'read', title: dict.app.notifications.status, searchable: false },
+    { data: 'actions', name: 'actions', title: dict.app.notifications.actions, orderable: false, searchable: false },
+  ], [dict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    type: (data: string): ReactElement => {
+      const formattedType = data
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      return (
+        <div className="flex min-w-0 items-center gap-3">
+          <NotificationTypeIcon type={data} />
+          <span className="truncate text-sm font-bold text-[var(--text-primary)]">{formattedType}</span>
+        </div>
+      );
+    },
+    target_ref: (data: string | null): ReactElement => (
+      <span className="inline-block max-w-xs truncate rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-0.5 font-mono text-xs text-[var(--text-muted)]">
+        {data || dict.app.dashboard.noReference}
+      </span>
+    ),
+    at: (data: string | null): ReactElement => (
+      <span className="whitespace-nowrap text-xs font-medium text-[var(--text-muted)]">
+        {data && !Number.isNaN(new Date(data).getTime())
+          ? formatter.format(new Date(data))
+          : dict.app.dashboard.unavailableTime}
+      </span>
+    ),
+    read: (data: boolean): ReactElement => (
+      <StatusBadge tone={data ? 'muted' : 'ok'}>
+        {data ? dict.app.notifications.read : dict.app.notifications.unread}
+      </StatusBadge>
+    ),
+    actions: (_data: unknown, _type: unknown, row: NotificationRow): ReactElement | null => (
+      row.read ? null : <MarkReadButton id={row.id} label={dict.app.notifications.markRead} />
+    ),
+  } as DataTableSlots), [dict, formatter]);
+
   const changeFilter = (tab: 'all' | 'unread' | 'read') => {
     router.get('/notifications', { tab: tab === 'all' ? undefined : tab }, {
       preserveScroll: true,
@@ -211,64 +256,19 @@ export default function Notifications({ items, counts, filters, locale }: Notifi
         </button>
       </div>
 
-      {/* Notifications List Feed */}
-      {items.data.length === 0 ? (
-        <EmptyState title={dict.app.notifications.empty} />
-      ) : (
-        <div className="space-y-3">
-          {items.data.map((item) => {
-            const formattedType = item.type
-              .split('_')
-              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-              .join(' ');
-
-            return (
-              <Card
-                key={item.id}
-                className={`p-4 transition-all hover:border-blue-500/30 ${
-                  !item.read
-                    ? 'border-blue-500/30 bg-blue-500/5 shadow-xs'
-                    : 'border-[var(--border)] bg-[var(--surface)] opacity-90'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3.5 min-w-0">
-                    <NotificationTypeIcon type={item.type} />
-
-                    <div className="flex flex-col space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-sm text-[var(--text-primary)]">{formattedType}</span>
-
-                        {!item.read ? (
-                          <span className="size-2 rounded-full bg-blue-500 motion-safe:animate-pulse" title={dict.app.notifications.unread} />
-                        ) : null}
-
-                        <span className="font-mono text-xs text-[var(--text-muted)] bg-[var(--background)] border border-[var(--border)] px-2 py-0.5 rounded-md truncate max-w-xs">
-                          {item.targetRef || dict.app.dashboard.noReference}
-                        </span>
-                      </div>
-
-                      <span className="text-xs text-[var(--text-muted)] font-medium">
-                        {item.at && !Number.isNaN(new Date(item.at).getTime())
-                          ? formatter.format(new Date(item.at))
-                          : dict.app.dashboard.unavailableTime}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <StatusBadge tone={item.read ? 'muted' : 'ok'}>
-                      {item.read ? dict.app.notifications.read : dict.app.notifications.unread}
-                    </StatusBadge>
-
-                    {!item.read ? <MarkReadButton id={item.id} label={dict.app.notifications.markRead} /> : null}
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/notifications/data"
+          columns={columns}
+          filters={{ tab: filter }}
+          locale={locale}
+          order={[[2, 'desc']]}
+          pageLength={25}
+          reloadToken={`${filter}:${counts.unread}:${counts.read}`}
+          slots={slots}
+          tableId="notifications-table"
+        />
+      </Card>
     </AppLayout>
   );
 }

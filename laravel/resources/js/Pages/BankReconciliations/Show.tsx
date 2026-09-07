@@ -1,8 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -25,6 +26,12 @@ type ReconciliationLine = {
     credit_minor: number;
     journalEntry?: { id: string; entry_number: string };
   } | null;
+  matched_entry?: {
+    id: string;
+    debit_minor: number;
+    credit_minor: number;
+    journal_number?: string | null;
+  } | null;
 };
 
 type CandidateEntry = {
@@ -34,6 +41,8 @@ type CandidateEntry = {
   debit_minor: number;
   credit_minor: number;
   journalEntry?: { id: string; entry_number: string };
+  journal_number?: string | null;
+  amount_minor?: number;
 };
 
 type BankReconciliationShowProps = SharedPageProps & {
@@ -65,7 +74,6 @@ export default function BankReconciliationShow({
   locale,
   reconciliation,
   summary,
-  candidates = [],
 }: BankReconciliationShowProps) {
   const isAr = locale === 'ar';
   const dict = getDictionary(locale);
@@ -75,6 +83,7 @@ export default function BankReconciliationShow({
 
   const [showAddLineModal, setShowAddLineModal] = useState(false);
   const [selectedLineForMatch, setSelectedLineForMatch] = useState<ReconciliationLine | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Form for adding a statement line
   const addLineForm = useForm({
@@ -103,13 +112,17 @@ export default function BankReconciliationShow({
       onSuccess: () => {
         setShowAddLineModal(false);
         addLineForm.reset();
+        setReloadToken((token) => token + 1);
       },
     });
   };
 
   const handleDeleteLine = (lineId: string) => {
     if (confirm(dict.app.pages.bankReconciliationsShow.areYouSureYouWantTo)) {
-      router.delete(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}`, { preserveScroll: true });
+      router.delete(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}`, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((token) => token + 1),
+      });
     }
   };
 
@@ -120,12 +133,16 @@ export default function BankReconciliationShow({
       preserveScroll: true,
       onSuccess: () => {
         setSelectedLineForMatch(null);
+        setReloadToken((token) => token + 1);
       },
     });
   };
 
   const handleUnmatch = (lineId: string) => {
-    router.post(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}/unmatch`, {}, { preserveScroll: true });
+    router.post(`/bank-reconciliations/${reconciliation.id}/lines/${lineId}/unmatch`, {}, {
+      preserveScroll: true,
+      onSuccess: () => setReloadToken((token) => token + 1),
+    });
   };
 
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
@@ -146,6 +163,113 @@ export default function BankReconciliationShow({
 
     return reconciliation.status === 'draft' ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
+
+  const lineColumns = useMemo(() => [
+    { data: 'statement_date', name: 'statement_date', title: dict.app.pages.bankReconciliationsShow.date },
+    { data: 'reference', name: 'reference', title: dict.app.pages.bankReconciliationsShow.reference },
+    { data: 'description', name: 'description', title: dict.app.pages.bankReconciliationsShow.description },
+    { data: 'debit_minor', name: 'debit_minor', title: dict.app.pages.bankReconciliationsShow.debitOut, searchable: false },
+    { data: 'credit_minor', name: 'credit_minor', title: dict.app.pages.bankReconciliationsShow.creditIn, searchable: false },
+    { data: 'matched_entry', name: 'matched_entry', title: dict.app.pages.bankReconciliationsShow.matchedGlEntry, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: dict.app.pages.bankReconciliationsShow.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [dict]);
+
+  const lineSlots = useMemo<DataTableSlots>(() => ({
+    statement_date: (data: string): ReactElement => <span className="font-mono text-xs">{data}</span>,
+    reference: (data: string | null): ReactElement => <span className="font-mono text-xs">{data || accDict.notAvailable}</span>,
+    description: (data: string | null): ReactElement => <span>{data || accDict.notAvailable}</span>,
+    debit_minor: (data: number): ReactElement => (
+      <span className="font-mono text-xs">{data > 0 ? formatReconciliationMoney(data) : accDict.notAvailable}</span>
+    ),
+    credit_minor: (data: number): ReactElement => (
+      <span className="font-mono text-xs">{data > 0 ? formatReconciliationMoney(data) : accDict.notAvailable}</span>
+    ),
+    matched_entry: (_data: ReconciliationLine['matched_entry'], _type: unknown, row: ReconciliationLine): ReactElement => (
+      row.matched_entry ? (
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+          <span>
+            {row.matched_entry.journal_number || row.matched_entry.id.substring(0, 8)} ({formatReconciliationMoney(row.matched_entry.debit_minor || row.matched_entry.credit_minor)})
+          </span>
+        </div>
+      ) : (
+        <span className="text-xs text-amber-600 italic font-medium">{dict.app.pages.bankReconciliationsShow.unmatched}</span>
+      )
+    ),
+    actions: (_data: null, _type: unknown, row: ReconciliationLine): ReactElement => {
+      const actionState = getStatementLineActionState();
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canEditReconciliation && row.matched_entry ? (
+            <button
+              type="button"
+              onClick={() => handleUnmatch(row.id)}
+              title={dict.app.pages.bankReconciliationsShow.unmatch}
+              aria-label={dict.app.pages.bankReconciliationsShow.unmatch}
+              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+            >
+              {dict.app.pages.bankReconciliationsShow.unmatch}
+            </button>
+          ) : null}
+          {canEditReconciliation && !row.matched_entry ? (
+            <button
+              type="button"
+              onClick={() => setSelectedLineForMatch(row)}
+              title={dict.app.pages.bankReconciliationsShow.matchGl}
+              aria-label={dict.app.pages.bankReconciliationsShow.matchGl}
+              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+            >
+              {dict.app.pages.bankReconciliationsShow.matchGl}
+            </button>
+          ) : null}
+          {canEditReconciliation && !row.matched_entry ? (
+            <button
+              type="button"
+              onClick={() => handleDeleteLine(row.id)}
+              title={dict.app.pages.bankReconciliationsShow.delete}
+              aria-label={dict.app.pages.bankReconciliationsShow.delete}
+              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+            >
+              {dict.app.pages.bankReconciliationsShow.delete}
+            </button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canEditReconciliation, dict, reconciliation.status]);
+
+  const candidateColumns = useMemo(() => [
+    { data: 'entry_date', name: 'entry_date', title: dict.app.pages.bankReconciliationsShow.date_2 },
+    { data: 'journal_number', name: 'journal_number', title: dict.app.pages.bankReconciliationsShow.entryNo },
+    { data: 'description', name: 'description', title: dict.app.pages.bankReconciliationsShow.description_3 },
+    { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.bankReconciliationsShow.amount, searchable: false },
+    { data: 'actions', name: 'actions', title: dict.app.pages.bankReconciliationsShow.select, orderable: false, searchable: false, className: 'text-end' },
+  ], [dict]);
+
+  const candidateSlots = useMemo<DataTableSlots>(() => ({
+    entry_date: (data: string): ReactElement => <span className="font-mono text-xs">{data}</span>,
+    journal_number: (data: string | null, _type: unknown, row: CandidateEntry): ReactElement => (
+      <span className="font-mono text-xs font-bold">{data || row.id.substring(0, 8)}</span>
+    ),
+    description: (data: string | null): ReactElement => <span>{data || accDict.notAvailable}</span>,
+    amount_minor: (data: number, _type: unknown, row: CandidateEntry): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatReconciliationMoney(data ?? row.debit_minor + row.credit_minor)}</span>
+    ),
+    actions: (_data: null, _type: unknown, row: CandidateEntry): ReactElement => (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => selectedLineForMatch && handleMatch(selectedLineForMatch.id, row.id)}
+          title={dict.app.pages.bankReconciliationsShow.match}
+          aria-label={dict.app.pages.bankReconciliationsShow.match}
+          className="rounded-lg bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer"
+        >
+          {dict.app.pages.bankReconciliationsShow.match}
+        </button>
+      </div>
+    ),
+  }), [accDict.notAvailable, dict, selectedLineForMatch]);
 
   return (
     <AppLayout active="bank-reconciliations.show">
@@ -222,96 +346,16 @@ export default function BankReconciliationShow({
           {dict.app.pages.bankReconciliationsShow.bankStatementLinesMatching}
         </h2>
 
-        {reconciliation.lines.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.bankReconciliationsShow.noStatementLines}
-            description={dict.app.pages.bankReconciliationsShow.addStatementLinesToStartMatching}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.date}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.reference}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.description}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.debitOut}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.creditIn}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.matchedGlEntry}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reconciliation.lines.map((line) => {
-                  const actionState = getStatementLineActionState();
-
-                  return (
-                    <tr key={line.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                      <td className={`${tableClasses.td} font-mono text-xs`}>{line.statement_date}</td>
-                      <td className={`${tableClasses.td} font-mono text-xs`}>{line.reference || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{line.description || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-mono text-xs`}>
-                        {line.debit_minor > 0 ? formatReconciliationMoney(line.debit_minor) : accDict.notAvailable}
-                      </td>
-                      <td className={`${tableClasses.td} font-mono text-xs`}>
-                        {line.credit_minor > 0 ? formatReconciliationMoney(line.credit_minor) : accDict.notAvailable}
-                      </td>
-                      <td className={tableClasses.td}>
-                        {line.matchedLedgerEntry ? (
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-                            <span>
-                              {line.matchedLedgerEntry.journalEntry?.entry_number || line.matchedLedgerEntry.id.substring(0, 8)} ({formatReconciliationMoney(line.matchedLedgerEntry.debit_minor || line.matchedLedgerEntry.credit_minor)})
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-amber-600 italic font-medium">{dict.app.pages.bankReconciliationsShow.unmatched}</span>
-                        )}
-                      </td>
-                      <td className={tableClasses.td}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {canEditReconciliation && line.matchedLedgerEntry ? (
-                            <button
-                              type="button"
-                              onClick={() => handleUnmatch(line.id)}
-                              title={dict.app.pages.bankReconciliationsShow.unmatch}
-                              aria-label={dict.app.pages.bankReconciliationsShow.unmatch}
-                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                            >
-                              {dict.app.pages.bankReconciliationsShow.unmatch}
-                            </button>
-                          ) : null}
-                          {canEditReconciliation && !line.matchedLedgerEntry ? (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedLineForMatch(line)}
-                              title={dict.app.pages.bankReconciliationsShow.matchGl}
-                              aria-label={dict.app.pages.bankReconciliationsShow.matchGl}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.bankReconciliationsShow.matchGl}
-                            </button>
-                          ) : null}
-                          {canEditReconciliation && !line.matchedLedgerEntry ? (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteLine(line.id)}
-                              title={dict.app.pages.bankReconciliationsShow.delete}
-                              aria-label={dict.app.pages.bankReconciliationsShow.delete}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.bankReconciliationsShow.delete}
-                            </button>
-                          ) : null}
-                          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ServerDataTable
+          ajaxUrl={`/bank-reconciliations/${reconciliation.id}/lines/data`}
+          columns={lineColumns}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={lineSlots}
+          tableId="bank-reconciliation-lines-table"
+        />
       </Card>
 
       {/* Add Line Modal */}
@@ -422,48 +466,18 @@ export default function BankReconciliationShow({
               })}
             </p>
 
-            {candidates.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[var(--text-muted)] border border-dashed border-[var(--border)] rounded-xl">
-                {dict.app.pages.bankReconciliationsShow.noCandidateUnmatchedGlEntriesFound}
-              </div>
-            ) : (
-              <div className="max-h-80 overflow-y-auto rounded-xl border border-[var(--border)] mb-4">
-                <table className={tableClasses.table}>
-                  <thead>
-                    <tr>
-                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.date_2}</th>
-                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.entryNo}</th>
-                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.description_3}</th>
-                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.amount}</th>
-                      <th className={tableClasses.th}>{dict.app.pages.bankReconciliationsShow.select}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {candidates.map((cand) => (
-                      <tr key={cand.id} className="hover:bg-[var(--background)]/50">
-                        <td className={`${tableClasses.td} font-mono text-xs`}>{cand.entry_date}</td>
-                        <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{cand.journalEntry?.entry_number || cand.id.substring(0, 8)}</td>
-                        <td className={tableClasses.td}>{cand.description || accDict.notAvailable}</td>
-                        <td className={`${tableClasses.td} font-mono text-xs font-bold`}>
-                          {formatReconciliationMoney(cand.debit_minor || cand.credit_minor)}
-                        </td>
-                        <td className={tableClasses.td}>
-                          <button
-                            type="button"
-                            onClick={() => handleMatch(selectedLineForMatch.id, cand.id)}
-                            title={dict.app.pages.bankReconciliationsShow.match}
-                            aria-label={dict.app.pages.bankReconciliationsShow.match}
-                            className="rounded-lg bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer"
-                          >
-                            {dict.app.pages.bankReconciliationsShow.match}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <div className="max-h-96 overflow-y-auto rounded-xl border border-[var(--border)] mb-4">
+              <ServerDataTable
+                ajaxUrl={`/bank-reconciliations/${reconciliation.id}/candidates/data`}
+                columns={candidateColumns}
+                locale={locale}
+                order={[[0, 'asc']]}
+                pageLength={10}
+                reloadToken={reloadToken}
+                slots={candidateSlots}
+                tableId="bank-reconciliation-candidates-table"
+              />
+            </div>
 
             <div className="flex justify-end pt-2">
               <button

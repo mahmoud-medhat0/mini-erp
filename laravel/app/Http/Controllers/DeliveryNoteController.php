@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Application\Sales\DeliveryNotePageData;
 use App\Application\Sales\DeliveryNoteService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +22,13 @@ class DeliveryNoteController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Sales/DeliveryNotes', $this->pageData->indexData($request->only(['search', 'status', 'warehouse_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('sales.view');
+
+        return $this->pageData->datatable($request->only(['status', 'warehouse_id']));
     }
 
     public function store(Request $request): RedirectResponse

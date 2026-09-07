@@ -1,17 +1,24 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Head, useForm } from '@inertiajs/react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
-import type { PaginationLink, CurrencyRow, FxRateRow, SharedPageProps } from '../../Types';
+import type { CurrencyRow, SharedPageProps } from '../../Types';
+
+type ExchangeRateTableRow = {
+  id: string;
+  currency: string;
+  currency_name: Record<string, string> | string;
+  currency_symbol?: string | null;
+  date: string;
+  rate_decimal: number;
+  rate_e6: number;
+};
 
 type ExchangeRatesProps = SharedPageProps & {
-  rates: {
-    data: FxRateRow[];
-    links: PaginationLink[];
-    total: number;
-  };
+  rateEntryCount?: number;
   currencies?: CurrencyRow[];
   baseCurrency?: string | null;
   baseCurrencyRef?: CurrencyRow | null;
@@ -19,13 +26,11 @@ type ExchangeRatesProps = SharedPageProps & {
   activeCurrencyCount?: number;
 };
 
-export default function ExchangeRates({ locale, rates, currencies = [], baseCurrency = null, baseCurrencyRef = null, filters = {}, activeCurrencyCount = 0 }: ExchangeRatesProps) {
+export default function ExchangeRates({ locale, rateEntryCount = 0, currencies = [], baseCurrency = null, baseCurrencyRef = null, filters = {}, activeCurrencyCount = 0 }: ExchangeRatesProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const actionsDict = dict.app.actions;
 
-  const [search, setSearch] = useState(filters.search || '');
-  const mounted = useRef(false);
   const baseCurrencyCode = baseCurrency ?? '';
   const foreignCurrencies = currencies.filter((c) => c.code !== baseCurrencyCode);
   const defaultCurrency = foreignCurrencies[0]?.code ?? '';
@@ -33,6 +38,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
   const baseCurrencyDisplay = baseCurrencyCode || accDict.noBaseCurrency;
 
   const [showModal, setShowModal] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const form = useForm({
     currency: defaultCurrency,
     date: new Date().toISOString().split('T')[0],
@@ -46,6 +52,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
       onSuccess: () => {
         setShowModal(false);
         form.reset();
+        setReloadToken((token) => token + 1);
       },
     });
   }
@@ -61,22 +68,46 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
     label: `${c.code} - ${getName(c.name)} (${c.symbol})`,
   }));
 
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return undefined;
-    }
+  const columns = useMemo(() => [
+    { data: 'currency_name', name: 'currency_name', title: accDict.currency },
+    { data: 'date', name: 'date', title: accDict.effectiveDate, width: '120px' },
+    { data: 'rate_decimal', name: 'rate_decimal', title: accDict.rateDecimal, searchable: false },
+    { data: 'rate_e6', name: 'rate_e6', title: accDict.rateE6, searchable: false },
+  ], [accDict]);
 
-    const timer = window.setTimeout(() => {
-      router.get('/accounting/fx-rates', { search: search || undefined }, {
-        preserveScroll: true,
-        preserveState: true,
-        replace: true,
-      });
-    }, 350);
+  const slots = useMemo<DataTableSlots>(() => ({
+    currency_name: (data: ExchangeRateTableRow['currency_name'], _type: unknown, row: ExchangeRateTableRow): ReactElement => (
+      <div className="flex items-center gap-2.5">
+        <span className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+          {row.currency}
+        </span>
+        <span className="text-xs font-medium text-[var(--text-primary)]">
+          {getName(data)}{row.currency_symbol ? ` (${row.currency_symbol})` : ''}
+        </span>
+      </div>
+    ),
+    date: (data: string): ReactElement => (
+      <span className="font-mono text-xs text-[var(--text-primary)]">{data?.split('T')[0]}</span>
+    ),
+    rate_decimal: (data: number, _type: unknown, row: ExchangeRateTableRow): ReactElement => {
+      const decimalValue = Number(data).toFixed(4);
 
-    return () => window.clearTimeout(timer);
-  }, [search]);
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-bold text-[var(--primary)]">{decimalValue}</span>
+          <span className="font-mono text-[10px] text-[var(--text-muted)]">
+            {accDict.fxConversionLine
+              .replace('{currency}', row.currency)
+              .replace('{rate}', decimalValue)
+              .replace('{baseCurrency}', baseCurrencyDisplay)}
+          </span>
+        </div>
+      );
+    },
+    rate_e6: (data: number): ReactElement => (
+      <span className="font-mono text-xs text-[var(--text-muted)]">{data}</span>
+    ),
+  } as unknown as DataTableSlots), [accDict, baseCurrencyDisplay, locale]);
 
   return (
     <AppLayout active="accounting.fx_rates">
@@ -123,7 +154,7 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 {accDict.totalRateEntries}
               </span>
-              <p className="mt-1 text-2xl font-black font-mono text-[var(--text-primary)]">{rates.total}</p>
+              <p className="mt-1 text-2xl font-black font-mono text-[var(--text-primary)]">{rateEntryCount}</p>
             </div>
             <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -243,84 +274,19 @@ export default function ExchangeRates({ locale, rates, currencies = [], baseCurr
         </Card>
       ) : null}
 
-      {/* Search Bar */}
-      <Card className="p-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-[var(--text-muted)]">
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder={accDict.searchFxRatesPlaceholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] ps-10 pe-3.5 py-2.5 text-xs text-[var(--text-primary)] focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-        </div>
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/accounting/fx-rates/data"
+          columns={columns}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[1, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="exchange-rates-table"
+        />
       </Card>
-
-      {/* Table */}
-      <div className={tableClasses.wrap}>
-        <table className={tableClasses.table}>
-          <thead>
-            <tr>
-              <th className={tableClasses.th}>{accDict.currency}</th>
-              <th className={tableClasses.th}>{accDict.effectiveDate}</th>
-              <th className={tableClasses.th}>{accDict.rateDecimal}</th>
-              <th className={tableClasses.th}>{accDict.rateE6}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--border)]">
-            {rates.data.map((r, idx) => {
-              const decimalValue = (r.rate_e6 / 1000000).toFixed(4);
-              return (
-                <tr key={idx} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={tableClasses.td}>
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-lg border border-blue-500/20">
-                        {r.currency}
-                      </span>
-                      {r.currency_ref ? (
-                        <span className="text-xs font-medium text-[var(--text-primary)]">
-                          {getName(r.currency_ref.name)} ({r.currency_ref.symbol})
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="font-mono text-xs text-[var(--text-primary)]">{r.date.split('T')[0]}</span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-xs text-[var(--primary)]">{decimalValue}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                        {accDict.fxConversionLine
-                          .replace('{currency}', r.currency)
-                          .replace('{rate}', decimalValue)
-                          .replace('{baseCurrency}', baseCurrencyDisplay)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="font-mono text-xs text-[var(--text-muted)]">{r.rate_e6}</span>
-                  </td>
-                </tr>
-              );
-            })}
-            {rates.data.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="p-6 text-center text-xs font-bold text-[var(--text-muted)]">
-                  {accDict.noFxRates}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
     </AppLayout>
   );
 }

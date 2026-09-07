@@ -7,15 +7,17 @@ use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\RentableItem;
 use App\Models\RentalContract;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class RentalContractPageData
 {
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     contracts: LengthAwarePaginator,
+     *     contracts: array,
      *     customers: EloquentCollection<int, Customer>,
      *     branches: EloquentCollection<int, Branch>,
      *     rentableItems: EloquentCollection<int, RentableItem>,
@@ -33,28 +35,8 @@ class RentalContractPageData
         $customerId = (string) ($filters['customer_id'] ?? '');
         $branchId = (string) ($filters['branch_id'] ?? '');
 
-        $contracts = RentalContract::query()
-            ->with(['customer', 'branch', 'lines.rentableItem'])
-            ->when($status !== '' && in_array($status, RentalContractService::STATUSES, true), fn ($query) => $query->where('status', $status))
-            ->when($customerId !== '', fn ($query) => $query->where('customer_id', $customerId))
-            ->when($branchId !== '', fn ($query) => $query->where('branch_id', $branchId))
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('number', 'like', "%{$search}%")
-                        ->orWhere('reference', 'like', "%{$search}%")
-                        ->orWhereHas('customer', function ($customer) use ($search): void {
-                            $customer->where('code', 'like', "%{$search}%")
-                                ->orWhere('name->en', 'like', "%{$search}%")
-                                ->orWhere('name->ar', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->latest('created_at')
-            ->paginate(15)
-            ->withQueryString();
-
         return [
-            'contracts' => $contracts,
+            'contracts' => [],
             'customers' => Customer::query()->where('status', 'active')->orderBy('code')->get(['id', 'code', 'name']),
             'branches' => Branch::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'rentableItems' => RentableItem::query()
@@ -74,5 +56,50 @@ class RentalContractPageData
                 'branch_id' => $branchId,
             ],
         ];
+    }
+
+    /** @param  array<string, mixed>  $filters */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $status = (string) ($filters['status'] ?? '');
+        $customerId = (string) ($filters['customer_id'] ?? '');
+        $branchId = (string) ($filters['branch_id'] ?? '');
+
+        $query = RentalContract::query()
+            ->with(['customer', 'branch', 'lines.rentableItem'])
+            ->leftJoin('customer as rental_customer', 'rental_customer.id', '=', 'rental_contract.customer_id')
+            ->leftJoin('branch as rental_branch', 'rental_branch.id', '=', 'rental_contract.branch_id')
+            ->select('rental_contract.*')
+            ->when($status !== '' && in_array($status, RentalContractService::STATUSES, true), fn (Builder $query) => $query->where('rental_contract.status', $status))
+            ->when($customerId !== '', fn (Builder $query) => $query->where('rental_contract.customer_id', $customerId))
+            ->when($branchId !== '', fn (Builder $query) => $query->where('rental_contract.branch_id', $branchId));
+
+        return DataTables::eloquent($query)
+            ->filterColumn('rental_contract.number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('rental_contract.number', 'like', "%{$keyword}%")
+                        ->orWhere('rental_contract.reference', 'like', "%{$keyword}%")
+                        ->orWhere('rental_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(rental_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('customer_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('rental_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(rental_customer.name AS TEXT)) LIKE ?', [$needle])
+                        ->orWhere('rental_branch.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(rental_branch.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('customer_name', 'rental_customer.code $1')
+            ->addColumn('customer_name', fn () => '')
+            ->addColumn('period', fn () => '')
+            ->addColumn('items', fn () => '')
+            ->addColumn('totals', fn () => '')
+            ->addColumn('actions', fn () => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 }

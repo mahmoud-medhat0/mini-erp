@@ -6,6 +6,9 @@ use App\Models\PayableAllocation;
 use App\Models\PayableEntry;
 use App\Models\PayableEntrySettlement;
 use App\Models\Supplier;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class PayableEntrySettlementPageData
 {
@@ -52,17 +55,54 @@ class PayableEntrySettlementPageData
             'debitEntries' => $debitEntries,
             'selectedSourceEntry' => $selectedSourceEntry,
             'openTargetCredits' => $openTargetCredits,
-            'existingSettlements' => PayableEntrySettlement::query()
-                ->with(['supplier', 'sourcePayableEntry', 'targetPayableEntry', 'creator', 'reverser'])
-                ->orderBy('created_at', 'desc')
-                ->paginate(15)
-                ->withQueryString(),
+            'existingSettlements' => [],
             'suppliers' => Supplier::query()->where('status', 'active')->orderBy('name')->get(),
             'filters' => [
                 'supplier_id' => $supplierId,
                 'source_entry_id' => $sourceEntryId,
             ],
         ];
+    }
+
+    /** @param array<string, mixed> $filters */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $supplierId = (string) ($filters['supplier_id'] ?? '');
+        $query = PayableEntrySettlement::query()
+            ->with(['supplier', 'sourcePayableEntry', 'targetPayableEntry', 'creator', 'reverser'])
+            ->leftJoin('supplier', 'supplier.id', '=', 'payable_entry_settlement.supplier_id')
+            ->select('payable_entry_settlement.*')
+            ->when($supplierId !== '', fn (Builder $builder) => $builder
+                ->where('payable_entry_settlement.supplier_id', $supplierId));
+
+        return DataTables::eloquent($query)
+            ->filter(function (Builder $builder): void {
+                $search = trim((string) request()->input('search.value', ''));
+
+                if ($search === '') {
+                    return;
+                }
+
+                $like = '%'.mb_strtolower($search).'%';
+                $builder->where(function (Builder $nested) use ($like): void {
+                    $nested
+                        ->whereRaw("LOWER(COALESCE(CAST(payable_entry_settlement.source_payable_entry_id AS TEXT), '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(CAST(payable_entry_settlement.target_payable_entry_id AS TEXT), '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(payable_entry_settlement.status, '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(payable_entry_settlement.currency, '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(supplier.code, '')) LIKE ?", [$like])
+                        ->orWhereRaw("LOWER(COALESCE(CAST(supplier.name AS TEXT), '')) LIKE ?", [$like]);
+                });
+            })
+            ->orderColumn('settled_at', 'payable_entry_settlement.settled_at $1')
+            ->orderColumn('supplier_name', 'supplier.code $1')
+            ->orderColumn('source_payable_entry_id', 'payable_entry_settlement.source_payable_entry_id $1')
+            ->orderColumn('target_payable_entry_id', 'payable_entry_settlement.target_payable_entry_id $1')
+            ->orderColumn('amount_minor', 'payable_entry_settlement.amount_minor $1')
+            ->orderColumn('status', 'payable_entry_settlement.status $1')
+            ->addColumn('supplier_name', fn (PayableEntrySettlement $row) => $row->supplier?->name ?? '')
+            ->addColumn('actions', fn (): null => null)
+            ->toJson();
     }
 
     private function sourceDebitRemaining(PayableEntry $entry): int

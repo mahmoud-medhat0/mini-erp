@@ -1,8 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -25,7 +26,7 @@ type LocationRow = {
 };
 
 type LocationsProps = SharedPageProps & {
-  locations: LocationRow[];
+  locations?: LocationRow[];
   branches: BranchOption[];
   filters: {
     search?: string;
@@ -57,15 +58,15 @@ function namePart(name: Record<string, string> | string | null | undefined, loca
   return name[locale] || name.en || name.ar || '';
 }
 
-export default function FixedAssetLocationsIndex({ locale, locations = [], branches = [], filters, can }: LocationsProps) {
+export default function FixedAssetLocationsIndex({ locale, branches = [], filters, can }: LocationsProps) {
   const dict = getDictionary(locale);
   const appDict = dict.app.accounting;
 
-  const [search, setSearch] = useState(filters.search || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
   const [status, setStatus] = useState(filters.status || '');
   const [showForm, setShowForm] = useState(false);
   const [editingLocation, setEditingLocation] = useState<LocationRow | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm<LocationForm>({
     code: '',
@@ -80,19 +81,15 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
     label: `${branch.code} - ${getLocalizedName(branch.name, locale)}`,
   }));
   const statusOptions = [
+    { value: '', label: appDict.allStatuses },
     { value: 'active', label: appDict.active },
     { value: 'inactive', label: appDict.inactive },
   ];
-  const activeFilterCount = [search, branchId, status].filter(Boolean).length;
+  const activeFilterCount = [filters.search, branchId, status].filter(Boolean).length;
   const formErrors = form.errors as Record<string, string | undefined>;
   const locationSubmitLabel = form.processing ? appDict.saving : appDict.save;
 
-  function applyFilters() {
-    router.get('/fixed-asset-locations', { search, branch_id: branchId, status }, { preserveState: true, preserveScroll: true });
-  }
-
   function clearFilters() {
-    setSearch('');
     setBranchId('');
     setStatus('');
     router.get('/fixed-asset-locations', {}, { preserveState: true, preserveScroll: true });
@@ -132,22 +129,90 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
     if (editingLocation) {
       form.put(`/fixed-asset-locations/${editingLocation.id}`, {
         preserveScroll: true,
-        onSuccess: () => setShowForm(false),
+        onSuccess: () => {
+          setShowForm(false);
+          setReloadToken((value) => value + 1);
+        },
       });
       return;
     }
 
     form.post('/fixed-asset-locations', {
       preserveScroll: true,
-      onSuccess: () => setShowForm(false),
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
     });
   }
 
   function deleteLocation(location: LocationRow) {
     if (!confirm(appDict.confirmDeleteAssetLocation)) return;
 
+    const stopListening = router.on('finish', () => {
+      stopListening();
+      setReloadToken((value) => value + 1);
+    });
     router.delete(`/fixed-asset-locations/${location.id}`, { preserveScroll: true });
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: appDict.code },
+    { data: 'name_text', name: 'name_text', title: appDict.name, orderable: false },
+    { data: 'branch_label', name: 'branch_label', title: appDict.branch, orderable: false, searchable: false },
+    { data: 'assets_count', name: 'assets_count', title: appDict.assetCount, searchable: false },
+    { data: 'is_active', name: 'is_active', title: appDict.status, searchable: false },
+    { data: 'actions', name: 'actions', title: appDict.actions, orderable: false, searchable: false },
+  ], [appDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (value: any) => <span className="font-mono font-semibold">{value}</span>,
+    name_text: (_value: any, _type: any, location: LocationRow) => getLocalizedName(location.name, locale),
+    branch_label: (_value: any, _type: any, location: LocationRow) => (
+      <span>{location.branch ? `${location.branch.code} - ${getLocalizedName(location.branch.name, locale)}` : appDict.notAssigned}</span>
+    ),
+    assets_count: (value: any) => Number(value || 0),
+    is_active: (_value: any, _type: any, location: LocationRow) => (
+      <StatusBadge tone={location.is_active ? 'ok' : 'muted'}>
+        {location.is_active ? appDict.active : appDict.inactive}
+      </StatusBadge>
+    ),
+    actions: (_value: any, _type: any, location: LocationRow) => (
+      <div className="flex items-center gap-3">
+        {can.edit && (
+          <button
+            type="button"
+            onClick={() => openEditForm(location)}
+            title={appDict.edit}
+            aria-label={appDict.edit}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
+          >
+            {appDict.edit}
+          </button>
+        )}
+        {can.delete && (location.assets_count || 0) === 0 && (
+          <button
+            type="button"
+            onClick={() => deleteLocation(location)}
+            title={appDict.delete}
+            aria-label={appDict.delete}
+            className="text-xs font-medium text-rose-600 hover:text-rose-900"
+          >
+            {appDict.delete}
+          </button>
+        )}
+      </div>
+    ),
+  }), [appDict, can, locale]);
+
+  const tableFilters = useMemo(() => ({ branch_id: branchId, status }), [branchId, status]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchableSelect options={[{ value: '', label: appDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={appDict.branch} />
+      <SearchableSelect options={statusOptions} value={status || null} onChange={(value) => setStatus(value || '')} label={appDict.status} />
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{appDict.clearFilters}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="fixed-asset-locations.index">
@@ -172,82 +237,20 @@ export default function FixedAssetLocationsIndex({ locale, locations = [], branc
           }
         />
 
-        <Card>
-          <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-wrap gap-4 items-center">
-            <input
-              type="text"
-              placeholder={appDict.searchAssetLocationsPlaceholder}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="rounded-md border-slate-300 dark:bg-slate-900 dark:border-slate-700 text-sm"
-            />
-            <SearchableSelect options={[{ value: '', label: appDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={appDict.branch} />
-            <SearchableSelect options={[{ value: '', label: appDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={appDict.status} />
-            <Button onClick={applyFilters}>{appDict.filter}</Button>
-            <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{appDict.clearFilters}</Button>
-          </div>
-
-          {locations.length === 0 ? (
-            <EmptyState title={appDict.noAssetLocations} description={appDict.noAssetLocationsDescription} />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className={tableClasses.table}>
-                <thead>
-                  <tr>
-                    <th className={tableClasses.th}>{appDict.code}</th>
-                    <th className={tableClasses.th}>{appDict.name}</th>
-                    <th className={tableClasses.th}>{appDict.branch}</th>
-                    <th className={tableClasses.th}>{appDict.assetCount}</th>
-                    <th className={tableClasses.th}>{appDict.status}</th>
-                    <th className={tableClasses.th}>{appDict.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {locations.map((location) => (
-                    <tr key={location.id}>
-                      <td className={`${tableClasses.td} font-mono font-semibold`}>{location.code}</td>
-                      <td className={tableClasses.td}>{getLocalizedName(location.name, locale)}</td>
-                      <td className={tableClasses.td}>
-                        {location.branch ? `${location.branch.code} - ${getLocalizedName(location.branch.name, locale)}` : appDict.notAssigned}
-                      </td>
-                      <td className={tableClasses.td}>{location.assets_count || 0}</td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={location.is_active ? 'ok' : 'muted'}>
-                          {location.is_active ? appDict.active : appDict.inactive}
-                        </StatusBadge>
-                      </td>
-                      <td className={tableClasses.td}>
-                        <div className="flex items-center gap-3">
-                          {can.edit && (
-                            <button
-                              type="button"
-                              onClick={() => openEditForm(location)}
-                              title={appDict.edit}
-                              aria-label={appDict.edit}
-                              className="text-xs font-medium text-indigo-600 hover:text-indigo-900"
-                            >
-                              {appDict.edit}
-                            </button>
-                          )}
-                          {can.delete && (location.assets_count || 0) === 0 && (
-                            <button
-                              type="button"
-                              onClick={() => deleteLocation(location)}
-                              title={appDict.delete}
-                              aria-label={appDict.delete}
-                              className="text-xs font-medium text-rose-600 hover:text-rose-900"
-                            >
-                              {appDict.delete}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/fixed-asset-locations/data"
+            columns={columns}
+            filters={tableFilters}
+            initialSearch={filters.search || ''}
+            locale={locale}
+            order={[[0, 'asc']]}
+            pageLength={25}
+            reloadToken={reloadToken}
+            slots={slots}
+            tableId="fixed-asset-locations-data-table"
+            toolbar={toolbar}
+          />
         </Card>
       </div>
 

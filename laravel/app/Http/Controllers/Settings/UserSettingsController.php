@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\AuthorizesSettingsManagement;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\StoreUserRequest;
 use App\Http\Requests\Settings\UpdateUserRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,9 +21,18 @@ class UserSettingsController extends Controller
         private readonly UserSettingsService $userSettingsService,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $this->authorizeManagement($request, 'users.configure');
+
         return Inertia::render('Settings/Users', $this->userSettingsService->indexData());
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizeManagement($request, 'users.configure');
+
+        return $this->userSettingsService->datatable();
     }
 
     public function store(StoreUserRequest $request): RedirectResponse

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Expenses\ExpensePageData;
 use App\Application\Expenses\ExpenseService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,11 @@ class ExpenseController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Expenses/Index', $this->pageData->indexData($request->only(['search', 'status', 'branch_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'branch_id']));
     }
 
     public function store(Request $request): RedirectResponse

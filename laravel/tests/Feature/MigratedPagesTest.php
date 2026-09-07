@@ -113,9 +113,34 @@ class MigratedPagesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Settings/Users')
-                ->where('users.0.email', $user->email)
+                ->missing('users')
+                ->where('userCount', 1)
+                ->where('userOptions.0.email', $user->email)
                 ->where('roles.0.name', 'VIEWER')
                 ->etc());
+
+        $userColumns = collect(['name', 'roles', 'is_active', 'id'])
+            ->map(fn (string $column): array => [
+                'data' => $column,
+                'name' => $column,
+                'searchable' => 'true',
+                'orderable' => 'true',
+                'search' => ['value' => '', 'regex' => 'false'],
+            ])->all();
+
+        $this->getJson('/settings/users/data?'.http_build_query([
+            'draw' => 1,
+            'start' => 0,
+            'length' => 10,
+            'search' => ['value' => $user->email, 'regex' => 'false'],
+            'columns' => $userColumns,
+            'order' => [['column' => 0, 'dir' => 'asc']],
+        ]))
+            ->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $user->id)
+            ->assertJsonPath('data.0.roles.0.name', 'VIEWER');
 
         $this->get('/notifications')
             ->assertOk()

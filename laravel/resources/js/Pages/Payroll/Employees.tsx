@@ -3,11 +3,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -38,9 +39,8 @@ type Employee = {
   branch?: Branch | null;
   component_assignments?: Assignment[];
 };
-type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
-  employees: PaginatedData<Employee>;
+  employees?: Employee[];
   branches: Branch[];
   currencies: CurrencyOption[];
   components: Component[];
@@ -71,7 +71,6 @@ function statusTone(value: string): 'ok' | 'muted' | 'danger' | 'warning' | 'inf
 
 export default function PayrollEmployeesIndex({
   locale,
-  employees,
   branches = [],
   currencies = [],
   components = [],
@@ -89,17 +88,27 @@ export default function PayrollEmployeesIndex({
   const defaultCurrency = currencies[0]?.code || '';
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(employees.data[0] || null);
-  const [search, setSearch] = useState(filters.search || '');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [status, setStatus] = useState(filters.status || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const branchOptions = useMemo(() => branches.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}` })), [branches, locale]);
   const currencyOptions = useMemo(() => currencies.map((item) => ({ value: item.code, label: `${item.code} - ${getLocalizedName(item.name, locale)}` })), [currencies, locale]);
   const componentOptions = useMemo(() => components.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}`, sublabel: componentTypeLabels[item.type] || item.type })), [components, locale, componentTypeLabels]);
   const statusOptions = statuses.map((item) => ({ value: item, label: statusLabels[item] || item }));
+  const statusFilterOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    ...statuses.map((item) => ({ value: item, label: statusLabels[item] || item })),
+  ], [pageDict.allStatuses, statusLabels, statuses]);
   const paymentOptions = paymentMethods.map((item) => ({ value: item, label: paymentMethodLabels[item] || item }));
-  const activeFilterCount = [search, status, branchId].filter(Boolean).length;
+  const activeFilterCount = [filters.search, status, branchId].filter(Boolean).length;
+
+  function clearFilters() {
+    setStatus('');
+    setBranchId('');
+    router.get('/payroll/employees', {}, { preserveScroll: true, preserveState: true });
+  }
 
   const form = useForm({
     code: '',
@@ -125,17 +134,6 @@ export default function PayrollEmployeesIndex({
     effective_to: '',
     is_active: true,
   });
-
-  function applyFilters() {
-    router.get('/payroll/employees', { search, status, branch_id: branchId }, { preserveScroll: true, preserveState: true });
-  }
-
-  function clearFilters() {
-    setSearch('');
-    setStatus('');
-    setBranchId('');
-    router.get('/payroll/employees', {}, { preserveScroll: true, preserveState: true });
-  }
 
   function openCreate() {
     setEditing(null);
@@ -188,11 +186,24 @@ export default function PayrollEmployeesIndex({
     };
 
     if (editing) {
-      router.put(`/payroll/employees/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/payroll/employees/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setSelectedEmployee(null);
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/payroll/employees', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/payroll/employees', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function submitAssignment(event: FormEvent) {
@@ -203,7 +214,13 @@ export default function PayrollEmployeesIndex({
       ...assignmentForm.data,
       amount_minor: assignmentForm.data.amount ? amountToMinor(assignmentForm.data.amount) : null,
       effective_to: assignmentForm.data.effective_to || null,
-    }, { preserveScroll: true });
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setSelectedEmployee(null);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function deleteAssignment(assignment: Assignment) {
@@ -211,8 +228,50 @@ export default function PayrollEmployeesIndex({
       return;
     }
 
-    router.delete(`/payroll/employees/${selectedEmployee.id}/components/${assignment.id}`, { preserveScroll: true });
+    router.delete(`/payroll/employees/${selectedEmployee.id}/components/${assignment.id}`, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setSelectedEmployee(null);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'employee_name', name: 'employee_name', title: pageDict.name, orderable: false, searchable: false },
+    { data: 'branch_name', name: 'branch_name', title: pageDict.branch, orderable: false, searchable: false },
+    { data: 'base_salary_minor', name: 'base_salary_minor', title: pageDict.baseSalary, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: shared.actions, orderable: false, searchable: false },
+  ], [pageDict, shared.actions]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (value: any) => <span className="font-mono text-xs font-bold">{value}</span>,
+    employee_name: (_value: any, _type: any, employee: Employee) => getLocalizedName(employee.name, locale),
+    branch_name: (_value: any, _type: any, employee: Employee) => (
+      <span>{employee.branch ? `${employee.branch.code} - ${getLocalizedName(employee.branch.name, locale)}` : pageDict.noBranch}</span>
+    ),
+    base_salary_minor: (value: any, _type: any, employee: Employee) => (
+      <AccountingAmount amountMinor={Number(value || 0)} currency={employee.currency} />
+    ),
+    status: (value: any) => <StatusBadge tone={statusTone(value)}>{statusLabels[value] || value}</StatusBadge>,
+    actions: (_value: any, _type: any, employee: Employee) => (
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => setSelectedEmployee(employee)}>{pageDict.components}</Button>
+        {can('payroll.edit') && can('view_payroll') ? <Button variant="secondary" onClick={() => openEdit(employee)}>{shared.edit}</Button> : null}
+      </div>
+    ),
+  }), [can, locale, pageDict, shared.edit, statusLabels]);
+
+  const tableFilters = useMemo(() => ({ status, branch_id: branchId }), [branchId, status]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchableSelect options={statusFilterOptions} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
+      <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{shared.clearFilter}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="payroll.employees.index">
@@ -222,16 +281,6 @@ export default function PayrollEmployeesIndex({
         description={pageDict.description}
         actions={can('payroll.create') && can('view_payroll') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto]">
-          <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
-          <Button onClick={applyFilters}>{shared.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{shared.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -270,41 +319,22 @@ export default function PayrollEmployeesIndex({
         </Card>
       ) : null}
 
-      {employees.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.code}</th>
-                  <th className={tableClasses.th}>{pageDict.name}</th>
-                  <th className={tableClasses.th}>{pageDict.branch}</th>
-                  <th className={tableClasses.th}>{pageDict.baseSalary}</th>
-                  <th className={tableClasses.th}>{pageDict.status}</th>
-                  <th className={tableClasses.th}>{shared.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.data.map((employee) => (
-                  <tr key={employee.id} className={selectedEmployee?.id === employee.id ? 'bg-[var(--background)]' : ''}>
-                    <td className={tableClasses.td}>{employee.code}</td>
-                    <td className={tableClasses.td}>{getLocalizedName(employee.name, locale)}</td>
-                    <td className={tableClasses.td}>{employee.branch ? `${employee.branch.code} - ${getLocalizedName(employee.branch.name, locale)}` : pageDict.noBranch}</td>
-                    <td className={tableClasses.td}><AccountingAmount amountMinor={employee.base_salary_minor} currency={employee.currency} /></td>
-                    <td className={tableClasses.td}><StatusBadge tone={statusTone(employee.status)}>{statusLabels[employee.status] || employee.status}</StatusBadge></td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" onClick={() => setSelectedEmployee(employee)}>{pageDict.components}</Button>
-                        {can('payroll.edit') && can('view_payroll') ? <Button variant="secondary" onClick={() => openEdit(employee)}>{shared.edit}</Button> : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <Card className="overflow-hidden p-0">
+            <ServerDataTable
+              ajaxUrl="/payroll/employees/data"
+              columns={columns}
+              filters={tableFilters}
+              initialSearch={filters.search || ''}
+              locale={locale}
+              order={[[0, 'asc']]}
+              pageLength={25}
+              reloadToken={reloadToken}
+              slots={slots}
+              tableId="payroll-employees-data-table"
+              toolbar={toolbar}
+            />
+          </Card>
 
           <Card className="p-4">
             <h2 className="text-base font-bold">{pageDict.assignmentPanel}</h2>
@@ -348,7 +378,6 @@ export default function PayrollEmployeesIndex({
             )}
           </Card>
         </div>
-      )}
     </AppLayout>
   );
 }

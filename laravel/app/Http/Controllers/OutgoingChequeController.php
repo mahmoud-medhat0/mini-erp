@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\OutgoingChequePageData;
 use App\Application\Accounting\OutgoingChequeService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class OutgoingChequeController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('OutgoingCheques/Index', $this->pageData->indexData($request->only(['status', 'supplier_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'supplier_id']));
     }
 
     public function store(Request $request): RedirectResponse

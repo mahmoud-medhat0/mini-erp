@@ -6,6 +6,7 @@ use App\Application\Budgeting\BudgetVarianceCsvExporter;
 use App\Application\Budgeting\BudgetVariancePageData;
 use App\Application\Budgeting\BudgetVarianceReportService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -22,13 +23,11 @@ class BudgetVarianceController extends Controller
 
     public function index(Request $request): Response
     {
-        Gate::authorize('budgeting.view');
-        Gate::authorize('reports.view');
-        Gate::authorize('view_financials');
+        $this->authorizeView();
 
         $filters = $this->validatedFilters($request);
 
-        $report = $this->service->generate(
+        $report = $this->service->metadata(
             budgetId: $filters['budget_id'],
             fiscalYearId: $filters['fiscal_year_id'],
             periodId: $filters['period_id'],
@@ -57,6 +56,24 @@ class BudgetVarianceController extends Controller
             ],
             'options' => $options,
         ]);
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizeView();
+        $filters = $this->validatedFilters($request);
+
+        return $this->service->datatable(
+            budgetId: $filters['budget_id'],
+            fiscalYearId: $filters['fiscal_year_id'],
+            periodId: $filters['period_id'],
+            fromDate: $filters['from_date'],
+            toDate: $filters['to_date'],
+            accountId: $filters['account_id'],
+            projectId: $filters['project_id'],
+            costCenterId: $filters['cost_center_id'],
+            currency: $filters['currency'],
+        );
     }
 
     public function exportCsv(Request $request): StreamedResponse
@@ -120,5 +137,12 @@ class BudgetVarianceController extends Controller
             'cost_center_id' => $validated['cost_center_id'] ?? null,
             'currency' => $validated['currency'] ?? null,
         ];
+    }
+
+    private function authorizeView(): void
+    {
+        Gate::authorize('budgeting.view');
+        Gate::authorize('reports.view');
+        Gate::authorize('view_financials');
     }
 }

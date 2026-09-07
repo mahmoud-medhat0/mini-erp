@@ -6,6 +6,7 @@ use App\Application\Accounting\ExchangeRatePageData;
 use App\Application\Accounting\ExchangeRateService;
 use App\Http\Controllers\Concerns\AuthorizesAccountingRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,6 +29,13 @@ class ExchangeRateController extends Controller
         ]);
 
         return Inertia::render('Accounting/ExchangeRates', $this->pageData->indexData($validated['search'] ?? null));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'accounting.view');
+
+        return $this->pageData->datatable();
     }
 
     public function store(Request $request): RedirectResponse

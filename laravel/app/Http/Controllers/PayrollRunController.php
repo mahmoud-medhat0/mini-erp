@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Payroll\PayrollRunPageData;
 use App\Application\Payroll\PayrollRunService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,11 @@ class PayrollRunController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Payroll/Runs', $this->pageData->indexData($request->only(['search', 'status', 'branch_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'branch_id']));
     }
 
     public function store(Request $request): RedirectResponse

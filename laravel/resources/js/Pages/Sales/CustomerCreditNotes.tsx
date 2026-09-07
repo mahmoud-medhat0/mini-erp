@@ -2,11 +2,12 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -49,7 +50,9 @@ type CreditNoteRow = {
   receivable_entry_id?: string | null;
   customer?: { id: string; name: string } | null;
   customerInvoice?: { id: string; number?: string | null } | null;
+  customer_invoice?: { id: string; number?: string | null } | null;
   salesReturn?: { id: string; number?: string | null } | null;
+  sales_return?: { id: string; number?: string | null } | null;
   credit_date: string;
   currency: string;
   subtotal_minor: number;
@@ -79,10 +82,7 @@ type PendingSensitiveAction = {
 };
 
 type CustomerCreditNotesProps = SharedPageProps & {
-  customerCreditNotes: {
-    data: CreditNoteRow[];
-    links: PaginationLink[];
-  };
+  customerCreditNotes?: CreditNoteRow[];
   activeCustomers: CustomerOption[];
   postedCustomerInvoices: PostedInvoiceOption[];
   postedSalesReturns: PostedSalesReturnOption[];
@@ -97,7 +97,6 @@ type CustomerCreditNotesProps = SharedPageProps & {
 export default function CustomerCreditNotesIndex({
   locale,
   flash,
-  customerCreditNotes,
   activeCustomers,
   postedCustomerInvoices,
   postedSalesReturns,
@@ -112,6 +111,9 @@ export default function CustomerCreditNotesIndex({
   const [editingNote, setEditingNote] = useState<CreditNoteRow | null>(null);
   const [lineItems, setLineItems] = useState<CreditLineForm[]>([]);
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [customerFilter, setCustomerFilter] = useState(filters.customer_id || '');
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -291,12 +293,18 @@ export default function CustomerCreditNotesIndex({
     if (editingNote) {
       router.put(`/sales/credit-notes/${editingNote.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setTableReloadToken((token) => token + 1);
+        },
       });
     } else {
       router.post('/sales/credit-notes', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setTableReloadToken((token) => token + 1);
+        },
       });
     }
   };
@@ -318,7 +326,10 @@ export default function CustomerCreditNotesIndex({
     }
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/credit-notes/${note.id}/${action}`, {}, { preserveScroll: true });
+      router.post(`/sales/credit-notes/${note.id}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setTableReloadToken((token) => token + 1),
+      });
     }
   };
 
@@ -380,6 +391,93 @@ export default function CustomerCreditNotesIndex({
     return isCustomerCreditNoteActionable(note) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'customer_credit_note.number', title: pageDict.creditNote },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'invoice_number', name: 'invoice_number', title: pageDict.invoice_2 },
+    { data: 'sales_return_number', name: 'sales_return_number', title: pageDict.salesReturn },
+    { data: 'credit_date', name: 'customer_credit_note.credit_date', title: pageDict.creditDate },
+    { data: 'total_minor', name: 'customer_credit_note.total_minor', title: pageDict.totalAmount, className: 'text-end' },
+    { data: 'status', name: 'customer_credit_note.status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null) => (
+      <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>
+    ),
+    customer_name: (_value: unknown, _type: unknown, note: CreditNoteRow) => (
+      <span className="font-medium">{getLocalizedName(note.customer?.name, locale) || accDict.notAvailable}</span>
+    ),
+    invoice_number: (_value: unknown, _type: unknown, note: CreditNoteRow) => (
+      <span className="font-mono">{(note.customerInvoice || note.customer_invoice)?.number || accDict.notAvailable}</span>
+    ),
+    sales_return_number: (_value: unknown, _type: unknown, note: CreditNoteRow) => (
+      <span className="font-mono">{(note.salesReturn || note.sales_return)?.number || accDict.notAvailable}</span>
+    ),
+    total_minor: (value: number, _type: unknown, note: CreditNoteRow) => (
+      <span className="font-mono font-semibold accounting-amount">{formatMoney(value, note.currency)}</span>
+    ),
+    status: (value: string) => (
+      <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>
+    ),
+    actions: (_value: unknown, _type: unknown, note: CreditNoteRow) => {
+      const actionState = getCustomerCreditNoteActionState(note);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {note.status === 'draft' && canManageCustomerCreditNotes ? (
+            <button type="button" onClick={() => openEditModal(note)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
+              {pageDict.edit}
+            </button>
+          ) : null}
+          {note.status === 'draft' && canManageCustomerCreditNotes ? (
+            <button type="button" onClick={() => handleAction(note, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">
+              {pageDict.submit}
+            </button>
+          ) : null}
+          {['draft', 'submitted'].includes(note.status) && canManageCustomerCreditNotes ? (
+            <button type="button" onClick={() => handleAction(note, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">
+              {pageDict.approve}
+            </button>
+          ) : null}
+          {note.status === 'approved' && canPostCustomerCreditNotes ? (
+            <button type="button" onClick={() => handleAction(note, 'post')} title={pageDict.postToArGl} aria-label={pageDict.postToArGl} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">
+              {pageDict.postToArGl}
+            </button>
+          ) : null}
+          {canSettleCustomerCreditNote(note) ? (
+            <Link href={`/sales/receivable-settlements?customer_id=${note.customer_id}&source_entry_id=${note.receivable_entry_id}`} title={pageDict.settle} aria-label={pageDict.settle} className="inline-flex h-8 items-center rounded-md border border-purple-200 px-2.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40">
+              {pageDict.settle}
+            </Link>
+          ) : null}
+          {['draft', 'submitted', 'approved'].includes(note.status) && canManageCustomerCreditNotes ? (
+            <button type="button" onClick={() => handleAction(note, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">
+              {pageDict.cancel}
+            </button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canManageCustomerCreditNotes, canPostCustomerCreditNotes, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({
+    status: statusFilter,
+    customer_id: customerFilter,
+  }), [customerFilter, statusFilter]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-44">
+        <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} />
+      </div>
+      <div className="w-56">
+        <SearchableSelect options={[{ value: '', label: pageDict.customer }, ...customerOptions]} value={customerFilter || null} onChange={(value) => setCustomerFilter(value || '')} />
+      </div>
+    </div>
+  );
+
   return (
     <AppLayout active="customer-credit-notes.index">
       <Head title={dict.app.pages.salesCustomerCreditNotes.customerCreditNotes} />
@@ -411,164 +509,20 @@ export default function CustomerCreditNotesIndex({
         </div>
       ) : null}
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.salesCustomerCreditNotes.searchNumberReasonOrCustomer}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/credit-notes', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/sales/credit-notes', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.salesCustomerCreditNotes.status}
-            />
-          </div>
-        </div>
-
-        {customerCreditNotes.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.salesCustomerCreditNotes.noCustomerCreditNotesFound}
-            description={dict.app.pages.salesCustomerCreditNotes.createACreditNoteToAdjustCustomerBalances}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.creditNote}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.customer}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.invoice_2}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.salesReturn}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.creditDate}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.totalAmount}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerCreditNotes.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesCustomerCreditNotes.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {customerCreditNotes.data.map((note) => {
-                  const actionState = getCustomerCreditNoteActionState(note);
-
-                  return (
-                    <tr key={note.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {note.number || dict.app.pages.salesCustomerCreditNotes.draft_2}
-                      </td>
-                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(note.customer?.name, locale) || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-mono`}>{note.customerInvoice?.number || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-mono`}>{note.salesReturn?.number || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{note.credit_date}</td>
-                      <td className={`${tableClasses.td} font-mono font-semibold`}>
-                        {formatMoney(note.total_minor, note.currency)}
-                      </td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(note.status)}>
-                          {getStatusLabel(note.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {note.status === 'draft' && canManageCustomerCreditNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(note)}
-                              title={dict.app.pages.salesCustomerCreditNotes.edit}
-                              aria-label={dict.app.pages.salesCustomerCreditNotes.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.salesCustomerCreditNotes.edit}
-                            </button>
-                          ) : null}
-
-                          {note.status === 'draft' && canManageCustomerCreditNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note, 'submit')}
-                              title={dict.app.pages.salesCustomerCreditNotes.submit}
-                              aria-label={dict.app.pages.salesCustomerCreditNotes.submit}
-                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-                            >
-                              {dict.app.pages.salesCustomerCreditNotes.submit}
-                            </button>
-                          ) : null}
-
-                          {['draft', 'submitted'].includes(note.status) && canManageCustomerCreditNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note, 'approve')}
-                              title={dict.app.pages.salesCustomerCreditNotes.approve}
-                              aria-label={dict.app.pages.salesCustomerCreditNotes.approve}
-                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                            >
-                              {dict.app.pages.salesCustomerCreditNotes.approve}
-                            </button>
-                          ) : null}
-
-                          {note.status === 'approved' && canPostCustomerCreditNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note, 'post')}
-                              title={dict.app.pages.salesCustomerCreditNotes.postToArGl}
-                              aria-label={dict.app.pages.salesCustomerCreditNotes.postToArGl}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.salesCustomerCreditNotes.postToArGl}
-                            </button>
-                          ) : null}
-
-                          {canSettleCustomerCreditNote(note) ? (
-                            <Link
-                              href={`/sales/receivable-settlements?customer_id=${note.customer_id}&source_entry_id=${note.receivable_entry_id}`}
-                              title={dict.app.pages.salesCustomerCreditNotes.settle}
-                              aria-label={dict.app.pages.salesCustomerCreditNotes.settle}
-                              className="inline-flex h-8 items-center rounded-md border border-purple-200 px-2.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
-                            >
-                              {dict.app.pages.salesCustomerCreditNotes.settle}
-                            </Link>
-                          ) : null}
-
-                          {['draft', 'submitted', 'approved'].includes(note.status) && canManageCustomerCreditNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note, 'cancel')}
-                              title={dict.app.pages.salesCustomerCreditNotes.cancel}
-                              aria-label={dict.app.pages.salesCustomerCreditNotes.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.salesCustomerCreditNotes.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/sales/credit-notes/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[4, 'desc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="customer-credit-notes-data-table"
+          toolbar={toolbar}
+        />
       </Card>
-
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs overflow-y-auto">
           <div className="w-full max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
@@ -822,7 +776,10 @@ export default function CustomerCreditNotesIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setTableReloadToken((token) => token + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_CUSTOMER_CREDIT_NOTE'}

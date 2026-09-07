@@ -6,11 +6,30 @@ use App\Application\Reports\ReportCurrencyResolver;
 use App\Models\Budget;
 use App\Models\FinancialPeriod;
 use Carbon\Carbon;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use stdClass;
+use Yajra\DataTables\Facades\DataTables;
 
 class BudgetVarianceReportService
 {
+    private const SORT_COLUMNS = [
+        'period_month' => 'budget_variance.period_month',
+        'account_code' => 'budget_variance.account_code',
+        'account_name' => 'budget_variance.account_name',
+        'project_code' => 'budget_variance.project_code',
+        'cost_center_code' => 'budget_variance.cost_center_code',
+        'currency' => 'budget_variance.currency',
+        'budget_minor' => 'budget_variance.budget_minor',
+        'actual_minor' => 'budget_variance.actual_minor',
+        'variance_minor' => 'budget_variance.variance_minor',
+        'variance_percent_bps' => 'budget_variance.variance_percent_bps',
+        'row_type' => 'budget_variance.row_type',
+        'ledger_row_count' => 'budget_variance.ledger_row_count',
+    ];
+
     public function __construct(
         private readonly ReportCurrencyResolver $currencyResolver,
     ) {}
@@ -559,5 +578,574 @@ class BudgetVarianceReportService
             'warning_codes' => $warningCodes,
             'has_warnings' => count($warningCodes) > 0,
         ];
+    }
+
+    /**
+     * Build the bounded page payload. Summary values are aggregated from the
+     * complete filtered SQL result and never from the current DataTables page.
+     *
+     * @return array<string, mixed>
+     */
+    public function metadata(
+        ?string $budgetId = null,
+        ?string $fiscalYearId = null,
+        ?string $periodId = null,
+        ?string $fromDate = null,
+        ?string $toDate = null,
+        ?string $accountId = null,
+        ?string $projectId = null,
+        ?string $costCenterId = null,
+        ?string $currency = null,
+    ): array {
+        $context = $this->queryContext(
+            $budgetId,
+            $fiscalYearId,
+            $periodId,
+            $fromDate,
+            $toDate,
+            $accountId,
+            $projectId,
+            $costCenterId,
+            $currency,
+        );
+
+        if (! $context['budget']) {
+            return [
+                'selected_budget' => null,
+                'filters' => $context['filters'],
+                'periods' => [],
+                'summary_by_currency' => [],
+                'warning_codes' => $context['warning_codes'],
+                'has_warnings' => count($context['warning_codes']) > 0,
+            ];
+        }
+
+        $summaryByCurrency = $this->summaryByCurrency($context);
+        $warningCodes = $context['warning_codes'];
+
+        if (count($summaryByCurrency) > 1) {
+            $warningCodes[] = 'mixed_currencies';
+        }
+
+        foreach ($summaryByCurrency as $summary) {
+            if ($summary['actual_only_count'] > 0) {
+                $warningCodes[] = 'unbudgeted_actuals_present';
+            }
+            if ($summary['budget_only_count'] > 0) {
+                $warningCodes[] = 'budget_lines_without_actuals_present';
+            }
+        }
+
+        $warningCodes = array_values(array_unique($warningCodes));
+
+        return [
+            'selected_budget' => $context['selected_budget'],
+            'filters' => $context['filters'],
+            'periods' => $context['periods'],
+            'summary_by_currency' => $summaryByCurrency,
+            'warning_codes' => $warningCodes,
+            'has_warnings' => count($warningCodes) > 0,
+        ];
+    }
+
+    public function datatable(
+        ?string $budgetId = null,
+        ?string $fiscalYearId = null,
+        ?string $periodId = null,
+        ?string $fromDate = null,
+        ?string $toDate = null,
+        ?string $accountId = null,
+        ?string $projectId = null,
+        ?string $costCenterId = null,
+        ?string $currency = null,
+    ): JsonResponse {
+        $context = $this->queryContext(
+            $budgetId,
+            $fiscalYearId,
+            $periodId,
+            $fromDate,
+            $toDate,
+            $accountId,
+            $projectId,
+            $costCenterId,
+            $currency,
+        );
+
+        if (! $context['budget']) {
+            return DataTables::collection(collect())->toJson();
+        }
+
+        $query = DB::query()
+            ->fromSub($this->varianceRowsQuery($context), 'budget_variance')
+            ->select('budget_variance.*');
+
+        return DataTables::query($query)
+            ->filter(function (Builder $builder): void {
+                $search = trim((string) request()->input('search.value', ''));
+
+                if ($search === '') {
+                    return;
+                }
+
+                $pattern = '%'.mb_strtolower($search).'%';
+                $builder->where(function (Builder $nested) use ($pattern): void {
+                    $nested->whereRaw('CAST(budget_variance.period_month AS TEXT) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(budget_variance.account_code) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(CAST(budget_variance.account_name AS TEXT)) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(budget_variance.account_type) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(budget_variance.account_nature) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(COALESCE(budget_variance.project_code, \'\')) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(CAST(COALESCE(budget_variance.project_name, \'\') AS TEXT)) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(COALESCE(budget_variance.cost_center_code, \'\')) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(CAST(COALESCE(budget_variance.cost_center_name, \'\') AS TEXT)) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(budget_variance.currency) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(budget_variance.row_type) LIKE ?', [$pattern]);
+                });
+            })
+            ->order(function (Builder $builder): void {
+                foreach ((array) request()->input('order', []) as $order) {
+                    if (! is_array($order)) {
+                        continue;
+                    }
+
+                    $index = filter_var($order['column'] ?? null, FILTER_VALIDATE_INT);
+                    $data = $index === false ? null : request()->input("columns.$index.data");
+
+                    if (! is_string($data) || ! isset(self::SORT_COLUMNS[$data])) {
+                        continue;
+                    }
+
+                    $direction = ($order['dir'] ?? null) === 'desc' ? 'desc' : 'asc';
+                    $builder->orderBy(self::SORT_COLUMNS[$data], $direction);
+                }
+
+                $builder->orderBy('budget_variance.period_month')
+                    ->orderBy('budget_variance.account_code')
+                    ->orderBy('budget_variance.project_code')
+                    ->orderBy('budget_variance.cost_center_code')
+                    ->orderBy('budget_variance.currency');
+            })
+            ->editColumn('account_name', fn (stdClass $row): array|string => $this->decodeTranslations($row->account_name))
+            ->editColumn('project_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->project_name))
+            ->editColumn('cost_center_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->cost_center_name))
+            ->editColumn('period_month', fn (stdClass $row): int => (int) $row->period_month)
+            ->editColumn('budget_minor', fn (stdClass $row): int => (int) $row->budget_minor)
+            ->editColumn('actual_minor', fn (stdClass $row): int => (int) $row->actual_minor)
+            ->editColumn('debit_minor', fn (stdClass $row): int => (int) $row->debit_minor)
+            ->editColumn('credit_minor', fn (stdClass $row): int => (int) $row->credit_minor)
+            ->editColumn('ledger_row_count', fn (stdClass $row): int => (int) $row->ledger_row_count)
+            ->editColumn('variance_minor', fn (stdClass $row): int => (int) $row->variance_minor)
+            ->editColumn('variance_abs_minor', fn (stdClass $row): int => (int) $row->variance_abs_minor)
+            ->editColumn('variance_percent_bps', fn (stdClass $row): ?int => $row->variance_percent_bps === null ? null : (int) $row->variance_percent_bps)
+            ->toJson();
+    }
+
+    /** @return array<string, mixed> */
+    private function queryContext(
+        ?string $budgetId,
+        ?string $fiscalYearId,
+        ?string $periodId,
+        ?string $fromDate,
+        ?string $toDate,
+        ?string $accountId,
+        ?string $projectId,
+        ?string $costCenterId,
+        ?string $currency,
+    ): array {
+        $warningCodes = [];
+        $budget = null;
+
+        if ($budgetId !== null && $budgetId !== '') {
+            $foundBudget = Budget::query()->with(['fiscalYear.periods'])->where('id', $budgetId)->first();
+            if (! $foundBudget) {
+                $warningCodes[] = 'no_active_budget';
+            } elseif (! in_array($foundBudget->status, ['active', 'approved'], true)) {
+                $warningCodes[] = 'budget_not_comparable';
+            } else {
+                $budget = $foundBudget;
+            }
+        } elseif ($fiscalYearId !== null && $fiscalYearId !== '') {
+            $budget = Budget::query()
+                ->with(['fiscalYear.periods'])
+                ->where('fiscal_year_id', $fiscalYearId)
+                ->where('status', 'active')
+                ->first();
+
+            if (! $budget) {
+                $warningCodes[] = 'no_active_budget';
+            }
+        } else {
+            $budget = Budget::query()
+                ->with(['fiscalYear.periods'])
+                ->where('status', 'active')
+                ->orderByDesc('activated_at')
+                ->orderByDesc('created_at')
+                ->first();
+
+            if (! $budget) {
+                $warningCodes[] = 'no_active_budget';
+            }
+        }
+
+        $filters = [
+            'budget_id' => $budgetId,
+            'fiscal_year_id' => $fiscalYearId,
+            'period_id' => $periodId,
+            'from_date' => $fromDate,
+            'to_date' => $toDate,
+            'account_id' => $accountId,
+            'project_id' => $projectId,
+            'cost_center_id' => $costCenterId,
+            'currency' => $currency,
+        ];
+
+        if (! $budget) {
+            return [
+                'budget' => null,
+                'selected_budget' => null,
+                'filters' => $filters,
+                'periods' => [],
+                'scoped_period_ids' => [],
+                'effective_from_date' => null,
+                'effective_to_date' => null,
+                'account_id' => $accountId,
+                'project_id' => $projectId,
+                'cost_center_id' => $costCenterId,
+                'currency' => $currency,
+                'warning_codes' => array_values(array_unique($warningCodes)),
+            ];
+        }
+
+        $allPeriods = $budget->fiscalYear?->periods->sortBy('month')->values() ?? collect();
+        $scopedPeriods = collect();
+        $effectiveFromDate = null;
+        $effectiveToDate = null;
+
+        if ($periodId !== null && $periodId !== '') {
+            $period = FinancialPeriod::query()->where('id', $periodId)->first();
+            if (! $period || (string) $period->fiscal_year_id !== (string) $budget->fiscal_year_id) {
+                throw ValidationException::withMessages([
+                    'period_id' => [__('The selected period does not belong to the selected budget fiscal year.')],
+                ]);
+            }
+
+            $effectiveFromDate = $period->start_date ? Carbon::parse($period->start_date)->toDateString() : null;
+            $effectiveToDate = $period->end_date ? Carbon::parse($period->end_date)->toDateString() : null;
+            $scopedPeriods = collect([$period]);
+        } elseif ($fromDate !== null || $toDate !== null) {
+            $effectiveFromDate = $fromDate
+                ? Carbon::parse($fromDate)->toDateString()
+                : ($budget->fiscalYear?->start_date ? Carbon::parse($budget->fiscalYear->start_date)->toDateString() : '1900-01-01');
+            $effectiveToDate = $toDate
+                ? Carbon::parse($toDate)->toDateString()
+                : ($budget->fiscalYear?->end_date ? Carbon::parse($budget->fiscalYear->end_date)->toDateString() : '2099-12-31');
+            $scopedPeriods = $allPeriods->filter(function (FinancialPeriod $period) use ($effectiveFromDate, $effectiveToDate): bool {
+                $periodStart = Carbon::parse($period->start_date)->toDateString();
+                $periodEnd = Carbon::parse($period->end_date)->toDateString();
+
+                return $periodStart <= $effectiveToDate && $periodEnd >= $effectiveFromDate;
+            })->values();
+        } else {
+            $effectiveFromDate = $budget->fiscalYear?->start_date
+                ? Carbon::parse($budget->fiscalYear->start_date)->toDateString()
+                : null;
+            $effectiveToDate = $budget->fiscalYear?->end_date
+                ? Carbon::parse($budget->fiscalYear->end_date)->toDateString()
+                : null;
+            $scopedPeriods = $allPeriods;
+        }
+
+        return [
+            'budget' => $budget,
+            'selected_budget' => [
+                'id' => (string) $budget->id,
+                'code' => (string) $budget->code,
+                'version_code' => (string) $budget->version_code,
+                'name' => $budget->getTranslations('name'),
+                'description' => $budget->description,
+                'status' => (string) $budget->status,
+                'default_currency' => (string) $budget->default_currency,
+                'fiscal_year_id' => (string) $budget->fiscal_year_id,
+                'fiscal_year' => $budget->fiscalYear?->year,
+            ],
+            'filters' => $filters,
+            'periods' => $scopedPeriods->map(fn (FinancialPeriod $period): array => [
+                'id' => (string) $period->id,
+                'month' => (int) $period->month,
+                'start_date' => $period->start_date ? Carbon::parse($period->start_date)->toDateString() : null,
+                'end_date' => $period->end_date ? Carbon::parse($period->end_date)->toDateString() : null,
+            ])->values()->all(),
+            'scoped_period_ids' => $scopedPeriods->pluck('id')->map(fn ($id): string => (string) $id)->all(),
+            'effective_from_date' => $effectiveFromDate,
+            'effective_to_date' => $effectiveToDate,
+            'account_id' => $accountId,
+            'project_id' => $projectId,
+            'cost_center_id' => $costCenterId,
+            'currency' => $currency,
+            'warning_codes' => array_values(array_unique($warningCodes)),
+        ];
+    }
+
+    /** @param array<string, mixed> $context */
+    private function varianceRowsQuery(array $context): Builder
+    {
+        /** @var Budget $budget */
+        $budget = $context['budget'];
+        $periodIds = $context['scoped_period_ids'];
+
+        $budgetRows = DB::table('budget_line as variance_budget_line')
+            ->join('financial_period as variance_budget_period', 'variance_budget_period.id', '=', 'variance_budget_line.financial_period_id')
+            ->join('account as variance_budget_account', 'variance_budget_account.id', '=', 'variance_budget_line.account_id')
+            ->leftJoin('project as variance_budget_project', 'variance_budget_project.id', '=', 'variance_budget_line.project_id')
+            ->leftJoin('cost_center as variance_budget_cost_center', 'variance_budget_cost_center.id', '=', 'variance_budget_line.cost_center_id')
+            ->where('variance_budget_line.budget_id', $budget->id)
+            ->whereIn('variance_budget_line.financial_period_id', $periodIds)
+            ->when($context['account_id'], fn (Builder $query, string $id) => $query->where('variance_budget_line.account_id', $id))
+            ->when($context['project_id'], fn (Builder $query, string $id) => $query->where('variance_budget_line.project_id', $id))
+            ->when($context['cost_center_id'], fn (Builder $query, string $id) => $query->where('variance_budget_line.cost_center_id', $id))
+            ->when($context['currency'], fn (Builder $query, string $code) => $query->where('variance_budget_line.currency', $code))
+            ->select([
+                'variance_budget_line.financial_period_id',
+                'variance_budget_line.account_id',
+                'variance_budget_line.project_id',
+                'variance_budget_line.cost_center_id',
+                'variance_budget_line.currency',
+                'variance_budget_period.month as period_month',
+                'variance_budget_period.start_date as period_start_date',
+                'variance_budget_period.end_date as period_end_date',
+                'variance_budget_period.fiscal_year_id',
+                'variance_budget_account.code as account_code',
+                'variance_budget_account.name as account_name',
+                'variance_budget_account.type as account_type',
+                'variance_budget_account.nature as account_nature',
+                'variance_budget_project.code as project_code',
+                'variance_budget_project.name as project_name',
+                'variance_budget_cost_center.code as cost_center_code',
+                'variance_budget_cost_center.name as cost_center_name',
+            ])
+            ->selectRaw('1 AS has_budget')
+            ->selectRaw('0 AS has_actual')
+            ->selectRaw('COALESCE(SUM(variance_budget_line.amount_minor), 0) AS budget_minor')
+            ->selectRaw('0 AS debit_minor')
+            ->selectRaw('0 AS credit_minor')
+            ->selectRaw('0 AS ledger_row_count')
+            ->groupBy([
+                'variance_budget_line.financial_period_id',
+                'variance_budget_line.account_id',
+                'variance_budget_line.project_id',
+                'variance_budget_line.cost_center_id',
+                'variance_budget_line.currency',
+                'variance_budget_period.month',
+                'variance_budget_period.start_date',
+                'variance_budget_period.end_date',
+                'variance_budget_period.fiscal_year_id',
+                'variance_budget_account.code',
+                'variance_budget_account.name',
+                'variance_budget_account.type',
+                'variance_budget_account.nature',
+                'variance_budget_project.code',
+                'variance_budget_project.name',
+                'variance_budget_cost_center.code',
+                'variance_budget_cost_center.name',
+            ]);
+
+        $actualRows = DB::table('ledger_entry as variance_ledger_entry')
+            ->join('journal_entry as variance_journal_entry', 'variance_journal_entry.id', '=', 'variance_ledger_entry.journal_entry_id')
+            ->join('financial_period as variance_actual_period', 'variance_actual_period.id', '=', 'variance_ledger_entry.financial_period_id')
+            ->join('account as variance_actual_account', 'variance_actual_account.id', '=', 'variance_ledger_entry.account_id')
+            ->leftJoin('project as variance_actual_project', 'variance_actual_project.id', '=', 'variance_ledger_entry.project_id')
+            ->leftJoin('cost_center as variance_actual_cost_center', 'variance_actual_cost_center.id', '=', 'variance_ledger_entry.cost_center_id')
+            ->where('variance_journal_entry.status', 'posted')
+            ->where('variance_actual_period.fiscal_year_id', $budget->fiscal_year_id)
+            ->whereIn('variance_ledger_entry.financial_period_id', $periodIds)
+            ->when($context['effective_from_date'], fn (Builder $query, string $date) => $query->where('variance_ledger_entry.entry_date', '>=', $date))
+            ->when($context['effective_to_date'], fn (Builder $query, string $date) => $query->where('variance_ledger_entry.entry_date', '<=', $date))
+            ->when($context['account_id'], fn (Builder $query, string $id) => $query->where('variance_ledger_entry.account_id', $id))
+            ->when($context['project_id'], fn (Builder $query, string $id) => $query->where('variance_ledger_entry.project_id', $id))
+            ->when($context['cost_center_id'], fn (Builder $query, string $id) => $query->where('variance_ledger_entry.cost_center_id', $id))
+            ->when($context['currency'], fn (Builder $query, string $code) => $query->where('variance_ledger_entry.currency', $code))
+            ->select([
+                'variance_ledger_entry.financial_period_id',
+                'variance_ledger_entry.account_id',
+                'variance_ledger_entry.project_id',
+                'variance_ledger_entry.cost_center_id',
+                'variance_ledger_entry.currency',
+                'variance_actual_period.month as period_month',
+                'variance_actual_period.start_date as period_start_date',
+                'variance_actual_period.end_date as period_end_date',
+                'variance_actual_period.fiscal_year_id',
+                'variance_actual_account.code as account_code',
+                'variance_actual_account.name as account_name',
+                'variance_actual_account.type as account_type',
+                'variance_actual_account.nature as account_nature',
+                'variance_actual_project.code as project_code',
+                'variance_actual_project.name as project_name',
+                'variance_actual_cost_center.code as cost_center_code',
+                'variance_actual_cost_center.name as cost_center_name',
+            ])
+            ->selectRaw('0 AS has_budget')
+            ->selectRaw('1 AS has_actual')
+            ->selectRaw('0 AS budget_minor')
+            ->selectRaw('COALESCE(SUM(variance_ledger_entry.debit_minor), 0) AS debit_minor')
+            ->selectRaw('COALESCE(SUM(variance_ledger_entry.credit_minor), 0) AS credit_minor')
+            ->selectRaw('COUNT(variance_ledger_entry.id) AS ledger_row_count')
+            ->groupBy([
+                'variance_ledger_entry.financial_period_id',
+                'variance_ledger_entry.account_id',
+                'variance_ledger_entry.project_id',
+                'variance_ledger_entry.cost_center_id',
+                'variance_ledger_entry.currency',
+                'variance_actual_period.month',
+                'variance_actual_period.start_date',
+                'variance_actual_period.end_date',
+                'variance_actual_period.fiscal_year_id',
+                'variance_actual_account.code',
+                'variance_actual_account.name',
+                'variance_actual_account.type',
+                'variance_actual_account.nature',
+                'variance_actual_project.code',
+                'variance_actual_project.name',
+                'variance_actual_cost_center.code',
+                'variance_actual_cost_center.name',
+            ]);
+
+        $union = $budgetRows->unionAll($actualRows);
+        $dimensions = [
+            'financial_period_id',
+            'period_month',
+            'period_start_date',
+            'period_end_date',
+            'fiscal_year_id',
+            'account_id',
+            'account_code',
+            'account_name',
+            'account_type',
+            'account_nature',
+            'project_id',
+            'project_code',
+            'project_name',
+            'cost_center_id',
+            'cost_center_code',
+            'cost_center_name',
+            'currency',
+        ];
+        $qualifiedDimensions = array_map(fn (string $column): string => "variance_source.{$column}", $dimensions);
+
+        $merged = DB::query()
+            ->fromSub($union, 'variance_source')
+            ->select($qualifiedDimensions)
+            ->selectRaw('MAX(variance_source.has_budget) AS has_budget')
+            ->selectRaw('MAX(variance_source.has_actual) AS has_actual')
+            ->selectRaw('COALESCE(SUM(variance_source.budget_minor), 0) AS budget_minor')
+            ->selectRaw('COALESCE(SUM(variance_source.debit_minor), 0) AS debit_minor')
+            ->selectRaw('COALESCE(SUM(variance_source.credit_minor), 0) AS credit_minor')
+            ->selectRaw('COALESCE(SUM(variance_source.ledger_row_count), 0) AS ledger_row_count')
+            ->groupBy($qualifiedDimensions);
+
+        $actualExpression = '(CASE WHEN variance_merged.account_nature = \'credit\' THEN variance_merged.credit_minor - variance_merged.debit_minor ELSE variance_merged.debit_minor - variance_merged.credit_minor END)';
+        $varianceExpression = "({$actualExpression} - variance_merged.budget_minor)";
+
+        return DB::query()
+            ->fromSub($merged, 'variance_merged')
+            ->select(array_map(fn (string $column): string => "variance_merged.{$column}", $dimensions))
+            ->addSelect([
+                'variance_merged.budget_minor',
+                'variance_merged.debit_minor',
+                'variance_merged.credit_minor',
+                'variance_merged.ledger_row_count',
+            ])
+            ->selectRaw("{$actualExpression} AS actual_minor")
+            ->selectRaw("{$varianceExpression} AS variance_minor")
+            ->selectRaw("ABS({$varianceExpression}) AS variance_abs_minor")
+            ->selectRaw("CASE WHEN variance_merged.budget_minor > 0 THEN CAST((ABS({$varianceExpression}) * 20000 + variance_merged.budget_minor) / (variance_merged.budget_minor * 2) AS INTEGER) ELSE NULL END AS variance_percent_bps")
+            ->selectRaw("CASE WHEN variance_merged.has_budget = 1 AND variance_merged.has_actual = 0 THEN 'budget_only' WHEN variance_merged.has_budget = 0 AND variance_merged.has_actual = 1 THEN 'actual_only' ELSE 'matched' END AS row_type");
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, array<string, int|string|null>>
+     */
+    private function summaryByCurrency(array $context): array
+    {
+        $rows = DB::query()
+            ->fromSub($this->varianceRowsQuery($context), 'variance_summary')
+            ->select('variance_summary.currency')
+            ->selectRaw('COALESCE(SUM(variance_summary.budget_minor), 0) AS budget_minor')
+            ->selectRaw('COALESCE(SUM(variance_summary.actual_minor), 0) AS actual_minor')
+            ->selectRaw('COALESCE(SUM(variance_summary.debit_minor), 0) AS debit_minor')
+            ->selectRaw('COALESCE(SUM(variance_summary.credit_minor), 0) AS credit_minor')
+            ->selectRaw('COALESCE(SUM(variance_summary.variance_minor), 0) AS variance_minor')
+            ->selectRaw('COUNT(*) AS row_count')
+            ->selectRaw("SUM(CASE WHEN variance_summary.row_type = 'matched' THEN 1 ELSE 0 END) AS matched_count")
+            ->selectRaw("SUM(CASE WHEN variance_summary.row_type = 'budget_only' THEN 1 ELSE 0 END) AS budget_only_count")
+            ->selectRaw("SUM(CASE WHEN variance_summary.row_type = 'actual_only' THEN 1 ELSE 0 END) AS actual_only_count")
+            ->groupBy('variance_summary.currency')
+            ->orderBy('variance_summary.currency')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            /** @var Budget $budget */
+            $budget = $context['budget'];
+            $fallbackCurrency = $context['currency'] ?? $budget->default_currency ?? $this->currencyResolver->resolve();
+            $rows = collect([(object) [
+                'currency' => $fallbackCurrency,
+                'budget_minor' => 0,
+                'actual_minor' => 0,
+                'debit_minor' => 0,
+                'credit_minor' => 0,
+                'variance_minor' => 0,
+                'row_count' => 0,
+                'matched_count' => 0,
+                'budget_only_count' => 0,
+                'actual_only_count' => 0,
+            ]]);
+        }
+
+        $summary = [];
+        foreach ($rows as $row) {
+            $currency = (string) $row->currency;
+            $budgetMinor = (int) $row->budget_minor;
+            $varianceMinor = (int) $row->variance_minor;
+            $varianceAbsMinor = abs($varianceMinor);
+
+            $summary[$currency] = [
+                'currency' => $currency,
+                'budget_minor' => $budgetMinor,
+                'actual_minor' => (int) $row->actual_minor,
+                'debit_minor' => (int) $row->debit_minor,
+                'credit_minor' => (int) $row->credit_minor,
+                'variance_minor' => $varianceMinor,
+                'variance_abs_minor' => $varianceAbsMinor,
+                'variance_percent_bps' => $budgetMinor > 0
+                    ? (int) intdiv($varianceAbsMinor * 20000 + $budgetMinor, $budgetMinor * 2)
+                    : null,
+                'row_count' => (int) $row->row_count,
+                'matched_count' => (int) $row->matched_count,
+                'budget_only_count' => (int) $row->budget_only_count,
+                'actual_only_count' => (int) $row->actual_only_count,
+            ];
+        }
+
+        return $summary;
+    }
+
+    private function decodeTranslations(mixed $value): array|string
+    {
+        if (! is_string($value)) {
+            return is_array($value) ? $value : (string) $value;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : $value;
+    }
+
+    private function decodeNullableTranslations(mixed $value): array|string|null
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return $this->decodeTranslations($value);
     }
 }

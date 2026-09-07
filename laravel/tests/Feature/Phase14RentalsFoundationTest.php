@@ -226,7 +226,7 @@ class Phase14RentalsFoundationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Rentals/RentableItems')
-                ->has('items.data', 1)
+                ->where('items', [])
                 ->has('branches')
                 ->has('warehouses')
                 ->has('products')
@@ -341,7 +341,7 @@ class Phase14RentalsFoundationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Rentals/Contracts')
-                ->has('contracts.data', 1)
+                ->where('contracts', [])
                 ->has('customers')
                 ->has('branches')
                 ->has('rentableItems')
@@ -451,7 +451,7 @@ class Phase14RentalsFoundationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Rentals/Handovers')
-                ->has('handovers.data')
+                ->where('handovers', [])
                 ->has('contracts')
                 ->where('statuses.0', 'draft'));
 
@@ -459,7 +459,7 @@ class Phase14RentalsFoundationTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Rentals/Returns')
-                ->has('returns.data')
+                ->where('returns', [])
                 ->has('contracts')
                 ->where('statuses.0', 'draft'));
     }

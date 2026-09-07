@@ -282,7 +282,7 @@ class Phase14RentalBillingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Rentals/Invoices')
-                ->has('invoices.data', 1)
+                ->where('invoices', [])
                 ->has('contracts')
                 ->has('taxCodes')
                 ->where('lineTypes.0', 'rent'));

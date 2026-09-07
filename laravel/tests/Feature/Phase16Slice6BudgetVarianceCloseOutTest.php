@@ -378,6 +378,16 @@ class Phase16Slice6BudgetVarianceCloseOutTest extends TestCase
         $this->assertSame(1000, $row['variance_percent_bps']); // 50,000 / 500,000 = 10.00% = 1000 bps
         $this->assertSame('matched', $row['row_type']);
         $this->assertSame(1, $row['ledger_row_count']);
+
+        $metadata = $service->metadata(
+            budgetId: (string) $this->activeBudget->id,
+            periodId: (string) $this->periodJan->id,
+            accountId: (string) $this->opexAccount->id,
+        );
+
+        $this->assertSame($result['summary_by_currency'], $metadata['summary_by_currency']);
+        $this->assertSame($result['warning_codes'], $metadata['warning_codes']);
+        $this->assertArrayNotHasKey('rows', $metadata);
     }
 
     public function test_posted_ledger_actuals_are_included_and_draft_or_unposted_journals_are_excluded(): void
@@ -828,7 +838,7 @@ class Phase16Slice6BudgetVarianceCloseOutTest extends TestCase
                 ->has('report.selected_budget')
                 ->has('report.filters')
                 ->has('report.periods')
-                ->has('report.rows')
+                ->missing('report.rows')
                 ->has('report.summary_by_currency')
                 ->has('report.warning_codes')
                 ->has('report.has_warnings')
@@ -841,6 +851,80 @@ class Phase16Slice6BudgetVarianceCloseOutTest extends TestCase
                 ->has('options.costCenters')
                 ->has('options.currencies')
             );
+    }
+
+    public function test_variance_rows_are_server_paginated_while_summary_uses_the_complete_filter(): void
+    {
+        foreach ([
+            [$this->opexAccount, 100000],
+            [$this->cogsAccount, 200000],
+        ] as [$account, $amount]) {
+            BudgetLine::query()->create([
+                'id' => (string) Str::uuid(),
+                'budget_id' => $this->activeBudget->id,
+                'financial_period_id' => $this->periodJan->id,
+                'account_id' => $account->id,
+                'project_id' => $this->projectAlpha->id,
+                'cost_center_id' => $this->costCenterHQ->id,
+                'currency' => 'EGP',
+                'amount_minor' => $amount,
+                'created_by' => $this->adminUser->id,
+            ]);
+        }
+
+        $filters = [
+            'budget_id' => (string) $this->activeBudget->id,
+            'period_id' => (string) $this->periodJan->id,
+            'project_id' => (string) $this->projectAlpha->id,
+            'cost_center_id' => (string) $this->costCenterHQ->id,
+        ];
+
+        $this->actingAs($this->adminUser)
+            ->get('/budgeting/variance?'.http_build_query($filters))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->missing('report.rows')
+                ->where('report.summary_by_currency.EGP.row_count', 2)
+                ->where('report.summary_by_currency.EGP.budget_minor', 300000)
+                ->etc());
+
+        $columns = collect([
+            'period_month',
+            'account_code',
+            'project_code',
+            'cost_center_code',
+            'currency',
+            'budget_minor',
+            'actual_minor',
+            'variance_minor',
+            'variance_percent_bps',
+            'row_type',
+            'ledger_row_count',
+        ])->map(fn (string $column): array => [
+            'data' => $column,
+            'name' => $column,
+            'searchable' => 'true',
+            'orderable' => 'true',
+            'search' => ['value' => '', 'regex' => 'false'],
+        ])->all();
+
+        $response = $this->actingAs($this->adminUser)->getJson('/budgeting/variance/data?'.http_build_query([
+            ...$filters,
+            'draw' => 1,
+            'start' => 0,
+            'length' => 1,
+            'search' => ['value' => (string) $this->opexAccount->code, 'regex' => 'false'],
+            'columns' => $columns,
+            'order' => [['column' => 1, 'dir' => 'asc']],
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('recordsTotal', 2)
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.account_id', (string) $this->opexAccount->id)
+            ->assertJsonPath('data.0.budget_minor', 100000)
+            ->assertJsonPath('data.0.row_type', 'budget_only');
     }
 
     public function test_csv_export_streams_exact_minor_units_and_bps_headers(): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Purchasing\PurchaseReturnPageData;
 use App\Application\Purchasing\PurchaseReturnService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,11 @@ class PurchaseReturnController extends Controller
             'supplier_id' => $request->query('supplier_id'),
             'warehouse_id' => $request->query('warehouse_id'),
         ]));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->purchaseReturnPageData->datatable($request->only(['status', 'supplier_id', 'warehouse_id']));
     }
 
     public function store(Request $request): RedirectResponse

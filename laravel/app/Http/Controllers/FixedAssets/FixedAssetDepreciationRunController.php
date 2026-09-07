@@ -7,6 +7,7 @@ use App\Application\FixedAssets\FixedAssetDepreciationRunPageData;
 use App\Domain\Accounting\PeriodClosedException;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +30,14 @@ class FixedAssetDepreciationRunController extends Controller
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
         return Inertia::render('FixedAssets/DepreciationRuns/Index', $this->pageData->indexData($request->user()));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+        $this->authorizeSensitiveCapability($request, 'view_financials');
+
+        return $this->pageData->datatable();
     }
 
     public function store(Request $request): RedirectResponse
@@ -70,12 +79,28 @@ class FixedAssetDepreciationRunController extends Controller
         return Inertia::render('FixedAssets/DepreciationRuns/Show', $this->pageData->showData($id, $request->user()));
     }
 
+    public function schedulesData(Request $request, string $id): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+        $this->authorizeSensitiveCapability($request, 'view_financials');
+
+        return $this->pageData->runSchedulesData($id);
+    }
+
     public function preview(Request $request, string $financialPeriodId): Response
     {
         $this->authorizePermission($request, 'fixedAssets.view');
         $this->authorizeSensitiveCapability($request, 'view_financials');
 
         return Inertia::render('FixedAssets/DepreciationRuns/Preview', $this->pageData->previewData($financialPeriodId, $request->user()));
+    }
+
+    public function previewSchedulesData(Request $request, string $financialPeriodId): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+        $this->authorizeSensitiveCapability($request, 'view_financials');
+
+        return $this->pageData->previewSchedulesData($financialPeriodId);
     }
 
     public function reverse(Request $request, string $id): RedirectResponse

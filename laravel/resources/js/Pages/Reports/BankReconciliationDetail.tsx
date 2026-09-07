@@ -1,10 +1,35 @@
 import { Head, Link } from '@inertiajs/react';
+import { useMemo, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { Button, Card, PageHeader, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary, interpolate } from '../../lib/i18n';
+
+type StatementLine = {
+  id: string;
+  statement_date: string;
+  reference: string;
+  description: string;
+  debit_minor: number;
+  credit_minor: number;
+  statement_net_minor?: number;
+  matched_ledger_entry_id: string | null;
+  matched_at: string | null;
+  journal_number?: string | null;
+  matched_entry_date?: string | null;
+  matched_net_minor?: number | null;
+  matched_ledger_entry: {
+    id: string;
+    entry_date: string;
+    description: string;
+    debit_minor: number;
+    credit_minor: number;
+    journal_number?: string;
+  } | null;
+};
 
 type BankReconciliationDetailProps = SharedPageProps & {
   detail: {
@@ -18,24 +43,7 @@ type BankReconciliationDetailProps = SharedPageProps & {
       statement_closing_balance_minor: number;
       status: string;
       finalized_at: string | null;
-      lines: Array<{
-        id: string;
-        statement_date: string;
-        reference: string;
-        description: string;
-        debit_minor: number;
-        credit_minor: number;
-        matched_ledger_entry_id: string | null;
-        matched_at: string | null;
-        matched_ledger_entry: {
-          id: string;
-          entry_date: string;
-          description: string;
-          debit_minor: number;
-          credit_minor: number;
-          journal_number?: string;
-        } | null;
-      }>;
+      lines: StatementLine[];
     };
     summary: {
       statement_movement_minor: number;
@@ -50,12 +58,49 @@ type BankReconciliationDetailProps = SharedPageProps & {
 };
 
 export default function BankReconciliationDetail({ locale, detail }: BankReconciliationDetailProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const can = useCan();
   const canPrint = can('reports.print') && can('view_financials');
   const { reconciliation, summary } = detail;
+
+  const columns = useMemo(() => [
+    { data: 'statement_date', name: 'statement_date', title: dict.app.pages.reportsBankReconciliationDetail.statementDate },
+    { data: 'reference', name: 'reference', title: dict.app.pages.reportsBankReconciliationDetail.refDescription },
+    { data: 'statement_net_minor', name: 'statement_net_minor', title: dict.app.pages.reportsBankReconciliationDetail.statementAmount, searchable: false },
+    { data: 'journal_number', name: 'journal_number', title: dict.app.pages.reportsBankReconciliationDetail.matchedGlEntry, orderable: false },
+    { data: 'matched_net_minor', name: 'matched_net_minor', title: dict.app.pages.reportsBankReconciliationDetail.glAmount, orderable: false, searchable: false },
+  ], [dict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    statement_date: (data: string): ReactElement => <span className="whitespace-nowrap font-mono text-xs">{formatDate(data)}</span>,
+    reference: (data: string, _type: unknown, line: StatementLine): ReactElement => (
+      <div>
+        <div className="font-semibold">{data}</div>
+        <div className="text-[11px] text-[var(--text-secondary)]">{line.description}</div>
+      </div>
+    ),
+    statement_net_minor: (data: number): ReactElement => (
+      <span className="font-mono font-bold">{formatMoney(data, reconciliation.bank_account.currency)}</span>
+    ),
+    journal_number: (data: string | null, _type: unknown, line: StatementLine): ReactElement => (
+      line.matched_ledger_entry_id ? (
+        <div>
+          <span className="font-mono font-bold text-blue-600">
+            {data || dict.app.pages.reportsBankReconciliationDetail.missingGlJournalReference}
+          </span>
+          {line.matched_entry_date ? (
+            <span className="ms-2 text-[var(--text-secondary)]">({formatDate(line.matched_entry_date)})</span>
+          ) : null}
+        </div>
+      ) : <span className="italic text-slate-400">{dict.app.pages.reportsBankReconciliationDetail.unmatched}</span>
+    ),
+    matched_net_minor: (data: number | null): ReactElement => (
+      <span className="font-mono">
+        {data === null ? accDict.notAvailable : formatMoney(data, reconciliation.bank_account.currency)}
+      </span>
+    ),
+  }), [accDict.notAvailable, dict, reconciliation.bank_account.currency]);
 
   return (
     <AppLayout active="reports.bank-reconciliations">
@@ -114,58 +159,15 @@ export default function BankReconciliationDetail({ locale, detail }: BankReconci
           <div className="p-3 bg-[var(--background)] font-bold text-xs border-b border-[var(--border-color)]">
             {dict.app.pages.reportsBankReconciliationDetail.bankStatementLinesMatchedSystemEntries}
           </div>
-          <table className="w-full text-start text-xs">
-            <thead className="bg-[var(--background)]/50 border-b border-[var(--border-color)]">
-              <tr>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementDate}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.refDescription}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.statementAmount}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.matchedGlEntry}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliationDetail.glAmount}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {reconciliation.lines.map((line) => {
-                const stmtNet = line.debit_minor - line.credit_minor;
-                const matchedNet = line.matched_ledger_entry ? line.matched_ledger_entry.debit_minor - line.matched_ledger_entry.credit_minor : 0;
-
-                return (
-                  <tr key={line.id} className="hover:bg-[var(--background)]/30">
-                    <td className="p-3 font-mono">{formatDate(line.statement_date)}</td>
-                    <td className="p-3">
-                      <div className="font-semibold">{line.reference}</div>
-                      <div className="text-[var(--text-secondary)] text-[11px]">{line.description}</div>
-                    </td>
-                    <td className="p-3 text-end font-mono font-bold">
-                      {formatMoney(stmtNet, reconciliation.bank_account.currency)}
-                    </td>
-                    <td className="p-3">
-                      {line.matched_ledger_entry ? (
-                        <div>
-                          <span className="font-mono font-bold text-blue-600">
-                            {line.matched_ledger_entry.journal_number || dict.app.pages.reportsBankReconciliationDetail.missingGlJournalReference}
-                          </span>
-                          <span className="text-[var(--text-secondary)] ms-2">({formatDate(line.matched_ledger_entry.entry_date)})</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">{dict.app.pages.reportsBankReconciliationDetail.unmatched}</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-end font-mono">
-                      {line.matched_ledger_entry ? formatMoney(matchedNet, reconciliation.bank_account.currency) : accDict.notAvailable}
-                    </td>
-                  </tr>
-                );
-              })}
-              {reconciliation.lines.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-6 text-center text-[var(--text-muted)]">
-                    {dict.app.pages.reportsBankReconciliationDetail.noStatementLinesInThisReconciliation}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <ServerDataTable
+            ajaxUrl={`/reports/bank-reconciliations/${reconciliation.id}/data`}
+            columns={columns}
+            locale={locale}
+            order={[[0, 'asc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="bank-reconciliation-report-lines-table"
+          />
         </Card>
       </div>
     </AppLayout>

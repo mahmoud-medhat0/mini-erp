@@ -1,9 +1,11 @@
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
+import { useMemo } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type RevisionRow = {
   id: string;
@@ -25,21 +27,66 @@ type RevisionRow = {
     number?: string | null;
     customer?: { id: string; name: string } | null;
   } | null;
+  customer_invoice?: {
+    id: string;
+    number?: string | null;
+    customer?: { id: string; name: string } | null;
+  } | null;
 };
 
 type InvoiceRevisionsProps = SharedPageProps & {
-  customerInvoiceRevisions: {
-    data: RevisionRow[];
-    links: PaginationLink[];
-  };
+  customerInvoiceRevisions?: RevisionRow[];
   filters: {
     search?: string;
   };
 };
 
-export default function InvoiceRevisionsIndex({ locale, customerInvoiceRevisions, filters }: InvoiceRevisionsProps) {
+export default function InvoiceRevisionsIndex({ locale, filters }: InvoiceRevisionsProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
+  const pageDict = dict.app.pages.salesInvoiceRevisions;
+
+  const columns = useMemo(() => [
+    { data: 'display_string', name: 'customer_invoice_revision.display_string', title: pageDict.revision },
+    { data: 'invoice_number', name: 'invoice_number', title: pageDict.originalInvoice },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'revision_date', name: 'customer_invoice_revision.revision_date', title: pageDict.revisionDate },
+    { data: 'original_total_minor', name: 'customer_invoice_revision.original_total_minor', title: pageDict.originalTotal, className: 'text-end' },
+    { data: 'credited_total_minor', name: 'customer_invoice_revision.credited_total_minor', title: pageDict.creditedTotal, className: 'text-end' },
+    { data: 'net_total_minor', name: 'customer_invoice_revision.net_total_minor', title: pageDict.netTotal, className: 'text-end' },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    display_string: (value: string, _type: unknown, row: RevisionRow) => (
+      <span className="font-mono font-bold text-blue-600">
+        {value}
+        <span className="ms-1 text-[10px] font-semibold text-[var(--text-muted)]">#{row.revision_no}</span>
+      </span>
+    ),
+    invoice_number: (_value: unknown, _type: unknown, row: RevisionRow) => {
+      const invoice = row.customerInvoice || row.customer_invoice;
+      return <span className="font-mono">{invoice?.number || accDict.notAvailable}</span>;
+    },
+    customer_name: (_value: unknown, _type: unknown, row: RevisionRow) => {
+      const invoice = row.customerInvoice || row.customer_invoice;
+      return <span className="font-medium">{getLocalizedName(invoice?.customer?.name, locale) || accDict.notAvailable}</span>;
+    },
+    original_total_minor: (value: number, _type: unknown, row: RevisionRow) => (
+      <span className="font-mono font-semibold">{formatMoney(value, row.currency)}</span>
+    ),
+    credited_total_minor: (value: number, _type: unknown, row: RevisionRow) => (
+      <span className="font-mono font-semibold text-red-600">{formatMoney(value, row.currency)}</span>
+    ),
+    net_total_minor: (value: number, _type: unknown, row: RevisionRow) => (
+      <span className="font-mono font-bold">{formatMoney(value, row.currency)}</span>
+    ),
+    actions: (_value: unknown, _type: unknown, row: RevisionRow) => (
+      <Link href={`/sales/invoice-revisions/${row.id}`} className="text-xs font-semibold text-blue-600 hover:text-blue-800 no-underline">
+        {pageDict.view}
+      </Link>
+    ),
+  }), [accDict.notAvailable, locale, pageDict]);
   
   return (
     <AppLayout active="invoice-revisions.index">
@@ -50,80 +97,16 @@ export default function InvoiceRevisionsIndex({ locale, customerInvoiceRevisions
         description={dict.app.pages.salesInvoiceRevisions.correctedCustomerInvoiceCopiesGeneratedBy}
       />
 
-      <Card className="p-6">
-        <div className="mb-6">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.salesInvoiceRevisions.searchRevisionNumberOrInvoice}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/invoice-revisions', { search: val }, { preserveState: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
-
-        {customerInvoiceRevisions.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.salesInvoiceRevisions.noInvoiceRevisionsFound}
-            description={dict.app.pages.salesInvoiceRevisions.revisionsAreGeneratedWhenPostedCreditNotes}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.salesInvoiceRevisions.revision}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesInvoiceRevisions.originalInvoice}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesInvoiceRevisions.customer}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesInvoiceRevisions.revisionDate}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesInvoiceRevisions.originalTotal}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesInvoiceRevisions.creditedTotal}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesInvoiceRevisions.netTotal}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesInvoiceRevisions.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {customerInvoiceRevisions.data.map((rev) => (
-                  <tr key={rev.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {rev.display_string}
-                      <span className="ms-1 text-[10px] font-semibold text-[var(--text-muted)]">#{rev.revision_no}</span>
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>{rev.customerInvoice?.number || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(rev.customerInvoice?.customer?.name, locale) || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{rev.revision_date}</td>
-                    <td className={`${tableClasses.td} text-end font-mono font-semibold`}>
-                      {formatMoney(rev.original_total_minor, rev.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} text-end font-mono font-semibold text-red-600`}>
-                      {formatMoney(rev.credited_total_minor, rev.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} text-end font-mono font-bold`}>
-                      {formatMoney(rev.net_total_minor, rev.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <Link
-                        href={`/sales/invoice-revisions/${rev.id}`}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800 no-underline"
-                      >
-                        {dict.app.pages.salesInvoiceRevisions.view}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/sales/invoice-revisions/data"
+          columns={columns}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[3, 'desc']]}
+          slots={slots}
+          tableId="sales-invoice-revisions-data-table"
+        />
       </Card>
     </AppLayout>
   );

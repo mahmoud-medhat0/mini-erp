@@ -3,7 +3,8 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { AccountingAmount, Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -43,6 +44,7 @@ type RentalReturn = {
   customer?: Customer | null;
   branch?: Branch | null;
   lines?: ReturnLine[];
+  damage_total_minor?: number | null;
 };
 type EditableReturnLine = {
   rental_contract_line_id: string;
@@ -53,7 +55,7 @@ type EditableReturnLine = {
   inspection_notes: string;
 };
 type Props = SharedPageProps & {
-  returns: { data: RentalReturn[]; total: number };
+  returns?: RentalReturn[];
   contracts: Contract[];
   statuses: string[];
   conditions: string[];
@@ -86,7 +88,6 @@ function namePart(name: TranslatedName, locale: 'en' | 'ar'): string {
 
 export default function RentalReturnsIndex({
   locale,
-  returns,
   contracts = [],
   statuses = [],
   conditions = [],
@@ -97,9 +98,11 @@ export default function RentalReturnsIndex({
   const activeLocale = locale === 'ar' ? 'ar' : 'en';
   const pageDict = dict.app.pages.rentalReturns;
   const can = useCan();
-  const [search, setSearch] = useState(filters.search || '');
+  const [initialSearch, setInitialSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [showForm, setShowForm] = useState(false);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [tableResetToken, setTableResetToken] = useState(0);
 
   const form = useForm({
     rental_contract_id: contracts[0]?.id || '',
@@ -153,16 +156,12 @@ export default function RentalReturnsIndex({
     form.setData('lines', form.data.lines.map((line, lineIndex) => (lineIndex === index ? { ...line, ...patch } : line)));
   }
 
-  function applyFilters() {
-    router.get('/rentals/returns', { search, status }, { preserveScroll: true, preserveState: true });
-  }
-
-  const activeFilterCount = [search, status].filter(Boolean).length;
+  const activeFilterCount = [initialSearch, status].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
+    setInitialSearch('');
     setStatus('');
-    router.get('/rentals/returns', {}, { preserveScroll: true, preserveState: true });
+    setTableResetToken((value) => value + 1);
   }
 
   function submit(e: FormEvent) {
@@ -183,6 +182,7 @@ export default function RentalReturnsIndex({
       onSuccess: () => {
         setShowForm(false);
         form.reset();
+        setTableReloadToken((value) => value + 1);
       },
     });
   }
@@ -190,8 +190,56 @@ export default function RentalReturnsIndex({
   function action(path: string, confirmation?: string) {
     if (confirmation && !confirm(confirmation)) return;
 
-    router.post(path, {}, { preserveScroll: true });
+    router.post(path, {}, {
+      preserveScroll: true,
+      onSuccess: () => setTableReloadToken((value) => value + 1),
+    });
   }
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'rental_return.number', title: pageDict.number },
+    { data: 'contract_number', name: 'contract_number', title: pageDict.contract },
+    { data: 'return_date', name: 'rental_return.return_date', title: pageDict.returnDate },
+    { data: 'status', name: 'rental_return.status', title: pageDict.status },
+    { data: 'items', name: 'items', title: pageDict.items, orderable: false, searchable: false },
+    { data: 'damage_total_minor', name: 'damage_total_minor', title: pageDict.estimatedDamageCharge, searchable: false, className: 'text-end' },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false },
+    { data: 'created_at', name: 'rental_return.created_at', title: '', visible: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
+    contract_number: (_value: unknown, _type: unknown, rentalReturn: RentalReturn) => (
+      <div>
+        <div className="font-semibold">{rentalReturn.contract?.number || pageDict.notNumbered}</div>
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{rentalReturn.customer ? `${rentalReturn.customer.code} - ${namePart(rentalReturn.customer.name, activeLocale)}` : ''}</div>
+      </div>
+    ),
+    return_date: (value: string) => formatDate(value),
+    status: (value: string) => <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>,
+    items: (_value: unknown, _type: unknown, rentalReturn: RentalReturn) => rentalReturn.lines?.map((line) => line.rentable_item?.code).filter(Boolean).join(', '),
+    damage_total_minor: (value: number | null, _type: unknown, rentalReturn: RentalReturn) => (
+      <AccountingAmount amountMinor={Number(value || 0)} currency={rentalReturn.contract?.currency || pageDict.noCurrency} />
+    ),
+    actions: (_value: unknown, _type: unknown, rentalReturn: RentalReturn) => (
+      <div className="flex flex-wrap gap-2">
+        {rentalReturn.status === 'draft' && can('rentals.return') ? <Button onClick={() => action(`/rentals/returns/${rentalReturn.id}/submit`, pageDict.confirmSubmit)}>{pageDict.submit}</Button> : null}
+        {rentalReturn.status === 'submitted' && can('rentals.inspect') ? <Button onClick={() => action(`/rentals/returns/${rentalReturn.id}/complete`, pageDict.confirmComplete)}>{pageDict.complete}</Button> : null}
+        {['draft', 'submitted'].includes(rentalReturn.status) && can('rentals.cancel') ? <Button variant="danger" onClick={() => action(`/rentals/returns/${rentalReturn.id}/cancel`, pageDict.confirmCancel)}>{pageDict.cancelReturn}</Button> : null}
+      </div>
+    ),
+  }), [activeLocale, can, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status }), [status]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-48">
+        <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} />
+      </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="rentals.returns.index">
@@ -201,15 +249,6 @@ export default function RentalReturnsIndex({
         description={pageDict.description}
         actions={can('rentals.return') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
-
-      <Card className="mb-4 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_220px_auto_auto]">
-          <input className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)]" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-4 p-4">
@@ -288,49 +327,21 @@ export default function RentalReturnsIndex({
         </Card>
       ) : null}
 
-      {returns.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <Card className="overflow-hidden">
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.contract}</th>
-                <th className={tableClasses.th}>{pageDict.returnDate}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.items}</th>
-                <th className={tableClasses.th}>{pageDict.estimatedDamageCharge}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {returns.data.map((rentalReturn) => (
-                <tr key={rentalReturn.id}>
-                  <td className={tableClasses.td}><span className="font-mono font-bold">{rentalReturn.number || pageDict.notNumbered}</span></td>
-                  <td className={tableClasses.td}>
-                    <div className="font-semibold">{rentalReturn.contract?.number || pageDict.notNumbered}</div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">{rentalReturn.customer ? `${rentalReturn.customer.code} - ${namePart(rentalReturn.customer.name, activeLocale)}` : ''}</div>
-                  </td>
-                  <td className={tableClasses.td}>{formatDate(rentalReturn.return_date)}</td>
-                  <td className={tableClasses.td}><StatusBadge tone={statusTone(rentalReturn.status)}>{pageDict.statuses[rentalReturn.status as keyof typeof pageDict.statuses] || rentalReturn.status}</StatusBadge></td>
-                  <td className={tableClasses.td}>{rentalReturn.lines?.map((line) => line.rentable_item?.code).filter(Boolean).join(', ')}</td>
-                  <td className={tableClasses.td}>
-                    <AccountingAmount amountMinor={(rentalReturn.lines || []).reduce((sum, line) => sum + Number(line.estimated_damage_charge_minor || 0), 0)} currency={rentalReturn.contract?.currency || pageDict.noCurrency} />
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {rentalReturn.status === 'draft' && can('rentals.return') ? <Button onClick={() => action(`/rentals/returns/${rentalReturn.id}/submit`, pageDict.confirmSubmit)}>{pageDict.submit}</Button> : null}
-                      {rentalReturn.status === 'submitted' && can('rentals.inspect') ? <Button onClick={() => action(`/rentals/returns/${rentalReturn.id}/complete`, pageDict.confirmComplete)}>{pageDict.complete}</Button> : null}
-                      {['draft', 'submitted'].includes(rentalReturn.status) && can('rentals.cancel') ? <Button variant="danger" onClick={() => action(`/rentals/returns/${rentalReturn.id}/cancel`, pageDict.confirmCancel)}>{pageDict.cancelReturn}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          key={tableResetToken}
+          ajaxUrl="/rentals/returns/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={initialSearch}
+          locale={locale}
+          order={[[7, 'desc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="rental-returns-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

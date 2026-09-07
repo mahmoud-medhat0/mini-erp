@@ -1,6 +1,7 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { Button, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import SensitiveActionModal from '../../Components/SensitiveActionModal';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
@@ -68,7 +69,6 @@ export default function ReceivableSettlements({
   creditEntries,
   selectedSourceEntry,
   openTargetDebits,
-  existingSettlements,
   customers,
   filters,
 }: Props) {
@@ -80,6 +80,7 @@ export default function ReceivableSettlements({
   const [selectedSourceId, setSelectedSourceId] = useState(filters.source_entry_id || '');
   const [reversingId, setReversingId] = useState<string | null>(null);
   const [settleError, setSettleError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const settleForm = useForm({
     source_receivable_entry_id: selectedSourceEntry?.id || '',
@@ -132,6 +133,7 @@ export default function ReceivableSettlements({
       },
       {
         preserveScroll: true,
+        onSuccess: () => setReloadToken((token) => token + 1),
         onError: (errs) => {
           if (errs.lines) setSettleError(errs.lines);
         },
@@ -148,6 +150,48 @@ export default function ReceivableSettlements({
     value: entry.id,
     label: `${getLocalizedName(entry.customer?.name, locale) || pageDict.customer} | ${pageDict.dateLabel}: ${entry.entry_date} | ${pageDict.sourceLabel}: ${entry.source_type} | ${pageDict.remainingCredit}: ${fmtMoney(entry.remaining_minor, entry.currency)}`,
   }));
+
+  const columns = useMemo(() => [
+    { data: 'settled_at', name: 'settled_at', title: pageDict.settledAt },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'source_receivable_entry_id', name: 'source_receivable_entry_id', title: pageDict.sourceEntry },
+    { data: 'target_receivable_entry_id', name: 'target_receivable_entry_id', title: pageDict.targetEntry },
+    { data: 'amount_minor', name: 'amount_minor', title: pageDict.amount, searchable: false },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    settled_at: (data: string): ReactElement => <span className="whitespace-nowrap font-mono text-xs">{new Date(data).toLocaleString()}</span>,
+    customer_name: (data: string | Record<string, string>): ReactElement => <span className="font-semibold">{getLocalizedName(data, locale)}</span>,
+    source_receivable_entry_id: (data: string): ReactElement => <span className="font-mono text-[10px]">{data.substring(0, 8)}</span>,
+    target_receivable_entry_id: (data: string): ReactElement => <span className="font-mono text-[10px]">{data.substring(0, 8)}</span>,
+    amount_minor: (data: number, _type: unknown, settlement: Settlement): ReactElement => (
+      <span className="font-extrabold">{fmtMoney(data, settlement.currency)}</span>
+    ),
+    status: (data: Settlement['status']): ReactElement => (
+      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${data === 'active' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-red-500/15 text-red-600'}`}>
+        {data === 'active' ? pageDict.active : pageDict.reversed}
+      </span>
+    ),
+    actions: (_data: unknown, _type: unknown, settlement: Settlement): ReactElement => (
+      <div className="flex justify-end">
+        {settlement.status === 'active' ? (
+          canManageSettlements ? (
+            <button
+              type="button"
+              onClick={() => setReversingId(settlement.id)}
+              title={pageDict.reverse}
+              aria-label={pageDict.reverse}
+              className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-600 hover:bg-red-500/20 transition-all cursor-pointer"
+            >
+              {pageDict.reverse}
+            </button>
+          ) : <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+        ) : <span className="text-[10px] text-[var(--text-muted)]">{pageDict.reversed}</span>}
+      </div>
+    ),
+  }), [canManageSettlements, dict.app.actions.restricted, locale, pageDict]);
 
   return (
     <AppLayout active="customer-credit-notes.index">
@@ -314,69 +358,18 @@ export default function ReceivableSettlements({
             {pageDict.settlementAuditLog}
           </h2>
 
-          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-            <table className="w-full text-start text-xs">
-              <thead className="bg-[var(--background)] text-[var(--text-muted)] font-bold">
-                <tr>
-                  <th className="p-3 text-start">{pageDict.settledAt}</th>
-                  <th className="p-3 text-start">{pageDict.customer}</th>
-                  <th className="p-3 text-start">{pageDict.sourceEntry}</th>
-                  <th className="p-3 text-start">{pageDict.targetEntry}</th>
-                  <th className="p-3 text-end">{pageDict.amount}</th>
-                  <th className="p-3 text-center">{pageDict.status}</th>
-                  <th className="p-3 text-end">{pageDict.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {existingSettlements.data.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-4 text-center text-[var(--text-muted)]">
-                      {pageDict.noSettlements}
-                    </td>
-                  </tr>
-                ) : (
-                  existingSettlements.data.map((s) => (
-                    <tr key={s.id} className="hover:bg-[var(--background)]/50">
-                      <td className="p-3 font-mono">{new Date(s.settled_at).toLocaleString()}</td>
-                      <td className="p-3 font-semibold">{getLocalizedName(s.customer?.name, locale)}</td>
-                      <td className="p-3 font-mono text-[10px]">{s.source_receivable_entry_id.substring(0, 8)}</td>
-                      <td className="p-3 font-mono text-[10px]">{s.target_receivable_entry_id.substring(0, 8)}</td>
-                      <td className="p-3 text-end font-extrabold">{fmtMoney(s.amount_minor, s.currency)}</td>
-                      <td className="p-3 text-center">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-                            s.status === 'active'
-                              ? 'bg-emerald-500/15 text-emerald-600'
-                              : 'bg-red-500/15 text-red-600'
-                          }`}
-                        >
-                          {s.status === 'active' ? pageDict.active : pageDict.reversed}
-                        </span>
-                      </td>
-                      <td className="p-3 text-end">
-                        {s.status === 'active' ? (
-                          canManageSettlements ? (
-                            <button
-                              type="button"
-                              onClick={() => setReversingId(s.id)}
-                              title={pageDict.reverse}
-                              aria-label={pageDict.reverse}
-                              className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold text-red-600 hover:bg-red-500/20 transition-all cursor-pointer"
-                            >
-                              {pageDict.reverse}
-                            </button>
-                          ) : (
-                            <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                          )
-                        ) : (
-                          <span className="text-[10px] text-[var(--text-muted)]">{pageDict.reversed}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <ServerDataTable
+              ajaxUrl="/sales/receivable-settlements/data"
+              columns={columns}
+              filters={{ customer_id: selectedCustomerId }}
+              locale={locale}
+              order={[[0, 'desc']]}
+              pageLength={25}
+              reloadToken={reloadToken}
+              slots={slots}
+              tableId="receivable-settlements-table"
+            />
           </div>
         </div>
 
@@ -387,7 +380,10 @@ export default function ReceivableSettlements({
             if (!reversingId) return;
             router.post(`/sales/receivable-settlements/${reversingId}/reverse`, payload, {
               preserveScroll: true,
-              onSuccess: () => setReversingId(null),
+              onSuccess: () => {
+                setReversingId(null);
+                setReloadToken((token) => token + 1);
+              },
             });
           }}
           confirmCode="REVERSE_RECEIVABLE_SETTLEMENT"

@@ -1,18 +1,20 @@
 ﻿import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type IncomingChequeRow = {
   id: string;
   cheque_number: string;
   customer_id: string;
-  customer?: { id: string; code: string; name: string };
+  customer_code: string;
+  customer_name: Record<string, string> | string;
   bank_name: string;
   bank_account_id?: string | null;
   bank_account?: { id: string; name: string };
@@ -25,10 +27,6 @@ type IncomingChequeRow = {
 };
 
 type IncomingChequesProps = SharedPageProps & {
-  cheques: {
-    data: IncomingChequeRow[];
-    links: PaginationLink[];
-  };
   customers: Array<{ id: string; code: string; name: string }>;
   bankAccounts: Array<{ id: string; code: string; name: string }>;
   fiscalYears: Array<{ id: string; year: number; name: string }>;
@@ -42,7 +40,6 @@ type IncomingChequesProps = SharedPageProps & {
 
 export default function IncomingChequesIndex({
   locale,
-  cheques,
   customers = [],
   bankAccounts = [],
   fiscalYears = [],
@@ -50,7 +47,6 @@ export default function IncomingChequesIndex({
   currencies = [],
   filters,
 }: IncomingChequesProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.incomingCheques;
   const accDict = dict.app.accounting;
@@ -65,6 +61,7 @@ export default function IncomingChequesIndex({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeActionCheque, setActiveActionCheque] = useState<IncomingChequeRow | null>(null);
   const [actionType, setActionType] = useState<'receive' | 'deposit' | 'clear' | 'bounce' | 'return' | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Form for creation
   const createForm = useForm({
@@ -106,6 +103,7 @@ export default function IncomingChequesIndex({
       onSuccess: () => {
         setShowCreateModal(false);
         createForm.reset();
+        setReloadToken((token) => token + 1);
       },
     });
   };
@@ -123,6 +121,7 @@ export default function IncomingChequesIndex({
       onSuccess: () => {
         setActiveActionCheque(null);
         setActionType(null);
+        setReloadToken((token) => token + 1);
       },
     });
   };
@@ -156,14 +155,14 @@ export default function IncomingChequesIndex({
     router.get('/incoming-cheques', {}, { preserveScroll: true, preserveState: true });
   }
 
-  const statusToneMap: Record<string, 'muted' | 'info' | 'warning' | 'ok' | 'danger'> = {
+  const statusToneMap = useMemo<Record<string, 'muted' | 'info' | 'warning' | 'ok' | 'danger'>>(() => ({
     draft: 'muted',
     received: 'info',
     deposited: 'warning',
     cleared: 'ok',
     bounced: 'danger',
     returned: 'muted',
-  };
+  }), []);
 
   const isIncomingChequeActionable = (cheque: IncomingChequeRow) => ['draft', 'received', 'deposited'].includes(cheque.status);
 
@@ -182,6 +181,111 @@ export default function IncomingChequesIndex({
 
     return isIncomingChequeActionable(cheque) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
+
+  const columns = useMemo(() => [
+    { data: 'cheque_number', name: 'cheque_number', title: pageDict.chequeNo, className: 'font-mono text-xs font-bold' },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'bank_name', name: 'bank_name', title: pageDict.drawnBank },
+    { data: 'due_date', name: 'due_date', title: pageDict.dueDate, className: 'font-mono text-xs', width: '115px' },
+    { data: 'amount_minor', name: 'amount_minor', title: pageDict.amount, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.currentStatus, searchable: false, width: '110px' },
+    { data: 'id', name: 'id', title: pageDict.validLifecycleActions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    customer_name: (data: IncomingChequeRow['customer_name'], _type: unknown, row: IncomingChequeRow): ReactElement => (
+      <span className="font-semibold">{row.customer_code} - {getLocalizedName(data, locale)}</span>
+    ),
+    bank_name: (data: string): ReactElement => <span>{data ? getLocalizedName(data, locale) : accDict.notAvailable}</span>,
+    amount_minor: (data: number, _type: unknown, row: IncomingChequeRow): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatMoney(data, row.currency)}</span>
+    ),
+    status: (_data: string, _type: unknown, row: IncomingChequeRow): ReactElement => (
+      <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
+        {pageDict.statuses[row.status]}
+      </StatusBadge>
+    ),
+    id: (_data: string, _type: unknown, row: IncomingChequeRow): ReactElement => {
+      const actionState = getIncomingChequeActionState(row);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {row.status === 'draft' && canReceiveIncomingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'receive')}
+              title={pageDict.receive}
+              aria-label={pageDict.receive}
+              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+            >
+              {pageDict.receive}
+            </button>
+          ) : null}
+
+          {row.status === 'received' && canDepositIncomingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'deposit')}
+              title={pageDict.deposit}
+              aria-label={pageDict.deposit}
+              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+            >
+              {pageDict.deposit}
+            </button>
+          ) : null}
+
+          {row.status === 'received' && canReturnIncomingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'return')}
+              title={pageDict.return}
+              aria-label={pageDict.return}
+              className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
+            >
+              {pageDict.return}
+            </button>
+          ) : null}
+
+          {row.status === 'deposited' && canClearIncomingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'clear')}
+              title={pageDict.clear}
+              aria-label={pageDict.clear}
+              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+            >
+              {pageDict.clear}
+            </button>
+          ) : null}
+
+          {row.status === 'deposited' && canBounceIncomingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'bounce')}
+              title={pageDict.bounce}
+              aria-label={pageDict.bounce}
+              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+            >
+              {pageDict.bounce}
+            </button>
+          ) : null}
+
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  } as unknown as DataTableSlots), [
+    accDict.notAvailable,
+    canBounceIncomingCheques,
+    canClearIncomingCheques,
+    canDepositIncomingCheques,
+    canReceiveIncomingCheques,
+    canReturnIncomingCheques,
+    dict,
+    locale,
+    pageDict,
+    statusToneMap,
+  ]);
 
   return (
     <AppLayout active="incoming-cheques.index">
@@ -225,117 +329,19 @@ export default function IncomingChequesIndex({
         </div>
       </Card>
 
-      {cheques.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.incomingCheques.noIncomingChequesFound}
-          description={dict.app.pages.incomingCheques.getStartedByCreatingYourFirst}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/incoming-cheques/data"
+          columns={columns}
+          filters={{ status: filters.status || '', customer_id: filters.customer_id || '' }}
+          locale={locale}
+          order={[[3, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="incoming-cheques-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.chequeNo}</th>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.customer}</th>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.drawnBank}</th>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.dueDate}</th>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.amount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.currentStatus}</th>
-                <th className={tableClasses.th}>{dict.app.pages.incomingCheques.validLifecycleActions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cheques.data.map((row) => {
-                const actionState = getIncomingChequeActionState(row);
-
-                return (
-                  <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
-                    <td className={`${tableClasses.td} font-semibold`}>
-                      {row.customer ? `${row.customer.code} - ${getLocalizedName(row.customer.name, locale)}` : accDict.notAvailable}
-                    </td>
-                    <td className={tableClasses.td}>{getLocalizedName(row.bank_name, locale)}</td>
-                    <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
-                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                      {formatMoney(row.amount_minor, row.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
-                        {pageDict.statuses[row.status]}
-                      </StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {row.status === 'draft' && canReceiveIncomingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'receive')}
-                            title={pageDict.receive}
-                            aria-label={pageDict.receive}
-                            className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                          >
-                            {pageDict.receive}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'received' && canDepositIncomingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'deposit')}
-                            title={pageDict.deposit}
-                            aria-label={pageDict.deposit}
-                            className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                          >
-                            {pageDict.deposit}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'received' && canReturnIncomingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'return')}
-                            title={pageDict.return}
-                            aria-label={pageDict.return}
-                            className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
-                          >
-                            {pageDict.return}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'deposited' && canClearIncomingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'clear')}
-                            title={pageDict.clear}
-                            aria-label={pageDict.clear}
-                            className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                          >
-                            {pageDict.clear}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'deposited' && canBounceIncomingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'bounce')}
-                            title={pageDict.bounce}
-                            aria-label={pageDict.bounce}
-                            className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                          >
-                            {pageDict.bounce}
-                          </button>
-                        ) : null}
-
-                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Creation Modal */}
       {showCreateModal ? (

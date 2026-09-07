@@ -4,15 +4,16 @@ namespace App\Application\Payroll;
 
 use App\Models\Account;
 use App\Models\PayrollComponent;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class PayrollComponentPageData
 {
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     components: LengthAwarePaginator,
+     *     components: array<int, never>,
      *     expenseAccounts: EloquentCollection<int, Account>,
      *     liabilityAccounts: EloquentCollection<int, Account>,
      *     types: array<int, string>,
@@ -25,24 +26,8 @@ class PayrollComponentPageData
         $type = (string) ($filters['type'] ?? '');
         $search = trim((string) ($filters['search'] ?? ''));
 
-        $components = PayrollComponent::query()
-            ->with(['expenseAccount', 'liabilityAccount'])
-            ->withCount('employeeAssignments')
-            ->when($type !== '' && in_array($type, PayrollComponentService::TYPES, true), fn ($query) => $query->where('type', $type))
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('code', 'like', "%{$search}%")
-                        ->orWhere('name->en', 'like', "%{$search}%")
-                        ->orWhere('name->ar', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('sort_order')
-            ->orderBy('code')
-            ->paginate(20)
-            ->withQueryString();
-
         return [
-            'components' => $components,
+            'components' => [],
             'expenseAccounts' => $this->expenseAccounts(),
             'liabilityAccounts' => $this->liabilityAccounts(),
             'types' => PayrollComponentService::TYPES,
@@ -52,6 +37,31 @@ class PayrollComponentPageData
                 'type' => $type,
             ],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function datatable(array $filters): JsonResponse
+    {
+        $type = (string) ($filters['type'] ?? '');
+
+        $query = PayrollComponent::query()
+            ->with(['expenseAccount', 'liabilityAccount'])
+            ->select('payroll_component.*')
+            ->withCount('employeeAssignments')
+            ->when(in_array($type, PayrollComponentService::TYPES, true), fn ($builder) => $builder->where('payroll_component.type', $type));
+
+        return DataTables::eloquent($query)
+            ->addColumn('name_text', fn (PayrollComponent $component): string => (string) $component->name)
+            ->addColumn('actions', fn (): string => '')
+            ->filterColumn('name_text', function ($builder, string $keyword): void {
+                $builder->where(function ($inner) use ($keyword): void {
+                    $inner->where('payroll_component.name->en', 'like', "%{$keyword}%")
+                        ->orWhere('payroll_component.name->ar', 'like', "%{$keyword}%");
+                });
+            })
+            ->toJson();
     }
 
     /**

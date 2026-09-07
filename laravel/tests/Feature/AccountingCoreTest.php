@@ -491,7 +491,7 @@ class AccountingCoreTest extends TestCase
         $this->assertEquals('USD', $loaded->currencyRef->code);
     }
 
-    public function test_exchange_rate_search_runs_on_the_server_and_keeps_paginator_totals(): void
+    public function test_exchange_rate_search_runs_on_the_server_without_shipping_rate_rows_in_page_props(): void
     {
         ExchangeRate::create([
             'currency' => 'USD',
@@ -510,19 +510,38 @@ class AccountingCoreTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Accounting/ExchangeRates')
                 ->where('filters.search', 'USD')
-                ->where('rates.total', 1)
-                ->has('rates.data', 1)
-                ->where('rates.data.0.currency', 'USD')
+                ->where('rateEntryCount', 1)
                 ->where('activeCurrencyCount', 1)
+                ->missing('rates')
             );
 
         $this->actingAs($this->user)
             ->get('/accounting/fx-rates?search=2026-02-20')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('rates.total', 1)
-                ->where('rates.data.0.currency', 'EUR')
+                ->where('rateEntryCount', 1)
+                ->missing('rates')
             );
+
+        $gridQuery = [
+            'draw' => '1',
+            'start' => '0',
+            'length' => '25',
+            'columns' => [
+                ['data' => 'currency_name', 'name' => 'currency_name', 'searchable' => 'true', 'orderable' => 'true', 'search' => ['value' => '', 'regex' => 'false']],
+                ['data' => 'date', 'name' => 'date', 'searchable' => 'true', 'orderable' => 'true', 'search' => ['value' => '', 'regex' => 'false']],
+                ['data' => 'rate_decimal', 'name' => 'rate_decimal', 'searchable' => 'false', 'orderable' => 'true', 'search' => ['value' => '', 'regex' => 'false']],
+                ['data' => 'rate_e6', 'name' => 'rate_e6', 'searchable' => 'false', 'orderable' => 'true', 'search' => ['value' => '', 'regex' => 'false']],
+            ],
+            'order' => [['column' => '1', 'dir' => 'desc']],
+            'search' => ['value' => 'USD', 'regex' => 'false'],
+        ];
+
+        $this->actingAs($this->user)
+            ->getJson('/accounting/fx-rates/data?'.http_build_query($gridQuery))
+            ->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.currency', 'USD');
     }
 
     public function test_accounting_pages_receive_relationship_backed_currency_options(): void

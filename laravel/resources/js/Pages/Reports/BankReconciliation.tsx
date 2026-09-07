@@ -1,42 +1,51 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { Button, Card, PageHeader, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps } from '../../Types';
 import { getDictionary } from '../../lib/i18n';
 
+type ReconciliationRow = {
+  id: string;
+  bank_account?: { id: string; code: string; name: string; currency: string };
+  bank_account_code?: string;
+  bank_account_name?: Record<string, string> | string;
+  bank_account_currency?: string;
+  statement_reference: string;
+  date_from: string;
+  date_to: string;
+  statement_opening_balance_minor: number;
+  statement_closing_balance_minor: number;
+  status: string;
+  finalized_at: string | null;
+  matched_statement_lines_count: number;
+  total_statement_lines_count: number;
+  difference_minor: number;
+  summary?: {
+    statement_movement_minor: number;
+    system_movement_minor: number;
+    matched_movement_minor: number;
+    difference_minor: number;
+    unmatched_statement_lines_count: number;
+    matched_statement_lines_count: number;
+    total_statement_lines_count: number;
+  };
+};
+
 type BankReconciliationReportProps = SharedPageProps & {
   report: {
     filters: { bank_account_id: string | null; status: string | null; date_from: string | null; date_to: string | null };
-    reconciliations: Array<{
-      id: string;
-      bank_account: { id: string; code: string; name: string; currency: string };
-      statement_reference: string;
-      date_from: string;
-      date_to: string;
-      statement_opening_balance_minor: number;
-      statement_closing_balance_minor: number;
-      status: string;
-      finalized_at: string | null;
-      summary: {
-        statement_movement_minor: number;
-        system_movement_minor: number;
-        matched_movement_minor: number;
-        difference_minor: number;
-        unmatched_statement_lines_count: number;
-        matched_statement_lines_count: number;
-        total_statement_lines_count: number;
-      };
-    }>;
+    reconciliations: ReconciliationRow[];
   };
   bankAccounts: Array<{ id: string; code: string; name: string }>;
   filters: { bank_account_id: string | null; status: string | null; date_from: string | null; date_to: string | null };
 };
 
-export default function BankReconciliationReport({ locale, report, bankAccounts, filters }: BankReconciliationReportProps) {
+export default function BankReconciliationReport({ locale, bankAccounts, filters }: BankReconciliationReportProps) {
   const dict = getDictionary(locale);
   const actionsDict = dict.app.actions;
   const can = useCan();
@@ -59,6 +68,46 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
     setStatus('');
     router.get('/reports/bank-reconciliations', {}, { preserveScroll: true });
   };
+
+  const columns = useMemo(() => [
+    { data: 'bank_account_name', name: 'bank_account_name', title: dict.app.pages.reportsBankReconciliation.bankAccount_2 },
+    { data: 'statement_reference', name: 'statement_reference', title: dict.app.pages.reportsBankReconciliation.statementRef },
+    { data: 'date_from', name: 'date_from', title: dict.app.pages.reportsBankReconciliation.period },
+    { data: 'status', name: 'status', title: dict.app.pages.reportsBankReconciliation.status_2 },
+    { data: 'matched_statement_lines_count', name: 'matched_statement_lines_count', title: dict.app.pages.reportsBankReconciliation.matchedTotal, searchable: false },
+    { data: 'difference_minor', name: 'difference_minor', title: dict.app.pages.reportsBankReconciliation.difference, searchable: false },
+    { data: 'actions', name: 'actions', title: dict.app.pages.reportsBankReconciliation.actions, orderable: false, searchable: false },
+  ], [dict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    bank_account_name: (data: ReconciliationRow['bank_account_name'], _type: unknown, row: ReconciliationRow): ReactElement => (
+      <span className="font-bold">{row.bank_account_code} - {getLocalizedName(data, locale)}</span>
+    ),
+    statement_reference: (data: string): ReactElement => <span className="font-mono text-xs">{data}</span>,
+    date_from: (data: string, _type: unknown, row: ReconciliationRow): ReactElement => (
+      <span className="whitespace-nowrap text-[var(--text-secondary)]">{formatDate(data)} → {formatDate(row.date_to)}</span>
+    ),
+    status: (data: string): ReactElement => (
+      <StatusBadge tone={data === 'reconciled' ? 'ok' : 'warning'}>
+        {data === 'reconciled'
+          ? dict.app.pages.reportsBankReconciliation.reconciled
+          : dict.app.pages.reportsBankReconciliation.draft}
+      </StatusBadge>
+    ),
+    matched_statement_lines_count: (data: number, _type: unknown, row: ReconciliationRow): ReactElement => (
+      <span className="font-mono">{data} / {row.total_statement_lines_count}</span>
+    ),
+    difference_minor: (data: number, _type: unknown, row: ReconciliationRow): ReactElement => (
+      <span className={`font-mono font-bold ${data === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+        {formatMoney(data, row.bank_account_currency || '')}
+      </span>
+    ),
+    actions: (_data: unknown, _type: unknown, row: ReconciliationRow): ReactElement => (
+      <Link href={`/reports/bank-reconciliations/${row.id}`} className="text-xs font-bold text-[var(--primary)] hover:underline">
+        {dict.app.pages.reportsBankReconciliation.viewDetail}
+      </Link>
+    ),
+  }), [dict, locale]);
 
   return (
     <AppLayout active="reports.bank-reconciliations">
@@ -124,56 +173,21 @@ export default function BankReconciliationReport({ locale, report, bankAccounts,
         </Card>
 
         <Card className="overflow-hidden p-0">
-          <table className="w-full text-start text-xs">
-            <thead className="bg-[var(--background)] border-b border-[var(--border-color)]">
-              <tr>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.bankAccount_2}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.statementRef}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.period}</th>
-                <th className="p-3 font-semibold text-start text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.status_2}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.matchedTotal}</th>
-                <th className="p-3 font-semibold text-end text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.difference}</th>
-                <th className="p-3 font-semibold text-center text-[var(--text-secondary)]">{dict.app.pages.reportsBankReconciliation.actions}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-color)]">
-              {report.reconciliations.map((recon) => (
-                <tr key={recon.id} className="hover:bg-[var(--background)]/30">
-                  <td className="p-3 font-bold">{recon.bank_account.code} - {getLocalizedName(recon.bank_account.name, locale)}</td>
-                  <td className="p-3 font-mono">{recon.statement_reference}</td>
-                  <td className="p-3 text-[var(--text-secondary)]">{formatDate(recon.date_from)} → {formatDate(recon.date_to)}</td>
-                  <td className="p-3">
-                    <StatusBadge tone={recon.status === 'reconciled' ? 'ok' : 'warning'}>
-                      {recon.status === 'reconciled'
-                        ? dict.app.pages.reportsBankReconciliation.reconciled
-                        : dict.app.pages.reportsBankReconciliation.draft}
-                    </StatusBadge>
-                  </td>
-                  <td className="p-3 text-end font-mono">
-                    {recon.summary.matched_statement_lines_count} / {recon.summary.total_statement_lines_count}
-                  </td>
-                  <td className={`p-3 text-end font-mono font-bold ${recon.summary.difference_minor === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {formatMoney(recon.summary.difference_minor, recon.bank_account.currency)}
-                  </td>
-                  <td className="p-3 text-center">
-                    <Link
-                      href={`/reports/bank-reconciliations/${recon.id}`}
-                      className="text-xs font-bold text-[var(--primary)] hover:underline"
-                    >
-                      {dict.app.pages.reportsBankReconciliation.viewDetail}
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-              {report.reconciliations.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-[var(--text-muted)]">
-                    {dict.app.pages.reportsBankReconciliation.noBankReconciliationsFound}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          <ServerDataTable
+            ajaxUrl="/reports/bank-reconciliations/data"
+            columns={columns}
+            filters={{
+              bank_account_id: bankAccountId,
+              status,
+              date_from: filters.date_from,
+              date_to: filters.date_to,
+            }}
+            locale={locale}
+            order={[[2, 'desc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="bank-reconciliation-report-table"
+          />
         </Card>
       </div>
     </AppLayout>

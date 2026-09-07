@@ -36,3 +36,5 @@ prisma/*.db
 # Packaging / delivery artifacts (regenerable — not source)
 *.bundle
 *.zip
+tmp/pdfs/*
+*.pyc

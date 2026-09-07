@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, StatusBadge } from '../../Components/Primitives';
 import type { SharedPageProps } from '../../Types/page';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -14,7 +15,6 @@ import {
   runStatusLabel,
   statusTone,
   type LocalizedName,
-  type Paginated,
 } from './fixedAssetReportUtils';
 
 type DisposalRow = {
@@ -26,6 +26,7 @@ type DisposalRow = {
   net_book_value_minor: number;
   gain_minor: number;
   loss_minor: number;
+  gain_loss_minor: number;
   status: string;
   journal_number?: string | null;
   asset?: {
@@ -37,7 +38,7 @@ type DisposalRow = {
 };
 
 type ReportProps = SharedPageProps & {
-  disposals: Paginated<DisposalRow>;
+  disposals: DisposalRow[];
   filters: {
     search?: string;
     disposal_type?: string;
@@ -45,7 +46,7 @@ type ReportProps = SharedPageProps & {
   };
 };
 
-export default function FixedAssetDisposalReport({ locale, disposals, filters }: ReportProps) {
+export default function FixedAssetDisposalReport({ locale, filters }: ReportProps) {
   const dict = getDictionary(locale);
   const reportDict = dict.app.pages.reports;
   const can = useCan();
@@ -80,6 +81,41 @@ export default function FixedAssetDisposalReport({ locale, disposals, filters }:
     { value: 'posted', label: runStatusLabel('posted', dict) },
     { value: 'reversed', label: runStatusLabel('reversed', dict) },
   ];
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: reportDict.disposalNumber },
+    { data: 'asset', name: 'asset', title: reportDict.fixedAsset, orderable: false },
+    { data: 'disposal_date', name: 'disposal_date', title: reportDict.disposalDate },
+    { data: 'disposal_type', name: 'disposal_type', title: reportDict.disposalType },
+    { data: 'proceeds_minor', name: 'proceeds_minor', title: reportDict.proceeds, searchable: false },
+    { data: 'net_book_value_minor', name: 'net_book_value_minor', title: reportDict.netBookValue, searchable: false },
+    { data: 'gain_loss_minor', name: 'gain_loss_minor', title: reportDict.gainLoss, searchable: false },
+    { data: 'status', name: 'status', title: reportDict.status },
+  ], [reportDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (data: string, _type: unknown, item: DisposalRow) => (
+      <Link href={`/fixed-assets-disposals/${item.id}`} className="font-mono font-semibold text-[var(--primary)] hover:underline">
+        {data}
+      </Link>
+    ),
+    asset: (data: DisposalRow['asset']) => data ? (
+      <Link href={`/fixed-assets/${data.id}`} className="text-[var(--primary)] hover:underline">
+        {localizedName(data.name, locale)} {fallbackText(data.asset_number, reportDict.notAvailable)}
+      </Link>
+    ) : reportDict.notAvailable,
+    disposal_type: (data: string) => disposalTypeLabel(data, dict),
+    proceeds_minor: (data: number, _type: unknown, item: DisposalRow) => (
+      <span className="font-mono">{formatMinor(Number(data), item.asset?.currency)}</span>
+    ),
+    net_book_value_minor: (data: number, _type: unknown, item: DisposalRow) => (
+      <span className="font-mono">{formatMinor(Number(data), item.asset?.currency)}</span>
+    ),
+    gain_loss_minor: (data: number, _type: unknown, item: DisposalRow) => (
+      <span className="font-mono font-semibold">{formatMinor(Number(data), item.asset?.currency)}</span>
+    ),
+    status: (data: string) => <StatusBadge tone={statusTone(data)}>{runStatusLabel(data, dict)}</StatusBadge>,
+  }), [dict, locale, reportDict]);
 
   return (
     <AppLayout active="reports.index">
@@ -146,70 +182,19 @@ export default function FixedAssetDisposalReport({ locale, disposals, filters }:
           </div>
         </Card>
 
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{reportDict.disposalNumber}</th>
-                <th className={tableClasses.th}>{reportDict.fixedAsset}</th>
-                <th className={tableClasses.th}>{reportDict.disposalDate}</th>
-                <th className={tableClasses.th}>{reportDict.disposalType}</th>
-                <th className={tableClasses.th}>{reportDict.proceeds}</th>
-                <th className={tableClasses.th}>{reportDict.netBookValue}</th>
-                <th className={tableClasses.th}>{reportDict.gainLoss}</th>
-                <th className={tableClasses.th}>{reportDict.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {disposals.data.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className={`${tableClasses.td} text-center text-[var(--text-secondary)]`}>
-                    {reportDict.noDisposalRows}
-                  </td>
-                </tr>
-              ) : (
-                disposals.data.map((item) => (
-                  <tr key={item.id}>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      <Link href={`/fixed-assets-disposals/${item.id}`} className="text-[var(--primary)] hover:underline">
-                        {item.number}
-                      </Link>
-                    </td>
-                    <td className={tableClasses.td}>
-                      {item.asset ? (
-                        <Link href={`/fixed-assets/${item.asset.id}`} className="text-[var(--primary)] hover:underline">
-                          {localizedName(item.asset.name, locale)} {fallbackText(item.asset.asset_number, reportDict.notAvailable)}
-                        </Link>
-                      ) : (
-                        reportDict.notAvailable
-                      )}
-                    </td>
-                    <td className={tableClasses.td}>{item.disposal_date}</td>
-                    <td className={tableClasses.td}>{disposalTypeLabel(item.disposal_type, dict)}</td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(item.proceeds_minor, item.asset?.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(item.net_book_value_minor, item.asset?.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      {item.gain_minor > 0
-                        ? formatMinor(item.gain_minor, item.asset?.currency)
-                        : item.loss_minor > 0
-                          ? formatMinor(-item.loss_minor, item.asset?.currency)
-                          : formatMinor(0, item.asset?.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(item.status)}>
-                        {runStatusLabel(item.status, dict)}
-                      </StatusBadge>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            key={`fixed-asset-disposals-${JSON.stringify(filters)}`}
+            ajaxUrl="/reports/fixed-asset-disposals/data"
+            columns={columns}
+            filters={{ disposal_type: filters.disposal_type || '', status: filters.status || '' }}
+            initialSearch={filters.search || ''}
+            locale={locale}
+            order={[[2, 'desc'], [0, 'desc']]}
+            slots={slots}
+            tableId="fixed-asset-disposals-data-table"
+          />
+        </Card>
       </div>
     </AppLayout>
   );

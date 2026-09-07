@@ -6,9 +6,10 @@ use App\Models\Currency;
 use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class StockAdjustmentPageData
 {
@@ -19,7 +20,7 @@ class StockAdjustmentPageData
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     adjustments: LengthAwarePaginator,
+     *     adjustments: array{},
      *     warehouses: Collection<int, Warehouse>,
      *     products: Collection<int, Product>,
      *     currencies: Collection<int, Currency>,
@@ -36,7 +37,7 @@ class StockAdjustmentPageData
         ];
 
         return [
-            'adjustments' => $this->adjustments($normalizedFilters),
+            'adjustments' => [],
             'warehouses' => $this->inventoryPageOptions->activeWarehouses(),
             'products' => $this->inventoryPageOptions->stockProducts(),
             'currencies' => $this->inventoryPageOptions->currencies(),
@@ -48,25 +49,35 @@ class StockAdjustmentPageData
     /**
      * @param  array{search: mixed, status: mixed, warehouse_id: mixed}  $filters
      */
-    private function adjustments(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        return StockAdjustment::query()
+        $normalizedFilters = [
+            'status' => (string) ($filters['status'] ?? ''),
+            'warehouse_id' => (string) ($filters['warehouse_id'] ?? ''),
+        ];
+
+        $query = StockAdjustment::query()
             ->with(['warehouse.branch', 'lines.product', 'lines.unitOfMeasure', 'lines.movement'])
-            ->when($filters['search'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $inner) use ($filters): void {
-                    $inner->where('number', 'like', "%{$filters['search']}%")
-                        ->orWhere('reference', 'like', "%{$filters['search']}%")
-                        ->orWhere('reason', 'like', "%{$filters['search']}%");
+            ->when(
+                $normalizedFilters['status'] !== '' && in_array($normalizedFilters['status'], StockAdjustmentService::ALLOWED_STATUSES, true),
+                fn (Builder $query) => $query->where('stock_adjustment.status', $normalizedFilters['status'])
+            )
+            ->when($normalizedFilters['warehouse_id'] !== '', fn (Builder $query) => $query->where('stock_adjustment.warehouse_id', $normalizedFilters['warehouse_id']))
+            ->orderBy('stock_adjustment.adjustment_date', 'desc')
+            ->orderBy('stock_adjustment.created_at', 'desc');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $query->where(function (Builder $inner) use ($keyword): void {
+                    $inner->where('stock_adjustment.number', 'like', "%{$keyword}%")
+                        ->orWhere('stock_adjustment.reference', 'like', "%{$keyword}%")
+                        ->orWhere('stock_adjustment.reason', 'like', "%{$keyword}%");
                 });
             })
-            ->when(
-                $filters['status'] && in_array($filters['status'], StockAdjustmentService::ALLOWED_STATUSES, true),
-                fn (Builder $query) => $query->where('status', $filters['status'])
-            )
-            ->when($filters['warehouse_id'], fn (Builder $query) => $query->where('warehouse_id', $filters['warehouse_id']))
-            ->orderBy('adjustment_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+            ->addColumn('warehouse_name', fn (StockAdjustment $row): string => $row->warehouse?->code ?? '')
+            ->addColumn('lines_data', fn (StockAdjustment $row): string => (string) ($row->lines?->count() ?? 0))
+            ->addColumn('actions', fn (): string => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 }

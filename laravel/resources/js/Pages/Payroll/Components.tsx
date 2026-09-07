@@ -2,11 +2,12 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatAccountingAmount, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, AccountOption, SharedPageProps } from '../../Types';
+import type { AccountOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Component = {
@@ -27,9 +28,8 @@ type Component = {
   expense_account?: AccountOption | null;
   liability_account?: AccountOption | null;
 };
-type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
-  components: PaginatedData<Component>;
+  components?: Component[];
   expenseAccounts: AccountOption[];
   liabilityAccounts: AccountOption[];
   types: string[];
@@ -51,7 +51,6 @@ function minorToAmount(value?: number | null): string {
 
 export default function PayrollComponentsIndex({
   locale,
-  components,
   expenseAccounts = [],
   liabilityAccounts = [],
   types = [],
@@ -67,14 +66,15 @@ export default function PayrollComponentsIndex({
   const can = useCan();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Component | null>(null);
-  const [search, setSearch] = useState(filters.search || '');
   const [type, setType] = useState(filters.type || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const expenseOptions = useMemo(() => expenseAccounts.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}`, sublabel: item.currency_code || undefined })), [expenseAccounts, locale]);
   const liabilityOptions = useMemo(() => liabilityAccounts.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}`, sublabel: item.currency_code || undefined })), [liabilityAccounts, locale]);
   const typeOptions = types.map((item) => ({ value: item, label: componentTypeLabels[item] || item }));
+  const typeFilterOptions = [{ value: '', label: pageDict.allTypes }, ...typeOptions];
   const calculationOptions = calculationTypes.map((item) => ({ value: item, label: calculationTypeLabels[item] || item }));
-  const activeFilterCount = [search, type].filter(Boolean).length;
+  const activeFilterCount = [filters.search, type].filter(Boolean).length;
 
   const form = useForm({
     code: '',
@@ -91,12 +91,7 @@ export default function PayrollComponentsIndex({
     lock_version: 1,
   });
 
-  function applyFilters() {
-    router.get('/payroll/components', { search, type }, { preserveScroll: true, preserveState: true });
-  }
-
   function clearFilters() {
-    setSearch('');
     setType('');
     router.get('/payroll/components', {}, { preserveScroll: true, preserveState: true });
   }
@@ -152,11 +147,23 @@ export default function PayrollComponentsIndex({
     };
 
     if (editing) {
-      router.put(`/payroll/components/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/payroll/components/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/payroll/components', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/payroll/components', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function deleteComponent(component: Component) {
@@ -164,8 +171,48 @@ export default function PayrollComponentsIndex({
       return;
     }
 
-    router.delete(`/payroll/components/${component.id}`, { preserveScroll: true });
+    router.delete(`/payroll/components/${component.id}`, {
+      preserveScroll: true,
+      onSuccess: () => setReloadToken((value) => value + 1),
+    });
   }
+
+  const columns = useMemo(() => [
+    { data: 'sort_order', name: 'sort_order', title: pageDict.sortOrder, visible: false, searchable: false },
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'name_text', name: 'name_text', title: pageDict.name, orderable: false },
+    { data: 'type', name: 'type', title: pageDict.type },
+    { data: 'calculation_type', name: 'calculation_type', title: pageDict.calculationType },
+    { data: 'default_amount_minor', name: 'default_amount_minor', title: pageDict.defaultAmount, searchable: false },
+    { data: 'employee_assignments_count', name: 'employee_assignments_count', title: pageDict.assignments, searchable: false },
+    { data: 'is_active', name: 'is_active', title: pageDict.active, searchable: false },
+    { data: 'actions', name: 'actions', title: shared.actions, orderable: false, searchable: false },
+  ], [pageDict, shared.actions]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    name_text: (_value: any, _type: any, component: Component) => getLocalizedName(component.name, locale),
+    type: (value: any) => componentTypeLabels[value] || value,
+    calculation_type: (value: any) => calculationTypeLabels[value] || value,
+    default_amount_minor: (value: any) => formatAmount(Number(value || 0)),
+    employee_assignments_count: (value: any) => Number(value || 0),
+    is_active: (_value: any, _type: any, component: Component) => (
+      <StatusBadge tone={component.is_active ? 'ok' : 'muted'}>{component.is_active ? pageDict.active : pageDict.inactive}</StatusBadge>
+    ),
+    actions: (_value: any, _type: any, component: Component) => (
+      <div className="flex flex-wrap gap-2">
+        {can('payroll.edit') && can('view_payroll') ? <Button variant="secondary" onClick={() => openEdit(component)}>{shared.edit}</Button> : null}
+        {can('payroll.delete') && can('view_payroll') && !component.is_system ? <Button variant="danger" onClick={() => deleteComponent(component)}>{shared.delete}</Button> : null}
+      </div>
+    ),
+  }), [calculationTypeLabels, can, componentTypeLabels, locale, pageDict, shared.delete, shared.edit]);
+
+  const tableFilters = useMemo(() => ({ type }), [type]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchableSelect options={typeFilterOptions} value={type || null} onChange={(value) => setType(value || '')} label={pageDict.type} />
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{shared.clearFilter}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="payroll.components.index">
@@ -175,15 +222,6 @@ export default function PayrollComponentsIndex({
         description={pageDict.description}
         actions={can('payroll.create') && can('view_payroll') ? <Button onClick={openCreate}>{pageDict.create}</Button> : null}
       />
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
-          <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allTypes }, ...typeOptions]} value={type || null} onChange={(value) => setType(value || '')} label={pageDict.type} />
-          <Button onClick={applyFilters}>{shared.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{shared.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -228,45 +266,21 @@ export default function PayrollComponentsIndex({
         </Card>
       ) : null}
 
-      {components.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.code}</th>
-                <th className={tableClasses.th}>{pageDict.name}</th>
-                <th className={tableClasses.th}>{pageDict.type}</th>
-                <th className={tableClasses.th}>{pageDict.calculationType}</th>
-                <th className={tableClasses.th}>{pageDict.defaultAmount}</th>
-                <th className={tableClasses.th}>{pageDict.assignments}</th>
-                <th className={tableClasses.th}>{pageDict.active}</th>
-                <th className={tableClasses.th}>{shared.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {components.data.map((component) => (
-                <tr key={component.id}>
-                  <td className={tableClasses.td}>{component.code}</td>
-                  <td className={tableClasses.td}>{getLocalizedName(component.name, locale)}</td>
-                  <td className={tableClasses.td}>{componentTypeLabels[component.type] || component.type}</td>
-                  <td className={tableClasses.td}>{calculationTypeLabels[component.calculation_type] || component.calculation_type}</td>
-                  <td className={tableClasses.td}>{formatAmount(component.default_amount_minor)}</td>
-                  <td className={tableClasses.td}>{component.employee_assignments_count || 0}</td>
-                  <td className={tableClasses.td}><StatusBadge tone={component.is_active ? 'ok' : 'muted'}>{component.is_active ? pageDict.active : pageDict.inactive}</StatusBadge></td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap gap-2">
-                      {can('payroll.edit') && can('view_payroll') ? <Button variant="secondary" onClick={() => openEdit(component)}>{shared.edit}</Button> : null}
-                      {can('payroll.delete') && can('view_payroll') && !component.is_system ? <Button variant="danger" onClick={() => deleteComponent(component)}>{shared.delete}</Button> : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/payroll/components/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[0, 'asc'], [1, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="payroll-components-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

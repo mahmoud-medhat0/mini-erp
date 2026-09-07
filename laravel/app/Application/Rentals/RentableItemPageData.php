@@ -8,15 +8,17 @@ use App\Models\FixedAsset;
 use App\Models\Product;
 use App\Models\RentableItem;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class RentableItemPageData
 {
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     items: LengthAwarePaginator,
+     *     items: array,
      *     branches: EloquentCollection<int, Branch>,
      *     warehouses: EloquentCollection<int, Warehouse>,
      *     products: EloquentCollection<int, Product>,
@@ -36,26 +38,8 @@ class RentableItemPageData
         $branchId = (string) ($filters['branch_id'] ?? '');
         $warehouseId = (string) ($filters['warehouse_id'] ?? '');
 
-        $items = RentableItem::query()
-            ->with(['product', 'fixedAsset', 'branch', 'warehouse', 'currencyRef'])
-            ->when($status !== '' && in_array($status, RentableItemService::STATUSES, true), fn ($query) => $query->where('status', $status))
-            ->when($source !== '' && in_array($source, RentableItemService::ITEM_SOURCES, true), fn ($query) => $query->where('item_source', $source))
-            ->when($branchId !== '', fn ($query) => $query->where('branch_id', $branchId))
-            ->when($warehouseId !== '', fn ($query) => $query->where('warehouse_id', $warehouseId))
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('code', 'like', "%{$search}%")
-                        ->orWhere('serial_number', 'like', "%{$search}%")
-                        ->orWhere('name->en', 'like', "%{$search}%")
-                        ->orWhere('name->ar', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('code')
-            ->paginate(15)
-            ->withQueryString();
-
         return [
-            'items' => $items,
+            'items' => [],
             'branches' => Branch::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'warehouses' => Warehouse::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'branch_id', 'warehouse_type']),
             'products' => Product::query()->where('status', 'active')->orderBy('code')->get(['id', 'code', 'name', 'type']),
@@ -72,5 +56,52 @@ class RentableItemPageData
                 'warehouse_id' => $warehouseId,
             ],
         ];
+    }
+
+    /** @param  array<string, mixed>  $filters */
+    public function datatable(array $filters = []): JsonResponse
+    {
+        $status = (string) ($filters['status'] ?? '');
+        $source = (string) ($filters['item_source'] ?? '');
+        $branchId = (string) ($filters['branch_id'] ?? '');
+        $warehouseId = (string) ($filters['warehouse_id'] ?? '');
+
+        $query = RentableItem::query()
+            ->with(['product', 'fixedAsset', 'branch', 'warehouse', 'currencyRef'])
+            ->leftJoin('branch as rentable_branch', 'rentable_branch.id', '=', 'rentable_item.branch_id')
+            ->leftJoin('warehouse as rentable_warehouse', 'rentable_warehouse.id', '=', 'rentable_item.warehouse_id')
+            ->select('rentable_item.*')
+            ->when($status !== '' && in_array($status, RentableItemService::STATUSES, true), fn (Builder $query) => $query->where('rentable_item.status', $status))
+            ->when($source !== '' && in_array($source, RentableItemService::ITEM_SOURCES, true), fn (Builder $query) => $query->where('rentable_item.item_source', $source))
+            ->when($branchId !== '', fn (Builder $query) => $query->where('rentable_item.branch_id', $branchId))
+            ->when($warehouseId !== '', fn (Builder $query) => $query->where('rentable_item.warehouse_id', $warehouseId));
+
+        return DataTables::eloquent($query)
+            ->filterColumn('rentable_item.code', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('rentable_item.code', 'like', "%{$keyword}%")
+                        ->orWhere('rentable_item.serial_number', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(rentable_item.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('rentable_item.name', function (Builder $query, string $keyword): void {
+                $query->whereRaw('LOWER(CAST(rentable_item.name AS TEXT)) LIKE ?', ['%'.mb_strtolower($keyword).'%']);
+            })
+            ->filterColumn('location', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('rentable_branch.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(rentable_branch.name AS TEXT)) LIKE ?', [$needle])
+                        ->orWhere('rentable_warehouse.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(rentable_warehouse.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('location', 'COALESCE(rentable_branch.code, rentable_warehouse.code) $1')
+            ->addColumn('location', fn () => '')
+            ->addColumn('rates', fn () => '')
+            ->addColumn('actions', fn () => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 }

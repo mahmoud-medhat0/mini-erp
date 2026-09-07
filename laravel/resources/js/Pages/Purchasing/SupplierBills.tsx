@@ -2,11 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -80,6 +81,7 @@ type SupplierBillRow = {
     gross_amount_minor?: number;
     product?: ProductOption | null;
     unitOfMeasure?: { id: string; code: string; name: string } | null;
+    unit_of_measure?: { id: string; code: string; name: string } | null;
   }>;
 };
 
@@ -122,10 +124,7 @@ type ConfirmedGoodsReceipt = {
 };
 
 type SupplierBillsProps = SharedPageProps & {
-  supplierBills: {
-    data: SupplierBillRow[];
-    links: PaginationLink[];
-  };
+  supplierBills?: SupplierBillRow[];
   activeSuppliers: SupplierOption[];
   eligibleProducts: ProductOption[];
   confirmedPurchaseOrders: ConfirmedPurchaseOrder[];
@@ -139,7 +138,6 @@ type SupplierBillsProps = SharedPageProps & {
 
 export default function SupplierBillsIndex({
   locale,
-  supplierBills,
   activeSuppliers,
   eligibleProducts,
   confirmedPurchaseOrders,
@@ -157,6 +155,7 @@ export default function SupplierBillsIndex({
   const [editingBill, setEditingBill] = useState<SupplierBillRow | null>(null);
   const [sourceMode, setSourceMode] = useState<'manual' | 'purchase_order' | 'goods_receipt'>('manual');
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -196,7 +195,6 @@ export default function SupplierBillsIndex({
   });
 
   const [lineItems, setLineItems] = useState<BillLineForm[]>([]);
-  const [searchFilter, setSearchFilter] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
   const getProductName = (prod?: ProductOption | null): string => {
@@ -315,7 +313,7 @@ export default function SupplierBillsIndex({
       setLineItems(
         bill.lines.map((l) => ({
           product_id: l.product_id,
-          unit_of_measure_id: l.unitOfMeasure?.id || '',
+          unit_of_measure_id: (l.unit_of_measure || l.unitOfMeasure)?.id || l.unit_of_measure_id || '',
           purchase_order_line_id: l.purchase_order_line_id,
           goods_receipt_line_id: l.goods_receipt_line_id,
           description: l.description || getProductName(l.product),
@@ -462,12 +460,18 @@ export default function SupplierBillsIndex({
     if (editingBill) {
       router.put(`/purchasing/bills/${editingBill.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     } else {
       router.post('/purchasing/bills', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     }
   };
@@ -489,7 +493,10 @@ export default function SupplierBillsIndex({
     }
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/bills/${billId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/purchasing/bills/${billId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   };
 
@@ -545,15 +552,6 @@ export default function SupplierBillsIndex({
     return isSupplierBillActionable(bill) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
-  const handleSearchFilter = (e: FormEvent) => {
-    e.preventDefault();
-    router.get(
-      '/purchasing/bills',
-      { search: searchFilter, status: statusFilter },
-      { preserveState: true, preserveScroll: true, replace: true }
-    );
-  };
-
   const previewTotalMinor = lineItems.reduce((sum, item) => {
     const qtyE6 = Math.round(item.quantity * 1000000);
     const costMinor = Math.round(item.unit_cost * 100);
@@ -561,6 +559,57 @@ export default function SupplierBillsIndex({
     return sum + lineTotal;
   }, 0);
   const supplierBillSubmitLabel = editingBill ? pageDict.saveChanges : pageDict.createBill;
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.billNumber },
+    { data: 'supplier_name', name: 'supplier_name', title: pageDict.supplier, orderable: false, searchable: false },
+    { data: 'bill_date', name: 'bill_date', title: pageDict.billDate },
+    { data: 'total_minor', name: 'total_minor', title: pageDict.total, searchable: false },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any) => value
+      ? <span className="font-mono font-bold text-blue-600">{value}</span>
+      : <span className="text-[var(--text-muted)]">{pageDict.draft_2}</span>,
+    supplier_name: (_value: any, _type: any, bill: SupplierBillRow) => (
+      <span className="font-medium">{getLocalizedName(bill.supplier?.name, locale) || accDict.notAvailable}</span>
+    ),
+    bill_date: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    total_minor: (value: any, _type: any, bill: SupplierBillRow) => (
+      <span className="font-mono font-semibold">{formatMoney(Number(value || 0), bill.currency)}</span>
+    ),
+    status: (value: any) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: any, _type: any, bill: SupplierBillRow) => {
+      const actionState = getSupplierBillActionState(bill);
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {bill.status === 'draft' && canEditSupplierBills ? (
+            <button type="button" onClick={() => openEditModal(bill)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {bill.status === 'draft' && canSubmitSupplierBills ? (
+            <button type="button" onClick={() => handleAction(bill.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {bill.status === 'submitted' && canApproveSupplierBills ? (
+            <button type="button" onClick={() => handleAction(bill.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {bill.status === 'approved' && canPostSupplierBills ? (
+            <button type="button" onClick={() => handleAction(bill.id, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+          ) : null}
+          {isSupplierBillActionable(bill) && canCancelSupplierBills ? (
+            <button type="button" onClick={() => handleAction(bill.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canApproveSupplierBills, canCancelSupplierBills, canEditSupplierBills, canPostSupplierBills, canSubmitSupplierBills, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+  const toolbar = (
+    <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} label={pageDict.status} />
+  );
 
   return (
     <AppLayout active="supplier-bills.index">
@@ -588,150 +637,20 @@ export default function SupplierBillsIndex({
           }
         />
 
-        {/* Filters */}
-        <Card className="p-4">
-          <form onSubmit={handleSearchFilter} className="flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder={dict.app.pages.purchasingSupplierBills.searchByBillNumberSupplierOr}
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-1.5 text-sm"
-              />
-            </div>
-            <div className="w-40">
-              <SearchableSelect
-                options={statusFilterOptions}
-                value={statusFilter || null}
-                onChange={(value) => setStatusFilter(value || '')}
-                label={dict.app.pages.purchasingSupplierBills.status}
-              />
-            </div>
-            <button
-              type="submit"
-              title={dict.app.pages.purchasingSupplierBills.filter}
-              aria-label={dict.app.pages.purchasingSupplierBills.filter}
-              className="rounded-md border border-[var(--border)] px-4 py-1.5 text-sm font-medium hover:bg-[var(--background)]"
-            >
-              {dict.app.pages.purchasingSupplierBills.filter}
-            </button>
-          </form>
-        </Card>
-
-        {/* Supplier Bills Table */}
-        <Card className="overflow-hidden">
-          {supplierBills.data.length === 0 ? (
-            <EmptyState
-              title={dict.app.pages.purchasingSupplierBills.noSupplierBillsFound}
-              description={dict.app.pages.purchasingSupplierBills.createANewSupplierBillTo}
-            />
-          ) : (
-            <div className={tableClasses.wrap}>
-              <table className={tableClasses.table}>
-                <thead>
-                  <tr>
-                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.billNumber}</th>
-                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.supplier}</th>
-                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.billDate}</th>
-                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.total}</th>
-                    <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierBills.status}</th>
-                    <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingSupplierBills.actions}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {supplierBills.data.map((bill) => {
-                    const actionState = getSupplierBillActionState(bill);
-
-                    return (
-                      <tr key={bill.id}>
-                        <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                          {bill.number || <span className="text-[var(--text-muted)]">{dict.app.pages.purchasingSupplierBills.draft_2}</span>}
-                        </td>
-                        <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(bill.supplier?.name, locale) || accDict.notAvailable}</td>
-                        <td className={tableClasses.td}>{bill.bill_date}</td>
-                        <td className={`${tableClasses.td} font-mono font-semibold`}>
-                          {formatMoney(bill.total_minor, bill.currency)}
-                        </td>
-                        <td className={tableClasses.td}>
-                          <StatusBadge tone={getStatusTone(bill.status)}>
-                            {getStatusLabel(bill.status)}
-                          </StatusBadge>
-                        </td>
-                        <td className={`${tableClasses.td} text-end`}>
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            {bill.status === 'draft' && canEditSupplierBills ? (
-                              <button
-                                type="button"
-                                onClick={() => openEditModal(bill)}
-                                title={dict.app.pages.purchasingSupplierBills.edit}
-                                aria-label={dict.app.pages.purchasingSupplierBills.edit}
-                                className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                              >
-                                {dict.app.pages.purchasingSupplierBills.edit}
-                              </button>
-                            ) : null}
-
-                            {bill.status === 'draft' && canSubmitSupplierBills ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAction(bill.id, 'submit')}
-                                title={dict.app.pages.purchasingSupplierBills.submit}
-                                aria-label={dict.app.pages.purchasingSupplierBills.submit}
-                                className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-                              >
-                                {dict.app.pages.purchasingSupplierBills.submit}
-                              </button>
-                            ) : null}
-
-                            {bill.status === 'submitted' && canApproveSupplierBills ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAction(bill.id, 'approve')}
-                                title={dict.app.pages.purchasingSupplierBills.approve}
-                                aria-label={dict.app.pages.purchasingSupplierBills.approve}
-                                className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                              >
-                                {dict.app.pages.purchasingSupplierBills.approve}
-                              </button>
-                            ) : null}
-
-                            {bill.status === 'approved' && canPostSupplierBills ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAction(bill.id, 'post')}
-                                title={dict.app.pages.purchasingSupplierBills.post}
-                                aria-label={dict.app.pages.purchasingSupplierBills.post}
-                                className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                              >
-                                {dict.app.pages.purchasingSupplierBills.post}
-                              </button>
-                            ) : null}
-
-                            {isSupplierBillActionable(bill) && canCancelSupplierBills ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAction(bill.id, 'cancel')}
-                                title={dict.app.pages.purchasingSupplierBills.cancel}
-                                aria-label={dict.app.pages.purchasingSupplierBills.cancel}
-                                className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                              >
-                                {dict.app.pages.purchasingSupplierBills.cancel}
-                              </button>
-                            ) : null}
-
-                            {actionState ? (
-                              <StatusBadge tone="muted">{actionState}</StatusBadge>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/purchasing/bills/data"
+            columns={columns}
+            filters={tableFilters}
+            initialSearch={filters.search || ''}
+            locale={locale}
+            order={[[2, 'desc']]}
+            pageLength={25}
+            reloadToken={reloadToken}
+            slots={slots}
+            tableId="purchasing-supplier-bills-data-table"
+            toolbar={toolbar}
+          />
         </Card>
 
         {/* Modal Form */}
@@ -1008,7 +927,10 @@ export default function SupplierBillsIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setReloadToken((value) => value + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_SUPPLIER_BILL'}

@@ -1,33 +1,32 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type BankReconciliationRow = {
   id: string;
   bank_account_id: string;
-  bank_account?: { id: string; code: string; name: string; currency: string };
+  bank_account_code: string;
+  bank_account_name: Record<string, string> | string;
   financial_period_id: string;
   statement_reference?: string | null;
   date_from: string;
   date_to: string;
   statement_opening_balance_minor: number;
   statement_closing_balance_minor: number;
+  currency: string;
   status: 'draft' | 'finalized';
   finalized_at?: string | null;
   created_at: string;
 };
 
 type BankReconciliationsProps = SharedPageProps & {
-  reconciliations: {
-    data: BankReconciliationRow[];
-    links: PaginationLink[];
-  };
   bankAccounts: Array<{ id: string; code: string; name: string; currency: string }>;
   periods: Array<{ id: string; name: string; period_number: number }>;
   currencies: CurrencyOption[];
@@ -39,7 +38,6 @@ type BankReconciliationsProps = SharedPageProps & {
 
 export default function BankReconciliationsIndex({
   locale,
-  reconciliations,
   bankAccounts = [],
   periods = [],
   currencies = [],
@@ -52,6 +50,7 @@ export default function BankReconciliationsIndex({
   const canReconcileBanks = can('banks.reconcile');
 
   const [showModal, setShowModal] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     bank_account_id: bankAccounts[0]?.id || '',
@@ -80,6 +79,7 @@ export default function BankReconciliationsIndex({
       onSuccess: () => {
         setShowModal(false);
         reset();
+        setReloadToken((token) => token + 1);
       },
     });
   };
@@ -107,6 +107,52 @@ export default function BankReconciliationsIndex({
   function clearFilters() {
     router.get('/bank-reconciliations', {}, { preserveScroll: true, preserveState: true });
   }
+
+  const columns = useMemo(() => [
+    { data: 'bank_account_name', name: 'bank_account_name', title: pageDict.bankAccount },
+    { data: 'statement_reference', name: 'statement_reference', title: pageDict.statementRef },
+    { data: 'date_from', name: 'date_from', title: pageDict.periodRange, width: '190px' },
+    { data: 'statement_opening_balance_minor', name: 'statement_opening_balance_minor', title: pageDict.openingBalance, searchable: false },
+    { data: 'statement_closing_balance_minor', name: 'statement_closing_balance_minor', title: pageDict.closingBalance, searchable: false },
+    { data: 'status', name: 'status', title: pageDict.status, searchable: false, width: '110px' },
+    { data: 'id', name: 'id', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    bank_account_name: (data: BankReconciliationRow['bank_account_name'], _type: unknown, row: BankReconciliationRow): ReactElement => (
+      <span className="font-semibold">{row.bank_account_code} - {getLocalizedName(data, locale)}</span>
+    ),
+    statement_reference: (data: string | null): ReactElement => (
+      <span className="font-mono text-xs">{data || accDict.notAvailable}</span>
+    ),
+    date_from: (data: string, _type: unknown, row: BankReconciliationRow): ReactElement => (
+      <span className="font-mono text-xs">{formatDate(data)} → {formatDate(row.date_to)}</span>
+    ),
+    statement_opening_balance_minor: (data: number, _type: unknown, row: BankReconciliationRow): ReactElement => (
+      <span className="font-mono text-xs">{formatBankAmount(data, row.currency)}</span>
+    ),
+    statement_closing_balance_minor: (data: number, _type: unknown, row: BankReconciliationRow): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatBankAmount(data, row.currency)}</span>
+    ),
+    status: (data: BankReconciliationRow['status'], _type: unknown, row: BankReconciliationRow): ReactElement => (
+      <StatusBadge tone={row.status === 'finalized' ? 'ok' : 'warning'}>
+        {row.status === 'finalized' ? dict.app.pages.bankReconciliations.finalized : dict.app.pages.bankReconciliations.draft}
+      </StatusBadge>
+    ),
+    id: (_data: string, _type: unknown, row: BankReconciliationRow): ReactElement => (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => router.get(`/bank-reconciliations/${row.id}`)}
+          title={row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
+          aria-label={row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
+          className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-[var(--primary)] transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900/50"
+        >
+          {row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
+        </button>
+      </div>
+    ),
+  } as unknown as DataTableSlots), [accDict, dict, locale]);
 
   return (
     <AppLayout active="bank-reconciliations.index">
@@ -153,65 +199,19 @@ export default function BankReconciliationsIndex({
         </div>
       </Card>
 
-      {reconciliations.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.bankReconciliations.noBankReconciliationsFound}
-          description={dict.app.pages.bankReconciliations.getStartedByCreatingYourFirst}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/bank-reconciliations/data"
+          columns={columns}
+          filters={{ status: filters.status || '', bank_account_id: filters.bank_account_id || '' }}
+          locale={locale}
+          order={[[2, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="bank-reconciliations-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.bankAccount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.statementRef}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.periodRange}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.openingBalance}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.closingBalance}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.status}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankReconciliations.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reconciliations.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-semibold`}>
-                    {row.bank_account ? `${row.bank_account.code} - ${getLocalizedName(row.bank_account.name, locale)}` : accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.statement_reference || accDict.notAvailable}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>
-                    {formatDate(row.date_from)} → {formatDate(row.date_to)}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>
-                    {formatBankAmount(row.statement_opening_balance_minor, row.bank_account?.currency)}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                    {formatBankAmount(row.statement_closing_balance_minor, row.bank_account?.currency)}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={row.status === 'finalized' ? 'ok' : 'warning'}>
-                      {row.status === 'finalized' ? dict.app.pages.bankReconciliations.finalized : dict.app.pages.bankReconciliations.draft}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => router.get(`/bank-reconciliations/${row.id}`)}
-                        title={row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
-                        aria-label={row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
-                        className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-[var(--primary)] transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900/50"
-                      >
-                        {row.status === 'draft' ? dict.app.pages.bankReconciliations.openWorkspace : dict.app.pages.bankReconciliations.viewStatement}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Creation Modal */}
       {showModal ? (

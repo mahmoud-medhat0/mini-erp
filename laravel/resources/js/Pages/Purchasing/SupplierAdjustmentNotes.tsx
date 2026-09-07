@@ -2,11 +2,12 @@ import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -37,6 +38,8 @@ type AdjustmentNoteRow = {
   supplier?: { id: string; name: string } | null;
   supplierBill?: { id: string; number?: string | null } | null;
   purchaseReturn?: { id: string; number?: string | null } | null;
+  supplier_bill?: { id: string; number?: string | null } | null;
+  purchase_return?: { id: string; number?: string | null } | null;
   adjustment_date: string;
   direction: 'decrease_payable' | 'increase_payable';
   ui_label?: string | null;
@@ -67,10 +70,7 @@ type PendingSensitiveAction = {
 };
 
 type SupplierAdjustmentNotesProps = SharedPageProps & {
-  supplierAdjustmentNotes: {
-    data: AdjustmentNoteRow[];
-    links: PaginationLink[];
-  };
+  supplierAdjustmentNotes?: AdjustmentNoteRow[];
   activeSuppliers: SupplierOption[];
   postedSupplierBills: PostedBillOption[];
   postedPurchaseReturns: Array<{ id: string; number?: string | null; supplier_id: string }>;
@@ -85,7 +85,6 @@ type SupplierAdjustmentNotesProps = SharedPageProps & {
 export default function SupplierAdjustmentNotesIndex({
   locale,
   flash,
-  supplierAdjustmentNotes,
   activeSuppliers,
   postedSupplierBills,
   postedPurchaseReturns,
@@ -101,6 +100,8 @@ export default function SupplierAdjustmentNotesIndex({
   const [editingNote, setEditingNote] = useState<AdjustmentNoteRow | null>(null);
   const [lineItems, setLineItems] = useState<AdjustmentLineForm[]>([]);
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -261,12 +262,18 @@ export default function SupplierAdjustmentNotesIndex({
     if (editingNote) {
       router.put(`/purchasing/adjustment-notes/${editingNote.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     } else {
       router.post('/purchasing/adjustment-notes', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     }
   };
@@ -288,7 +295,10 @@ export default function SupplierAdjustmentNotesIndex({
     }
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/purchasing/adjustment-notes/${noteId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   };
 
@@ -357,6 +367,69 @@ export default function SupplierAdjustmentNotesIndex({
   const getDirectionLabel = (direction: string) =>
     direction === 'increase_payable' ? dict.app.pages.purchasingSupplierAdjustmentNotes.increasePayable : dict.app.pages.purchasingSupplierAdjustmentNotes.decreasePayable;
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.noteNumber },
+    { data: 'supplier_name', name: 'supplier_name', title: pageDict.supplier, orderable: false, searchable: false },
+    { data: 'ui_label', name: 'ui_label', title: pageDict.label },
+    { data: 'source_number', name: 'source_number', title: pageDict.bill_2, orderable: false, searchable: false },
+    { data: 'direction', name: 'direction', title: pageDict.direction },
+    { data: 'adjustment_date', name: 'adjustment_date', title: pageDict.adjustmentDate },
+    { data: 'total_minor', name: 'total_minor', title: pageDict.totalAmount, searchable: false },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    supplier_name: (_value: any, _type: any, note: AdjustmentNoteRow) => (
+      <span className="font-medium">{getLocalizedName(note.supplier?.name, locale) || accDict.notAvailable}</span>
+    ),
+    ui_label: (value: any) => <span>{value || accDict.notAvailable}</span>,
+    source_number: (_value: any, _type: any, note: AdjustmentNoteRow) => {
+      const supplierBill = note.supplier_bill || note.supplierBill;
+      return <span className="font-mono">{supplierBill?.number || accDict.notAvailable}</span>;
+    },
+    direction: (value: any) => (
+      <span className={`font-semibold ${value === 'increase_payable' ? 'text-red-600' : 'text-emerald-600'}`}>{getDirectionLabel(value)}</span>
+    ),
+    adjustment_date: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    total_minor: (value: any, _type: any, note: AdjustmentNoteRow) => (
+      <span className="font-mono font-semibold">{formatMoney(Number(value || 0), note.currency)}</span>
+    ),
+    status: (value: any) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: any, _type: any, note: AdjustmentNoteRow) => {
+      const actionState = getSupplierAdjustmentNoteActionState(note);
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {note.status === 'draft' && canManageSupplierAdjustmentNotes ? (
+            <button type="button" onClick={() => openEditModal(note)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {note.status === 'draft' && canManageSupplierAdjustmentNotes ? (
+            <button type="button" onClick={() => handleAction(note.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {['draft', 'submitted'].includes(note.status) && canManageSupplierAdjustmentNotes ? (
+            <button type="button" onClick={() => handleAction(note.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {note.status === 'approved' && canPostSupplierAdjustmentNotes ? (
+            <button type="button" onClick={() => handleAction(note.id, 'post')} title={pageDict.postToApGl} aria-label={pageDict.postToApGl} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.postToApGl}</button>
+          ) : null}
+          {canSettleSupplierAdjustmentNote(note) ? (
+            <Link href={`/purchasing/payable-settlements?supplier_id=${note.supplier_id}&source_entry_id=${note.payable_entry_id}`} title={pageDict.settle} aria-label={pageDict.settle} className="inline-flex h-8 items-center rounded-md border border-purple-200 px-2.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40">{pageDict.settle}</Link>
+          ) : null}
+          {['draft', 'submitted', 'approved'].includes(note.status) && canManageSupplierAdjustmentNotes ? (
+            <button type="button" onClick={() => handleAction(note.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canManageSupplierAdjustmentNotes, canPostSupplierAdjustmentNotes, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+  const toolbar = (
+    <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} label={pageDict.status} />
+  );
+
   return (
     <AppLayout active="supplier-adjustment-notes.index">
       <Head title={dict.app.pages.purchasingSupplierAdjustmentNotes.supplierAdjustmentNotes} />
@@ -388,166 +461,20 @@ export default function SupplierAdjustmentNotesIndex({
         </div>
       ) : null}
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.purchasingSupplierAdjustmentNotes.searchNumberLabelOrSupplier}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/adjustment-notes', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/purchasing/adjustment-notes', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.purchasingSupplierAdjustmentNotes.status}
-            />
-          </div>
-        </div>
-
-        {supplierAdjustmentNotes.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.purchasingSupplierAdjustmentNotes.noSupplierAdjustmentNotesFound}
-            description={dict.app.pages.purchasingSupplierAdjustmentNotes.createAnAdjustmentNoteToCorrectSupplier}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.noteNumber}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.supplier}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.label}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.bill_2}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.direction}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.adjustmentDate}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.totalAmount}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingSupplierAdjustmentNotes.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingSupplierAdjustmentNotes.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {supplierAdjustmentNotes.data.map((note) => {
-                  const actionState = getSupplierAdjustmentNoteActionState(note);
-
-                  return (
-                    <tr key={note.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                      {note.number || dict.app.pages.purchasingSupplierAdjustmentNotes.draft_2}
-                    </td>
-                    <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(note.supplier?.name, locale) || accDict.notAvailable}</td>
-                    <td className={tableClasses.td}>{note.ui_label || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{note.supplierBill?.number || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-semibold ${note.direction === 'increase_payable' ? 'text-red-600' : 'text-emerald-600'}`}>
-                      {getDirectionLabel(note.direction)}
-                    </td>
-                    <td className={tableClasses.td}>{note.adjustment_date}</td>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      {formatMoney(note.total_minor, note.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={getStatusTone(note.status)}>
-                        {getStatusLabel(note.status)}
-                      </StatusBadge>
-                    </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {note.status === 'draft' && canManageSupplierAdjustmentNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(note)}
-                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
-                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.purchasingSupplierAdjustmentNotes.edit}
-                            </button>
-                          ) : null}
-
-                          {note.status === 'draft' && canManageSupplierAdjustmentNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note.id, 'submit')}
-                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
-                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
-                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-                            >
-                              {dict.app.pages.purchasingSupplierAdjustmentNotes.submit}
-                            </button>
-                          ) : null}
-
-                          {['draft', 'submitted'].includes(note.status) && canManageSupplierAdjustmentNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note.id, 'approve')}
-                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
-                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
-                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                            >
-                              {dict.app.pages.purchasingSupplierAdjustmentNotes.approve}
-                            </button>
-                          ) : null}
-
-                          {note.status === 'approved' && canPostSupplierAdjustmentNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note.id, 'post')}
-                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
-                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.purchasingSupplierAdjustmentNotes.postToApGl}
-                            </button>
-                          ) : null}
-
-                          {canSettleSupplierAdjustmentNote(note) ? (
-                            <Link
-                              href={`/purchasing/payable-settlements?supplier_id=${note.supplier_id}&source_entry_id=${note.payable_entry_id}`}
-                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
-                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
-                              className="inline-flex h-8 items-center rounded-md border border-purple-200 px-2.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-50 dark:border-purple-900/60 dark:text-purple-300 dark:hover:bg-purple-950/40"
-                            >
-                              {dict.app.pages.purchasingSupplierAdjustmentNotes.settle}
-                            </Link>
-                          ) : null}
-
-                          {['draft', 'submitted', 'approved'].includes(note.status) && canManageSupplierAdjustmentNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note.id, 'cancel')}
-                              title={dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
-                              aria-label={dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.purchasingSupplierAdjustmentNotes.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/purchasing/adjustment-notes/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[5, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="purchasing-supplier-adjustment-notes-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {showModal ? (
@@ -803,7 +730,10 @@ export default function SupplierAdjustmentNotesIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setReloadToken((value) => value + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_SUPPLIER_ADJUSTMENT_NOTE'}

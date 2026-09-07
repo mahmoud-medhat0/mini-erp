@@ -1,9 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -103,7 +104,6 @@ type ProjectProfitabilityProps = SharedPageProps & {
     base_currency: string;
     currency_codes: string[];
     has_mixed_currencies: boolean;
-    rows: ProjectProfitabilityRow[];
     summary_by_currency: Record<string, CurrencySummary>;
     readiness: {
       unassigned_pnl_row_count: number;
@@ -281,6 +281,60 @@ export default function ProjectProfitability({
   const summaries = Object.values(reportData.summary_by_currency);
   const primarySummary = summaries[0] ?? null;
   const showPrimaryMetrics = primarySummary !== null && !reportData.has_mixed_currencies;
+  const ledgerRowCount = summaries.reduce((total, summary) => total + summary.ledger_row_count, 0);
+
+  const columns = useMemo(() => [
+    { data: 'project_code', name: 'project_code', title: pageDict.projectColumn },
+    { data: 'currency', name: 'currency', title: pageDict.currencyColumn },
+    { data: 'net_revenue_minor', name: 'net_revenue_minor', title: pageDict.netRevenue, className: 'text-end' },
+    { data: 'cogs_minor', name: 'cogs_minor', title: pageDict.cogs, className: 'text-end' },
+    { data: 'gross_profit_minor', name: 'gross_profit_minor', title: pageDict.grossProfit, className: 'text-end' },
+    { data: 'operating_expense_minor', name: 'operating_expense_minor', title: pageDict.operatingExpenses, className: 'text-end' },
+    { data: 'other_income_minor', name: 'other_income_minor', title: pageDict.otherNet, className: 'text-end', orderable: false, searchable: false },
+    { data: 'net_income_minor', name: 'net_income_minor', title: pageDict.netIncome, className: 'text-end' },
+    { data: 'profit_margin_bps', name: 'profit_margin_bps', title: pageDict.margin, className: 'text-end' },
+    { data: 'ledger_row_count', name: 'ledger_row_count', title: pageDict.ledgerRows, className: 'text-end' },
+    { data: 'project_id', name: 'project_id', title: pageDict.review, orderable: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    project_code: (_data: string, _type: unknown, row: ProjectProfitabilityRow): ReactElement => (
+      <div className="flex min-w-52 flex-col gap-1">
+        <span className="font-mono text-xs font-bold">
+          {row.is_unassigned ? pageDict.unassignedProjectCode : row.project_code}
+        </span>
+        <span className="text-xs text-[var(--text-secondary)]">
+          {row.is_unassigned ? pageDict.unassignedProjectName : getLocalizedName(row.project_name, locale)}
+        </span>
+        <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+          {row.is_unassigned ? pageDict.requiresReview : row.project_status ?? pageDict.active}
+        </span>
+      </div>
+    ),
+    currency: (data: string): ReactElement => <span className="font-mono font-bold text-xs">{data}</span>,
+    net_revenue_minor: (_data: number, _type: unknown, row: ProjectProfitabilityRow): ReactElement => <span className="font-mono">{formatMoney(row.net_revenue_minor, row.currency)}</span>,
+    cogs_minor: (_data: number, _type: unknown, row: ProjectProfitabilityRow): ReactElement => <span className="font-mono">{formatMoney(row.cogs_minor, row.currency)}</span>,
+    gross_profit_minor: (_data: number, _type: unknown, row: ProjectProfitabilityRow): ReactElement => <span className="font-mono">{formatMoney(row.gross_profit_minor, row.currency)}</span>,
+    operating_expense_minor: (_data: number, _type: unknown, row: ProjectProfitabilityRow): ReactElement => <span className="font-mono">{formatMoney(row.operating_expense_minor, row.currency)}</span>,
+    other_income_minor: (_data: number, _type: unknown, row: ProjectProfitabilityRow): ReactElement => <span className="font-mono">{formatMoney(row.other_income_minor - row.other_expense_minor, row.currency)}</span>,
+    net_income_minor: (_data: number, _type: unknown, row: ProjectProfitabilityRow): ReactElement => (
+      <span className={`font-mono font-bold ${row.net_income_minor >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+        {formatMoney(row.net_income_minor, row.currency)}
+      </span>
+    ),
+    profit_margin_bps: (data: number | null): ReactElement => (
+      <StatusBadge tone={marginTone(data)}>{formatMargin(data, pageDict.notAvailable)}</StatusBadge>
+    ),
+    ledger_row_count: (data: number): ReactElement => <span className="font-mono">{Number(data).toLocaleString()}</span>,
+    project_id: (_data: string | null, _type: unknown, row: ProjectProfitabilityRow): ReactElement => (
+      <Link
+        href={`/accounting/ledger${row.project_id ? `?project_id=${row.project_id}` : ''}`}
+        className="text-xs font-bold text-[var(--primary)] no-underline hover:underline"
+      >
+        {pageDict.openLedger}
+      </Link>
+    ),
+  } as unknown as DataTableSlots), [locale, pageDict]);
 
   return (
     <AppLayout active="reports.project-profitability">
@@ -405,7 +459,7 @@ export default function ProjectProfitability({
                   {pageDict.currenciesInScope}: {reportData.currency_codes.join(', ') || pageDict.notAvailable}
                 </span>
                 <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 font-semibold text-[var(--text-secondary)]">
-                  {pageDict.ledgerRows}: {reportData.rows.reduce((acc, r) => acc + r.ledger_row_count, 0).toLocaleString()}
+                  {pageDict.ledgerRows}: {ledgerRowCount.toLocaleString()}
                 </span>
               </div>
               {reportData.has_mixed_currencies ? (
@@ -482,77 +536,26 @@ export default function ProjectProfitability({
           </Card>
         )}
 
-        {reportData.rows.length === 0 ? (
-          <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.projectColumn}</th>
-                  <th className={tableClasses.th}>{pageDict.currencyColumn}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.netRevenue}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.cogs}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.grossProfit}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.operatingExpenses}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.otherNet}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.netIncome}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.margin}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.ledgerRows}</th>
-                  <th className={tableClasses.th}>{pageDict.review}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.rows.map((row) => (
-                  <tr key={`${row.project_id ?? 'unassigned'}__${row.currency}`} className="hover:bg-[var(--background)]">
-                    <td className={tableClasses.td}>
-                      <div className="flex min-w-52 flex-col gap-1">
-                        <span className="font-mono text-xs font-bold">
-                          {row.is_unassigned ? pageDict.unassignedProjectCode : row.project_code}
-                        </span>
-                        <span className="text-xs text-[var(--text-secondary)]">
-                          {row.is_unassigned ? pageDict.unassignedProjectName : getLocalizedName(row.project_name, locale)}
-                        </span>
-                        <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-                          {row.is_unassigned ? pageDict.requiresReview : row.project_status ?? pageDict.active}
-                        </span>
-                      </div>
-                    </td>
-                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.currency}</td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>{formatMoney(row.net_revenue_minor, row.currency)}</td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>{formatMoney(row.cogs_minor, row.currency)}</td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>{formatMoney(row.gross_profit_minor, row.currency)}</td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>{formatMoney(row.operating_expense_minor, row.currency)}</td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>
-                      {formatMoney(row.other_income_minor - row.other_expense_minor, row.currency)}
-                    </td>
-                    <td
-                      className={`${tableClasses.td} text-end font-mono font-bold ${
-                        row.net_income_minor >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                      }`}
-                    >
-                      {formatMoney(row.net_income_minor, row.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <StatusBadge tone={marginTone(row.profit_margin_bps)}>
-                        {formatMargin(row.profit_margin_bps, pageDict.notAvailable)}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end font-mono`}>{row.ledger_row_count.toLocaleString()}</td>
-                    <td className={tableClasses.td}>
-                      <Link
-                        href={`/accounting/ledger${row.project_id ? `?project_id=${row.project_id}` : ''}`}
-                        className="text-xs font-bold text-[var(--primary)] no-underline hover:underline"
-                      >
-                        {pageDict.openLedger}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/reports/project-profitability/data"
+            columns={columns}
+            filters={{
+              period_id: filters.period_id || '',
+              date_from: filters.date_from || '',
+              date_to: filters.date_to || '',
+              project_id: filters.project_id || '',
+              cost_center_id: filters.cost_center_id || '',
+              account_id: filters.account_id || '',
+              currency: filters.currency || '',
+            }}
+            locale={locale}
+            order={[[0, 'asc'], [1, 'asc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="project-profitability-table"
+          />
+        </Card>
       </div>
     </AppLayout>
   );

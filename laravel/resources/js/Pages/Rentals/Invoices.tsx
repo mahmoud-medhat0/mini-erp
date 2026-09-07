@@ -3,11 +3,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, CurrencyOption, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Customer = { id: string; code: string; name: TranslatedName };
@@ -128,7 +129,14 @@ type EditableLine = {
   notes: string;
 };
 type Props = SharedPageProps & {
-  invoices: { data: RentalInvoice[]; total: number; links?: PaginationLink[] };
+  invoices?: RentalInvoice[];
+  invoiceSummary: {
+    total_count: number;
+    open_count: number;
+    posted_count: number;
+    currency: string | null;
+    total_minor: number | null;
+  };
   contracts: Contract[];
   currencies: CurrencyOption[];
   taxCodes: TaxCode[];
@@ -207,7 +215,7 @@ function namePart(name: TranslatedName, locale: 'en' | 'ar'): string {
 
 export default function RentalInvoicesIndex({
   locale,
-  invoices,
+  invoiceSummary,
   contracts = [],
   currencies = [],
   taxCodes = [],
@@ -226,11 +234,13 @@ export default function RentalInvoicesIndex({
   const canPostRentalInvoices = can('rentals.post') && can('view_financials');
   const canCancelRentalInvoices = can('rentals.cancel');
   const defaultCurrency = contracts[0]?.currency || currencies[0]?.code || '';
-  const [search, setSearch] = useState(filters.search || '');
+  const [initialSearch, setInitialSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [invoiceType, setInvoiceType] = useState(filters.invoice_type || '');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<RentalInvoice | null>(null);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [tableResetToken, setTableResetToken] = useState(0);
   const [lineItems, setLineItems] = useState<EditableLine[]>([]);
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
 
@@ -297,11 +307,6 @@ export default function RentalInvoicesIndex({
       total: totals.total + baseMinor + taxMinor,
     };
   }, { subtotal: 0, tax: 0, total: 0 });
-
-  const visibleCurrencies = Array.from(new Set(invoices.data.map((row) => row.currency).filter(Boolean)));
-  const visibleTotal = visibleCurrencies.length <= 1 ? invoices.data.reduce((sum, row) => sum + Number(row.total_minor || 0), 0) : null;
-  const openInvoices = invoices.data.filter((row) => ['draft', 'submitted', 'approved'].includes(row.status)).length;
-  const postedInvoices = invoices.data.filter((row) => row.status === 'posted').length;
 
   function resetForContract(contractId = contracts[0]?.id || '') {
     const contract = contracts.find((item) => item.id === contractId);
@@ -436,17 +441,13 @@ export default function RentalInvoicesIndex({
     setLineItems((current) => current.filter((_, lineIndex) => lineIndex !== index));
   }
 
-  function applyFilters() {
-    router.get('/rentals/invoices', { search, status, invoice_type: invoiceType }, { preserveScroll: true, preserveState: true });
-  }
-
-  const activeFilterCount = [search, status, invoiceType].filter(Boolean).length;
+  const activeFilterCount = [initialSearch, status, invoiceType].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
+    setInitialSearch('');
     setStatus('');
     setInvoiceType('');
-    router.get('/rentals/invoices', {}, { preserveScroll: true, preserveState: true });
+    setTableResetToken((value) => value + 1);
   }
 
   function submit(e: FormEvent) {
@@ -471,6 +472,7 @@ export default function RentalInvoicesIndex({
         setShowForm(false);
         setEditing(null);
         setLineItems([]);
+        setTableReloadToken((value) => value + 1);
       },
     };
 
@@ -500,7 +502,10 @@ export default function RentalInvoicesIndex({
     }
 
     if (confirm(confirmText)) {
-      router.post(`/rentals/invoices/${invoice.id}/${actionName}`, {}, { preserveScroll: true });
+      router.post(`/rentals/invoices/${invoice.id}/${actionName}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setTableReloadToken((value) => value + 1),
+      });
     }
   }
 
@@ -522,6 +527,73 @@ export default function RentalInvoicesIndex({
     return isRentalInvoiceActionable(invoice) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'rental_invoice.number', title: pageDict.number },
+    { data: 'contract_number', name: 'contract_number', title: pageDict.contract },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'invoice_date', name: 'rental_invoice.invoice_date', title: pageDict.invoiceDate },
+    { data: 'invoice_type', name: 'rental_invoice.invoice_type', title: pageDict.invoiceType },
+    { data: 'total_minor', name: 'rental_invoice.total_minor', title: pageDict.total, className: 'text-end' },
+    { data: 'status', name: 'rental_invoice.status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+    { data: 'created_at', name: 'rental_invoice.created_at', title: '', visible: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
+    contract_number: (_value: unknown, _type: unknown, invoice: RentalInvoice) => invoice.contract?.number || pageDict.notNumbered,
+    customer_name: (_value: unknown, _type: unknown, invoice: RentalInvoice) => (
+      invoice.customer ? `${invoice.customer.code} - ${namePart(invoice.customer.name, activeLocale)}` : pageDict.customer
+    ),
+    invoice_date: (value: string) => formatDate(value),
+    invoice_type: (value: string) => pageDict.invoiceTypes[value as keyof typeof pageDict.invoiceTypes] || value,
+    total_minor: (value: number, _type: unknown, invoice: RentalInvoice) => <AccountingAmount amountMinor={value} currency={invoice.currency} />,
+    status: (value: string) => (
+      <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>
+    ),
+    actions: (_value: unknown, _type: unknown, invoice: RentalInvoice) => {
+      const actionState = getRentalInvoiceActionState(invoice);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {invoice.status === 'draft' && canCreateRentalInvoices ? (
+            <button type="button" onClick={() => openEdit(invoice)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {invoice.status === 'draft' && canSubmitRentalInvoices ? (
+            <button type="button" onClick={() => action(invoice, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {['draft', 'submitted'].includes(invoice.status) && canApproveRentalInvoices ? (
+            <button type="button" onClick={() => action(invoice, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {invoice.status === 'approved' && canPostRentalInvoices ? (
+            <button type="button" onClick={() => action(invoice, 'post')} title={pageDict.postToArGl} aria-label={pageDict.postToArGl} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.postToArGl}</button>
+          ) : null}
+          {isRentalInvoiceActionable(invoice) && canCancelRentalInvoices ? (
+            <button type="button" onClick={() => action(invoice, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [activeLocale, canApproveRentalInvoices, canCancelRentalInvoices, canCreateRentalInvoices, canPostRentalInvoices, canSubmitRentalInvoices, dict.app.actions, pageDict]);
+
+  const tableFilters = useMemo(() => ({
+    status,
+    invoice_type: invoiceType,
+  }), [invoiceType, status]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-48">
+        <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} />
+      </div>
+      <div className="w-52">
+        <SearchableSelect options={[{ value: '', label: pageDict.allTypes }, ...invoiceTypeOptions]} value={invoiceType || null} onChange={(value) => setInvoiceType(value || '')} />
+      </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
+
   return (
     <AppLayout active="rentals.invoices.index">
       <Head title={pageDict.headTitle} />
@@ -532,20 +604,10 @@ export default function RentalInvoicesIndex({
       />
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <MetricCard label={pageDict.total} value={visibleTotal === null ? invoices.data.length : <AccountingAmount amountMinor={visibleTotal} currency={visibleCurrencies[0] || pageDict.noCurrency} />} tone="blue" />
-        <MetricCard label={pageDict.postedNumber} value={postedInvoices} tone="emerald" />
-        <MetricCard label={pageDict.status} value={openInvoices} tone="amber" />
+        <MetricCard label={pageDict.total} value={invoiceSummary.total_minor === null ? invoiceSummary.total_count : <AccountingAmount amountMinor={invoiceSummary.total_minor} currency={invoiceSummary.currency || pageDict.noCurrency} />} tone="blue" />
+        <MetricCard label={pageDict.postedNumber} value={invoiceSummary.posted_count} tone="emerald" />
+        <MetricCard label={pageDict.status} value={invoiceSummary.open_count} tone="amber" />
       </div>
-
-      <Card className="mb-4 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_220px_220px_auto_auto]">
-          <input className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)]" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allTypes }, ...invoiceTypeOptions]} value={invoiceType || null} onChange={(value) => setInvoiceType(value || '')} label={pageDict.invoiceType} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-4 p-4">
@@ -652,68 +714,22 @@ export default function RentalInvoicesIndex({
 
       {contracts.length === 0 ? (
         <EmptyState title={pageDict.emptyTitle} description={pageDict.noContracts} />
-      ) : invoices.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
       ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.contract}</th>
-                <th className={tableClasses.th}>{pageDict.customer}</th>
-                <th className={tableClasses.th}>{pageDict.invoiceDate}</th>
-                <th className={tableClasses.th}>{pageDict.invoiceType}</th>
-                <th className={tableClasses.th}>{pageDict.total}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={`${tableClasses.th} text-end`}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.data.map((invoice) => {
-                const actionState = getRentalInvoiceActionState(invoice);
-
-                return (
-                  <tr key={invoice.id}>
-                    <td className={`${tableClasses.td} font-mono font-bold`}>{invoice.number || pageDict.notNumbered}</td>
-                    <td className={tableClasses.td}>{invoice.contract?.number || pageDict.notNumbered}</td>
-                    <td className={tableClasses.td}>
-                      {invoice.customer ? `${invoice.customer.code} - ${namePart(invoice.customer.name, activeLocale)}` : pageDict.customer}
-                    </td>
-                    <td className={tableClasses.td}>{formatDate(invoice.invoice_date)}</td>
-                    <td className={tableClasses.td}>{pageDict.invoiceTypes[invoice.invoice_type as keyof typeof pageDict.invoiceTypes] || invoice.invoice_type}</td>
-                    <td className={tableClasses.td}><AccountingAmount amountMinor={invoice.total_minor} currency={invoice.currency} /></td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(invoice.status)}>
-                        {pageDict.statuses[invoice.status as keyof typeof pageDict.statuses] || invoice.status}
-                      </StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {invoice.status === 'draft' && canCreateRentalInvoices ? (
-                          <button type="button" onClick={() => openEdit(invoice)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
-                        ) : null}
-                        {invoice.status === 'draft' && canSubmitRentalInvoices ? (
-                          <button type="button" onClick={() => action(invoice, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
-                        ) : null}
-                        {['draft', 'submitted'].includes(invoice.status) && canApproveRentalInvoices ? (
-                          <button type="button" onClick={() => action(invoice, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
-                        ) : null}
-                        {invoice.status === 'approved' && canPostRentalInvoices ? (
-                          <button type="button" onClick={() => action(invoice, 'post')} title={pageDict.postToArGl} aria-label={pageDict.postToArGl} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.postToArGl}</button>
-                        ) : null}
-                        {isRentalInvoiceActionable(invoice) && canCancelRentalInvoices ? (
-                          <button type="button" onClick={() => action(invoice, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
-                        ) : null}
-                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            key={tableResetToken}
+            ajaxUrl="/rentals/invoices/data"
+            columns={columns}
+            filters={tableFilters}
+            initialSearch={initialSearch}
+            locale={locale}
+            order={[[3, 'desc'], [8, 'desc']]}
+            reloadToken={tableReloadToken}
+            slots={slots}
+            tableId="rental-invoices-data-table"
+            toolbar={toolbar}
+          />
+        </Card>
       )}
 
       <SensitiveActionModal
@@ -723,7 +739,10 @@ export default function RentalInvoicesIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setTableReloadToken((value) => value + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_RENTAL_INVOICE'}

@@ -1,14 +1,14 @@
 import { Head, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatAccountingAmount, getAccountTypeLabel, getLocalizedName, formatPeriodLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import type { SharedPageProps, TbRow } from '../../Types';
 
 type TrialBalanceProps = SharedPageProps & {
-  rows: TbRow[];
   totals: {
     debit: number;
     credit: number;
@@ -19,7 +19,7 @@ type TrialBalanceProps = SharedPageProps & {
   displayCurrency: string;
 };
 
-export default function TrialBalance({ locale, rows = [], totals, periods = [], filters, displayCurrency }: TrialBalanceProps) {
+export default function TrialBalance({ locale, totals, periods = [], filters, displayCurrency }: TrialBalanceProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const actionsDict = dict.app.actions;
@@ -51,6 +51,41 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
   function handlePrint() {
     window.print();
   }
+
+  const columns = useMemo(() => [
+    { data: 'account_code', name: 'account_code', title: accDict.accountCode },
+    { data: 'account_name', name: 'account_name', title: accDict.accountName, orderable: false },
+    { data: 'type', name: 'type', title: accDict.accountType },
+    { data: 'debit_balance', name: 'debit_balance', title: accDict.endingDebit, searchable: false, className: 'text-end' },
+    { data: 'credit_balance', name: 'credit_balance', title: accDict.endingCredit, searchable: false, className: 'text-end' },
+  ], [accDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    account_code: (data: unknown) => (
+      <span className="accounting-code font-mono text-xs font-bold text-blue-600 dark:text-blue-400">{String(data || '')}</span>
+    ),
+    account_name: (data: unknown) => (
+      <span className="text-xs font-bold text-[var(--text-primary)]">{getLocalizedName(data as TbRow['account_name'], locale)}</span>
+    ),
+    type: (data: unknown) => (
+      <span className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400">
+        {getAccountTypeLabel(String(data || ''), locale)}
+      </span>
+    ),
+    debit_balance: (data: unknown, _type: unknown, row: TbRow) => (
+      <AccountingAmount amountMinor={Number(data || 0)} currency={row.currency_code || displayCurrency} tone="debit" />
+    ),
+    credit_balance: (data: unknown, _type: unknown, row: TbRow) => (
+      <AccountingAmount amountMinor={Number(data || 0)} currency={row.currency_code || displayCurrency} tone="credit" />
+    ),
+  }), [displayCurrency, locale]);
+
+  const tableFilters = useMemo(() => ({
+    period_id: filters.period_id || '',
+    start_date: filters.start_date || '',
+    end_date: filters.end_date || '',
+    include_zero: filters.include_zero ? '1' : '',
+  }), [filters.end_date, filters.include_zero, filters.period_id, filters.start_date]);
 
   return (
     <AppLayout active="accounting.trial_balance">
@@ -117,8 +152,12 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
       {/* Balance Assertion Banner */}
       <Card className="p-5 mb-6 flex items-center justify-between border-l-4 border-l-emerald-500">
         <div className="flex items-center gap-3">
-          <div className={`flex size-10 items-center justify-center rounded-xl font-bold text-white ${totals.is_balanced ? 'bg-emerald-500' : 'bg-red-500'}`}>
-            {totals.is_balanced ? '✓' : '✗'}
+          <div className={`flex size-10 items-center justify-center rounded-xl text-white ${totals.is_balanced ? 'bg-emerald-500' : 'bg-red-500'}`}>
+            {totals.is_balanced ? (
+              <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" /></svg>
+            ) : (
+              <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" /></svg>
+            )}
           </div>
           <div>
             <h4 className="m-0 text-sm font-bold text-[var(--text-primary)]">
@@ -156,60 +195,18 @@ export default function TrialBalance({ locale, rows = [], totals, periods = [], 
         </Card>
       </div>
 
-      {rows.length === 0 ? (
-        <EmptyState
-          title={accDict.noTrialBalanceRows}
-          description={accDict.noTrialBalanceRowsDesc}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/accounting/trial-balance/data"
+          columns={columns}
+          filters={tableFilters}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          slots={slots}
+          tableId="accounting-trial-balance-data-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{accDict.accountCode}</th>
-                <th className={tableClasses.th}>{accDict.accountName}</th>
-                <th className={tableClasses.th}>{accDict.accountType}</th>
-                <th className={`${tableClasses.th} text-end`}>{accDict.endingDebit}</th>
-                <th className={`${tableClasses.th} text-end`}>{accDict.endingCredit}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {rows.map((r) => (
-                <tr key={r.account_id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={tableClasses.td}>
-                    <span className="accounting-code font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{r.account_code}</span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="font-bold text-xs text-[var(--text-primary)]">{getLocalizedName(r.account_name, locale)}</span>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                      {getAccountTypeLabel(r.type, locale)}
-                    </span>
-                  </td>
-                  <td className={`${tableClasses.td} text-end text-xs`}>
-                    <AccountingAmount amountMinor={r.debit_balance} currency={r.currency_code || displayCurrency} tone="debit" />
-                  </td>
-                  <td className={`${tableClasses.td} text-end text-xs`}>
-                    <AccountingAmount amountMinor={r.credit_balance} currency={r.currency_code || displayCurrency} tone="credit" />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-[var(--background)] border-t border-[var(--border)] font-bold text-xs">
-              <tr>
-                <td colSpan={3} className="p-3.5 text-end">{accDict.totalTrialBalance}</td>
-                <td className="p-3.5 text-end text-blue-600 dark:text-blue-400">
-                  <AccountingAmount amountMinor={totals.debit} currency={displayCurrency} tone="debit" />
-                </td>
-                <td className="p-3.5 text-end text-purple-600 dark:text-purple-400">
-                  <AccountingAmount amountMinor={totals.credit} currency={displayCurrency} tone="credit" />
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+      </Card>
     </AppLayout>
   );
 }

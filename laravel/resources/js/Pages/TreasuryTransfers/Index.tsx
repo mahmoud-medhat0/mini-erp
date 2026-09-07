@@ -1,18 +1,19 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type BranchRef = { id: string; code: string; name: Record<string, string> | string };
 type EndpointAccount = {
   id: string;
   code: string;
-  name: string;
+  name: Record<string, string> | string;
   currency: string;
   branch_id?: string | null;
   branch?: BranchRef | null;
@@ -39,13 +40,14 @@ type TreasuryTransferRow = {
   fiscal_year_id: string;
   financial_period_id: string;
   lock_version: number;
+  source_label?: string | null;
+  destination_label?: string | null;
 };
 
 type FiscalYearOption = { id: string; year: number; status: string };
 type PeriodOption = { id: string; fiscal_year_id: string; month: number; start_date: string; end_date: string; status: string };
 
 type TreasuryTransferProps = SharedPageProps & {
-  transfers: { data: TreasuryTransferRow[]; links: PaginationLink[] };
   cashAccounts: EndpointAccount[];
   bankAccounts: EndpointAccount[];
   fiscalYears: FiscalYearOption[];
@@ -56,7 +58,6 @@ type TreasuryTransferProps = SharedPageProps & {
 
 export default function TreasuryTransfersIndex({
   locale,
-  transfers,
   cashAccounts = [],
   bankAccounts = [],
   fiscalYears = [],
@@ -74,6 +75,7 @@ export default function TreasuryTransfersIndex({
   const [showModal, setShowModal] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<TreasuryTransferRow | null>(null);
   const [postingTransferId, setPostingTransferId] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const defaultYear = fiscalYears.find((year) => year.status === 'open') ?? fiscalYears[0];
   const defaultPeriod = financialPeriods.find((period) => period.status === 'open' && period.fiscal_year_id === defaultYear?.id) ?? financialPeriods[0];
@@ -224,6 +226,7 @@ export default function TreasuryTransfersIndex({
       onSuccess: () => {
         setShowModal(false);
         reset();
+        setReloadToken((token) => token + 1);
       },
     };
 
@@ -240,9 +243,71 @@ export default function TreasuryTransfersIndex({
 
   const handleCancel = (id: string) => {
     if (window.confirm(pageDict.confirmCancel)) {
-      router.post(`/treasury-transfers/${id}/cancel`, {}, { preserveScroll: true });
+      router.post(`/treasury-transfers/${id}/cancel`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((token) => token + 1),
+      });
     }
   };
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.number, className: 'font-mono text-xs font-bold' },
+    { data: 'transfer_date', name: 'transfer_date', title: pageDict.date, className: 'font-mono text-xs', width: '115px' },
+    { data: 'source_label', name: 'source_label', title: pageDict.source, orderable: false },
+    { data: 'destination_label', name: 'destination_label', title: pageDict.destination, orderable: false },
+    { data: 'amount_minor', name: 'amount_minor', title: pageDict.amount, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.status, searchable: false, width: '105px' },
+    { data: 'id', name: 'id', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (data: string | null): ReactElement => (
+      <span className="font-mono text-xs font-bold">{data || pageDict.draft}</span>
+    ),
+    source_label: (_data: string | null, _type: unknown, row: TreasuryTransferRow): ReactElement => (
+      <span>{endpointLabel(rowEndpoint(row, 'source'))}</span>
+    ),
+    destination_label: (_data: string | null, _type: unknown, row: TreasuryTransferRow): ReactElement => (
+      <span>{endpointLabel(rowEndpoint(row, 'destination'))}</span>
+    ),
+    amount_minor: (data: number, _type: unknown, row: TreasuryTransferRow): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatTreasuryMoney(data, row.currency)}</span>
+    ),
+    status: (data: string): ReactElement => (
+      <StatusBadge tone={statusTone(data)}>{statusLabel(data)}</StatusBadge>
+    ),
+    id: (_data: string, _type: unknown, row: TreasuryTransferRow): ReactElement => {
+      const actionState = getTreasuryTransferActionState(row);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {row.status === 'draft' && canEditTreasuryTransfers ? (
+            <button type="button" onClick={() => openEditModal(row)} title={pageDict.editTransfer} aria-label={pageDict.editTransfer} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
+              {pageDict.editTransfer}
+            </button>
+          ) : null}
+          {row.status === 'draft' && canPostTreasuryTransfers ? (
+            <button type="button" onClick={() => handlePost(row.id)} title={pageDict.confirmPost} aria-label={pageDict.confirmPost} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">
+              {pageDict.post}
+            </button>
+          ) : null}
+          {row.status === 'draft' && canEditTreasuryTransfers ? (
+            <button type="button" onClick={() => handleCancel(row.id)} title={pageDict.confirmCancel} aria-label={pageDict.confirmCancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">
+              {pageDict.cancelTransfer}
+            </button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  } as unknown as DataTableSlots), [
+    accDict,
+    canEditTreasuryTransfers,
+    canPostTreasuryTransfers,
+    dict,
+    locale,
+    pageDict,
+  ]);
 
   return (
     <AppLayout active="treasury-transfers.index">
@@ -283,59 +348,19 @@ export default function TreasuryTransfersIndex({
         </div>
       </Card>
 
-      {transfers.data.length === 0 ? (
-        <EmptyState title={pageDict.noTransfersFound} description={pageDict.emptyDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.date}</th>
-                <th className={tableClasses.th}>{pageDict.source}</th>
-                <th className={tableClasses.th}>{pageDict.destination}</th>
-                <th className={tableClasses.th}>{pageDict.amount}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transfers.data.map((row) => (
-                <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.number || pageDict.draft}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{row.transfer_date}</td>
-                  <td className={tableClasses.td}>{endpointLabel(rowEndpoint(row, 'source'))}</td>
-                  <td className={tableClasses.td}>{endpointLabel(rowEndpoint(row, 'destination'))}</td>
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{formatTreasuryMoney(row.amount_minor, row.currency)}</td>
-                  <td className={tableClasses.td}><StatusBadge tone={statusTone(row.status)}>{statusLabel(row.status)}</StatusBadge></td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {row.status === 'draft' && canEditTreasuryTransfers ? (
-                        <button type="button" onClick={() => openEditModal(row)} title={pageDict.editTransfer} aria-label={pageDict.editTransfer} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
-                          {pageDict.editTransfer}
-                        </button>
-                      ) : null}
-                      {row.status === 'draft' && canPostTreasuryTransfers ? (
-                        <button type="button" onClick={() => handlePost(row.id)} title={pageDict.confirmPost} aria-label={pageDict.confirmPost} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">
-                          {pageDict.post}
-                        </button>
-                      ) : null}
-                      {row.status === 'draft' && canEditTreasuryTransfers ? (
-                        <button type="button" onClick={() => handleCancel(row.id)} title={pageDict.confirmCancel} aria-label={pageDict.confirmCancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">
-                          {pageDict.cancelTransfer}
-                        </button>
-                      ) : null}
-                      {getTreasuryTransferActionState(row) ? (
-                        <StatusBadge tone="muted">{getTreasuryTransferActionState(row)}</StatusBadge>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/treasury-transfers/data"
+          columns={columns}
+          filters={{ query: filters.search || '', status: filters.status || '' }}
+          locale={locale}
+          order={[[1, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="treasury-transfers-table"
+        />
+      </Card>
 
       {showModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
@@ -457,7 +482,10 @@ export default function TreasuryTransfersIndex({
           if (!postingTransferId) return;
           router.post(`/treasury-transfers/${postingTransferId}/post`, payload, {
             preserveScroll: true,
-            onSuccess: () => setPostingTransferId(null),
+            onSuccess: () => {
+              setPostingTransferId(null);
+              setReloadToken((token) => token + 1);
+            },
           });
         }}
         confirmCode="POST_TREASURY_TRANSFER"

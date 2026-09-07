@@ -1,12 +1,13 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, StatusBadge } from '../../Components/Primitives';
 import type { SharedPageProps } from '../../Types/page';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import { fallbackText, formatMinor, runStatusLabel, statusTone, type Paginated } from './fixedAssetReportUtils';
+import { fallbackText, formatMinor, runStatusLabel, statusTone } from './fixedAssetReportUtils';
 
 type FinancialPeriodRef = {
   id: string;
@@ -29,14 +30,14 @@ type DepreciationRunRow = {
 };
 
 type ReportProps = SharedPageProps & {
-  runs: Paginated<DepreciationRunRow>;
+  runs: DepreciationRunRow[];
   filters: {
     period_id?: string;
     status?: string;
   };
 };
 
-export default function FixedAssetDepreciationRunReport({ locale, runs, filters }: ReportProps) {
+export default function FixedAssetDepreciationRunReport({ locale, filters }: ReportProps) {
   const dict = getDictionary(locale);
   const reportDict = dict.app.pages.reports;
   const can = useCan();
@@ -61,6 +62,31 @@ export default function FixedAssetDepreciationRunReport({ locale, runs, filters 
     { value: 'posted', label: runStatusLabel('posted', dict) },
     { value: 'reversed', label: runStatusLabel('reversed', dict) },
   ];
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: reportDict.runNumber },
+    { data: 'run_date', name: 'run_date', title: reportDict.runDate },
+    { data: 'financial_period', name: 'financial_period', title: reportDict.financialPeriod, orderable: false },
+    { data: 'asset_count', name: 'asset_count', title: reportDict.assetCount, searchable: false },
+    { data: 'total_depreciation_minor', name: 'total_depreciation_minor', title: reportDict.totalDepreciation, searchable: false },
+    { data: 'journal_number', name: 'journal_number', title: reportDict.linkedJournal, orderable: false },
+    { data: 'status', name: 'status', title: reportDict.status },
+  ], [reportDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (data: string, _type: unknown, run: DepreciationRunRow) => (
+      <Link href={`/fixed-assets-depreciation-runs/${run.id}`} className="font-mono font-semibold text-[var(--primary)] hover:underline">
+        {data}
+      </Link>
+    ),
+    financial_period: (data: FinancialPeriodRef | null) => data
+      ? `${fallbackText(data.year, reportDict.notAvailable)} / ${fallbackText(data.month, reportDict.notAvailable)}`
+      : reportDict.notAvailable,
+    asset_count: (data: number) => <span className="font-mono">{Number(data)}</span>,
+    total_depreciation_minor: (data: number) => <span className="font-mono">{formatMinor(Number(data))}</span>,
+    journal_number: (data: string | null) => <span className="font-mono">{fallbackText(data, reportDict.notAvailable)}</span>,
+    status: (data: string) => <StatusBadge tone={statusTone(data)}>{runStatusLabel(data, dict)}</StatusBadge>,
+  }), [dict, reportDict]);
 
   return (
     <AppLayout active="reports.index">
@@ -107,58 +133,18 @@ export default function FixedAssetDepreciationRunReport({ locale, runs, filters 
           </div>
         </Card>
 
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{reportDict.runNumber}</th>
-                <th className={tableClasses.th}>{reportDict.runDate}</th>
-                <th className={tableClasses.th}>{reportDict.financialPeriod}</th>
-                <th className={tableClasses.th}>{reportDict.assetCount}</th>
-                <th className={tableClasses.th}>{reportDict.totalDepreciation}</th>
-                <th className={tableClasses.th}>{reportDict.linkedJournal}</th>
-                <th className={tableClasses.th}>{reportDict.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.data.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className={`${tableClasses.td} text-center text-[var(--text-secondary)]`}>
-                    {reportDict.noDepreciationRunRows}
-                  </td>
-                </tr>
-              ) : (
-                runs.data.map((run) => (
-                  <tr key={run.id}>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      <Link href={`/fixed-assets-depreciation-runs/${run.id}`} className="text-[var(--primary)] hover:underline">
-                        {run.number}
-                      </Link>
-                    </td>
-                    <td className={tableClasses.td}>{run.run_date}</td>
-                    <td className={tableClasses.td}>
-                      {run.financial_period
-                        ? `${fallbackText(run.financial_period.year, reportDict.notAvailable)} / ${fallbackText(run.financial_period.month, reportDict.notAvailable)}`
-                        : reportDict.notAvailable}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>{run.asset_count}</td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(run.total_depreciation_minor)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {fallbackText(run.journal_number, reportDict.notAvailable)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(run.status)}>
-                        {runStatusLabel(run.status, dict)}
-                      </StatusBadge>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            key={`fixed-asset-depreciation-runs-${JSON.stringify(filters)}`}
+            ajaxUrl="/reports/fixed-asset-depreciation-runs/data"
+            columns={columns}
+            filters={{ period_id: filters.period_id || '', status: filters.status || '' }}
+            locale={locale}
+            order={[[1, 'desc'], [0, 'desc']]}
+            slots={slots}
+            tableId="fixed-asset-depreciation-runs-data-table"
+          />
+        </Card>
       </div>
     </AppLayout>
   );

@@ -4,40 +4,49 @@ namespace App\Application\Settings;
 
 use App\Domain\Audit\AuditLogger;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Yajra\DataTables\Facades\DataTables;
 
 class UserSettingsService
 {
+    private const USER_SORT_COLUMNS = [
+        'name' => 'users.name',
+        'email' => 'users.email',
+        'locale' => 'users.locale',
+        'is_active' => 'users.is_active',
+        'created_at' => 'users.created_at',
+    ];
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly SuperAdminProtection $superAdminProtection,
     ) {}
 
     /**
-     * @return array<string, Collection<int, mixed>>
+     * @return array{
+     *     userCount: int,
+     *     userOptions: Collection<int, array{id: int|string, name: string, email: string}>,
+     *     roles: Collection<int, mixed>,
+     *     allPermissions: Collection<int, string>
+     * }
      */
     public function indexData(): array
     {
         return [
-            'users' => User::query()
-                ->with('roles')
+            'userCount' => User::query()->count(),
+            'userOptions' => User::query()
                 ->orderBy('email')
-                ->get()
+                ->get(['id', 'name', 'email'])
                 ->map(fn (User $user): array => [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'locale' => $user->locale,
-                    'theme' => $user->theme,
-                    'isActive' => $user->is_active,
-                    'roles' => $user->roles
-                        ->sortBy('name')
-                        ->map(fn (Role $role): array => ['id' => $role->id, 'name' => $role->name])
-                        ->values(),
                 ])
                 ->values(),
             'roles' => Role::query()
@@ -58,6 +67,57 @@ class UserSettingsService
                 ->pluck('name')
                 ->values(),
         ];
+    }
+
+    public function datatable(): JsonResponse
+    {
+        $query = User::query()
+            ->select('users.*')
+            ->with('roles');
+
+        return DataTables::eloquent($query)
+            ->filter(function (Builder $builder): void {
+                $search = trim((string) request()->input('search.value', ''));
+
+                if ($search === '') {
+                    return;
+                }
+
+                $pattern = '%'.mb_strtolower($search).'%';
+                $builder->where(function (Builder $nested) use ($pattern): void {
+                    $nested->whereRaw('LOWER(users.name) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(users.email) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(COALESCE(users.locale, \'\')) LIKE ?', [$pattern])
+                        ->orWhereHas('roles', fn (Builder $roles) => $roles->whereRaw('LOWER(roles.name) LIKE ?', [$pattern]));
+                });
+            })
+            ->order(function (Builder $builder): void {
+                foreach ((array) request()->input('order', []) as $order) {
+                    if (! is_array($order)) {
+                        continue;
+                    }
+
+                    $index = filter_var($order['column'] ?? null, FILTER_VALIDATE_INT);
+                    $data = $index === false ? null : request()->input("columns.$index.data");
+
+                    if (! is_string($data) || ! isset(self::USER_SORT_COLUMNS[$data])) {
+                        continue;
+                    }
+
+                    $direction = ($order['dir'] ?? null) === 'desc' ? 'desc' : 'asc';
+                    $builder->orderBy(self::USER_SORT_COLUMNS[$data], $direction);
+                }
+
+                $builder->orderBy('users.email')->orderBy('users.id');
+            })
+            ->editColumn('roles', fn (User $user): array => $user->roles
+                ->sortBy('name')
+                ->map(fn (Role $role): array => ['id' => $role->id, 'name' => $role->name])
+                ->values()
+                ->all())
+            ->editColumn('is_active', fn (User $user): bool => (bool) $user->is_active)
+            ->addColumn('isActive', fn (User $user): bool => (bool) $user->is_active)
+            ->toJson();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Purchasing\SupplierBillPageData;
 use App\Application\Purchasing\SupplierBillService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,11 @@ class SupplierBillController extends Controller
             'search' => $request->query('search'),
             'status' => $request->query('status'),
         ]));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->supplierBillPageData->datatable($request->only(['status']));
     }
 
     public function store(Request $request): RedirectResponse

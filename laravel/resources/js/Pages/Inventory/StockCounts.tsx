@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -39,7 +40,6 @@ type StockCount = {
   lock_version: number;
   lines: StockCountLine[];
 };
-type PaginatedData<T> = { data: T[]; total: number };
 type CountLineForm = { product_id: string; expected_input: string; counted_input: string; unit_cost_minor: string; notes: string };
 type CountForm = {
   count_date: string;
@@ -51,7 +51,6 @@ type CountForm = {
   lines: CountLineForm[];
 };
 type Props = SharedPageProps & {
-  stockCounts: PaginatedData<StockCount>;
   warehouses: Warehouse[];
   products: Product[];
   currencies: CurrencyRow[];
@@ -99,7 +98,7 @@ function statusTone(value: string): 'ok' | 'muted' | 'danger' | 'warning' | 'inf
   return 'muted';
 }
 
-export default function StockCountsIndex({ locale, stockCounts, warehouses, products, currencies, statuses, filters }: Props) {
+export default function StockCountsIndex({ locale, warehouses, products, currencies, statuses, filters }: Props) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.stockCounts;
   const accDict = dict.app.accounting;
@@ -108,12 +107,12 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
   const canApproveInventory = can('inventory.approve');
   const canPostInventory = can('inventory.post') && can('view_financials');
   const defaultCurrency = currencies[0]?.code || '';
-  const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [warehouseId, setWarehouseId] = useState(filters.warehouse_id || '');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<StockCount | null>(null);
   const [postingCount, setPostingCount] = useState<StockCount | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm<CountForm>({
     count_date: today(),
@@ -144,21 +143,15 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
   })), [currencies, locale]);
 
   const statusOptions = statuses.map((item) => ({ value: item, label: pageDict.statuses[item as keyof typeof pageDict.statuses] || item }));
-  const activeFilterCount = [search, status, warehouseId].filter(Boolean).length;
+  const activeFilterCount = [status, warehouseId].filter(Boolean).length;
 
   function labelForStatus(value: string): string {
     return pageDict.statuses[value as keyof typeof pageDict.statuses] || value;
   }
 
-  function applyFilters() {
-    router.get('/inventory/stock-counts', { search, status, warehouse_id: warehouseId }, { preserveScroll: true, preserveState: true });
-  }
-
   function clearFilters() {
-    setSearch('');
     setStatus('');
     setWarehouseId('');
-    router.get('/inventory/stock-counts', {}, { preserveScroll: true, preserveState: true });
   }
 
   function openCreate() {
@@ -223,11 +216,23 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
     };
 
     if (editing) {
-      router.put(`/inventory/stock-counts/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/inventory/stock-counts/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/inventory/stock-counts', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/inventory/stock-counts', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function transition(count: StockCount, action: 'submit' | 'approve' | 'post' | 'cancel') {
@@ -239,7 +244,10 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
     const message = pageDict.confirmations[action as keyof typeof pageDict.confirmations];
     if (message && !confirm(message)) return;
 
-    router.post(`/inventory/stock-counts/${count.id}/${action}`, {}, { preserveScroll: true });
+    router.post(`/inventory/stock-counts/${count.id}/${action}`, {}, {
+      preserveScroll: true,
+      onSuccess: () => setReloadToken((value) => value + 1),
+    });
   }
 
   const isStockCountActionable = (count: StockCount) => ['draft', 'submitted', 'approved'].includes(count.status);
@@ -260,6 +268,73 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
     return isStockCountActionable(count) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const tableFilters = useMemo(() => ({
+    status,
+    warehouse_id: warehouseId,
+  }), [status, warehouseId]);
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.number },
+    { data: 'count_date', name: 'count_date', title: pageDict.date, searchable: false },
+    { data: 'warehouse_name', name: 'warehouse_name', title: pageDict.warehouse, orderable: false, searchable: false },
+    { data: 'status', name: 'status', title: pageDict.status, searchable: false },
+    { data: 'lines_data', name: 'lines_data', title: pageDict.lines, orderable: false, searchable: false },
+    { data: 'variance_lines', name: 'variance_lines', title: pageDict.varianceLines, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (data: unknown, _type: unknown, row: StockCount) => (
+      <span className="font-mono text-xs font-bold">{String(data || row.number || pageDict.draftNumber)}</span>
+    ),
+    count_date: (data: unknown) => formatDate(String(data || '')),
+    warehouse_name: (_data: unknown, _type: unknown, row: StockCount) => row.warehouse
+      ? `${row.warehouse.code} - ${getLocalizedName(row.warehouse.name, locale)}`
+      : accDict.notAvailable,
+    status: (data: unknown) => {
+      const value = String(data || '');
+      return <StatusBadge tone={statusTone(value)}>{labelForStatus(value)}</StatusBadge>;
+    },
+    lines_data: (_data: unknown, _type: unknown, row: StockCount) => row.lines.length,
+    variance_lines: (_data: unknown, _type: unknown, row: StockCount) => row.lines.filter((line) => Number(line.variance_quantity_e6) !== 0).length,
+    actions: (_data: unknown, _type: unknown, row: StockCount) => {
+      const actionState = getStockCountActionState(row);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {row.status === 'draft' && canCountStock ? (
+            <button type="button" onClick={() => openEdit(row)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {row.status === 'draft' && canCountStock ? (
+            <button type="button" onClick={() => transition(row, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {['draft', 'submitted'].includes(row.status) && canApproveInventory ? (
+            <button type="button" onClick={() => transition(row, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {row.status === 'approved' && canPostInventory ? (
+            <button type="button" onClick={() => transition(row, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+          ) : null}
+          {isStockCountActionable(row) && canCountStock ? (
+            <button type="button" onClick={() => transition(row, 'cancel')} title={pageDict.cancelCount} aria-label={pageDict.cancelCount} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelCount}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canApproveInventory, canCountStock, canPostInventory, dict.app.actions, locale, pageDict]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-44 shrink-0">
+        <SearchableSelect value={status} onChange={(value) => setStatus(value || '')} options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} placeholder={pageDict.allStatuses} isSearchable={false} isClearable={false} />
+      </div>
+      <div className="w-56 shrink-0">
+        <SearchableSelect value={warehouseId} onChange={(value) => setWarehouseId(value || '')} options={[{ value: '', label: pageDict.allWarehouses }, ...warehouseOptions]} placeholder={pageDict.allWarehouses} isClearable={false} />
+      </div>
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilters}</Button>
+    </div>
+  );
+
   return (
     <AppLayout active="stock-counts.index">
       <Head title={pageDict.headTitle} />
@@ -268,16 +343,6 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
         description={pageDict.description}
         actions={canCountStock ? <Button onClick={openCreate}>{pageDict.createCount}</Button> : null}
       />
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto_auto]">
-          <input className="erp-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect value={status} onChange={(value) => setStatus(value || '')} options={statusOptions} placeholder={pageDict.allStatuses} />
-          <SearchableSelect value={warehouseId} onChange={(value) => setWarehouseId(value || '')} options={warehouseOptions} placeholder={pageDict.allWarehouses} />
-          <Button onClick={applyFilters}>{pageDict.filter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilters}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-4">
@@ -315,61 +380,21 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
         </Card>
       ) : null}
 
-      {stockCounts.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.date}</th>
-                <th className={tableClasses.th}>{pageDict.warehouse}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.lines}</th>
-                <th className={tableClasses.th}>{pageDict.varianceLines}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stockCounts.data.map((count) => {
-                const actionState = getStockCountActionState(count);
-
-                return (
-                  <tr key={count.id}>
-                    <td className={tableClasses.td}>{count.number || pageDict.draftNumber}</td>
-                    <td className={tableClasses.td}>{formatDate(count.count_date)}</td>
-                    <td className={tableClasses.td}>{count.warehouse ? `${count.warehouse.code} - ${getLocalizedName(count.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                    <td className={tableClasses.td}><StatusBadge tone={statusTone(count.status)}>{labelForStatus(count.status)}</StatusBadge></td>
-                    <td className={tableClasses.td}>{count.lines.length}</td>
-                    <td className={tableClasses.td}>{count.lines.filter((line) => Number(line.variance_quantity_e6) !== 0).length}</td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {count.status === 'draft' && canCountStock ? (
-                          <button type="button" onClick={() => openEdit(count)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
-                        ) : null}
-                        {count.status === 'draft' && canCountStock ? (
-                          <button type="button" onClick={() => transition(count, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
-                        ) : null}
-                        {['draft', 'submitted'].includes(count.status) && canApproveInventory ? (
-                          <button type="button" onClick={() => transition(count, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
-                        ) : null}
-                        {count.status === 'approved' && canPostInventory ? (
-                          <button type="button" onClick={() => transition(count, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
-                        ) : null}
-                        {isStockCountActionable(count) && canCountStock ? (
-                          <button type="button" onClick={() => transition(count, 'cancel')} title={pageDict.cancelCount} aria-label={pageDict.cancelCount} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelCount}</button>
-                        ) : null}
-                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/inventory/stock-counts/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[1, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="inventory-stock-counts-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
 
       <SensitiveActionModal
         isOpen={postingCount !== null}
@@ -378,7 +403,10 @@ export default function StockCountsIndex({ locale, stockCounts, warehouses, prod
           if (!postingCount) return;
           router.post(`/inventory/stock-counts/${postingCount.id}/post`, payload, {
             preserveScroll: true,
-            onSuccess: () => setPostingCount(null),
+            onSuccess: () => {
+              setPostingCount(null);
+              setReloadToken((value) => value + 1);
+            },
           });
         }}
         confirmCode="POST_STOCK_COUNT"

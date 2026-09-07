@@ -2,11 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -76,10 +77,7 @@ type PurchaseOrderRow = {
 };
 
 type PurchaseOrdersProps = SharedPageProps & {
-  purchaseOrders: {
-    data: PurchaseOrderRow[];
-    links: PaginationLink[];
-  };
+  purchaseOrders?: PurchaseOrderRow[];
   suppliers: SupplierOption[];
   currencies: CurrencyOption[];
   products: ProductOption[];
@@ -90,7 +88,7 @@ type PurchaseOrdersProps = SharedPageProps & {
   };
 };
 
-export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers, currencies, products, filters }: PurchaseOrdersProps) {
+export default function PurchaseOrdersIndex({ locale, suppliers, currencies, products, filters }: PurchaseOrdersProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const pageDict = dict.app.pages.purchasingPurchaseOrders;
@@ -98,6 +96,8 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
 
   const [showModal, setShowModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<PurchaseOrderRow | null>(null);
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -260,12 +260,18 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
     if (editingOrder) {
       router.put(`/purchasing/orders/${editingOrder.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     } else {
       router.post('/purchasing/orders', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     }
   };
@@ -277,7 +283,10 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
     if (action === 'cancel') confirmMsg = dict.app.pages.purchasingPurchaseOrders.cancelThisPurchaseOrder;
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/orders/${orderId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/purchasing/orders/${orderId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   };
 
@@ -335,6 +344,68 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
     }, 0);
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.order },
+    { data: 'supplier_name', name: 'supplier_name', title: pageDict.supplier, orderable: false, searchable: false },
+    { data: 'order_date', name: 'order_date', title: pageDict.date },
+    { data: 'total_minor', name: 'total_minor', title: pageDict.totalAmount, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any) => (
+      <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>
+    ),
+    supplier_name: (_value: any, _type: any, row: PurchaseOrderRow) => (
+      <span className="font-medium">{getLocalizedName(row.supplier?.name, locale) || accDict.notAvailable}</span>
+    ),
+    order_date: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    total_minor: (value: any, _type: any, row: PurchaseOrderRow) => (
+      <span className="font-semibold accounting-amount">{formatMoney(Number(value || 0), row.currency)}</span>
+    ),
+    status: (value: any) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: any, _type: any, order: PurchaseOrderRow) => {
+      const actionState = getPurchaseOrderActionState(order);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {order.status === 'draft' && canEditPurchaseOrders ? (
+            <button type="button" onClick={() => openEditModal(order)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">
+              {pageDict.edit}
+            </button>
+          ) : null}
+          {order.status === 'draft' && canSubmitPurchaseOrders ? (
+            <button type="button" onClick={() => handleAction(order.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-violet-200 px-2.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50 dark:border-violet-900/60 dark:text-violet-300 dark:hover:bg-violet-950/40">
+              {pageDict.submit}
+            </button>
+          ) : null}
+          {isPurchaseOrderActionable(order) && canConfirmPurchaseOrders ? (
+            <button type="button" onClick={() => handleAction(order.id, 'confirm')} title={pageDict.confirm} aria-label={pageDict.confirm} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">
+              {pageDict.confirm}
+            </button>
+          ) : null}
+          {isPurchaseOrderActionable(order) && canCancelPurchaseOrders ? (
+            <button type="button" onClick={() => handleAction(order.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">
+              {pageDict.cancel}
+            </button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canCancelPurchaseOrders, canConfirmPurchaseOrders, canEditPurchaseOrders, canSubmitPurchaseOrders, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+  const toolbar = (
+    <SearchableSelect
+      options={statusFilterOptions}
+      value={statusFilter || null}
+      onChange={(value) => setStatusFilter(value || '')}
+      label={pageDict.status}
+    />
+  );
+
   return (
     <AppLayout active="purchase-orders.index">
       <Head title={dict.app.pages.purchasingPurchaseOrders.purchaseOrders} />
@@ -360,135 +431,20 @@ export default function PurchaseOrdersIndex({ locale, purchaseOrders, suppliers,
         }
       />
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.purchasingPurchaseOrders.searchNumberReferenceOrSupplier}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/orders', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/purchasing/orders', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.purchasingPurchaseOrders.status}
-            />
-          </div>
-        </div>
-
-        {purchaseOrders.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.purchasingPurchaseOrders.noPurchaseOrdersFound}
-            description={dict.app.pages.purchasingPurchaseOrders.getStartedByCreatingYourFirst}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseOrders.order}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseOrders.supplier}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseOrders.date}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseOrders.totalAmount}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseOrders.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingPurchaseOrders.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {purchaseOrders.data.map((order) => {
-                  const actionState = getPurchaseOrderActionState(order);
-
-                  return (
-                    <tr key={order.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {order.number || dict.app.pages.purchasingPurchaseOrders.draft_2}
-                      </td>
-                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(order.supplier?.name, locale) || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{order.order_date}</td>
-                      <td className={`${tableClasses.td} text-end font-semibold accounting-amount`}>
-                        {formatMoney(order.total_minor, order.currency)}
-                      </td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(order.status)}>
-                          {getStatusLabel(order.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {order.status === 'draft' && canEditPurchaseOrders ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(order)}
-                              title={dict.app.pages.purchasingPurchaseOrders.edit}
-                              aria-label={dict.app.pages.purchasingPurchaseOrders.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseOrders.edit}
-                            </button>
-                          ) : null}
-
-                          {order.status === 'draft' && canSubmitPurchaseOrders ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(order.id, 'submit')}
-                              title={dict.app.pages.purchasingPurchaseOrders.submit}
-                              aria-label={dict.app.pages.purchasingPurchaseOrders.submit}
-                              className="inline-flex h-8 items-center rounded-md border border-violet-200 px-2.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-50 dark:border-violet-900/60 dark:text-violet-300 dark:hover:bg-violet-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseOrders.submit}
-                            </button>
-                          ) : null}
-
-                          {isPurchaseOrderActionable(order) && canConfirmPurchaseOrders ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(order.id, 'confirm')}
-                              title={dict.app.pages.purchasingPurchaseOrders.confirm}
-                              aria-label={dict.app.pages.purchasingPurchaseOrders.confirm}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseOrders.confirm}
-                            </button>
-                          ) : null}
-
-                          {isPurchaseOrderActionable(order) && canCancelPurchaseOrders ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(order.id, 'cancel')}
-                              title={dict.app.pages.purchasingPurchaseOrders.cancel}
-                              aria-label={dict.app.pages.purchasingPurchaseOrders.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseOrders.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/purchasing/orders/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[2, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="purchasing-purchase-orders-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {/* Create / Edit Modal */}

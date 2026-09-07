@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CostCenters;
 use App\Application\CostCenters\CostCenterPageData;
 use App\Application\CostCenters\CostCenterService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,21 @@ class CostCenterController extends Controller
         return Inertia::render('CostCenters/Index', $this->pageData->indexData(
             $request->only(['search', 'category', 'status'])
         ));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'cost_center_search' => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'in:administrative,sales,operations,finance,other'],
+            'status' => ['nullable', 'string', 'in:active,inactive'],
+        ]);
+
+        return $this->pageData->datatable([
+            'search' => $filters['cost_center_search'] ?? '',
+            'category' => $filters['category'] ?? '',
+            'status' => $filters['status'] ?? '',
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

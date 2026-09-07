@@ -6,9 +6,10 @@ use App\Models\Currency;
 use App\Models\Product;
 use App\Models\StockCount;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class StockCountPageData
 {
@@ -19,7 +20,7 @@ class StockCountPageData
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     stockCounts: LengthAwarePaginator,
+     *     stockCounts: array{},
      *     warehouses: Collection<int, Warehouse>,
      *     products: Collection<int, Product>,
      *     currencies: Collection<int, Currency>,
@@ -36,7 +37,7 @@ class StockCountPageData
         ];
 
         return [
-            'stockCounts' => $this->stockCounts($normalizedFilters),
+            'stockCounts' => [],
             'warehouses' => $this->inventoryPageOptions->activeWarehouses(),
             'products' => $this->inventoryPageOptions->stockProducts(),
             'currencies' => $this->inventoryPageOptions->currencies(),
@@ -48,25 +49,36 @@ class StockCountPageData
     /**
      * @param  array{search: mixed, status: mixed, warehouse_id: mixed}  $filters
      */
-    private function stockCounts(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        return StockCount::query()
+        $normalizedFilters = [
+            'status' => (string) ($filters['status'] ?? ''),
+            'warehouse_id' => (string) ($filters['warehouse_id'] ?? ''),
+        ];
+
+        $query = StockCount::query()
             ->with(['warehouse.branch', 'adjustment', 'lines.product', 'lines.unitOfMeasure'])
-            ->when($filters['search'], function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $inner) use ($filters): void {
-                    $inner->where('number', 'like', "%{$filters['search']}%")
-                        ->orWhere('reference', 'like', "%{$filters['search']}%")
-                        ->orWhere('notes', 'like', "%{$filters['search']}%");
+            ->when(
+                $normalizedFilters['status'] !== '' && in_array($normalizedFilters['status'], StockCountService::ALLOWED_STATUSES, true),
+                fn (Builder $query) => $query->where('stock_count.status', $normalizedFilters['status'])
+            )
+            ->when($normalizedFilters['warehouse_id'] !== '', fn (Builder $query) => $query->where('stock_count.warehouse_id', $normalizedFilters['warehouse_id']))
+            ->orderBy('stock_count.count_date', 'desc')
+            ->orderBy('stock_count.created_at', 'desc');
+
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $query->where(function (Builder $inner) use ($keyword): void {
+                    $inner->where('stock_count.number', 'like', "%{$keyword}%")
+                        ->orWhere('stock_count.reference', 'like', "%{$keyword}%")
+                        ->orWhere('stock_count.notes', 'like', "%{$keyword}%");
                 });
             })
-            ->when(
-                $filters['status'] && in_array($filters['status'], StockCountService::ALLOWED_STATUSES, true),
-                fn (Builder $query) => $query->where('status', $filters['status'])
-            )
-            ->when($filters['warehouse_id'], fn (Builder $query) => $query->where('warehouse_id', $filters['warehouse_id']))
-            ->orderBy('count_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+            ->addColumn('warehouse_name', fn (StockCount $row): string => $row->warehouse?->code ?? '')
+            ->addColumn('lines_data', fn (StockCount $row): string => (string) ($row->lines?->count() ?? 0))
+            ->addColumn('variance_lines', fn (StockCount $row): string => (string) ($row->lines?->where('variance_quantity_e6', '!=', 0)->count() ?? 0))
+            ->addColumn('actions', fn (): string => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 }

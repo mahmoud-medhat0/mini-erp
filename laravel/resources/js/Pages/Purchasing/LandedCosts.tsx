@@ -3,11 +3,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Card, MetricCard, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -31,7 +32,17 @@ type GoodsReceiptLineOption = {
     code: string;
     name: string | Record<string, string>;
   } | null;
+  unit_of_measure?: {
+    id: string;
+    code: string;
+    name: string | Record<string, string>;
+  } | null;
   purchaseOrderLine?: {
+    id: string;
+    unit_price_minor: number;
+    line_total_minor: number;
+  } | null;
+  purchase_order_line?: {
     id: string;
     unit_price_minor: number;
     line_total_minor: number;
@@ -54,6 +65,12 @@ type GoodsReceiptOption = {
     currency: string;
     supplier?: SupplierOption | null;
   } | null;
+  purchase_order?: {
+    id: string;
+    number?: string | null;
+    currency: string;
+    supplier?: SupplierOption | null;
+  } | null;
   lines: GoodsReceiptLineOption[];
 };
 
@@ -69,6 +86,7 @@ type LandedCostLineRow = {
   expensed_amount_minor: number;
   product?: { code: string; name: string | Record<string, string> } | null;
   unitOfMeasure?: { code: string; name: string | Record<string, string> } | null;
+  unit_of_measure?: { code: string; name: string | Record<string, string> } | null;
 };
 
 type LandedCostRow = {
@@ -89,6 +107,7 @@ type LandedCostRow = {
   lock_version: number;
   supplier?: SupplierOption | null;
   goodsReceipt?: GoodsReceiptOption | null;
+  goods_receipt?: GoodsReceiptOption | null;
   lines?: LandedCostLineRow[];
 };
 
@@ -107,9 +126,11 @@ type LineForm = {
 type AllocationMethod = 'by_value' | 'by_quantity' | 'manual';
 
 type LandedCostsProps = SharedPageProps & {
-  landedCosts: {
-    data: LandedCostRow[];
-    links: PaginationLink[];
+  landedCosts?: LandedCostRow[];
+  summary: {
+    posted_count: number;
+    pipeline_count: number;
+    total_amount_minor: number;
   };
   activeSuppliers: SupplierOption[];
   confirmedGoodsReceipts: GoodsReceiptOption[];
@@ -135,7 +156,7 @@ function toAllocationMethod(value: string | null): AllocationMethod {
 
 export default function LandedCostsIndex({
   locale,
-  landedCosts,
+  summary,
   activeSuppliers,
   confirmedGoodsReceipts,
   statuses,
@@ -150,9 +171,11 @@ export default function LandedCostsIndex({
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<LandedCostRow | null>(null);
   const [lineForms, setLineForms] = useState<LineForm[]>([]);
-  const [searchFilter, setSearchFilter] = useState(filters.search || '');
   const [statusFilter, setStatusFilter] = useState(filters.status || '');
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const receiptPurchaseOrder = (receipt?: GoodsReceiptOption | null) => receipt?.purchase_order || receipt?.purchaseOrder || null;
 
   const { data, setData, processing, errors, reset } = useForm<{
     goods_receipt_id: string;
@@ -171,7 +194,7 @@ export default function LandedCostsIndex({
     supplier_id: activeSuppliers[0]?.id || '',
     allocation_date: today,
     due_date: today,
-    currency: confirmedGoodsReceipts[0]?.purchaseOrder?.currency || '',
+    currency: receiptPurchaseOrder(confirmedGoodsReceipts[0])?.currency || '',
     allocation_method: 'by_value',
     cost_amount_minor: 0,
     tax_amount_minor: 0,
@@ -195,14 +218,14 @@ export default function LandedCostsIndex({
   );
 
   const totalCost = data.cost_amount_minor + data.tax_amount_minor;
-  const postedCount = landedCosts.data.filter((row) => row.status === 'posted').length;
-  const draftPipeline = landedCosts.data.filter((row) => ['draft', 'submitted', 'approved'].includes(row.status)).length;
-  const totalVisibleMinor = landedCosts.data.reduce((sum, row) => sum + Number(row.total_amount_minor || 0), 0);
+  const postedCount = summary.posted_count;
+  const draftPipeline = summary.pipeline_count;
+  const totalVisibleMinor = summary.total_amount_minor;
 
   const goodsReceiptOptions = useMemo(() => confirmedGoodsReceipts.map((receipt) => ({
     value: receipt.id,
     label: receipt.number || receipt.id.slice(0, 8),
-    sublabel: receipt.purchaseOrder?.supplier ? getLocalizedName(receipt.purchaseOrder.supplier.name, locale) : t.selectSupplier,
+    sublabel: receiptPurchaseOrder(receipt)?.supplier ? getLocalizedName(receiptPurchaseOrder(receipt)?.supplier?.name, locale) : t.selectSupplier,
   })), [confirmedGoodsReceipts, locale, t.selectSupplier]);
 
   const supplierOptions = useMemo(() => activeSuppliers.map((supplier) => ({
@@ -248,10 +271,10 @@ export default function LandedCostsIndex({
     reset();
     setData({
       goods_receipt_id: receipt?.id || '',
-      supplier_id: activeSuppliers[0]?.id || receipt?.purchaseOrder?.supplier?.id || '',
+      supplier_id: activeSuppliers[0]?.id || receiptPurchaseOrder(receipt)?.supplier?.id || '',
       allocation_date: today,
       due_date: today,
-      currency: receipt?.purchaseOrder?.currency || '',
+      currency: receiptPurchaseOrder(receipt)?.currency || '',
       allocation_method: 'by_value',
       cost_amount_minor: 0,
       tax_amount_minor: 0,
@@ -263,7 +286,7 @@ export default function LandedCostsIndex({
   }
 
   function openEdit(row: LandedCostRow) {
-    const receipt = confirmedGoodsReceipts.find((item) => item.id === row.goods_receipt_id) || row.goodsReceipt || null;
+    const receipt = confirmedGoodsReceipts.find((item) => item.id === row.goods_receipt_id) || row.goods_receipt || row.goodsReceipt || null;
     setEditing(row);
     setData({
       goods_receipt_id: row.goods_receipt_id,
@@ -292,7 +315,7 @@ export default function LandedCostsIndex({
   function handleReceiptChange(receiptId: string) {
     const receipt = confirmedGoodsReceipts.find((item) => item.id === receiptId) || null;
     setData('goods_receipt_id', receiptId);
-    setData('currency', receipt?.purchaseOrder?.currency || data.currency);
+    setData('currency', receiptPurchaseOrder(receipt)?.currency || data.currency);
     initializeLines(receipt);
   }
 
@@ -313,11 +336,23 @@ export default function LandedCostsIndex({
     };
 
     if (editing) {
-      router.put(`/purchasing/landed-costs/${editing.id}`, payload, { preserveScroll: true, onSuccess: closeForm });
+      router.put(`/purchasing/landed-costs/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          closeForm();
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/purchasing/landed-costs', payload, { preserveScroll: true, onSuccess: closeForm });
+    router.post('/purchasing/landed-costs', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        closeForm();
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function runAction(row: LandedCostRow, action: 'submit' | 'approve' | 'post' | 'cancel') {
@@ -338,13 +373,11 @@ export default function LandedCostsIndex({
     }
 
     if (confirm(confirmMessage)) {
-      router.post(`/purchasing/landed-costs/${row.id}/${action}`, {}, { preserveScroll: true });
+      router.post(`/purchasing/landed-costs/${row.id}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
-  }
-
-  function applyFilters(e: FormEvent) {
-    e.preventDefault();
-    router.get('/purchasing/landed-costs', { search: searchFilter, status: statusFilter }, { preserveState: true, preserveScroll: true, replace: true });
   }
 
   function statusTone(status: string): 'ok' | 'muted' | 'danger' | 'warning' | 'info' {
@@ -357,6 +390,68 @@ export default function LandedCostsIndex({
   function rowLabel(row: LandedCostRow) {
     return row.number || row.reference || row.id.slice(0, 8);
   }
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: t.number },
+    { data: 'supplier_name', name: 'supplier_name', title: t.supplier, orderable: false, searchable: false },
+    { data: 'receipt_number', name: 'receipt_number', title: t.goodsReceipt, orderable: false, searchable: false },
+    { data: 'allocation_date', name: 'allocation_date', title: t.allocationDate },
+    { data: 'allocation_method', name: 'allocation_method', title: t.method },
+    { data: 'total_amount_minor', name: 'total_amount_minor', title: t.totalAmount, searchable: false },
+    { data: 'status', name: 'status', title: t.status },
+    { data: 'actions', name: 'actions', title: t.actions, orderable: false, searchable: false },
+  ], [t]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (_value: any, _type: any, row: LandedCostRow) => (
+      <div>
+        <div className="font-bold text-blue-600">{rowLabel(row)}</div>
+        {row.reference ? <div className="text-xs text-[var(--text-secondary)]">{row.reference}</div> : null}
+      </div>
+    ),
+    supplier_name: (_value: any, _type: any, row: LandedCostRow) => (
+      <span>{getLocalizedName(row.supplier?.name, locale)}</span>
+    ),
+    receipt_number: (_value: any, _type: any, row: LandedCostRow) => {
+      const receipt = row.goods_receipt || row.goodsReceipt;
+      return (
+        <div>
+          <div className="font-mono">{receipt?.number || row.goods_receipt_id.slice(0, 8)}</div>
+          <div className="text-xs text-[var(--text-secondary)]">{getLocalizedName(receipt?.warehouse?.name, locale)}</div>
+        </div>
+      );
+    },
+    allocation_date: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    allocation_method: (value: any) => <span>{(t as Record<string, string>)[value] || value}</span>,
+    total_amount_minor: (value: any, _type: any, row: LandedCostRow) => (
+      <AccountingAmount amountMinor={Number(value || 0)} currency={row.currency} />
+    ),
+    status: (value: any) => <StatusBadge tone={statusTone(value)}>{(t as Record<string, string>)[value] || value}</StatusBadge>,
+    actions: (_value: any, _type: any, row: LandedCostRow) => (
+      <div className="flex flex-wrap gap-2">
+        {row.status === 'draft' ? (
+          <button type="button" onClick={() => openEdit(row)} title={`${t.edit} ${rowLabel(row)}`} aria-label={`${t.edit} ${rowLabel(row)}`} className="rounded-md border border-[var(--border)] px-3 py-1 text-xs font-bold">{t.edit}</button>
+        ) : null}
+        {row.status === 'draft' ? (
+          <button type="button" onClick={() => runAction(row, 'submit')} title={`${t.submit} ${rowLabel(row)}`} aria-label={`${t.submit} ${rowLabel(row)}`} className="rounded-md border border-[var(--border)] px-3 py-1 text-xs font-bold">{t.submit}</button>
+        ) : null}
+        {row.status === 'submitted' && can('purchasing.approve') ? (
+          <button type="button" onClick={() => runAction(row, 'approve')} title={`${t.approve} ${rowLabel(row)}`} aria-label={`${t.approve} ${rowLabel(row)}`} className="rounded-md border border-[var(--border)] px-3 py-1 text-xs font-bold">{t.approve}</button>
+        ) : null}
+        {row.status === 'approved' && can('purchasing.post') && can('view_financials') ? (
+          <button type="button" onClick={() => runAction(row, 'post')} title={`${t.post} ${rowLabel(row)}`} aria-label={`${t.post} ${rowLabel(row)}`} className="rounded-md bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white">{t.post}</button>
+        ) : null}
+        {['draft', 'submitted', 'approved'].includes(row.status) ? (
+          <button type="button" onClick={() => runAction(row, 'cancel')} title={`${t.cancel} ${rowLabel(row)}`} aria-label={`${t.cancel} ${rowLabel(row)}`} className="rounded-md border border-red-500/40 px-3 py-1 text-xs font-bold text-red-600">{t.cancel}</button>
+        ) : null}
+      </div>
+    ),
+  }), [can, locale, t]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+  const toolbar = (
+    <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} placeholder={t.allStatuses} />
+  );
 
   return (
     <AppLayout active="landed-costs.index">
@@ -379,7 +474,7 @@ export default function LandedCostsIndex({
       />
 
       <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard label={t.totalAmount} value={formatMoney(totalVisibleMinor, selectedReceipt?.purchaseOrder?.currency || t.noCurrency)} tone="blue" />
+        <MetricCard label={t.totalAmount} value={formatMoney(totalVisibleMinor, receiptPurchaseOrder(selectedReceipt)?.currency || t.noCurrency)} tone="blue" />
         <MetricCard label={t.posted} value={postedCount} tone="emerald" />
         <MetricCard label={t.draft} value={draftPipeline} tone="amber" />
       </div>
@@ -528,7 +623,8 @@ export default function LandedCostsIndex({
                     <tbody>
                       {eligibleLines.map((line) => {
                         const lineForm = lineForms.find((item) => item.goods_receipt_line_id === line.id);
-                        const receiptValue = Math.round((line.quantity_e6 * Number(line.purchaseOrderLine?.unit_price_minor || 0)) / 1000000);
+                        const purchaseOrderLine = line.purchase_order_line || line.purchaseOrderLine;
+                        const receiptValue = Math.round((line.quantity_e6 * Number(purchaseOrderLine?.unit_price_minor || 0)) / 1000000);
                         return (
                           <tr key={line.id}>
                             <td className={tableClasses.td}>
@@ -542,7 +638,7 @@ export default function LandedCostsIndex({
                               <span className="font-semibold">{line.product?.code}</span>
                               <span className="ms-2 text-[var(--text-secondary)]">{getLocalizedName(line.product?.name, locale)}</span>
                             </td>
-                            <td className={tableClasses.td}>{quantity(line.quantity_e6)} {line.unitOfMeasure?.code}</td>
+                            <td className={tableClasses.td}>{quantity(line.quantity_e6)} {(line.unit_of_measure || line.unitOfMeasure)?.code}</td>
                             <td className={tableClasses.td}>{formatMoney(receiptValue, data.currency || t.noCurrency)}</td>
                             <td className={tableClasses.td}>
                               {data.allocation_method === 'manual' ? (
@@ -579,93 +675,20 @@ export default function LandedCostsIndex({
         </Card>
       ) : null}
 
-      <Card className="mt-5 p-4">
-        <form onSubmit={applyFilters} className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_auto]">
-          <input
-            value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
-            placeholder={t.searchPlaceholder}
-            className="rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--text-primary)]"
-          />
-          <SearchableSelect
-            options={statusFilterOptions}
-            value={statusFilter || null}
-            onChange={(value) => setStatusFilter(value || '')}
-            placeholder={t.allStatuses}
-          />
-          <button type="submit" title={t.filter} aria-label={t.filter} className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">
-            {t.filter}
-          </button>
-        </form>
-
-        {landedCosts.data.length === 0 ? (
-          <EmptyState title={t.emptyTitle} description={t.emptyDescription} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{t.number}</th>
-                  <th className={tableClasses.th}>{t.supplier}</th>
-                  <th className={tableClasses.th}>{t.goodsReceipt}</th>
-                  <th className={tableClasses.th}>{t.allocationDate}</th>
-                  <th className={tableClasses.th}>{t.method}</th>
-                  <th className={tableClasses.th}>{t.totalAmount}</th>
-                  <th className={tableClasses.th}>{t.status}</th>
-                  <th className={tableClasses.th}>{t.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {landedCosts.data.map((row) => (
-                  <tr key={row.id}>
-                    <td className={tableClasses.td}>
-                      <div className="font-bold">{rowLabel(row)}</div>
-                      {row.reference ? <div className="text-xs text-[var(--text-secondary)]">{row.reference}</div> : null}
-                    </td>
-                    <td className={tableClasses.td}>{getLocalizedName(row.supplier?.name, locale)}</td>
-                    <td className={tableClasses.td}>
-                      <div>{row.goodsReceipt?.number || row.goods_receipt_id.slice(0, 8)}</div>
-                      <div className="text-xs text-[var(--text-secondary)]">{getLocalizedName(row.goodsReceipt?.warehouse?.name, locale)}</div>
-                    </td>
-                    <td className={tableClasses.td}>{row.allocation_date}</td>
-                    <td className={tableClasses.td}>{(t as Record<string, string>)[row.allocation_method]}</td>
-                    <td className={tableClasses.td}><AccountingAmount amountMinor={row.total_amount_minor} currency={row.currency} /></td>
-                    <td className={tableClasses.td}><StatusBadge tone={statusTone(row.status)}>{(t as Record<string, string>)[row.status]}</StatusBadge></td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-wrap gap-2">
-                        {row.status === 'draft' ? (
-                          <button type="button" onClick={() => openEdit(row)} title={`${t.edit} ${rowLabel(row)}`} aria-label={`${t.edit} ${rowLabel(row)}`} className="rounded-md border border-[var(--border)] px-3 py-1 text-xs font-bold">
-                            {t.edit}
-                          </button>
-                        ) : null}
-                        {row.status === 'draft' ? (
-                          <button type="button" onClick={() => runAction(row, 'submit')} title={`${t.submit} ${rowLabel(row)}`} aria-label={`${t.submit} ${rowLabel(row)}`} className="rounded-md border border-[var(--border)] px-3 py-1 text-xs font-bold">
-                            {t.submit}
-                          </button>
-                        ) : null}
-                        {row.status === 'submitted' && can('purchasing.approve') ? (
-                          <button type="button" onClick={() => runAction(row, 'approve')} title={`${t.approve} ${rowLabel(row)}`} aria-label={`${t.approve} ${rowLabel(row)}`} className="rounded-md border border-[var(--border)] px-3 py-1 text-xs font-bold">
-                            {t.approve}
-                          </button>
-                        ) : null}
-                        {row.status === 'approved' && can('purchasing.post') && can('view_financials') ? (
-                          <button type="button" onClick={() => runAction(row, 'post')} title={`${t.post} ${rowLabel(row)}`} aria-label={`${t.post} ${rowLabel(row)}`} className="rounded-md bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white">
-                            {t.post}
-                          </button>
-                        ) : null}
-                        {['draft', 'submitted', 'approved'].includes(row.status) ? (
-                          <button type="button" onClick={() => runAction(row, 'cancel')} title={`${t.cancel} ${rowLabel(row)}`} aria-label={`${t.cancel} ${rowLabel(row)}`} className="rounded-md border border-red-500/40 px-3 py-1 text-xs font-bold text-red-600">
-                            {t.cancel}
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="mt-5 overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/purchasing/landed-costs/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[3, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="purchasing-landed-costs-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       <SensitiveActionModal
@@ -675,7 +698,10 @@ export default function LandedCostsIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setReloadToken((value) => value + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_LANDED_COST'}

@@ -1,9 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, MetricCard, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -120,7 +121,6 @@ type BudgetVarianceProps = SharedPageProps & {
       start_date: string | null;
       end_date: string | null;
     }>;
-    rows: BudgetVarianceRow[];
     summary_by_currency: Record<string, BudgetVarianceCurrencySummary>;
     warning_codes: BudgetVarianceWarningCode[];
     has_warnings: boolean;
@@ -457,6 +457,82 @@ export default function Variance({
 
   const selectedBudgetTone = report.selected_budget?.status === 'active' ? 'ok' : 'info';
 
+  const columns = useMemo(() => [
+    { data: 'period_month', name: 'period_month', title: pageDict.periodColumn },
+    { data: 'account_code', name: 'account_code', title: pageDict.accountColumn },
+    { data: 'project_code', name: 'project_code', title: pageDict.projectColumn },
+    { data: 'cost_center_code', name: 'cost_center_code', title: pageDict.costCenterColumn },
+    { data: 'currency', name: 'currency', title: pageDict.currencyColumn },
+    { data: 'budget_minor', name: 'budget_minor', title: pageDict.budgetMinor, searchable: false, className: 'text-end' },
+    { data: 'actual_minor', name: 'actual_minor', title: pageDict.actualMinor, searchable: false, className: 'text-end' },
+    { data: 'variance_minor', name: 'variance_minor', title: pageDict.varianceMinor, searchable: false, className: 'text-end' },
+    { data: 'variance_percent_bps', name: 'variance_percent_bps', title: pageDict.variancePercent, searchable: false, className: 'text-end' },
+    { data: 'row_type', name: 'row_type', title: pageDict.rowType, className: 'text-center' },
+    { data: 'ledger_row_count', name: 'ledger_row_count', title: pageDict.ledgerRows, searchable: false, className: 'text-center' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    period_month: (data: number): ReactElement => (
+      <span className="font-medium">{pageDict.monthLabel} {data}</span>
+    ),
+    account_code: (data: string, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      <div>
+        <div className="font-semibold text-[var(--text-primary)]">
+          {data} - {getLocalizedName(row.account_name, locale)}
+        </div>
+        <div className="text-xs text-[var(--text-secondary)]">
+          {accountTypeLabel(row.account_type)} - {accountNatureLabel(row.account_nature)}
+        </div>
+      </div>
+    ),
+    project_code: (data: string | null, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      data ? (
+        <div>
+          <span className="font-medium text-[var(--text-primary)]">{data}</span>
+          <span className="text-xs text-[var(--text-secondary)] ms-1">
+            ({getLocalizedName(row.project_name, locale)})
+          </span>
+        </div>
+      ) : <span className="text-xs text-[var(--text-secondary)]">{pageDict.none}</span>
+    ),
+    cost_center_code: (data: string | null, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      data ? (
+        <div>
+          <span className="font-medium text-[var(--text-primary)]">{data}</span>
+          <span className="text-xs text-[var(--text-secondary)] ms-1">
+            ({getLocalizedName(row.cost_center_name, locale)})
+          </span>
+        </div>
+      ) : <span className="text-xs text-[var(--text-secondary)]">{pageDict.none}</span>
+    ),
+    currency: (data: string): ReactElement => <span className="font-mono text-xs font-bold">{data}</span>,
+    budget_minor: (data: number, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      <span className="font-mono">{formatMoney(data, row.currency)}</span>
+    ),
+    actual_minor: (data: number, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      <span className="font-mono font-semibold">{formatMoney(data, row.currency)}</span>
+    ),
+    variance_minor: (data: number, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      <span className={`font-mono ${getVarianceToneClass(row)}`}>{formatMoney(data, row.currency)}</span>
+    ),
+    variance_percent_bps: (data: number | null): ReactElement => (
+      <span className="font-mono text-xs font-semibold">{formatBasisPoints(data)}</span>
+    ),
+    row_type: (data: string): ReactElement => renderRowTypeBadge(data),
+    ledger_row_count: (data: number, _type: unknown, row: BudgetVarianceRow): ReactElement => (
+      data > 0 ? (
+        <Link
+          href={`/accounting/ledger?account_id=${row.account_id}&period_id=${row.financial_period_id}`}
+          className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/10 dark:text-blue-400 no-underline"
+          title={pageDict.openLedger}
+          aria-label={pageDict.openLedger}
+        >
+          {data}
+        </Link>
+      ) : <span className="text-xs text-[var(--text-secondary)]">0</span>
+    ),
+  }), [locale, pageDict]);
+
   return (
     <AppLayout active="budgeting.variance">
       <Head title={pageDict.headTitle} />
@@ -664,121 +740,27 @@ export default function Variance({
         ) : null}
 
         {/* Variance Report Table */}
-        <Card className="overflow-hidden">
-          {report.rows.length === 0 ? (
-            <div className="p-8">
-              <EmptyState
-                title={pageDict.emptyTitle}
-                description={pageDict.emptyDescription}
-              />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className={tableClasses.table}>
-                <thead>
-                  <tr>
-                    <th className={tableClasses.th}>{pageDict.periodColumn}</th>
-                    <th className={tableClasses.th}>{pageDict.accountColumn}</th>
-                    <th className={tableClasses.th}>{pageDict.projectColumn}</th>
-                    <th className={tableClasses.th}>{pageDict.costCenterColumn}</th>
-                    <th className={tableClasses.th}>{pageDict.currencyColumn}</th>
-                    <th className={`${tableClasses.th} text-end`}>{pageDict.budgetMinor}</th>
-                    <th className={`${tableClasses.th} text-end`}>{pageDict.actualMinor}</th>
-                    <th className={`${tableClasses.th} text-end`}>{pageDict.varianceMinor}</th>
-                    <th className={`${tableClasses.th} text-end`}>{pageDict.variancePercent}</th>
-                    <th className={`${tableClasses.th} text-center`}>{pageDict.rowType}</th>
-                    <th className={`${tableClasses.th} text-center`}>{pageDict.ledgerRows}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.rows.map((row) => {
-                    const rowKey = `${row.financial_period_id}_${row.account_id}_${row.project_id ?? ''}_${row.cost_center_id ?? ''}_${row.currency}`;
-                    const formattedVariancePercent = formatBasisPoints(row.variance_percent_bps);
-
-                    return (
-                      <tr key={rowKey} className="hover:bg-[var(--background)]/50 transition-colors">
-                        <td className={`${tableClasses.td} font-medium`}>
-                          {pageDict.monthLabel} {row.period_month}
-                        </td>
-                        <td className={tableClasses.td}>
-                          <div className="font-semibold text-[var(--text-primary)]">
-                            {row.account_code} - {getLocalizedName(row.account_name, locale)}
-                          </div>
-                          <div className="text-xs text-[var(--text-secondary)]">
-                            {accountTypeLabel(row.account_type)} - {accountNatureLabel(row.account_nature)}
-                          </div>
-                        </td>
-                        <td className={tableClasses.td}>
-                          {row.project_code ? (
-                            <div>
-                              <span className="font-medium text-[var(--text-primary)]">
-                                {row.project_code}
-                              </span>
-                              <span className="text-xs text-[var(--text-secondary)] ms-1">
-                                ({getLocalizedName(row.project_name, locale)})
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[var(--text-secondary)]">
-                              {pageDict.none}
-                            </span>
-                          )}
-                        </td>
-                        <td className={tableClasses.td}>
-                          {row.cost_center_code ? (
-                            <div>
-                              <span className="font-medium text-[var(--text-primary)]">
-                                {row.cost_center_code}
-                              </span>
-                              <span className="text-xs text-[var(--text-secondary)] ms-1">
-                                ({getLocalizedName(row.cost_center_name, locale)})
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-[var(--text-secondary)]">
-                              {pageDict.none}
-                            </span>
-                          )}
-                        </td>
-                        <td className={`${tableClasses.td} font-mono text-xs font-bold`}>
-                          {row.currency}
-                        </td>
-                        <td className={`${tableClasses.td} text-end font-mono`}>
-                          {formatMoney(row.budget_minor, row.currency)}
-                        </td>
-                        <td className={`${tableClasses.td} text-end font-mono font-semibold`}>
-                          {formatMoney(row.actual_minor, row.currency)}
-                        </td>
-                        <td className={`${tableClasses.td} text-end font-mono ${getVarianceToneClass(row)}`}>
-                          {formatMoney(row.variance_minor, row.currency)}
-                        </td>
-                        <td className={`${tableClasses.td} text-end font-mono text-xs font-semibold`}>
-                          {formattedVariancePercent}
-                        </td>
-                        <td className={`${tableClasses.td} text-center`}>
-                          {renderRowTypeBadge(row.row_type)}
-                        </td>
-                        <td className={`${tableClasses.td} text-center`}>
-                          {row.ledger_row_count > 0 ? (
-                            <Link
-                              href={`/accounting/ledger?account_id=${row.account_id}&period_id=${row.financial_period_id}`}
-                              className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold text-blue-600 hover:bg-blue-500/10 dark:text-blue-400 no-underline"
-                              title={pageDict.openLedger}
-                              aria-label={pageDict.openLedger}
-                            >
-                              {row.ledger_row_count}
-                            </Link>
-                          ) : (
-                            <span className="text-xs text-[var(--text-secondary)]">0</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/budgeting/variance/data"
+            columns={columns}
+            filters={{
+              budget_id: filters.budget_id || '',
+              fiscal_year_id: filters.fiscal_year_id || '',
+              period_id: filters.period_id || '',
+              from_date: filters.from_date || '',
+              to_date: filters.to_date || '',
+              account_id: filters.account_id || '',
+              project_id: filters.project_id || '',
+              cost_center_id: filters.cost_center_id || '',
+              currency: filters.currency || '',
+            }}
+            locale={locale}
+            order={[[0, 'asc'], [1, 'asc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="budget-variance-table"
+          />
         </Card>
       </div>
     </AppLayout>

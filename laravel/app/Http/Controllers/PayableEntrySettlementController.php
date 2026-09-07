@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\PayableEntrySettlementPageData;
 use App\Application\Accounting\PayableEntrySettlementService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class PayableEntrySettlementController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Purchasing/PayableSettlements', $this->pageData->indexData($request->only(['supplier_id', 'source_entry_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['supplier_id']));
     }
 
     public function store(Request $request): RedirectResponse

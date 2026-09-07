@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Purchasing\GoodsReceiptPageData;
 use App\Application\Purchasing\GoodsReceiptService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,11 @@ class GoodsReceiptController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Purchasing/GoodsReceipts', $this->pageData->indexData($request->only(['search', 'status', 'warehouse_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'warehouse_id']));
     }
 
     public function store(Request $request): RedirectResponse

@@ -6,6 +6,7 @@ use App\Application\Budgeting\BudgetPageData;
 use App\Application\Budgeting\BudgetService;
 use App\Http\Controllers\Controller;
 use App\Models\Budget;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +24,21 @@ class BudgetController extends Controller
         return Inertia::render('Budgeting/Budgets', $this->pageData->indexData(
             $request->only(['search', 'fiscal_year_id', 'status'])
         ));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'budget_search' => ['nullable', 'string', 'max:255'],
+            'fiscal_year_id' => ['nullable', 'uuid', 'exists:fiscal_year,id'],
+            'status' => ['nullable', 'string', 'in:'.implode(',', BudgetService::ALLOWED_STATUSES)],
+        ]);
+
+        return $this->pageData->datatable([
+            'search' => $filters['budget_search'] ?? '',
+            'fiscal_year_id' => $filters['fiscal_year_id'] ?? '',
+            'status' => $filters['status'] ?? '',
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

@@ -5,11 +5,26 @@ namespace App\Application\Reports;
 use App\Models\CostCenter;
 use App\Models\FinancialPeriod;
 use Carbon\Carbon;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use stdClass;
+use Yajra\DataTables\Facades\DataTables;
 
 class CostCenterActualsReportService
 {
+    private const SORT_COLUMNS = [
+        'cost_center_code' => 'cost_center_actuals.cost_center_code',
+        'cost_center_name' => 'cost_center_actuals.cost_center_name',
+        'cost_center_status' => 'cost_center_actuals.cost_center_status',
+        'currency' => 'cost_center_actuals.currency',
+        'ledger_row_count' => 'cost_center_actuals.ledger_row_count',
+        'debit_minor' => 'cost_center_actuals.debit_minor',
+        'credit_minor' => 'cost_center_actuals.credit_minor',
+        'net_minor' => 'cost_center_actuals.net_minor',
+    ];
+
     public function __construct(
         private readonly ReportCurrencyResolver $currencyResolver,
     ) {}
@@ -156,6 +171,298 @@ class CostCenterActualsReportService
                 'has_unassigned' => (int) $unassignedRowCount > 0,
             ],
         ];
+    }
+
+    /**
+     * Return page-level figures calculated over the complete filtered result.
+     * The potentially large row set is exposed separately by datatable().
+     *
+     * @return array<string, mixed>
+     */
+    public function metadata(
+        ?string $costCenterId = null,
+        ?string $projectId = null,
+        ?string $accountId = null,
+        ?string $currency = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        ?string $periodId = null,
+    ): array {
+        $context = $this->queryContext($costCenterId, $projectId, $accountId, $currency, $dateFrom, $dateTo, $periodId);
+
+        $summaryRows = DB::query()
+            ->fromSub($this->datatableRowsQuery($context), 'cost_center_actuals')
+            ->select('cost_center_actuals.currency')
+            ->selectRaw('COALESCE(SUM(cost_center_actuals.ledger_row_count), 0) as ledger_row_count')
+            ->selectRaw('COALESCE(SUM(cost_center_actuals.debit_minor), 0) as debit_minor')
+            ->selectRaw('COALESCE(SUM(cost_center_actuals.credit_minor), 0) as credit_minor')
+            ->selectRaw('COALESCE(SUM(cost_center_actuals.net_minor), 0) as net_minor')
+            ->groupBy('cost_center_actuals.currency')
+            ->orderBy('cost_center_actuals.currency')
+            ->get();
+
+        $summaryByCurrency = [];
+        foreach ($summaryRows as $row) {
+            $code = (string) $row->currency;
+            $summaryByCurrency[$code] = [
+                'currency' => $code,
+                'ledger_row_count' => (int) $row->ledger_row_count,
+                'debit_minor' => (int) $row->debit_minor,
+                'credit_minor' => (int) $row->credit_minor,
+                'net_minor' => (int) $row->net_minor,
+            ];
+        }
+
+        $currencyCodes = array_keys($summaryByCurrency);
+        if ($currencyCodes === []) {
+            $currencyCodes = [$currency ?: $this->baseCurrency()];
+            $summaryByCurrency[$currencyCodes[0]] = [
+                'currency' => $currencyCodes[0],
+                'ledger_row_count' => 0,
+                'debit_minor' => 0,
+                'credit_minor' => 0,
+                'net_minor' => 0,
+            ];
+        }
+
+        $unassignedRowCount = (int) DB::query()
+            ->fromSub($this->datatableRowsQuery($context), 'cost_center_actuals')
+            ->where('cost_center_actuals.is_unassigned', 1)
+            ->sum('cost_center_actuals.ledger_row_count');
+
+        return [
+            'from_date' => $context['from_date'],
+            'to_date' => $context['to_date'],
+            'period_id' => $periodId,
+            'cost_center_id' => $costCenterId,
+            'project_id' => $projectId,
+            'account_id' => $accountId,
+            'currency' => $currency,
+            'base_currency' => $this->baseCurrency(),
+            'currency_codes' => $currencyCodes,
+            'has_mixed_currencies' => count($currencyCodes) > 1,
+            'summary_by_currency' => $summaryByCurrency,
+            'readiness' => [
+                'unassigned_row_count' => $unassignedRowCount,
+                'has_unassigned' => $unassignedRowCount > 0,
+            ],
+        ];
+    }
+
+    public function datatable(
+        ?string $costCenterId = null,
+        ?string $projectId = null,
+        ?string $accountId = null,
+        ?string $currency = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        ?string $periodId = null,
+    ): JsonResponse {
+        $context = $this->queryContext($costCenterId, $projectId, $accountId, $currency, $dateFrom, $dateTo, $periodId);
+        $query = DB::query()
+            ->fromSub($this->datatableRowsQuery($context), 'cost_center_actuals')
+            ->select('cost_center_actuals.*');
+
+        return DataTables::query($query)
+            ->filter(function (Builder $builder): void {
+                $search = trim((string) request()->input('search.value', ''));
+                if ($search === '') {
+                    return;
+                }
+
+                $pattern = '%'.mb_strtolower($search).'%';
+                $builder->where(function (Builder $nested) use ($pattern): void {
+                    $nested->whereRaw('LOWER(cost_center_actuals.cost_center_code) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(CAST(COALESCE(cost_center_actuals.cost_center_name, \'\') AS TEXT)) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(COALESCE(cost_center_actuals.cost_center_status, \'\')) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(cost_center_actuals.currency) LIKE ?', [$pattern]);
+                });
+            })
+            ->order(function (Builder $builder): void {
+                foreach ((array) request()->input('order', []) as $order) {
+                    if (! is_array($order)) {
+                        continue;
+                    }
+
+                    $index = filter_var($order['column'] ?? null, FILTER_VALIDATE_INT);
+                    $data = $index === false ? null : request()->input("columns.$index.data");
+                    if (! is_string($data) || ! isset(self::SORT_COLUMNS[$data])) {
+                        continue;
+                    }
+
+                    $builder->orderBy(self::SORT_COLUMNS[$data], ($order['dir'] ?? null) === 'desc' ? 'desc' : 'asc');
+                }
+
+                $builder->orderBy('cost_center_actuals.is_unassigned')
+                    ->orderBy('cost_center_actuals.cost_center_code')
+                    ->orderBy('cost_center_actuals.currency');
+            })
+            ->editColumn('cost_center_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->cost_center_name))
+            ->editColumn('is_unassigned', fn (stdClass $row): bool => (bool) $row->is_unassigned)
+            ->editColumn('ledger_row_count', fn (stdClass $row): int => (int) $row->ledger_row_count)
+            ->editColumn('debit_minor', fn (stdClass $row): int => (int) $row->debit_minor)
+            ->editColumn('credit_minor', fn (stdClass $row): int => (int) $row->credit_minor)
+            ->editColumn('net_minor', fn (stdClass $row): int => (int) $row->net_minor)
+            ->addColumn('accounts', fn (stdClass $row): array => $this->accountBreakdown(
+                $context,
+                $row->cost_center_id === null ? null : (string) $row->cost_center_id,
+                (string) $row->currency,
+            ))
+            ->toJson();
+    }
+
+    /** @return array<string, mixed> */
+    private function queryContext(
+        ?string $costCenterId,
+        ?string $projectId,
+        ?string $accountId,
+        ?string $currency,
+        ?string $dateFrom,
+        ?string $dateTo,
+        ?string $periodId,
+    ): array {
+        if ($periodId) {
+            $period = FinancialPeriod::query()->where('id', $periodId)->first();
+            if ($period) {
+                $dateFrom = $period->start_date?->toDateString();
+                $dateTo = $period->end_date?->toDateString();
+            }
+        }
+
+        return [
+            'cost_center_id' => $costCenterId,
+            'project_id' => $projectId,
+            'account_id' => $accountId,
+            'currency' => $currency,
+            'from_date' => $dateFrom ? Carbon::parse($dateFrom)->toDateString() : Carbon::now()->startOfYear()->toDateString(),
+            'to_date' => $dateTo ? Carbon::parse($dateTo)->toDateString() : Carbon::now()->toDateString(),
+        ];
+    }
+
+    /** @param array<string, mixed> $context */
+    private function datatableRowsQuery(array $context): Builder
+    {
+        $movements = DB::table('ledger_entry')
+            ->join('journal_entry', 'journal_entry.id', '=', 'ledger_entry.journal_entry_id')
+            ->join('account', 'account.id', '=', 'ledger_entry.account_id')
+            ->leftJoin('cost_center', 'cost_center.id', '=', 'ledger_entry.cost_center_id')
+            ->selectRaw('ledger_entry.cost_center_id as cost_center_id')
+            ->selectRaw("COALESCE(cost_center.code, 'UNASSIGNED') as cost_center_code")
+            ->selectRaw('CAST(cost_center.name AS TEXT) as cost_center_name')
+            ->selectRaw("CASE WHEN ledger_entry.cost_center_id IS NULL THEN NULL WHEN cost_center.is_active THEN 'active' ELSE 'inactive' END as cost_center_status")
+            ->selectRaw('CASE WHEN ledger_entry.cost_center_id IS NULL THEN 1 ELSE 0 END as is_unassigned')
+            ->selectRaw('ledger_entry.currency as currency')
+            ->selectRaw('COUNT(ledger_entry.id) as ledger_row_count')
+            ->selectRaw('COALESCE(SUM(ledger_entry.debit_minor), 0) as debit_minor')
+            ->selectRaw('COALESCE(SUM(ledger_entry.credit_minor), 0) as credit_minor')
+            ->selectRaw("COALESCE(SUM(CASE WHEN account.nature = 'credit' THEN ledger_entry.credit_minor - ledger_entry.debit_minor ELSE ledger_entry.debit_minor - ledger_entry.credit_minor END), 0) as net_minor")
+            ->where('journal_entry.status', 'posted')
+            ->whereBetween('ledger_entry.entry_date', [$context['from_date'], $context['to_date']])
+            ->when($context['cost_center_id'], fn (Builder $builder) => $builder->where('ledger_entry.cost_center_id', $context['cost_center_id']))
+            ->when($context['project_id'], fn (Builder $builder) => $builder->where('ledger_entry.project_id', $context['project_id']))
+            ->when($context['account_id'], fn (Builder $builder) => $builder->where('ledger_entry.account_id', $context['account_id']))
+            ->when($context['currency'], fn (Builder $builder) => $builder->where('ledger_entry.currency', $context['currency']))
+            ->groupBy(
+                'ledger_entry.cost_center_id',
+                'cost_center.code',
+                'cost_center.is_active',
+                'ledger_entry.currency',
+            )
+            ->groupByRaw('CAST(cost_center.name AS TEXT)');
+
+        if (! $context['cost_center_id']) {
+            return $movements;
+        }
+
+        $emptyCurrency = $context['currency'] ?: $this->baseCurrency();
+        $emptySelection = DB::table('cost_center')
+            ->selectRaw('cost_center.id as cost_center_id')
+            ->selectRaw('cost_center.code as cost_center_code')
+            ->selectRaw('CAST(cost_center.name AS TEXT) as cost_center_name')
+            ->selectRaw("CASE WHEN cost_center.is_active THEN 'active' ELSE 'inactive' END as cost_center_status")
+            ->selectRaw('0 as is_unassigned')
+            ->selectRaw('? as currency', [$emptyCurrency])
+            ->selectRaw('0 as ledger_row_count, 0 as debit_minor, 0 as credit_minor, 0 as net_minor')
+            ->where('cost_center.id', $context['cost_center_id'])
+            ->whereNotExists(function (Builder $builder) use ($context): void {
+                $builder->selectRaw('1')
+                    ->from('ledger_entry as selected_ledger_entry')
+                    ->join('journal_entry as selected_journal_entry', 'selected_journal_entry.id', '=', 'selected_ledger_entry.journal_entry_id')
+                    ->where('selected_journal_entry.status', 'posted')
+                    ->whereBetween('selected_ledger_entry.entry_date', [$context['from_date'], $context['to_date']])
+                    ->where('selected_ledger_entry.cost_center_id', $context['cost_center_id'])
+                    ->when($context['project_id'], fn (Builder $query) => $query->where('selected_ledger_entry.project_id', $context['project_id']))
+                    ->when($context['account_id'], fn (Builder $query) => $query->where('selected_ledger_entry.account_id', $context['account_id']))
+                    ->when($context['currency'], fn (Builder $query) => $query->where('selected_ledger_entry.currency', $context['currency']));
+            });
+
+        return DB::query()
+            ->fromSub($movements->unionAll($emptySelection), 'cost_center_actuals_source')
+            ->select(
+                'cost_center_id',
+                'cost_center_code',
+                'cost_center_name',
+                'cost_center_status',
+                'is_unassigned',
+                'currency',
+            )
+            ->selectRaw('SUM(ledger_row_count) as ledger_row_count')
+            ->selectRaw('SUM(debit_minor) as debit_minor')
+            ->selectRaw('SUM(credit_minor) as credit_minor')
+            ->selectRaw('SUM(net_minor) as net_minor')
+            ->groupBy('cost_center_id', 'cost_center_code', 'cost_center_name', 'cost_center_status', 'is_unassigned', 'currency');
+    }
+
+    /** @param array<string, mixed> $context */
+    private function accountBreakdown(array $context, ?string $costCenterId, string $currency): array
+    {
+        return DB::table('ledger_entry')
+            ->join('journal_entry', 'journal_entry.id', '=', 'ledger_entry.journal_entry_id')
+            ->join('account', 'account.id', '=', 'ledger_entry.account_id')
+            ->selectRaw('account.id as account_id, account.code as account_code, CAST(account.name AS TEXT) as account_name')
+            ->selectRaw('account.type as account_type, account.nature as account_nature')
+            ->selectRaw('COUNT(ledger_entry.id) as ledger_row_count')
+            ->selectRaw('COALESCE(SUM(ledger_entry.debit_minor), 0) as debit_minor')
+            ->selectRaw('COALESCE(SUM(ledger_entry.credit_minor), 0) as credit_minor')
+            ->where('journal_entry.status', 'posted')
+            ->whereBetween('ledger_entry.entry_date', [$context['from_date'], $context['to_date']])
+            ->where('ledger_entry.currency', $currency)
+            ->when($costCenterId === null, fn (Builder $builder) => $builder->whereNull('ledger_entry.cost_center_id'))
+            ->when($costCenterId !== null, fn (Builder $builder) => $builder->where('ledger_entry.cost_center_id', $costCenterId))
+            ->when($context['project_id'], fn (Builder $builder) => $builder->where('ledger_entry.project_id', $context['project_id']))
+            ->when($context['account_id'], fn (Builder $builder) => $builder->where('ledger_entry.account_id', $context['account_id']))
+            ->groupBy('account.id', 'account.code', 'account.type', 'account.nature')
+            ->groupByRaw('CAST(account.name AS TEXT)')
+            ->orderBy('account.code')
+            ->get()
+            ->map(function (stdClass $row): array {
+                $debit = (int) $row->debit_minor;
+                $credit = (int) $row->credit_minor;
+
+                return [
+                    'account_id' => (string) $row->account_id,
+                    'account_code' => (string) $row->account_code,
+                    'account_name' => $this->decodeNullableTranslations($row->account_name),
+                    'account_type' => (string) $row->account_type,
+                    'account_nature' => (string) $row->account_nature,
+                    'debit_minor' => $debit,
+                    'credit_minor' => $credit,
+                    'net_minor' => $row->account_nature === 'credit' ? $credit - $debit : $debit - $credit,
+                    'ledger_row_count' => (int) $row->ledger_row_count,
+                ];
+            })
+            ->all();
+    }
+
+    private function decodeNullableTranslations(mixed $value): array|string|null
+    {
+        if (! is_string($value) || ! str_starts_with($value, '{')) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : $value;
     }
 
     private function queryLedgerRows(

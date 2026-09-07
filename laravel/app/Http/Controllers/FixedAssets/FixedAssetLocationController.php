@@ -6,6 +6,7 @@ use App\Application\FixedAssets\FixedAssetLocationPageData;
 use App\Application\FixedAssets\FixedAssetLocationService;
 use App\Http\Controllers\Concerns\AuthorizesFixedAssetRequests;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -27,6 +28,13 @@ class FixedAssetLocationController extends Controller
         $filters = $request->only(['search', 'branch_id', 'status']);
 
         return Inertia::render('FixedAssets/Locations', $this->pageData->indexData($filters, $request->user()));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        $this->authorizePermission($request, 'fixedAssets.view');
+
+        return $this->pageData->datatable($request->only(['branch_id', 'status']));
     }
 
     public function store(Request $request): RedirectResponse

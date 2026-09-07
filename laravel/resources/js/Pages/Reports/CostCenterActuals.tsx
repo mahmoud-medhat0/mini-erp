@@ -1,9 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Fragment, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import { Button, Card, MetricCard, PageHeader, SearchableSelect, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -96,7 +97,6 @@ type CostCenterActualsProps = SharedPageProps & {
     base_currency: string;
     currency_codes: string[];
     has_mixed_currencies: boolean;
-    rows: CostCenterActualsRow[];
     summary_by_currency: Record<string, CurrencySummary>;
     readiness: {
       unassigned_row_count: number;
@@ -272,6 +272,100 @@ export default function CostCenterActuals({
   const summaries = Object.values(reportData.summary_by_currency);
   const primarySummary = summaries[0] ?? null;
   const showPrimaryMetrics = primarySummary !== null && !reportData.has_mixed_currencies;
+  const ledgerRowCount = summaries.reduce((total, summary) => total + summary.ledger_row_count, 0);
+
+  const columns = useMemo(() => [
+    { data: 'cost_center_code', name: 'cost_center_code', title: pageDict.costCenterColumn },
+    { data: 'currency', name: 'currency', title: pageDict.currencyColumn },
+    { data: 'debit_minor', name: 'debit_minor', title: pageDict.debit, className: 'text-end' },
+    { data: 'credit_minor', name: 'credit_minor', title: pageDict.credit, className: 'text-end' },
+    { data: 'net_minor', name: 'net_minor', title: pageDict.net, className: 'text-end' },
+    { data: 'ledger_row_count', name: 'ledger_row_count', title: pageDict.ledgerRows, className: 'text-end' },
+    { data: 'cost_center_id', name: 'cost_center_id', title: pageDict.review, orderable: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    cost_center_code: (_data: string, _type: unknown, row: CostCenterActualsRow): ReactElement => (
+      <div className="flex min-w-52 flex-col gap-1">
+        <span className="font-mono text-xs font-bold">
+          {row.is_unassigned ? pageDict.unassignedCostCenterCode : row.cost_center_code}
+        </span>
+        <span className="text-xs text-[var(--text-secondary)]">
+          {row.is_unassigned ? pageDict.unassignedCostCenterName : getLocalizedName(row.cost_center_name, locale)}
+        </span>
+        <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+          {row.is_unassigned ? pageDict.requiresReview : row.cost_center_status ?? pageDict.active}
+        </span>
+      </div>
+    ),
+    currency: (data: string): ReactElement => <span className="font-mono font-bold text-xs">{data}</span>,
+    debit_minor: (_data: number, _type: unknown, row: CostCenterActualsRow): ReactElement => <span className="font-mono">{formatMoney(row.debit_minor, row.currency)}</span>,
+    credit_minor: (_data: number, _type: unknown, row: CostCenterActualsRow): ReactElement => <span className="font-mono">{formatMoney(row.credit_minor, row.currency)}</span>,
+    net_minor: (_data: number, _type: unknown, row: CostCenterActualsRow): ReactElement => <span className="font-mono font-bold">{formatMoney(row.net_minor, row.currency)}</span>,
+    ledger_row_count: (data: number): ReactElement => <span className="font-mono">{Number(data).toLocaleString()}</span>,
+    cost_center_id: (_data: string | null, _type: unknown, row: CostCenterActualsRow): ReactElement => {
+      const rowKey = `${row.cost_center_id ?? 'unassigned'}__${row.currency}`;
+      const isExpanded = !!expandedRows[rowKey];
+
+      return (
+        <div className="min-w-72 space-y-3">
+          <div className="flex items-center gap-3">
+            {row.accounts.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => toggleExpand(rowKey)}
+                title={isExpanded ? pageDict.hideAccountBreakdown : pageDict.showAccountBreakdown}
+                aria-label={isExpanded ? pageDict.hideAccountBreakdown : pageDict.showAccountBreakdown}
+                className="text-xs font-bold text-[var(--primary)] no-underline hover:underline cursor-pointer"
+              >
+                {isExpanded ? pageDict.hideAccountBreakdown : pageDict.showAccountBreakdown} ({row.accounts.length})
+              </button>
+            ) : null}
+            <Link
+              href={`/accounting/ledger${row.cost_center_id ? `?cost_center_id=${row.cost_center_id}` : ''}`}
+              className="text-xs font-bold text-[var(--text-secondary)] no-underline hover:underline"
+            >
+              {pageDict.openLedger}
+            </Link>
+          </div>
+
+          {isExpanded && row.accounts.length > 0 ? (
+            <div className="max-w-[70vw] overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
+              <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                {pageDict.showAccountBreakdown} - {row.is_unassigned ? pageDict.unassignedCostCenterCode : row.cost_center_code} ({row.currency})
+              </h4>
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="py-2 px-2 text-start font-semibold text-[var(--text-secondary)]">{pageDict.accountColumn}</th>
+                    <th className="py-2 px-2 text-start font-semibold text-[var(--text-secondary)]">{pageDict.accountType}</th>
+                    <th className="py-2 px-2 text-start font-semibold text-[var(--text-secondary)]">{pageDict.accountNature}</th>
+                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.debit}</th>
+                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.credit}</th>
+                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.net}</th>
+                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.ledgerRows}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {row.accounts.map((account) => (
+                    <tr key={account.account_id} className="border-b border-[var(--border)]/40 hover:bg-[var(--background)]">
+                      <td className="py-2 px-2 font-mono"><span className="font-bold">{account.account_code}</span> - {getLocalizedName(account.account_name, locale)}</td>
+                      <td className="py-2 px-2 text-[var(--text-secondary)]">{accountTypeLabel(account.account_type, pageDict)}</td>
+                      <td className="py-2 px-2 text-[var(--text-secondary)]">{accountNatureLabel(account.account_nature, pageDict)}</td>
+                      <td className="py-2 px-2 text-end font-mono">{formatMoney(account.debit_minor, row.currency)}</td>
+                      <td className="py-2 px-2 text-end font-mono">{formatMoney(account.credit_minor, row.currency)}</td>
+                      <td className="py-2 px-2 text-end font-mono font-semibold">{formatMoney(account.net_minor, row.currency)}</td>
+                      <td className="py-2 px-2 text-end font-mono">{account.ledger_row_count.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </div>
+      );
+    },
+  } as unknown as DataTableSlots), [expandedRows, locale, pageDict]);
 
   return (
     <AppLayout active="reports.cost-center-actuals">
@@ -386,7 +480,7 @@ export default function CostCenterActuals({
                   {pageDict.currenciesInScope}: {reportData.currency_codes.join(', ') || pageDict.notAvailable}
                 </span>
                 <span className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 font-semibold text-[var(--text-secondary)]">
-                  {pageDict.ledgerRows}: {reportData.rows.reduce((acc, r) => acc + r.ledger_row_count, 0).toLocaleString()}
+                  {pageDict.ledgerRows}: {ledgerRowCount.toLocaleString()}
                 </span>
               </div>
               {reportData.has_mixed_currencies ? (
@@ -447,117 +541,26 @@ export default function CostCenterActuals({
           </Card>
         )}
 
-        {reportData.rows.length === 0 ? (
-          <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{pageDict.costCenterColumn}</th>
-                  <th className={tableClasses.th}>{pageDict.currencyColumn}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.debit}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.credit}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.net}</th>
-                  <th className={`${tableClasses.th} text-end`}>{pageDict.ledgerRows}</th>
-                  <th className={tableClasses.th}>{pageDict.review}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.rows.map((row) => {
-                  const rowKey = `${row.cost_center_id ?? 'unassigned'}__${row.currency}`;
-                  const isExpanded = !!expandedRows[rowKey];
-
-                  return (
-                    <Fragment key={rowKey}>
-                      <tr className="hover:bg-[var(--background)]">
-                        <td className={tableClasses.td}>
-                          <div className="flex min-w-52 flex-col gap-1">
-                            <span className="font-mono text-xs font-bold">
-                              {row.is_unassigned ? pageDict.unassignedCostCenterCode : row.cost_center_code}
-                            </span>
-                            <span className="text-xs text-[var(--text-secondary)]">
-                              {row.is_unassigned ? pageDict.unassignedCostCenterName : getLocalizedName(row.cost_center_name, locale)}
-                            </span>
-                            <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-                              {row.is_unassigned ? pageDict.requiresReview : row.cost_center_status ?? pageDict.active}
-                            </span>
-                          </div>
-                        </td>
-                        <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.currency}</td>
-                        <td className={`${tableClasses.td} text-end font-mono`}>{formatMoney(row.debit_minor, row.currency)}</td>
-                        <td className={`${tableClasses.td} text-end font-mono`}>{formatMoney(row.credit_minor, row.currency)}</td>
-                        <td className={`${tableClasses.td} text-end font-mono font-bold`}>{formatMoney(row.net_minor, row.currency)}</td>
-                        <td className={`${tableClasses.td} text-end font-mono`}>{row.ledger_row_count.toLocaleString()}</td>
-                        <td className={tableClasses.td}>
-                          <div className="flex items-center gap-3">
-                            {row.accounts.length > 0 ? (
-                              <button
-                                type="button"
-                                onClick={() => toggleExpand(rowKey)}
-                                title={isExpanded ? pageDict.hideAccountBreakdown : pageDict.showAccountBreakdown}
-                                aria-label={isExpanded ? pageDict.hideAccountBreakdown : pageDict.showAccountBreakdown}
-                                className="text-xs font-bold text-[var(--primary)] no-underline hover:underline cursor-pointer"
-                              >
-                                {isExpanded ? pageDict.hideAccountBreakdown : pageDict.showAccountBreakdown} ({row.accounts.length})
-                              </button>
-                            ) : null}
-                            <Link
-                              href={`/accounting/ledger${row.cost_center_id ? `?cost_center_id=${row.cost_center_id}` : ''}`}
-                              className="text-xs font-bold text-[var(--text-secondary)] no-underline hover:underline"
-                            >
-                              {pageDict.openLedger}
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-
-                      {isExpanded && row.accounts.length > 0 && (
-                        <tr className="bg-[var(--background)]/50">
-                          <td colSpan={7} className="p-3">
-                            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
-                              <h4 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">
-                                {pageDict.showAccountBreakdown} - {row.is_unassigned ? pageDict.unassignedCostCenterCode : row.cost_center_code} ({row.currency})
-                              </h4>
-                              <table className="w-full text-left text-xs border-collapse">
-                                <thead>
-                                  <tr className="border-b border-[var(--border)]">
-                                    <th className="py-2 px-2 text-start font-semibold text-[var(--text-secondary)]">{pageDict.accountColumn}</th>
-                                    <th className="py-2 px-2 text-start font-semibold text-[var(--text-secondary)]">{pageDict.accountType}</th>
-                                    <th className="py-2 px-2 text-start font-semibold text-[var(--text-secondary)]">{pageDict.accountNature}</th>
-                                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.debit}</th>
-                                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.credit}</th>
-                                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.net}</th>
-                                    <th className="py-2 px-2 text-end font-semibold text-[var(--text-secondary)]">{pageDict.ledgerRows}</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {row.accounts.map((acc) => (
-                                    <tr key={acc.account_id} className="border-b border-[var(--border)]/40 hover:bg-[var(--background)]">
-                                      <td className="py-2 px-2 font-mono">
-                                        <span className="font-bold">{acc.account_code}</span> - {getLocalizedName(acc.account_name, locale)}
-                                      </td>
-                                      <td className="py-2 px-2 text-[var(--text-secondary)]">{accountTypeLabel(acc.account_type, pageDict)}</td>
-                                      <td className="py-2 px-2 text-[var(--text-secondary)]">{accountNatureLabel(acc.account_nature, pageDict)}</td>
-                                      <td className="py-2 px-2 text-end font-mono">{formatMoney(acc.debit_minor, row.currency)}</td>
-                                      <td className="py-2 px-2 text-end font-mono">{formatMoney(acc.credit_minor, row.currency)}</td>
-                                      <td className="py-2 px-2 text-end font-mono font-semibold">{formatMoney(acc.net_minor, row.currency)}</td>
-                                      <td className="py-2 px-2 text-end font-mono">{acc.ledger_row_count.toLocaleString()}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/reports/cost-center-actuals/data"
+            columns={columns}
+            filters={{
+              period_id: filters.period_id || '',
+              date_from: filters.date_from || '',
+              date_to: filters.date_to || '',
+              cost_center_id: filters.cost_center_id || '',
+              project_id: filters.project_id || '',
+              account_id: filters.account_id || '',
+              currency: filters.currency || '',
+            }}
+            locale={locale}
+            order={[[0, 'asc'], [1, 'asc']]}
+            pageLength={25}
+            slots={slots}
+            tableId="cost-center-actuals-table"
+          />
+        </Card>
       </div>
     </AppLayout>
   );

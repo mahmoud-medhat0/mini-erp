@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Expenses\PrepaidSchedulePageData;
 use App\Application\Expenses\PrepaidScheduleService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class PrepaidScheduleController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Expenses/Prepaids', $this->pageData->indexData($request->only(['search', 'status', 'branch_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'branch_id']));
     }
 
     public function store(Request $request): RedirectResponse

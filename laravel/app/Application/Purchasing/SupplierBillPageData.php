@@ -8,9 +8,10 @@ use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\SupplierBill;
 use App\Models\TaxCode;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class SupplierBillPageData
 {
@@ -26,7 +27,7 @@ class SupplierBillPageData
         ];
 
         return [
-            'supplierBills' => $this->supplierBills($normalizedFilters),
+            'supplierBills' => [],
             'activeSuppliers' => $this->activeSuppliers(),
             'eligibleProducts' => $this->eligibleProducts(),
             'confirmedPurchaseOrders' => $this->confirmedPurchaseOrders(),
@@ -39,8 +40,10 @@ class SupplierBillPageData
     /**
      * @param  array{search: mixed, status: mixed}  $filters
      */
-    private function supplierBills(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
+        $status = (string) ($filters['status'] ?? '');
+
         $query = SupplierBill::query()->with([
             'supplier',
             'purchaseOrder',
@@ -49,26 +52,29 @@ class SupplierBillPageData
             'lines.unitOfMeasure',
             'journalEntry',
             'payableEntry',
-        ]);
+        ])->when($status && in_array($status, SupplierBillService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('status', $status));
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $query->where('number', 'like', "%{$filters['search']}%")
-                    ->orWhere('supplier_reference', 'like', "%{$filters['search']}%")
-                    ->orWhere('reference', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('supplier', function (Builder $supplierQuery) use ($filters): void {
-                        $supplierQuery->where('name', 'like', "%{$filters['search']}%");
-                    });
-            });
-        }
-
-        if ($filters['status'] && in_array($filters['status'], SupplierBillService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('number', 'like', "%{$keyword}%")
+                        ->orWhere('supplier_reference', 'like', "%{$keyword}%")
+                        ->orWhere('reference', 'like', "%{$keyword}%")
+                        ->orWhere('description', 'like', "%{$keyword}%")
+                        ->orWhereHas('supplier', function (Builder $supplierQuery) use ($keyword, $needle): void {
+                            $supplierQuery->whereRaw('LOWER(CAST(supplier.name AS TEXT)) LIKE ?', [$needle])
+                                ->orWhere('code', 'like', "%{$keyword}%");
+                        })
+                        ->orWhereHas('purchaseOrder', fn (Builder $purchaseOrderQuery) => $purchaseOrderQuery->where('number', 'like', "%{$keyword}%"))
+                        ->orWhereHas('goodsReceipt', fn (Builder $receiptQuery) => $receiptQuery->where('number', 'like', "%{$keyword}%"));
+                });
+            })
+            ->addColumn('supplier_name', fn (SupplierBill $row) => $row->supplier?->code ?? '')
+            ->addColumn('source_number', fn (SupplierBill $row) => $row->goodsReceipt?->number ?? $row->purchaseOrder?->number ?? '')
+            ->addColumn('lines_count', fn (SupplierBill $row) => $row->lines->count())
+            ->addColumn('actions', fn () => '')
+            ->toJson();
     }
 
     /**
@@ -111,7 +117,7 @@ class SupplierBillPageData
     private function confirmedGoodsReceipts(): Collection
     {
         return GoodsReceipt::query()
-            ->with(['supplier', 'purchaseOrder', 'lines.product', 'lines.unitOfMeasure', 'lines.purchaseOrderLine'])
+            ->with(['purchaseOrder.supplier', 'lines.product', 'lines.unitOfMeasure', 'lines.purchaseOrderLine'])
             ->where('status', 'confirmed')
             ->orderBy('number', 'asc')
             ->get();

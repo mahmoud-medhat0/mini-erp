@@ -7,6 +7,7 @@ use App\Application\Reports\CostCenterActualsReportService;
 use App\Application\Reports\FinancialPeriodReportOptions;
 use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -29,7 +30,7 @@ class CostCenterActualsReportController extends Controller
         $filters = $this->validatedFilters($request);
 
         return Inertia::render('Reports/CostCenterActuals', [
-            'reportData' => $service->generate(
+            'reportData' => $service->metadata(
                 costCenterId: $filters['cost_center_id'],
                 projectId: $filters['project_id'],
                 accountId: $filters['account_id'],
@@ -53,6 +54,24 @@ class CostCenterActualsReportController extends Controller
             'currencies' => $this->options->currencies(['code', 'name', 'symbol']),
             'periods' => $this->periodOptions->all(),
         ]);
+    }
+
+    public function datatable(Request $request, CostCenterActualsReportService $service): JsonResponse
+    {
+        Gate::authorize('reports.view');
+        Gate::authorize('view_financials');
+
+        $filters = $this->validatedFilters($request);
+
+        return $service->datatable(
+            costCenterId: $filters['cost_center_id'],
+            projectId: $filters['project_id'],
+            accountId: $filters['account_id'],
+            currency: $filters['currency'],
+            dateFrom: $filters['date_from'],
+            dateTo: $filters['date_to'],
+            periodId: $filters['period_id'],
+        );
     }
 
     public function exportCsv(Request $request, CostCenterActualsReportService $service): StreamedResponse

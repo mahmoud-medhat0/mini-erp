@@ -2,11 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -117,10 +118,7 @@ type ConfirmedDeliveryNote = {
 };
 
 type CustomerInvoicesProps = SharedPageProps & {
-  customerInvoices: {
-    data: CustomerInvoiceRow[];
-    links: PaginationLink[];
-  };
+  customerInvoices?: CustomerInvoiceRow[];
   activeCustomers: CustomerOption[];
   eligibleProducts: ProductOption[];
   confirmedSalesOrders: ConfirmedSalesOrder[];
@@ -134,7 +132,6 @@ type CustomerInvoicesProps = SharedPageProps & {
 
 export default function CustomerInvoicesIndex({
   locale,
-  customerInvoices,
   activeCustomers,
   eligibleProducts,
   confirmedSalesOrders,
@@ -151,6 +148,8 @@ export default function CustomerInvoicesIndex({
   const [editingInvoice, setEditingInvoice] = useState<CustomerInvoiceRow | null>(null);
   const [sourceMode, setSourceMode] = useState<'manual' | 'sales_order' | 'delivery_note'>('manual');
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -347,7 +346,7 @@ export default function CustomerInvoicesIndex({
       setLineItems(
         inv.lines.map((l) => ({
           product_id: l.product_id,
-          unit_of_measure_id: l.unitOfMeasure?.id || '',
+          unit_of_measure_id: l.unit_of_measure_id || l.unitOfMeasure?.id || '',
           sales_order_line_id: l.sales_order_line_id,
           delivery_note_line_id: l.delivery_note_line_id,
           description: l.description || getProductName(l.product),
@@ -386,12 +385,18 @@ export default function CustomerInvoicesIndex({
     if (editingInvoice) {
       router.put(`/sales/invoices/${editingInvoice.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setTableReloadToken((token) => token + 1);
+        },
       });
     } else {
       router.post('/sales/invoices', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setTableReloadToken((token) => token + 1);
+        },
       });
     }
   };
@@ -413,7 +418,10 @@ export default function CustomerInvoicesIndex({
     }
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/invoices/${invId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/sales/invoices/${invId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setTableReloadToken((token) => token + 1),
+      });
     }
   };
 
@@ -475,6 +483,58 @@ export default function CustomerInvoicesIndex({
     return acc + Math.floor((qtyE6 * priceMinor) / 1000000);
   }, 0);
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'customer_invoice.number', title: pageDict.invoice },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'invoice_date', name: 'customer_invoice.invoice_date', title: pageDict.invoiceDate },
+    { data: 'total_minor', name: 'customer_invoice.total_minor', title: pageDict.totalAmount },
+    { data: 'status', name: 'customer_invoice.status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    customer_name: (_value: unknown, _type: unknown, invoice: CustomerInvoiceRow) => (
+      <span className="font-medium">{getLocalizedName(invoice.customer?.name, locale) || accDict.notAvailable}</span>
+    ),
+    total_minor: (value: number, _type: unknown, invoice: CustomerInvoiceRow) => (
+      <span className="font-mono font-semibold">{formatMoney(value, invoice.currency)}</span>
+    ),
+    status: (value: string) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: unknown, _type: unknown, invoice: CustomerInvoiceRow) => {
+      const actionState = getCustomerInvoiceActionState(invoice);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {invoice.status === 'draft' && canEditCustomerInvoices ? (
+            <button type="button" onClick={() => openEditModal(invoice)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {invoice.status === 'draft' && canSubmitCustomerInvoices ? (
+            <button type="button" onClick={() => handleAction(invoice.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {['draft', 'submitted'].includes(invoice.status) && canApproveCustomerInvoices ? (
+            <button type="button" onClick={() => handleAction(invoice.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {invoice.status === 'approved' && canPostCustomerInvoices ? (
+            <button type="button" onClick={() => handleAction(invoice.id, 'post')} title={pageDict.postToArGl} aria-label={pageDict.postToArGl} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.postToArGl}</button>
+          ) : null}
+          {isCustomerInvoiceActionable(invoice) && canCancelCustomerInvoices ? (
+            <button type="button" onClick={() => handleAction(invoice.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canApproveCustomerInvoices, canCancelCustomerInvoices, canEditCustomerInvoices, canPostCustomerInvoices, canSubmitCustomerInvoices, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+
+  const toolbar = (
+    <div className="w-44">
+      <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} />
+    </div>
+  );
+
   return (
     <AppLayout active="customer-invoices.index">
       <Head title={dict.app.pages.salesCustomerInvoices.customerInvoices} />
@@ -500,147 +560,19 @@ export default function CustomerInvoicesIndex({
         }
       />
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.salesCustomerInvoices.searchNumberReferenceOrCustomer}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/invoices', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/sales/invoices', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.salesCustomerInvoices.status}
-            />
-          </div>
-        </div>
-
-        {customerInvoices.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.salesCustomerInvoices.noCustomerInvoicesFound}
-            description={dict.app.pages.salesCustomerInvoices.createAManualServiceInvoiceOr}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.invoice}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.customer}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.invoiceDate}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.totalAmount}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesCustomerInvoices.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesCustomerInvoices.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {customerInvoices.data.map((inv) => {
-                  const actionState = getCustomerInvoiceActionState(inv);
-
-                  return (
-                    <tr key={inv.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {inv.number || dict.app.pages.salesCustomerInvoices.draft_2}
-                      </td>
-                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(inv.customer?.name, locale) || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{inv.invoice_date}</td>
-                      <td className={`${tableClasses.td} font-mono font-semibold`}>
-                        {formatMoney(inv.total_minor, inv.currency)}
-                      </td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(inv.status)}>
-                          {getStatusLabel(inv.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {inv.status === 'draft' && canEditCustomerInvoices ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(inv)}
-                              title={dict.app.pages.salesCustomerInvoices.edit}
-                              aria-label={dict.app.pages.salesCustomerInvoices.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.salesCustomerInvoices.edit}
-                            </button>
-                          ) : null}
-
-                          {inv.status === 'draft' && canSubmitCustomerInvoices ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(inv.id, 'submit')}
-                              title={dict.app.pages.salesCustomerInvoices.submit}
-                              aria-label={dict.app.pages.salesCustomerInvoices.submit}
-                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-                            >
-                              {dict.app.pages.salesCustomerInvoices.submit}
-                            </button>
-                          ) : null}
-
-                          {['draft', 'submitted'].includes(inv.status) && canApproveCustomerInvoices ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(inv.id, 'approve')}
-                              title={dict.app.pages.salesCustomerInvoices.approve}
-                              aria-label={dict.app.pages.salesCustomerInvoices.approve}
-                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                            >
-                              {dict.app.pages.salesCustomerInvoices.approve}
-                            </button>
-                          ) : null}
-
-                          {inv.status === 'approved' && canPostCustomerInvoices ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(inv.id, 'post')}
-                              title={dict.app.pages.salesCustomerInvoices.postToArGl}
-                              aria-label={dict.app.pages.salesCustomerInvoices.postToArGl}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.salesCustomerInvoices.postToArGl}
-                            </button>
-                          ) : null}
-
-                          {isCustomerInvoiceActionable(inv) && canCancelCustomerInvoices ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(inv.id, 'cancel')}
-                              title={dict.app.pages.salesCustomerInvoices.cancel}
-                              aria-label={dict.app.pages.salesCustomerInvoices.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.salesCustomerInvoices.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/sales/invoices/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[2, 'desc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="sales-customer-invoices-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {/* Create / Edit Modal */}
@@ -913,7 +845,10 @@ export default function CustomerInvoicesIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setTableReloadToken((token) => token + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_CUSTOMER_INVOICE'}

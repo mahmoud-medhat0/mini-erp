@@ -6,6 +6,9 @@ use App\Application\Reports\BankReconciliationReportService;
 use App\Application\Reports\ReportPageOptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportFilterRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,7 +26,9 @@ class BankReconciliationReportController extends Controller
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
 
-        $report = $this->service->generateIndex($bankAccountId, $status, $dateFrom, $dateTo);
+        // Keep a single compatibility row in the initial Inertia contract; the
+        // visible report history is loaded through the bounded server feed.
+        $report = $this->service->generateIndex($bankAccountId, $status, $dateFrom, $dateTo, 1);
 
         return Inertia::render('Reports/BankReconciliation', [
             'report' => $report,
@@ -37,12 +42,29 @@ class BankReconciliationReportController extends Controller
         ]);
     }
 
+    public function data(Request $request): JsonResponse
+    {
+        $filters = $request->validate([
+            'bank_account_id' => ['nullable', 'uuid', 'exists:bank_account,id'],
+            'status' => ['nullable', 'string', Rule::in(['draft', 'in_progress', 'reconciled'])],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+        ]);
+
+        return $this->service->indexDataTable($filters);
+    }
+
     public function show(string $id): Response
     {
-        $detail = $this->service->generateDetail($id);
+        $detail = $this->service->generateDetail($id, false);
 
         return Inertia::render('Reports/BankReconciliationDetail', [
             'detail' => $detail,
         ]);
+    }
+
+    public function detailData(string $id): JsonResponse
+    {
+        return $this->service->detailDataTable($id);
     }
 }

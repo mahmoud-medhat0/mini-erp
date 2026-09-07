@@ -9,7 +9,7 @@ import 'datatables.net-dt/css/dataTables.dataTables.css';
 import 'datatables.net-responsive-dt/css/responsive.dataTables.css';
 
 import SearchableSelect from './SearchableSelect';
-import { getDictionary, interpolate } from '../lib/i18n';
+import { getDictionary } from '../lib/i18n';
 
 DataTable.use(DT);
 
@@ -213,10 +213,9 @@ export default function ServerDataTable({
               }
             }}
             isSearchable={true}
-            isCreatable={true}
+            isCreatable={false}
             isClearable={false}
             searchPlaceholder={dtDict.searchOrEnterNumber}
-            createOptionLabel={(q) => interpolate(dtDict.createOption, { query: q })}
             className="w-24 min-w-[5.5rem]"
           />
           <span>{dtDict.entries}</span>

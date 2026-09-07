@@ -7,9 +7,10 @@ use App\Models\Supplier;
 use App\Models\SupplierAdjustmentNote;
 use App\Models\SupplierBill;
 use App\Models\TaxCode;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class SupplierAdjustmentNotePageData
 {
@@ -26,7 +27,7 @@ class SupplierAdjustmentNotePageData
         ];
 
         return [
-            'supplierAdjustmentNotes' => $this->supplierAdjustmentNotes($normalizedFilters),
+            'supplierAdjustmentNotes' => [],
             'activeSuppliers' => $this->activeSuppliers(),
             'postedSupplierBills' => $this->postedSupplierBills(),
             'postedPurchaseReturns' => $this->postedPurchaseReturns(),
@@ -38,8 +39,11 @@ class SupplierAdjustmentNotePageData
     /**
      * @param  array{search: mixed, status: mixed, supplier_id: mixed}  $filters
      */
-    private function supplierAdjustmentNotes(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
+        $status = (string) ($filters['status'] ?? '');
+        $supplierId = (string) ($filters['supplier_id'] ?? '');
+
         $query = SupplierAdjustmentNote::query()->with([
             'supplier',
             'supplierBill',
@@ -47,30 +51,29 @@ class SupplierAdjustmentNotePageData
             'lines',
             'journalEntry',
             'payableEntry',
-        ]);
+        ])
+            ->when($status && in_array($status, SupplierAdjustmentNoteService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('status', $status))
+            ->when($supplierId, fn (Builder $query) => $query->where('supplier_id', $supplierId));
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $query->where('number', 'like', "%{$filters['search']}%")
-                    ->orWhere('ui_label', 'like', "%{$filters['search']}%")
-                    ->orWhere('reason', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('supplier', function (Builder $supplierQuery) use ($filters): void {
-                        $supplierQuery->where('name', 'like', "%{$filters['search']}%");
-                    });
-            });
-        }
-
-        if ($filters['status'] && in_array($filters['status'], SupplierAdjustmentNoteService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        if ($filters['supplier_id']) {
-            $query->where('supplier_id', $filters['supplier_id']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('number', 'like', "%{$keyword}%")
+                        ->orWhere('ui_label', 'like', "%{$keyword}%")
+                        ->orWhere('reason', 'like', "%{$keyword}%")
+                        ->orWhereHas('supplier', function (Builder $supplierQuery) use ($keyword, $needle): void {
+                            $supplierQuery->whereRaw('LOWER(CAST(supplier.name AS TEXT)) LIKE ?', [$needle])
+                                ->orWhere('code', 'like', "%{$keyword}%");
+                        })
+                        ->orWhereHas('supplierBill', fn (Builder $billQuery) => $billQuery->where('number', 'like', "%{$keyword}%"))
+                        ->orWhereHas('purchaseReturn', fn (Builder $returnQuery) => $returnQuery->where('number', 'like', "%{$keyword}%"));
+                });
+            })
+            ->addColumn('supplier_name', fn (SupplierAdjustmentNote $row) => $row->supplier?->code ?? '')
+            ->addColumn('source_number', fn (SupplierAdjustmentNote $row) => $row->supplierBill?->number ?? $row->purchaseReturn?->number ?? '')
+            ->addColumn('actions', fn () => '')
+            ->toJson();
     }
 
     /**

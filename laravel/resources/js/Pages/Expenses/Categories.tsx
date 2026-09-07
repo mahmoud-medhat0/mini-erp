@@ -2,11 +2,12 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, AccountOption, SharedPageProps } from '../../Types';
+import type { AccountOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 
@@ -34,14 +35,8 @@ type ExpenseAccountOption = AccountOption & {
   currency?: string | null;
 };
 
-type PaginatedData<T> = {
-  data: T[];
-  total: number;
-  links: PaginationLink[];
-};
-
 type Props = SharedPageProps & {
-  categories: PaginatedData<ExpenseCategoryRow>;
+  categories?: ExpenseCategoryRow[];
   expenseAccounts: ExpenseAccountOption[];
   taxCodes: TaxCodeOption[];
   filters: {
@@ -49,13 +44,13 @@ type Props = SharedPageProps & {
   };
 };
 
-export default function ExpenseCategoriesIndex({ locale, categories, expenseAccounts = [], taxCodes = [], filters }: Props) {
+export default function ExpenseCategoriesIndex({ locale, expenseAccounts = [], taxCodes = [], filters }: Props) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.expenseCategories;
   const can = useCan();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ExpenseCategoryRow | null>(null);
-  const [search, setSearch] = useState(filters.search || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm({
     code: '',
@@ -77,14 +72,9 @@ export default function ExpenseCategoriesIndex({ locale, categories, expenseAcco
     value: taxCode.id,
     label: `${taxCode.code} - ${getLocalizedName(taxCode.name, locale)}`,
   })), [taxCodes, locale]);
-  const activeFilterCount = [search].filter(Boolean).length;
-
-  function applyFilters() {
-    router.get('/expenses/categories', { search }, { preserveScroll: true, preserveState: true });
-  }
+  const activeFilterCount = [filters.search].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
     router.get('/expenses/categories', {}, { preserveScroll: true, preserveState: true });
   }
 
@@ -125,20 +115,100 @@ export default function ExpenseCategoriesIndex({ locale, categories, expenseAcco
     event.preventDefault();
 
     if (editing) {
-      form.put(`/expenses/categories/${editing.id}`, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      form.put(`/expenses/categories/${editing.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    form.post('/expenses/categories', { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    form.post('/expenses/categories', {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function deleteCategory(category: ExpenseCategoryRow) {
     if ((category.expense_lines_count || 0) > 0) return;
     const categoryName = getLocalizedName(category.name, locale) || category.code;
     if (window.confirm(pageDict.confirmDeleteCategory.replace('{name}', categoryName))) {
-      router.delete(`/expenses/categories/${category.id}`, { preserveScroll: true });
+      router.delete(`/expenses/categories/${category.id}`, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'name_text', name: 'name_text', title: pageDict.nameEn, orderable: false },
+    { data: 'default_expense_account_text', name: 'default_expense_account_text', title: pageDict.defaultExpenseAccount, orderable: false, searchable: false },
+    { data: 'default_tax_code_text', name: 'default_tax_code_text', title: pageDict.defaultTaxCode, orderable: false, searchable: false },
+    { data: 'requires_attachment', name: 'requires_attachment', title: pageDict.requiresAttachment, searchable: false },
+    { data: 'expense_lines_count', name: 'expense_lines_count', title: pageDict.usage, searchable: false },
+    { data: 'is_active', name: 'is_active', title: pageDict.status, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (value: any) => <span className="font-mono text-xs font-bold">{value}</span>,
+    name_text: (_value: any, _type: any, category: ExpenseCategoryRow) => (
+      <span className="font-semibold">{getLocalizedName(category.name, locale)}</span>
+    ),
+    default_expense_account_text: (_value: any, _type: any, category: ExpenseCategoryRow) => (
+      <span>
+        {category.default_expense_account
+          ? `${category.default_expense_account.code} - ${getLocalizedName(category.default_expense_account.name, locale)}`
+          : pageDict.notMapped}
+      </span>
+    ),
+    default_tax_code_text: (_value: any, _type: any, category: ExpenseCategoryRow) => (
+      <span>{category.default_tax_code ? `${category.default_tax_code.code} - ${getLocalizedName(category.default_tax_code.name, locale)}` : pageDict.noTax}</span>
+    ),
+    requires_attachment: (_value: any, _type: any, category: ExpenseCategoryRow) => (
+      <StatusBadge tone={category.requires_attachment ? 'warning' : 'muted'}>
+        {category.requires_attachment ? pageDict.attachmentRequired : pageDict.attachmentOptional}
+      </StatusBadge>
+    ),
+    expense_lines_count: (value: any) => (
+      <span className="font-mono text-xs font-bold">{Number(value || 0)} {pageDict.expenseLinesCount}</span>
+    ),
+    is_active: (_value: any, _type: any, category: ExpenseCategoryRow) => (
+      <StatusBadge tone={category.is_active ? 'ok' : 'muted'}>
+        {category.is_active ? pageDict.active : pageDict.inactive}
+      </StatusBadge>
+    ),
+    actions: (_value: any, _type: any, category: ExpenseCategoryRow) => (
+      <div className="flex flex-wrap items-center gap-3">
+        {can('expenses.edit') ? (
+          <button type="button" onClick={() => openEdit(category)} className="text-xs font-bold text-[var(--primary)] hover:underline" title={pageDict.edit} aria-label={pageDict.edit}>
+            {pageDict.edit}
+          </button>
+        ) : null}
+        {can('expenses.delete') ? (
+          <button
+            type="button"
+            onClick={() => deleteCategory(category)}
+            disabled={(category.expense_lines_count || 0) > 0}
+            className="text-xs font-bold text-red-500 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+            title={(category.expense_lines_count || 0) > 0 ? pageDict.deleteBlocked : undefined}
+          >
+            {pageDict.delete}
+          </button>
+        ) : null}
+      </div>
+    ),
+  }), [can, locale, pageDict]);
+
+  const toolbar = (
+    <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+  );
 
   return (
     <AppLayout active="expense-categories.index">
@@ -149,23 +219,6 @@ export default function ExpenseCategoriesIndex({ locale, categories, expenseAcco
         description={pageDict.description}
         actions={can('expenses.create') ? <Button onClick={openCreate}>{pageDict.createCategory}</Button> : null}
       />
-
-      <Card className="mb-5 p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') applyFilters();
-            }}
-            placeholder={pageDict.search}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-sm text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)] sm:w-80"
-          />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -252,81 +305,20 @@ export default function ExpenseCategoriesIndex({ locale, categories, expenseAcco
         </Card>
       ) : null}
 
-      {categories.data.length === 0 ? (
-        <EmptyState title={pageDict.noCategories} description={pageDict.noCategoriesDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.code}</th>
-                <th className={tableClasses.th}>{pageDict.nameEn}</th>
-                <th className={tableClasses.th}>{pageDict.defaultExpenseAccount}</th>
-                <th className={tableClasses.th}>{pageDict.defaultTaxCode}</th>
-                <th className={tableClasses.th}>{pageDict.requiresAttachment}</th>
-                <th className={tableClasses.th}>{pageDict.usage}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.data.map((category) => (
-                <tr key={category.id} className="hover:bg-[var(--background)]/60">
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{category.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(category.name, locale)}</td>
-                  <td className={tableClasses.td}>
-                    {category.default_expense_account
-                      ? `${category.default_expense_account.code} - ${getLocalizedName(category.default_expense_account.name, locale)}`
-                      : pageDict.notMapped}
-                  </td>
-                  <td className={tableClasses.td}>
-                    {category.default_tax_code ? `${category.default_tax_code.code} - ${getLocalizedName(category.default_tax_code.name, locale)}` : pageDict.noTax}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={category.requires_attachment ? 'warning' : 'muted'}>
-                      {category.requires_attachment ? pageDict.attachmentRequired : pageDict.attachmentOptional}
-                    </StatusBadge>
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>
-                    {category.expense_lines_count || 0} {pageDict.expenseLinesCount}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={category.is_active ? 'ok' : 'muted'}>
-                      {category.is_active ? pageDict.active : pageDict.inactive}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {can('expenses.edit') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEdit(category)}
-                          className="text-xs font-bold text-[var(--primary)] hover:underline"
-                          title={pageDict.edit}
-                          aria-label={pageDict.edit}
-                        >
-                          {pageDict.edit}
-                        </button>
-                      ) : null}
-                      {can('expenses.delete') ? (
-                        <button
-                          type="button"
-                          onClick={() => deleteCategory(category)}
-                          disabled={(category.expense_lines_count || 0) > 0}
-                          className="text-xs font-bold text-red-500 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
-                          title={(category.expense_lines_count || 0) > 0 ? pageDict.deleteBlocked : undefined}
-                        >
-                          {pageDict.delete}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/expenses/categories/data"
+          columns={columns}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="expense-categories-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

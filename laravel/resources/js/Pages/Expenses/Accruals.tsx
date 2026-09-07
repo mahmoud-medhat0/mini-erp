@@ -3,11 +3,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
+import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -43,9 +44,9 @@ type Schedule = {
   accrued_liability_account?: AccountOption | null;
   entries: AccrualEntry[];
 };
-type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type Props = SharedPageProps & {
-  schedules: PaginatedData<Schedule>;
+  schedules?: Schedule[];
+  summary: { total_schedules: number; pending_entries: number };
   categories: Category[];
   expenseAccounts: ScheduleAccount[];
   liabilityAccounts: ScheduleAccount[];
@@ -78,7 +79,7 @@ function statusTone(value: string): 'ok' | 'muted' | 'danger' | 'warning' | 'inf
 
 export default function AccrualSchedulesIndex({
   locale,
-  schedules,
+  summary,
   categories = [],
   expenseAccounts = [],
   liabilityAccounts = [],
@@ -98,9 +99,9 @@ export default function AccrualSchedulesIndex({
   const defaultCurrency = currencies[0]?.code || '';
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
-  const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm({
     schedule_date: today(),
@@ -123,16 +124,14 @@ export default function AccrualSchedulesIndex({
   const expenseOptions = useMemo(() => expenseAccounts.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}`, sublabel: item.currency || undefined })), [expenseAccounts, locale]);
   const liabilityOptions = useMemo(() => liabilityAccounts.map((item) => ({ value: item.id, label: `${item.code} - ${getLocalizedName(item.name, locale)}`, sublabel: item.currency || undefined })), [liabilityAccounts, locale]);
   const currencyOptions = useMemo(() => currencies.map((item) => ({ value: item.code, label: `${item.code} - ${getLocalizedName(item.name, locale)}` })), [currencies, locale]);
-  const statusOptions = statuses.map((item) => ({ value: item, label: pageDict.statuses[item] || item }));
-  const pendingCount = schedules.data.flatMap((item) => item.entries || []).filter((item) => item.status === 'pending').length;
-  const activeFilterCount = [search, status, branchId].filter(Boolean).length;
-
-  function applyFilters() {
-    router.get('/expenses/accruals', { search, status, branch_id: branchId }, { preserveScroll: true, preserveState: true });
-  }
+  const statusOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    ...statuses.map((item) => ({ value: item, label: pageDict.statuses[item] || item })),
+  ], [pageDict.allStatuses, pageDict.statuses, statuses]);
+  const pendingCount = summary.pending_entries;
+  const activeFilterCount = [filters.search, status, branchId].filter(Boolean).length;
 
   function clearFilters() {
-    setSearch('');
     setStatus('');
     setBranchId('');
     router.get('/expenses/accruals', {}, { preserveScroll: true, preserveState: true });
@@ -190,17 +189,32 @@ export default function AccrualSchedulesIndex({
     };
 
     if (editing) {
-      router.put(`/expenses/accruals/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/expenses/accruals/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/expenses/accruals', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/expenses/accruals', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function action(url: string, confirmation?: string) {
     if (confirmation && !confirm(confirmation)) return;
 
-    router.post(url, {}, { preserveScroll: true });
+    router.post(url, {}, {
+      preserveScroll: true,
+      onSuccess: () => setReloadToken((value) => value + 1),
+    });
   }
 
   const isScheduleActionable = (schedule: Schedule) => ['draft', 'submitted', 'approved'].includes(schedule.status);
@@ -231,6 +245,98 @@ export default function AccrualSchedulesIndex({
     return isAccrualEntryPostable(schedule, entry) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: dict.app.pages.expenses.number },
+    { data: 'schedule_date', name: 'schedule_date', title: pageDict.scheduleDate },
+    { data: 'start_date', name: 'start_date', title: pageDict.startDate },
+    { data: 'months', name: 'months', title: pageDict.months, searchable: false },
+    { data: 'branch_name', name: 'branch_name', title: pageDict.branch, orderable: false, searchable: false },
+    { data: 'total_minor', name: 'total_minor', title: pageDict.totalAmount, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'entries', name: 'entries', title: pageDict.pendingEntries, orderable: false, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [dict.app.pages.expenses.number, pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any) => <span className="font-mono text-xs font-bold">{value || pageDict.notNumbered}</span>,
+    schedule_date: (value: any) => formatDate(value),
+    start_date: (value: any) => formatDate(value),
+    branch_name: (_value: any, _type: any, schedule: Schedule) => (
+      <span>{schedule.branch ? `${schedule.branch.code} - ${getLocalizedName(schedule.branch.name, locale)}` : pageDict.noBranch}</span>
+    ),
+    total_minor: (value: any, _type: any, schedule: Schedule) => (
+      <AccountingAmount amountMinor={Number(value || 0)} currency={schedule.currency} />
+    ),
+    status: (value: any) => <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>,
+    entries: (_value: any, _type: any, schedule: Schedule) => (
+      <div className="min-w-[560px] overflow-x-auto">
+        <table className={tableClasses.table}>
+          <thead>
+            <tr>
+              <th className={tableClasses.th}>{pageDict.accrualDate}</th>
+              <th className={tableClasses.th}>{pageDict.amount}</th>
+              <th className={tableClasses.th}>{pageDict.status}</th>
+              <th className={tableClasses.th}>{pageDict.journal}</th>
+              <th className={tableClasses.th}>{pageDict.actions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(schedule.entries || []).map((entry) => {
+              const entryActionState = getAccrualEntryActionState(schedule, entry);
+
+              return (
+                <tr key={entry.id}>
+                  <td className={tableClasses.td}>{formatDate(entry.accrual_date)}</td>
+                  <td className={tableClasses.td}><AccountingAmount amountMinor={entry.amount_minor} currency={schedule.currency} /></td>
+                  <td className={tableClasses.td}><StatusBadge tone={statusTone(entry.status)}>{pageDict.entryStatuses[entry.status]}</StatusBadge></td>
+                  <td className={tableClasses.td}>{entry.journal_entry?.number || pageDict.notPosted}</td>
+                  <td className={`${tableClasses.td} text-end`}>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {isAccrualEntryPostable(schedule, entry) && canPostExpenseSchedules ? (
+                        <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/entries/${entry.id}/post`, pageDict.confirmations.postEntry)} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+                      ) : null}
+                      {entryActionState ? <StatusBadge tone="muted">{entryActionState}</StatusBadge> : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    ),
+    actions: (_value: any, _type: any, schedule: Schedule) => {
+      const actionState = getScheduleActionState(schedule);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {schedule.status === 'draft' && canEditExpenseSchedules ? (
+            <button type="button" onClick={() => openEdit(schedule)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {schedule.status === 'draft' && canSubmitExpenseSchedules ? (
+            <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/submit`, pageDict.confirmations.submit)} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {schedule.status === 'submitted' && canApproveExpenseSchedules ? (
+            <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/approve`, pageDict.confirmations.approve)} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {isScheduleActionable(schedule) && canEditExpenseSchedules ? (
+            <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/cancel`, pageDict.confirmations.cancel)} title={pageDict.cancelSchedule} aria-label={pageDict.cancelSchedule} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelSchedule}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [canApproveExpenseSchedules, canEditExpenseSchedules, canPostExpenseSchedules, canSubmitExpenseSchedules, dict.app.actions, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status, branch_id: branchId }), [branchId, status]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchableSelect options={statusOptions} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
+      <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
+
   return (
     <AppLayout active="accrual-schedules.index">
       <Head title={pageDict.headTitle} />
@@ -243,7 +349,7 @@ export default function AccrualSchedulesIndex({
       <div className="mb-5 grid gap-4 md:grid-cols-3">
         <Card className="p-4">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{pageDict.totalSchedules}</div>
-          <div className="mt-2 text-2xl font-bold">{schedules.total}</div>
+          <div className="mt-2 text-2xl font-bold">{summary.total_schedules}</div>
         </Card>
         <Card className="p-4">
           <div className="text-xs font-semibold text-[var(--text-muted)]">{pageDict.pendingEntries}</div>
@@ -254,16 +360,6 @@ export default function AccrualSchedulesIndex({
           <div className="mt-2 text-sm font-semibold">{status ? pageDict.statuses[status as keyof typeof pageDict.statuses] : pageDict.allStatuses}</div>
         </Card>
       </div>
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto]">
-          <input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={pageDict.search} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
-          <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -299,85 +395,21 @@ export default function AccrualSchedulesIndex({
         </Card>
       ) : null}
 
-      {schedules.data.length === 0 ? (
-        <EmptyState title={pageDict.emptyTitle} description={pageDict.emptyDescription} />
-      ) : (
-        <div className="space-y-4">
-          {schedules.data.map((schedule) => {
-            const actionState = getScheduleActionState(schedule);
-
-            return (
-              <Card key={schedule.id} className="overflow-hidden">
-                <div className="grid gap-3 border-b border-[var(--border)] p-4 lg:grid-cols-[1fr_auto]">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-bold">{schedule.number || pageDict.notNumbered}</h3>
-                      <StatusBadge tone={statusTone(schedule.status)}>{pageDict.statuses[schedule.status]}</StatusBadge>
-                    </div>
-                    <div className="mt-2 grid gap-2 text-xs text-[var(--text-muted)] md:grid-cols-4">
-                      <span>{pageDict.scheduleDate}: {formatDate(schedule.schedule_date)}</span>
-                      <span>{pageDict.startDate}: {formatDate(schedule.start_date)}</span>
-                      <span>{pageDict.months}: {schedule.months}</span>
-                      <span>{pageDict.branch}: {schedule.branch ? `${schedule.branch.code} - ${getLocalizedName(schedule.branch.name, locale)}` : pageDict.noBranch}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <AccountingAmount amountMinor={schedule.total_minor} currency={schedule.currency} />
-                    {schedule.status === 'draft' && canEditExpenseSchedules ? (
-                      <button type="button" onClick={() => openEdit(schedule)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
-                    ) : null}
-                    {schedule.status === 'draft' && canSubmitExpenseSchedules ? (
-                      <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/submit`, pageDict.confirmations.submit)} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
-                    ) : null}
-                    {schedule.status === 'submitted' && canApproveExpenseSchedules ? (
-                      <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/approve`, pageDict.confirmations.approve)} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
-                    ) : null}
-                    {isScheduleActionable(schedule) && canEditExpenseSchedules ? (
-                      <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/cancel`, pageDict.confirmations.cancel)} title={pageDict.cancelSchedule} aria-label={pageDict.cancelSchedule} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelSchedule}</button>
-                    ) : null}
-                    {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                  </div>
-                </div>
-              <div className="overflow-x-auto">
-                <table className={tableClasses.table}>
-                  <thead>
-                    <tr>
-                      <th className={tableClasses.th}>{pageDict.accrualDate}</th>
-                      <th className={tableClasses.th}>{pageDict.amount}</th>
-                      <th className={tableClasses.th}>{pageDict.status}</th>
-                      <th className={tableClasses.th}>{pageDict.journal}</th>
-                      <th className={tableClasses.th}>{pageDict.actions}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.entries.map((entry) => {
-                      const entryActionState = getAccrualEntryActionState(schedule, entry);
-
-                      return (
-                        <tr key={entry.id}>
-                          <td className={tableClasses.td}>{formatDate(entry.accrual_date)}</td>
-                          <td className={tableClasses.td}><AccountingAmount amountMinor={entry.amount_minor} currency={schedule.currency} /></td>
-                          <td className={tableClasses.td}><StatusBadge tone={statusTone(entry.status)}>{pageDict.entryStatuses[entry.status]}</StatusBadge></td>
-                          <td className={tableClasses.td}>{entry.journal_entry?.number || pageDict.notPosted}</td>
-                          <td className={`${tableClasses.td} text-end`}>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              {isAccrualEntryPostable(schedule, entry) && canPostExpenseSchedules ? (
-                                <button type="button" onClick={() => action(`/expenses/accruals/${schedule.id}/entries/${entry.id}/post`, pageDict.confirmations.postEntry)} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
-                              ) : null}
-                              {entryActionState ? <StatusBadge tone="muted">{entryActionState}</StatusBadge> : null}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-            );
-          })}
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/expenses/accruals/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[1, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="accrual-schedules-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

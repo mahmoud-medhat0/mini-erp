@@ -2,11 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type SupplierOption = {
   id: string;
@@ -23,6 +24,7 @@ type GoodsReceiptLineOption = {
   description?: string | null;
   product?: { code: string; name: ProductName } | null;
   unitOfMeasure?: { id: string; code: string; name: string } | null;
+  unit_of_measure?: { id: string; code: string; name: string } | null;
 };
 
 type GoodsReceiptOption = {
@@ -30,6 +32,12 @@ type GoodsReceiptOption = {
   number?: string | null;
   warehouse_id?: string | null;
   purchaseOrder?: {
+    id: string;
+    supplier_id?: string;
+    currency?: string;
+    supplier?: { id: string; name: string } | null;
+  } | null;
+  purchase_order?: {
     id: string;
     supplier_id?: string;
     currency?: string;
@@ -63,6 +71,7 @@ type PurchaseReturnRow = {
   supplier_bill_id?: string | null;
   supplier?: { id: string; name: string } | null;
   goodsReceipt?: { id: string; number?: string | null } | null;
+  goods_receipt?: { id: string; number?: string | null } | null;
   warehouse?: WarehouseOption | null;
   return_date: string;
   status: 'draft' | 'submitted' | 'approved' | 'posted' | 'cancelled';
@@ -78,6 +87,7 @@ type PurchaseReturnRow = {
     quantity_e6: number;
     product?: { code: string; name: ProductName } | null;
     unitOfMeasure?: { id: string; code: string; name: string } | null;
+    unit_of_measure?: { id: string; code: string; name: string } | null;
   }>;
 };
 
@@ -88,10 +98,7 @@ type PendingSensitiveAction = {
 };
 
 type PurchaseReturnsProps = SharedPageProps & {
-  purchaseReturns: {
-    data: PurchaseReturnRow[];
-    links: PaginationLink[];
-  };
+  purchaseReturns?: PurchaseReturnRow[];
   activeSuppliers: SupplierOption[];
   confirmedGoodsReceipts: GoodsReceiptOption[];
   warehouses: WarehouseOption[];
@@ -108,7 +115,6 @@ const formatQuantity = (qtyE6: number) => String(parseFloat(((qtyE6 || 0) / 1000
 
 export default function PurchaseReturnsIndex({
   locale,
-  purchaseReturns,
   activeSuppliers,
   confirmedGoodsReceipts,
   warehouses,
@@ -124,6 +130,9 @@ export default function PurchaseReturnsIndex({
   const [editingReturn, setEditingReturn] = useState<PurchaseReturnRow | null>(null);
   const [lineItems, setLineItems] = useState<ReturnLineForm[]>([]);
   const [pendingSensitiveAction, setPendingSensitiveAction] = useState<PendingSensitiveAction | null>(null);
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
+  const [warehouseFilter, setWarehouseFilter] = useState(filters.warehouse_id || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -144,8 +153,10 @@ export default function PurchaseReturnsIndex({
     return locale === 'ar' ? prod.name?.ar || prod.name?.en || '' : prod.name?.en || prod.name?.ar || '';
   };
 
+  const getReceiptPurchaseOrder = (receipt: GoodsReceiptOption) => receipt.purchase_order || receipt.purchaseOrder;
+
   const supplierGoodsReceipts = confirmedGoodsReceipts.filter(
-    (gr) => !data.supplier_id || gr.purchaseOrder?.supplier_id === data.supplier_id
+    (gr) => !data.supplier_id || getReceiptPurchaseOrder(gr)?.supplier_id === data.supplier_id
   );
 
   const selectedGr = confirmedGoodsReceipts.find((gr) => gr.id === data.goods_receipt_id);
@@ -179,7 +190,7 @@ export default function PurchaseReturnsIndex({
   const goodsReceiptOptions = useMemo(() => supplierGoodsReceipts.map((goodsReceipt) => ({
     value: goodsReceipt.id,
     label: goodsReceipt.number || pageDict.draft_2,
-    sublabel: goodsReceipt.purchaseOrder?.supplier?.name || accDict.notAvailable,
+    sublabel: getReceiptPurchaseOrder(goodsReceipt)?.supplier?.name || accDict.notAvailable,
   })), [supplierGoodsReceipts, pageDict.draft_2, accDict.notAvailable]);
   const canManagePurchaseReturns = can('purchasing.returns');
   const canPostPurchaseReturns = canManagePurchaseReturns && can('view_financials');
@@ -196,8 +207,9 @@ export default function PurchaseReturnsIndex({
     const gr = confirmedGoodsReceipts.find((g) => g.id === grId);
     setData('goods_receipt_id', grId);
     setData('warehouse_id', gr?.warehouse_id || warehouses[0]?.id || '');
-    if (gr?.purchaseOrder?.currency) {
-      setData('currency', gr.purchaseOrder.currency);
+    const purchaseOrder = gr ? getReceiptPurchaseOrder(gr) : null;
+    if (purchaseOrder?.currency) {
+      setData('currency', purchaseOrder.currency);
     }
     if (!grId || !gr) {
       setLineItems([]);
@@ -209,7 +221,7 @@ export default function PurchaseReturnsIndex({
           goods_receipt_line_id: l.id,
           product_id: l.product_id,
           description: l.description || getProductName(l.product),
-          uom_name: l.unitOfMeasure?.name || accDict.notAvailable,
+          uom_name: (l.unit_of_measure || l.unitOfMeasure)?.name || accDict.notAvailable,
           max_quantity: l.quantity_e6 / 1000000,
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -249,7 +261,7 @@ export default function PurchaseReturnsIndex({
         goods_receipt_line_id: l.goods_receipt_line_id,
         product_id: l.product_id,
         description: l.description || getProductName(l.product),
-        uom_name: l.unitOfMeasure?.name || accDict.notAvailable,
+        uom_name: (l.unit_of_measure || l.unitOfMeasure)?.name || accDict.notAvailable,
         max_quantity: l.quantity_e6 / 1000000,
         quantity: l.quantity_e6 / 1000000,
       }))
@@ -285,12 +297,18 @@ export default function PurchaseReturnsIndex({
     if (editingReturn) {
       router.put(`/purchasing/returns/${editingReturn.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     } else {
       router.post('/purchasing/returns', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setReloadToken((value) => value + 1);
+        },
       });
     }
   };
@@ -312,7 +330,10 @@ export default function PurchaseReturnsIndex({
     }
 
     if (confirm(confirmMsg)) {
-      router.post(`/purchasing/returns/${retId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/purchasing/returns/${retId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   };
 
@@ -368,6 +389,63 @@ export default function PurchaseReturnsIndex({
     return isPurchaseReturnActionable(ret) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.returnNumber },
+    { data: 'supplier_name', name: 'supplier_name', title: pageDict.supplier, orderable: false, searchable: false },
+    { data: 'receipt_number', name: 'receipt_number', title: pageDict.goodsReceipt, orderable: false, searchable: false },
+    { data: 'warehouse_name', name: 'warehouse_name', title: pageDict.warehouse, orderable: false, searchable: false },
+    { data: 'return_date', name: 'return_date', title: pageDict.returnDate },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    supplier_name: (_value: any, _type: any, ret: PurchaseReturnRow) => (
+      <span className="font-medium">{getLocalizedName(ret.supplier?.name, locale) || accDict.notAvailable}</span>
+    ),
+    receipt_number: (_value: any, _type: any, ret: PurchaseReturnRow) => {
+      const receipt = ret.goods_receipt || ret.goodsReceipt;
+      return <span className="font-mono">{receipt?.number || accDict.notAvailable}</span>;
+    },
+    warehouse_name: (_value: any, _type: any, ret: PurchaseReturnRow) => (
+      <span>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</span>
+    ),
+    return_date: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    status: (value: any) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: any, _type: any, ret: PurchaseReturnRow) => {
+      const actionState = getPurchaseReturnActionState(ret);
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {ret.status === 'draft' && canManagePurchaseReturns ? (
+            <button type="button" onClick={() => openEditModal(ret)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {ret.status === 'draft' && canManagePurchaseReturns ? (
+            <button type="button" onClick={() => handleAction(ret.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {['draft', 'submitted'].includes(ret.status) && canManagePurchaseReturns ? (
+            <button type="button" onClick={() => handleAction(ret.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {ret.status === 'approved' && canPostPurchaseReturns ? (
+            <button type="button" onClick={() => handleAction(ret.id, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+          ) : null}
+          {isPurchaseReturnActionable(ret) && canManagePurchaseReturns ? (
+            <button type="button" onClick={() => handleAction(ret.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canManagePurchaseReturns, canPostPurchaseReturns, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status: statusFilter, warehouse_id: warehouseFilter }), [statusFilter, warehouseFilter]);
+  const toolbar = (
+    <div className="flex flex-wrap items-end gap-3">
+      <SearchableSelect options={warehouseFilterOptions} value={warehouseFilter || null} onChange={(value) => setWarehouseFilter(value || '')} label={pageDict.warehouse} />
+      <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} label={pageDict.status} />
+    </div>
+  );
+
   return (
     <AppLayout active="purchase-returns.index">
       <Head title={dict.app.pages.purchasingPurchaseReturns.purchaseReturns} />
@@ -393,154 +471,20 @@ export default function PurchaseReturnsIndex({
         }
       />
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.purchasingPurchaseReturns.searchNumberReasonOrSupplier}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/purchasing/returns', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={warehouseFilterOptions}
-              value={filters.warehouse_id || null}
-              onChange={(value) => router.get('/purchasing/returns', { ...filters, warehouse_id: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.purchasingPurchaseReturns.warehouse}
-            />
-
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/purchasing/returns', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.purchasingPurchaseReturns.status}
-            />
-          </div>
-        </div>
-
-        {purchaseReturns.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.purchasingPurchaseReturns.noPurchaseReturnsFound}
-            description={dict.app.pages.purchasingPurchaseReturns.createAReturnFromAConfirmedGoodsReceipt}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.returnNumber}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.supplier}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.goodsReceipt}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.warehouse}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.returnDate}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.purchasingPurchaseReturns.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.purchasingPurchaseReturns.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {purchaseReturns.data.map((ret) => {
-                  const actionState = getPurchaseReturnActionState(ret);
-
-                  return (
-                    <tr key={ret.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {ret.number || dict.app.pages.purchasingPurchaseReturns.draft_2}
-                      </td>
-                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(ret.supplier?.name, locale) || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-mono`}>{ret.goodsReceipt?.number || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{ret.return_date}</td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(ret.status)}>
-                          {getStatusLabel(ret.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {ret.status === 'draft' && canManagePurchaseReturns ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(ret)}
-                              title={dict.app.pages.purchasingPurchaseReturns.edit}
-                              aria-label={dict.app.pages.purchasingPurchaseReturns.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseReturns.edit}
-                            </button>
-                          ) : null}
-
-                          {ret.status === 'draft' && canManagePurchaseReturns ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(ret.id, 'submit')}
-                              title={dict.app.pages.purchasingPurchaseReturns.submit}
-                              aria-label={dict.app.pages.purchasingPurchaseReturns.submit}
-                              className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseReturns.submit}
-                            </button>
-                          ) : null}
-
-                          {['draft', 'submitted'].includes(ret.status) && canManagePurchaseReturns ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(ret.id, 'approve')}
-                              title={dict.app.pages.purchasingPurchaseReturns.approve}
-                              aria-label={dict.app.pages.purchasingPurchaseReturns.approve}
-                              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseReturns.approve}
-                            </button>
-                          ) : null}
-
-                          {ret.status === 'approved' && canPostPurchaseReturns ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(ret.id, 'post')}
-                              title={dict.app.pages.purchasingPurchaseReturns.post}
-                              aria-label={dict.app.pages.purchasingPurchaseReturns.post}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseReturns.post}
-                            </button>
-                          ) : null}
-
-                          {isPurchaseReturnActionable(ret) && canManagePurchaseReturns ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(ret.id, 'cancel')}
-                              title={dict.app.pages.purchasingPurchaseReturns.cancel}
-                              aria-label={dict.app.pages.purchasingPurchaseReturns.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.purchasingPurchaseReturns.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/purchasing/returns/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[4, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="purchasing-purchase-returns-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {showModal ? (
@@ -701,7 +645,10 @@ export default function PurchaseReturnsIndex({
           if (!pendingSensitiveAction) return;
           router.post(pendingSensitiveAction.url, payload, {
             preserveScroll: true,
-            onSuccess: () => setPendingSensitiveAction(null),
+            onSuccess: () => {
+              setPendingSensitiveAction(null);
+              setReloadToken((value) => value + 1);
+            },
           });
         }}
         confirmCode={pendingSensitiveAction?.confirmCode ?? 'POST_PURCHASE_RETURN'}

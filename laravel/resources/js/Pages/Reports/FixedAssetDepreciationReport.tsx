@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, StatusBadge } from '../../Components/Primitives';
 import type { SharedPageProps } from '../../Types/page';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -13,7 +14,6 @@ import {
   localizedName,
   statusTone,
   type LocalizedName,
-  type Paginated,
 } from './fixedAssetReportUtils';
 
 type DepreciationScheduleRow = {
@@ -36,14 +36,14 @@ type DepreciationScheduleRow = {
 };
 
 type ReportProps = SharedPageProps & {
-  schedules: Paginated<DepreciationScheduleRow>;
+  schedules: DepreciationScheduleRow[];
   filters: {
     search?: string;
     status?: string;
   };
 };
 
-export default function FixedAssetDepreciationReport({ locale, schedules, filters }: ReportProps) {
+export default function FixedAssetDepreciationReport({ locale, filters }: ReportProps) {
   const dict = getDictionary(locale);
   const reportDict = dict.app.pages.reports;
   const can = useCan();
@@ -72,6 +72,40 @@ export default function FixedAssetDepreciationReport({ locale, schedules, filter
     { value: 'reversed', label: depreciationStatusLabel('reversed', dict) },
     { value: 'skipped', label: depreciationStatusLabel('skipped', dict) },
   ];
+
+  const columns = useMemo(() => [
+    { data: 'asset', name: 'asset', title: reportDict.fixedAsset, orderable: false },
+    { data: 'period_number', name: 'period_number', title: reportDict.periodNumber, searchable: false },
+    { data: 'period_start_date', name: 'period_start_date', title: reportDict.startDate },
+    { data: 'period_end_date', name: 'period_end_date', title: reportDict.endDate },
+    { data: 'depreciation_minor', name: 'depreciation_minor', title: reportDict.depreciation, searchable: false },
+    { data: 'accumulated_depreciation_minor', name: 'accumulated_depreciation_minor', title: reportDict.accumulatedDepreciation, searchable: false },
+    { data: 'net_book_value_minor', name: 'net_book_value_minor', title: reportDict.netBookValue, searchable: false },
+    { data: 'status', name: 'status', title: reportDict.status },
+  ], [reportDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    asset: (data: DepreciationScheduleRow['asset']) => data ? (
+      <Link href={`/fixed-assets/${data.id}`} className="text-[var(--primary)] hover:underline">
+        {localizedName(data.name, locale)} {fallbackText(data.asset_number, reportDict.notAvailable)}
+      </Link>
+    ) : reportDict.notAvailable,
+    period_number: (data: number) => <span className="font-mono">{Number(data)}</span>,
+    depreciation_minor: (data: number, _type: unknown, row: DepreciationScheduleRow) => (
+      <span className="font-mono">{formatMinor(Number(data), row.asset?.currency)}</span>
+    ),
+    accumulated_depreciation_minor: (data: number, _type: unknown, row: DepreciationScheduleRow) => (
+      <span className="font-mono">{formatMinor(Number(data), row.asset?.currency)}</span>
+    ),
+    net_book_value_minor: (data: number, _type: unknown, row: DepreciationScheduleRow) => (
+      <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+        {formatMinor(Number(data), row.asset?.currency)}
+      </span>
+    ),
+    status: (data: string) => (
+      <StatusBadge tone={statusTone(data)}>{depreciationStatusLabel(data, dict)}</StatusBadge>
+    ),
+  }), [dict, locale, reportDict]);
 
   return (
     <AppLayout active="reports.index">
@@ -130,62 +164,19 @@ export default function FixedAssetDepreciationReport({ locale, schedules, filter
           </div>
         </Card>
 
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{reportDict.fixedAsset}</th>
-                <th className={tableClasses.th}>{reportDict.periodNumber}</th>
-                <th className={tableClasses.th}>{reportDict.startDate}</th>
-                <th className={tableClasses.th}>{reportDict.endDate}</th>
-                <th className={tableClasses.th}>{reportDict.depreciation}</th>
-                <th className={tableClasses.th}>{reportDict.accumulatedDepreciation}</th>
-                <th className={tableClasses.th}>{reportDict.netBookValue}</th>
-                <th className={tableClasses.th}>{reportDict.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedules.data.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className={`${tableClasses.td} text-center text-[var(--text-secondary)]`}>
-                    {reportDict.noDepreciationScheduleRows}
-                  </td>
-                </tr>
-              ) : (
-                schedules.data.map((row) => (
-                  <tr key={row.id}>
-                    <td className={tableClasses.td}>
-                      {row.asset ? (
-                        <Link href={`/fixed-assets/${row.asset.id}`} className="text-[var(--primary)] hover:underline">
-                          {localizedName(row.asset.name, locale)} {fallbackText(row.asset.asset_number, reportDict.notAvailable)}
-                        </Link>
-                      ) : (
-                        reportDict.notAvailable
-                      )}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>{row.period_number}</td>
-                    <td className={tableClasses.td}>{row.period_start_date}</td>
-                    <td className={tableClasses.td}>{row.period_end_date}</td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(row.depreciation_minor, row.asset?.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(row.accumulated_depreciation_minor, row.asset?.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono font-semibold text-emerald-600 dark:text-emerald-400`}>
-                      {formatMinor(row.net_book_value_minor, row.asset?.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(row.status)}>
-                        {depreciationStatusLabel(row.status, dict)}
-                      </StatusBadge>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            key={`fixed-asset-depreciation-${JSON.stringify(filters)}`}
+            ajaxUrl="/reports/fixed-asset-depreciation/data"
+            columns={columns}
+            filters={{ status: filters.status || '' }}
+            initialSearch={filters.search || ''}
+            locale={locale}
+            order={[[2, 'asc'], [1, 'asc']]}
+            slots={slots}
+            tableId="fixed-asset-depreciation-data-table"
+          />
+        </Card>
       </div>
     </AppLayout>
   );

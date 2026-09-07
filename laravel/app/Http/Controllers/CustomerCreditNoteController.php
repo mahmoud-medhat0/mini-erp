@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Application\Sales\CustomerCreditNotePageData;
 use App\Application\Sales\CustomerCreditNoteService;
 use App\Application\Sales\CustomerInvoiceRevisionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,6 +27,13 @@ class CustomerCreditNoteController extends Controller
             'status' => $request->query('status'),
             'customer_id' => $request->query('customer_id'),
         ]));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        Gate::authorize('sales.credit_notes');
+
+        return $this->customerCreditNotePageData->datatable($request->only(['status', 'customer_id']));
     }
 
     public function store(Request $request): RedirectResponse

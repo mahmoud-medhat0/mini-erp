@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Inventory\StockCountPageData;
 use App\Application\Inventory\StockCountService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,11 @@ class StockCountController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Inventory/StockCounts', $this->pageData->indexData($request->only(['search', 'status', 'warehouse_id'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'warehouse_id']));
     }
 
     public function store(Request $request): RedirectResponse

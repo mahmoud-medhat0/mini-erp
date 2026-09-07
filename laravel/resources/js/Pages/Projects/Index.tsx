@@ -1,22 +1,16 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, Modal, PageHeader, PaginationControls, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge, ToggleSwitch } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, ProjectRow, ProjectStatus, SharedPageProps } from '../../Types';
-
-type PaginatedData<T> = {
-  data: T[];
-  total: number;
-  links: PaginationLink[];
-};
+import type { ProjectRow, ProjectStatus, SharedPageProps } from '../../Types';
 
 type Props = SharedPageProps & {
-  projects: PaginatedData<ProjectRow>;
   filters: {
     search?: string;
     status?: string;
@@ -24,16 +18,16 @@ type Props = SharedPageProps & {
   };
 };
 
-export default function ProjectsIndex({ locale, projects, filters }: Props) {
+export default function ProjectsIndex({ locale, filters }: Props) {
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.projects;
   const accDict = dict.app.accounting;
-  const auditDict = dict.app.audit;
   const can = useCan();
 
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectRow | null>(null);
   const [search, setSearch] = useState(filters.search || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm({
     code: '',
@@ -134,21 +128,30 @@ export default function ProjectsIndex({ locale, projects, filters }: Props) {
     if (editingProject) {
       form.patch(`/projects/${editingProject.id}`, {
         preserveScroll: true,
-        onSuccess: () => setShowModal(false),
+        onSuccess: () => {
+          setShowModal(false);
+          setReloadToken((value) => value + 1);
+        },
       });
       return;
     }
 
     form.post('/projects', {
       preserveScroll: true,
-      onSuccess: () => setShowModal(false),
+      onSuccess: () => {
+        setShowModal(false);
+        setReloadToken((value) => value + 1);
+      },
     });
   }
 
   function handleDelete(project: ProjectRow) {
     const projectName = getLocalizedName(project.name, locale) || project.code;
     if (window.confirm(pageDict.confirmDeleteProject.replace('{name}', projectName))) {
-      router.delete(`/projects/${project.id}`, { preserveScroll: true });
+      router.delete(`/projects/${project.id}`, {
+        preserveScroll: true,
+        onSuccess: () => setReloadToken((value) => value + 1),
+      });
     }
   }
 
@@ -180,6 +183,51 @@ export default function ProjectsIndex({ locale, projects, filters }: Props) {
         return status;
     }
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'name', name: 'name', title: pageDict.nameEn },
+    { data: 'description', name: 'description', title: pageDict.descriptionLabel },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'start_date', name: 'start_date', title: pageDict.startDate },
+    { data: 'end_date', name: 'end_date', title: pageDict.endDate },
+    { data: 'is_billable', name: 'is_billable', title: pageDict.billable },
+    { data: 'is_active', name: 'is_active', title: pageDict.active },
+    { data: 'id', name: 'id', title: pageDict.actions, orderable: false, searchable: false },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (data: string): ReactElement => <span className="font-mono text-xs font-bold">{data}</span>,
+    name: (data: ProjectRow['name']): ReactElement => <span className="font-semibold">{getLocalizedName(data, locale)}</span>,
+    description: (data: string | null): ReactElement => (
+      <span className="block max-w-xs truncate text-xs text-[var(--text-secondary)]">{data || accDict.notAvailable}</span>
+    ),
+    status: (data: ProjectStatus): ReactElement => (
+      <StatusBadge tone={getStatusTone(data)}>{getStatusLabel(data)}</StatusBadge>
+    ),
+    start_date: (data: string | null): ReactElement => <span className="font-mono text-xs">{data || accDict.notAvailable}</span>,
+    end_date: (data: string | null): ReactElement => <span className="font-mono text-xs">{data || accDict.notAvailable}</span>,
+    is_billable: (data: boolean): ReactElement => (
+      <StatusBadge tone={data ? 'ok' : 'muted'}>{data ? pageDict.billableYes : pageDict.billableNo}</StatusBadge>
+    ),
+    is_active: (data: boolean): ReactElement => (
+      <StatusBadge tone={data ? 'ok' : 'muted'}>{data ? pageDict.active : pageDict.inactive}</StatusBadge>
+    ),
+    id: (_data: string, _type: unknown, row: ProjectRow): ReactElement => (
+      <div className="flex flex-wrap items-center gap-3">
+        {can('projects.edit') ? (
+          <button type="button" onClick={() => openEditModal(row)} title={pageDict.edit} aria-label={pageDict.edit} className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer">
+            {pageDict.edit}
+          </button>
+        ) : null}
+        {can('projects.delete') ? (
+          <button type="button" onClick={() => handleDelete(row)} title={pageDict.delete} aria-label={pageDict.delete} className="text-xs font-bold text-red-500 hover:underline cursor-pointer">
+            {pageDict.delete}
+          </button>
+        ) : null}
+      </div>
+    ),
+  } as unknown as DataTableSlots), [accDict.notAvailable, can, locale, pageDict]);
 
   return (
     <AppLayout active="projects.index" pagination="manual">
@@ -241,95 +289,24 @@ export default function ProjectsIndex({ locale, projects, filters }: Props) {
         </div>
       </Card>
 
-      {projects.data.length === 0 ? (
-        <EmptyState
-          title={pageDict.noProjects}
-          description={pageDict.noProjectsDescription}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/projects/data"
+          columns={columns}
+          filters={{
+            project_search: filters.search || '',
+            status: filters.status || '',
+            is_billable: filters.is_billable || '',
+          }}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="projects-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.code}</th>
-                <th className={tableClasses.th}>{pageDict.nameEn}</th>
-                <th className={tableClasses.th}>{pageDict.descriptionLabel}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.startDate}</th>
-                <th className={tableClasses.th}>{pageDict.endDate}</th>
-                <th className={tableClasses.th}>{pageDict.billable}</th>
-                <th className={tableClasses.th}>{pageDict.active}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {projects.data.map((project) => (
-                <tr key={project.id} className="hover:bg-[var(--background)]/60 transition-colors">
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{project.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(project.name, locale)}</td>
-                  <td className={`${tableClasses.td} text-xs text-[var(--text-secondary)] max-w-xs truncate`}>
-                    {project.description || accDict.notAvailable}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={getStatusTone(project.status)}>
-                      {getStatusLabel(project.status)}
-                    </StatusBadge>
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>
-                    {project.start_date || accDict.notAvailable}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>
-                    {project.end_date || accDict.notAvailable}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={project.is_billable ? 'ok' : 'muted'}>
-                      {project.is_billable ? pageDict.billableYes : pageDict.billableNo}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={project.is_active ? 'ok' : 'muted'}>
-                      {project.is_active ? pageDict.active : pageDict.inactive}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {can('projects.edit') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(project)}
-                          title={pageDict.edit}
-                          aria-label={pageDict.edit}
-                          className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                        >
-                          {pageDict.edit}
-                        </button>
-                      ) : null}
-                      {can('projects.delete') ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(project)}
-                          title={pageDict.delete}
-                          aria-label={pageDict.delete}
-                          className="text-xs font-bold text-red-500 hover:underline cursor-pointer"
-                        >
-                          {pageDict.delete}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Pagination Controls */}
-      <PaginationControls
-        links={projects.links}
-        total={projects.total}
-        totalLabel={auditDict.totalRecords}
-      />
+      </Card>
 
       {/* Create / Edit Modal */}
       <Modal

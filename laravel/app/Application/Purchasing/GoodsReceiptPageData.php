@@ -5,16 +5,17 @@ namespace App\Application\Purchasing;
 use App\Models\GoodsReceipt;
 use App\Models\PurchaseOrder;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class GoodsReceiptPageData
 {
     /**
      * @param  array{search?: mixed, status?: mixed, warehouse_id?: mixed}  $filters
      * @return array{
-     *     goodsReceipts: LengthAwarePaginator,
+     *     goodsReceipts: array,
      *     confirmedPurchaseOrders: Collection<int, PurchaseOrder>,
      *     warehouses: Collection<int, Warehouse>,
      *     filters: array{search: mixed, status: mixed, warehouse_id: mixed}
@@ -29,7 +30,7 @@ class GoodsReceiptPageData
         ];
 
         return [
-            'goodsReceipts' => $this->goodsReceipts($normalizedFilters),
+            'goodsReceipts' => [],
             'confirmedPurchaseOrders' => $this->confirmedPurchaseOrders(),
             'warehouses' => $this->activeWarehouses(),
             'filters' => $normalizedFilters,
@@ -39,39 +40,43 @@ class GoodsReceiptPageData
     /**
      * @param  array{search: mixed, status: mixed, warehouse_id: mixed}  $filters
      */
-    private function goodsReceipts(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
+        $status = (string) ($filters['status'] ?? '');
+        $warehouseId = (string) ($filters['warehouse_id'] ?? '');
+
         $query = GoodsReceipt::query()->with([
             'purchaseOrder.supplier',
             'warehouse',
             'lines.product',
             'lines.unitOfMeasure',
-        ]);
+        ])
+            ->when($status && in_array($status, GoodsReceiptService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('status', $status))
+            ->when($warehouseId, fn (Builder $query) => $query->where('warehouse_id', $warehouseId));
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $query->where('number', 'like', "%{$filters['search']}%")
-                    ->orWhere('reference', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('purchaseOrder', function (Builder $purchaseOrderQuery) use ($filters): void {
-                        $purchaseOrderQuery->where('number', 'like', "%{$filters['search']}%")
-                            ->orWhereHas('supplier', function (Builder $supplierQuery) use ($filters): void {
-                                $supplierQuery->where('name', 'like', "%{$filters['search']}%");
-                            });
-                    });
-            });
-        }
-
-        if ($filters['status'] && in_array($filters['status'], GoodsReceiptService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        if ($filters['warehouse_id']) {
-            $query->where('warehouse_id', $filters['warehouse_id']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('number', 'like', "%{$keyword}%")
+                        ->orWhere('reference', 'like', "%{$keyword}%")
+                        ->orWhere('notes', 'like', "%{$keyword}%")
+                        ->orWhereHas('warehouse', fn (Builder $warehouseQuery) => $warehouseQuery->where('code', 'like', "%{$keyword}%")->orWhereRaw('LOWER(CAST(warehouse.name AS TEXT)) LIKE ?', [$needle]))
+                        ->orWhereHas('purchaseOrder', function (Builder $purchaseOrderQuery) use ($keyword, $needle): void {
+                            $purchaseOrderQuery->where('number', 'like', "%{$keyword}%")
+                                ->orWhereHas('supplier', function (Builder $supplierQuery) use ($keyword, $needle): void {
+                                    $supplierQuery->whereRaw('LOWER(CAST(supplier.name AS TEXT)) LIKE ?', [$needle])
+                                        ->orWhere('code', 'like', "%{$keyword}%");
+                                });
+                        });
+                });
+            })
+            ->addColumn('purchase_order_number', fn (GoodsReceipt $row) => $row->purchaseOrder?->number ?? '')
+            ->addColumn('supplier_name', fn (GoodsReceipt $row) => $row->purchaseOrder?->supplier?->code ?? '')
+            ->addColumn('warehouse_name', fn (GoodsReceipt $row) => $row->warehouse?->code ?? '')
+            ->addColumn('lines_count', fn (GoodsReceipt $row) => $row->lines->count())
+            ->addColumn('actions', fn () => '')
+            ->toJson();
     }
 
     /**

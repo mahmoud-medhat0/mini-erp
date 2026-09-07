@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Purchasing\SupplierAdjustmentNotePageData;
 use App\Application\Purchasing\SupplierAdjustmentNoteService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +24,11 @@ class SupplierAdjustmentNoteController extends Controller
             'status' => $request->query('status'),
             'supplier_id' => $request->query('supplier_id'),
         ]));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->supplierAdjustmentNotePageData->datatable($request->only(['status', 'supplier_id']));
     }
 
     public function store(Request $request): RedirectResponse

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Accounting\BankReconciliationPageData;
 use App\Application\Accounting\BankReconciliationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,11 @@ class BankReconciliationController extends Controller
             'status' => $request->query('status'),
             'bank_account_id' => $request->query('bank_account_id'),
         ]));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status', 'bank_account_id']));
     }
 
     public function store(Request $request): RedirectResponse
@@ -45,6 +51,16 @@ class BankReconciliationController extends Controller
     public function show(string $id): Response
     {
         return Inertia::render('BankReconciliations/Show', $this->pageData->showData($id));
+    }
+
+    public function linesData(string $id): JsonResponse
+    {
+        return $this->pageData->linesDataTable($id);
+    }
+
+    public function candidatesData(string $id): JsonResponse
+    {
+        return $this->pageData->candidatesDataTable($id);
     }
 
     public function addLine(Request $request, string $id): RedirectResponse

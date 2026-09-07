@@ -1,14 +1,14 @@
 import { Head, router } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader } from '../../Components/Primitives';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { getDictionary } from '../../lib/i18n';
-import type { AuditLogRow, PaginatedAuditLogs, SharedPageProps, UserOption } from '../../Types';
+import type { AuditLogRow, SharedPageProps, UserOption } from '../../Types';
 
 type AuditLogProps = SharedPageProps & {
-  logs: PaginatedAuditLogs;
   filters: {
     actor_id?: string;
     action?: string;
@@ -26,7 +26,6 @@ type AuditLogProps = SharedPageProps & {
 
 export default function AuditLogIndex({
   locale,
-  logs,
   filters,
   actions,
   entityTypes,
@@ -107,6 +106,83 @@ export default function AuditLogIndex({
       return raw;
     }
   }
+
+  const columns = useMemo(() => [
+    { data: 'at', name: 'at', title: auditDict.timestamp, width: '170px' },
+    { data: 'actor_name', name: 'actor_name', title: auditDict.actor },
+    { data: 'action', name: 'action', title: auditDict.action },
+    { data: 'entity_type', name: 'entity_type', title: auditDict.entityType },
+    { data: 'entity_id', name: 'entity_id', title: auditDict.entityId },
+    { data: 'request_id', name: 'request_id', title: auditDict.requestId },
+    { data: 'id', name: 'id', title: auditDict.details, orderable: false, searchable: false, className: 'text-end' },
+  ], [auditDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    at: (data: string): ReactElement => (
+      <span className="font-mono text-xs font-semibold text-[var(--text-secondary)]">
+        {new Date(data).toLocaleString(locale)}
+      </span>
+    ),
+    actor_name: (_data: string | null, _type: unknown, log: AuditLogRow): ReactElement => (
+      <div className="flex flex-col">
+        <span className="text-xs font-bold text-[var(--text-primary)]">
+          {log.actor_name || (log.actor_id ? `${auditDict.userFallbackPrefix} #${log.actor_id}` : auditDict.system)}
+        </span>
+        {log.actor_email ? (
+          <span className="font-mono text-[10px] text-[var(--text-muted)]">{log.actor_email}</span>
+        ) : null}
+      </div>
+    ),
+    action: (data: string): ReactElement => (
+      <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+        {data}
+      </span>
+    ),
+    entity_type: (data: string): ReactElement => (
+      <span className="text-xs font-semibold text-[var(--text-primary)]">{data}</span>
+    ),
+    entity_id: (data: string, _type: unknown, log: AuditLogRow): ReactElement => (
+      <button
+        type="button"
+        onClick={() => setSelectedPayload(log)}
+        className="block max-w-[140px] truncate rounded-md border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-start font-mono text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
+        title={`${log.entity_id} - ${actionsDict.viewDetails}`}
+        aria-label={`${log.entity_id} - ${actionsDict.viewDetails}`}
+      >
+        {data || auditDict.notAvailable}
+      </button>
+    ),
+    request_id: (data: string | null, _type: unknown, log: AuditLogRow): ReactElement => (
+      <button
+        type="button"
+        onClick={() => setSelectedPayload(log)}
+        className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-0.5 font-mono text-[11px] font-bold text-[var(--text-secondary)] hover:text-blue-500"
+        title={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}
+        aria-label={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}
+      >
+        {data ? data.substring(0, 8) : auditDict.notAvailable}
+      </button>
+    ),
+    id: (_data: string, _type: unknown, log: AuditLogRow): ReactElement => (
+      log.before_json || log.after_json ? (
+        <button
+          type="button"
+          onClick={() => setSelectedPayload(log)}
+          title={auditDict.viewPayload}
+          aria-label={auditDict.viewPayload}
+          className="inline-flex items-center gap-1 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 transition-all hover:bg-blue-500/20 dark:text-blue-400"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          <span>{auditDict.viewPayload}</span>
+        </button>
+      ) : (
+        <span className="text-xs text-[var(--text-muted)]">{auditDict.notAvailable}</span>
+      )
+    ),
+  } as unknown as DataTableSlots), [actionsDict, auditDict, locale]);
 
   return (
     <AppLayout active="audit.view" pagination="manual">
@@ -233,131 +309,26 @@ export default function AuditLogIndex({
       </Card>
 
       {/* Main Audit Table */}
-      {logs.data.length === 0 ? (
-        <EmptyState title={auditDict.empty} />
-      ) : (
-        <Card className="overflow-hidden border-[var(--border)]">
-          <div className="overflow-x-auto">
-            <table className={tableClasses.table}>
-              <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--background)]/50">
-                  <th className={tableClasses.th}>{auditDict.timestamp}</th>
-                  <th className={tableClasses.th}>{auditDict.actor}</th>
-                  <th className={tableClasses.th}>{auditDict.action}</th>
-                  <th className={tableClasses.th}>{auditDict.entityType}</th>
-                  <th className={tableClasses.th}>{auditDict.entityId}</th>
-                  <th className={tableClasses.th}>{auditDict.requestId}</th>
-                  <th className={`${tableClasses.th} text-end`}>{auditDict.details}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {logs.data.map((log) => (
-                  <tr key={log.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                    <td className={tableClasses.td}>
-                      <span className="text-xs font-semibold text-[var(--text-secondary)] font-mono">
-                        {new Date(log.at).toLocaleString(locale)}
-                      </span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[var(--text-primary)]">
-                          {log.actor_name || (log.actor_id ? `${auditDict.userFallbackPrefix} #${log.actor_id}` : auditDict.system)}
-                        </span>
-                        {log.actor_email ? (
-                          <span className="text-[10px] text-[var(--text-muted)] font-mono">{log.actor_email}</span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <span className="text-xs font-semibold text-[var(--text-primary)]">{log.entity_type}</span>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPayload(log)}
-                        className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md text-start max-w-[140px] truncate block"
-                        title={`${log.entity_id} - ${actionsDict.viewDetails}`}
-                        aria-label={`${log.entity_id} - ${actionsDict.viewDetails}`}
-                      >
-                        {log.entity_id}
-                      </button>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedPayload(log)}
-                        className="font-mono text-[11px] font-bold text-[var(--text-secondary)] hover:text-blue-500 bg-[var(--background)] border border-[var(--border)] px-2 py-0.5 rounded-md"
-                        title={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}
-                        aria-label={`${log.request_id || auditDict.notAvailable} - ${actionsDict.viewDetails}`}
-                      >
-                        {log.request_id ? log.request_id.substring(0, 8) : auditDict.notAvailable}
-                      </button>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      {log.before_json || log.after_json ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedPayload(log)}
-                          title={auditDict.viewPayload}
-                          aria-label={auditDict.viewPayload}
-                          className="inline-flex items-center gap-1 rounded-lg border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer"
-                        >
-                          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          <span>{auditDict.viewPayload}</span>
-                        </button>
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)]">{auditDict.notAvailable}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--surface)]">
-            <span className="text-xs text-[var(--text-muted)]">
-              {auditDict.totalRecords} {logs.total}
-            </span>
-            <div className="flex items-center gap-2">
-              {logs.prev_page_url ? (
-                <button
-                  type="button"
-                  onClick={() => router.get(logs.prev_page_url!, {}, { preserveState: true, preserveScroll: true })}
-                  title={actionsDict.previous}
-                  aria-label={actionsDict.previous}
-                  className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
-                >
-                  {actionsDict.previous}
-                </button>
-              ) : null}
-              <span className="text-xs font-bold text-[var(--text-primary)] px-2">
-                {logs.current_page} / {logs.last_page}
-              </span>
-              {logs.next_page_url ? (
-                <button
-                  type="button"
-                  onClick={() => router.get(logs.next_page_url!, {}, { preserveState: true, preserveScroll: true })}
-                  title={actionsDict.next}
-                  aria-label={actionsDict.next}
-                  className="px-3 py-1 text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] hover:border-[var(--primary)] transition-all cursor-pointer"
-                >
-                  {actionsDict.next}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </Card>
-      )}
+      <Card className="overflow-hidden border-[var(--border)] p-0">
+        <ServerDataTable
+          ajaxUrl="/audit-log/data"
+          columns={columns}
+          filters={{
+            audit_search: filters.search || '',
+            actor_id: filters.actor_id || '',
+            action: filters.action || '',
+            entity_type: filters.entity_type || '',
+            request_id: filters.request_id || '',
+            date_from: filters.date_from || '',
+            date_to: filters.date_to || '',
+          }}
+          locale={locale}
+          order={[[0, 'desc']]}
+          pageLength={25}
+          slots={slots}
+          tableId="audit-log-table"
+        />
+      </Card>
 
       {/* Expandable JSON Payload Drawer / Modal */}
       {selectedPayload ? (

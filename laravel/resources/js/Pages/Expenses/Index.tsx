@@ -3,11 +3,12 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { AccountingAmount, Button, Card, EmptyState, MetricCard, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { AccountingAmount, Button, Card, MetricCard, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatDate, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
+import type { AccountOption, CurrencyOption, SharedPageProps } from '../../Types';
 
 type TranslatedName = Record<string, string> | string | null;
 type Branch = { id: string; code: string; name: TranslatedName };
@@ -76,7 +77,6 @@ type ExpenseRow = {
   lines: ExpenseLine[];
 };
 
-type PaginatedData<T> = { data: T[]; total: number; links: PaginationLink[] };
 type LineForm = {
   expense_category_id: string;
   expense_account_id: string;
@@ -104,7 +104,14 @@ type ExpenseForm = {
 };
 
 type Props = SharedPageProps & {
-  expenses: PaginatedData<ExpenseRow>;
+  expenses?: ExpenseRow[];
+  summary: {
+    total_minor: number;
+    currency?: string | null;
+    has_mixed_currencies: boolean;
+    posted_count: number;
+    pipeline_count: number;
+  };
   categories: ExpenseCategory[];
   expenseAccounts: ExpenseAccount[];
   suppliers: Supplier[];
@@ -163,7 +170,7 @@ function statusTone(value: string): 'ok' | 'muted' | 'danger' | 'warning' | 'inf
 
 export default function ExpensesIndex({
   locale,
-  expenses,
+  summary,
   categories = [],
   expenseAccounts = [],
   suppliers = [],
@@ -189,9 +196,9 @@ export default function ExpensesIndex({
   const defaultCurrency = currencies[0]?.code || '';
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
-  const [search, setSearch] = useState(filters.search || '');
   const [status, setStatus] = useState(filters.status || '');
   const [branchId, setBranchId] = useState(filters.branch_id || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const form = useForm<ExpenseForm>({
     expense_date: today(),
@@ -263,16 +270,16 @@ export default function ExpensesIndex({
     label: `${taxCode.code} - ${getLocalizedName(taxCode.name, locale)}`,
   })), [taxCodes, locale]);
 
-  const statusOptions = statuses.map((item) => ({ value: item, label: pageDict.statuses[item] || item }));
+  const statusOptions = useMemo(() => [
+    { value: '', label: pageDict.allStatuses },
+    ...statuses.map((item) => ({ value: item, label: pageDict.statuses[item] || item })),
+  ], [pageDict.allStatuses, pageDict.statuses, statuses]);
   const methodOptions = settlementMethods.map((item) => ({ value: item, label: pageDict.methods[item] || item }));
-  const visibleCurrencies = Array.from(new Set(expenses.data.map((row) => row.currency).filter(Boolean)));
-  const visibleTotal = visibleCurrencies.length <= 1
-    ? expenses.data.reduce((sum, row) => sum + Number(row.total_minor || 0), 0)
-    : null;
-  const postedCount = expenses.data.filter((row) => row.status === 'posted').length;
-  const openPipeline = expenses.data.filter((row) => ['draft', 'submitted', 'approved'].includes(row.status)).length;
+  const visibleTotal = summary.has_mixed_currencies ? null : summary.total_minor;
+  const postedCount = summary.posted_count;
+  const openPipeline = summary.pipeline_count;
   const formSubtotal = form.data.lines.reduce((sum, line) => sum + amountToMinor(line.unit_amount) * (parseQuantityToE6(line.quantity) / 1000000), 0);
-  const activeFilterCount = [search, status, branchId].filter(Boolean).length;
+  const activeFilterCount = [filters.search, status, branchId].filter(Boolean).length;
 
   function labelForStatus(value: string): string {
     return pageDict.statuses[value as keyof typeof pageDict.statuses] || value;
@@ -282,12 +289,7 @@ export default function ExpensesIndex({
     return pageDict.methods[value as keyof typeof pageDict.methods] || value;
   }
 
-  function applyFilters() {
-    router.get('/expenses', { search, status, branch_id: branchId }, { preserveScroll: true, preserveState: true });
-  }
-
   function clearFilters() {
-    setSearch('');
     setStatus('');
     setBranchId('');
     router.get('/expenses', {}, { preserveScroll: true, preserveState: true });
@@ -393,18 +395,33 @@ export default function ExpensesIndex({
     };
 
     if (editing) {
-      router.put(`/expenses/${editing.id}`, payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+      router.put(`/expenses/${editing.id}`, payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setShowForm(false);
+          setReloadToken((value) => value + 1);
+        },
+      });
       return;
     }
 
-    router.post('/expenses', payload, { preserveScroll: true, onSuccess: () => setShowForm(false) });
+    router.post('/expenses', payload, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setShowForm(false);
+        setReloadToken((value) => value + 1);
+      },
+    });
   }
 
   function transition(id: string, action: 'submit' | 'approve' | 'post' | 'cancel') {
     const message = pageDict.confirmations[action];
     if (message && !confirm(message)) return;
 
-    router.post(`/expenses/${id}/${action}`, {}, { preserveScroll: true });
+    router.post(`/expenses/${id}/${action}`, {}, {
+      preserveScroll: true,
+      onSuccess: () => setReloadToken((value) => value + 1),
+    });
   }
 
   const isExpenseActionable = (expense: ExpenseRow) => ['draft', 'submitted', 'approved'].includes(expense.status);
@@ -425,6 +442,68 @@ export default function ExpensesIndex({
     return isExpenseActionable(expense) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: pageDict.number },
+    { data: 'expense_date', name: 'expense_date', title: pageDict.date },
+    { data: 'settlement_method', name: 'settlement_method', title: pageDict.settlementMethod },
+    { data: 'branch_name', name: 'branch_name', title: pageDict.branch, orderable: false, searchable: false },
+    { data: 'payee', name: 'payee', title: pageDict.supplier, orderable: false, searchable: false },
+    { data: 'total_minor', name: 'total_minor', title: pageDict.total, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: any, _type: any, expense: ExpenseRow) => (
+      <span className="font-mono text-xs font-bold">{value || expense.reference || expense.id.slice(0, 8)}</span>
+    ),
+    expense_date: (value: any) => formatDate(value),
+    settlement_method: (value: any) => labelForMethod(value),
+    branch_name: (_value: any, _type: any, expense: ExpenseRow) => (
+      <span>{expense.branch ? `${expense.branch.code} - ${getLocalizedName(expense.branch.name, locale)}` : pageDict.unassignedBranch}</span>
+    ),
+    payee: (_value: any, _type: any, expense: ExpenseRow) => (
+      <span>{expense.supplier ? `${expense.supplier.code} - ${getLocalizedName(expense.supplier.name, locale)}` : expense.payee_name || pageDict.noSupplier}</span>
+    ),
+    total_minor: (value: any, _type: any, expense: ExpenseRow) => (
+      <AccountingAmount amountMinor={Number(value || 0)} currency={expense.currency} />
+    ),
+    status: (value: any) => <StatusBadge tone={statusTone(value)}>{labelForStatus(value)}</StatusBadge>,
+    actions: (_value: any, _type: any, expense: ExpenseRow) => {
+      const actionState = getExpenseActionState(expense);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {expense.status === 'draft' && canEditExpenses ? (
+            <button type="button" onClick={() => openEdit(expense)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {expense.status === 'draft' && canSubmitExpenses ? (
+            <button type="button" onClick={() => transition(expense.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
+          ) : null}
+          {expense.status === 'submitted' && canApproveExpenses ? (
+            <button type="button" onClick={() => transition(expense.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
+          ) : null}
+          {expense.status === 'approved' && canPostExpenses ? (
+            <button type="button" onClick={() => transition(expense.id, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
+          ) : null}
+          {isExpenseActionable(expense) && canEditExpenses ? (
+            <button type="button" onClick={() => transition(expense.id, 'cancel')} title={pageDict.cancelExpense} aria-label={pageDict.cancelExpense} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelExpense}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [canApproveExpenses, canEditExpenses, canPostExpenses, canSubmitExpenses, dict.app.actions, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status, branch_id: branchId }), [branchId, status]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchableSelect options={statusOptions} value={status || null} onChange={(value) => setStatus(value || '')} label={pageDict.status} />
+      <SearchableSelect options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]} value={branchId || null} onChange={(value) => setBranchId(value || '')} label={pageDict.branch} />
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
+    </div>
+  );
+
   return (
     <AppLayout active="expenses.index">
       <Head title={pageDict.headTitle} />
@@ -438,31 +517,12 @@ export default function ExpensesIndex({
       <div className="mb-5 grid gap-4 md:grid-cols-3">
         <MetricCard
           label={pageDict.totalVisible}
-          value={visibleTotal === null ? pageDict.mixedCurrency : <AccountingAmount amountMinor={visibleTotal} currency={visibleCurrencies[0] || form.data.currency || pageDict.noCurrency} />}
+          value={visibleTotal === null ? pageDict.mixedCurrency : <AccountingAmount amountMinor={visibleTotal} currency={summary.currency || form.data.currency || pageDict.noCurrency} />}
           tone="blue"
         />
         <MetricCard label={pageDict.postedCount} value={postedCount} tone="emerald" />
         <MetricCard label={pageDict.openPipeline} value={openPipeline} tone="amber" />
       </div>
-
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto]">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') applyFilters();
-            }}
-            placeholder={pageDict.search}
-            className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-sm text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
-          />
-          <SearchableSelect options={statusOptions} value={status || null} onChange={(value) => setStatus(value || '')} placeholder={pageDict.allStatuses} />
-          <SearchableSelect options={branchOptions} value={branchId || null} onChange={(value) => setBranchId(value || '')} placeholder={pageDict.allBranches} />
-          <Button onClick={applyFilters}>{pageDict.applyFilter}</Button>
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{pageDict.clearFilter}</Button>
-        </div>
-      </Card>
 
       {showForm ? (
         <Card className="mb-5 p-5">
@@ -578,69 +638,21 @@ export default function ExpensesIndex({
         </Card>
       ) : null}
 
-      {expenses.data.length === 0 ? (
-        <EmptyState title={pageDict.noExpenses} description={pageDict.noExpensesDescription} />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{pageDict.number}</th>
-                <th className={tableClasses.th}>{pageDict.date}</th>
-                <th className={tableClasses.th}>{pageDict.settlementMethod}</th>
-                <th className={tableClasses.th}>{pageDict.branch}</th>
-                <th className={tableClasses.th}>{pageDict.supplier}</th>
-                <th className={tableClasses.th}>{pageDict.total}</th>
-                <th className={tableClasses.th}>{pageDict.status}</th>
-                <th className={tableClasses.th}>{pageDict.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.data.map((expense) => {
-                const actionState = getExpenseActionState(expense);
-
-                return (
-                  <tr key={expense.id} className="hover:bg-[var(--background)]/60">
-                    <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{expense.number || expense.reference || expense.id.slice(0, 8)}</td>
-                    <td className={tableClasses.td}>{formatDate(expense.expense_date)}</td>
-                    <td className={tableClasses.td}>{labelForMethod(expense.settlement_method)}</td>
-                    <td className={tableClasses.td}>{expense.branch ? `${expense.branch.code} - ${getLocalizedName(expense.branch.name, locale)}` : pageDict.unassignedBranch}</td>
-                    <td className={tableClasses.td}>
-                      {expense.supplier ? `${expense.supplier.code} - ${getLocalizedName(expense.supplier.name, locale)}` : expense.payee_name || pageDict.noSupplier}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <AccountingAmount amountMinor={expense.total_minor} currency={expense.currency} />
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(expense.status)}>{labelForStatus(expense.status)}</StatusBadge>
-                    </td>
-                    <td className={`${tableClasses.td} text-end`}>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {expense.status === 'draft' && canEditExpenses ? (
-                          <button type="button" onClick={() => openEdit(expense)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
-                        ) : null}
-                        {expense.status === 'draft' && canSubmitExpenses ? (
-                          <button type="button" onClick={() => transition(expense.id, 'submit')} title={pageDict.submit} aria-label={pageDict.submit} className="inline-flex h-8 items-center rounded-md border border-indigo-200 px-2.5 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 dark:border-indigo-900/60 dark:text-indigo-300 dark:hover:bg-indigo-950/40">{pageDict.submit}</button>
-                        ) : null}
-                        {expense.status === 'submitted' && canApproveExpenses ? (
-                          <button type="button" onClick={() => transition(expense.id, 'approve')} title={pageDict.approve} aria-label={pageDict.approve} className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40">{pageDict.approve}</button>
-                        ) : null}
-                        {expense.status === 'approved' && canPostExpenses ? (
-                          <button type="button" onClick={() => transition(expense.id, 'post')} title={pageDict.post} aria-label={pageDict.post} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.post}</button>
-                        ) : null}
-                        {isExpenseActionable(expense) && canEditExpenses ? (
-                          <button type="button" onClick={() => transition(expense.id, 'cancel')} title={pageDict.cancelExpense} aria-label={pageDict.cancelExpense} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancelExpense}</button>
-                        ) : null}
-                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/expenses/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[1, 'desc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="expenses-data-table"
+          toolbar={toolbar}
+        />
+      </Card>
     </AppLayout>
   );
 }

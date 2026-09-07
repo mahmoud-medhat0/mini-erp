@@ -14,6 +14,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class Phase16Slice5BudgetFoundationTest extends TestCase
@@ -172,6 +173,89 @@ class Phase16Slice5BudgetFoundationTest extends TestCase
         $this->actingAs($financialsOnlyUser)->get('/budgeting/budgets')->assertForbidden();
 
         $this->actingAs($this->authorizedUser)->get('/budgeting/budgets')->assertOk();
+    }
+
+    public function test_budget_index_uses_authorized_server_side_feed_with_action_relations(): void
+    {
+        $budget = Budget::query()->create([
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'code' => 'ZZZ-SERVER-BUDGET',
+            'version_code' => 'V9',
+            'name' => ['en' => 'Server Budget', 'ar' => 'موازنة خادمية'],
+            'description' => 'Unique server-side budget row',
+            'status' => 'draft',
+            'default_currency' => 'EGP',
+            'created_by' => $this->authorizedUser->id,
+            'lock_version' => 1,
+        ]);
+
+        foreach ([1000, 2000] as $amount) {
+            BudgetLine::query()->create([
+                'budget_id' => $budget->id,
+                'financial_period_id' => $this->period1->id,
+                'account_id' => $amount === 1000 ? $this->expenseAccount1->id : $this->expenseAccount2->id,
+                'project_id' => $this->project->id,
+                'cost_center_id' => $this->costCenter->id,
+                'currency' => 'EGP',
+                'amount_minor' => $amount,
+                'created_by' => $this->authorizedUser->id,
+            ]);
+        }
+
+        $this->actingAs($this->authorizedUser)
+            ->get('/budgeting/budgets?search=ZZZ-SERVER-BUDGET')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Budgeting/Budgets')
+                ->missing('budgets')
+                ->where('filters.search', 'ZZZ-SERVER-BUDGET')
+                ->etc());
+
+        $columns = collect([
+            'code',
+            'fiscal_year_year',
+            'version_code',
+            'name',
+            'status',
+            'lines_count',
+            'total_amount_minor',
+            'id',
+        ])->map(fn (string $column): array => [
+            'data' => $column,
+            'name' => $column,
+            'searchable' => 'true',
+            'orderable' => 'true',
+            'search' => ['value' => '', 'regex' => 'false'],
+        ])->all();
+
+        $response = $this->actingAs($this->authorizedUser)->getJson('/budgeting/budgets/data?'.http_build_query([
+            'budget_search' => 'server budget',
+            'fiscal_year_id' => (string) $this->fiscalYear->id,
+            'status' => 'draft',
+            'draw' => 1,
+            'start' => 0,
+            'length' => 10,
+            'search' => ['value' => '', 'regex' => 'false'],
+            'columns' => $columns,
+            'order' => [['column' => 0, 'dir' => 'asc']],
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', (string) $budget->id)
+            ->assertJsonPath('data.0.fiscal_year_year', 2026)
+            ->assertJsonPath('data.0.lines_count', 2)
+            ->assertJsonPath('data.0.total_amount_minor', 3000)
+            ->assertJsonCount(2, 'data.0.lines');
+
+        $unauthorized = User::factory()->create();
+        $this->actingAs($unauthorized)->getJson('/budgeting/budgets/data?'.http_build_query([
+            'draw' => 1,
+            'start' => 0,
+            'length' => 10,
+            'columns' => $columns,
+        ]))->assertForbidden();
     }
 
     public function test_database_enforces_single_active_budget_per_fiscal_year(): void

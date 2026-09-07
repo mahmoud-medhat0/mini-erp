@@ -290,7 +290,7 @@ class Phase10StockCountAdjustmentTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Inventory/StockCounts')
-                ->has('stockCounts.data')
+                ->where('stockCounts', [])
                 ->has('warehouses')
                 ->has('products')
             );
@@ -299,7 +299,7 @@ class Phase10StockCountAdjustmentTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Inventory/StockAdjustments')
-                ->has('adjustments.data')
+                ->where('adjustments', [])
                 ->has('warehouses')
                 ->has('products')
             );

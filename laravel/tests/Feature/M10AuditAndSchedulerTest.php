@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class M10AuditAndSchedulerTest extends TestCase
@@ -109,6 +110,48 @@ class M10AuditAndSchedulerTest extends TestCase
         $this->assertEquals(1, $service->paginate(['request_id' => 'req-777'])->total());
         $this->assertEquals(1, $service->paginate(['search' => 'new corp'])->total());
         $this->assertEquals(0, $service->paginate(['request_id' => 'missing-request'])->total());
+        $this->assertContains('company', $service->getAvailableEntityTypes()->all());
+
+        $user->givePermissionTo('audit.view');
+        $this->actingAs($user)
+            ->get('/audit-log')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('AuditLog/Index')
+                ->missing('logs')
+            );
+
+        $columns = collect([
+            ['at', true, true],
+            ['actor_name', true, true],
+            ['action', true, true],
+            ['entity_type', true, true],
+            ['entity_id', true, true],
+            ['request_id', true, true],
+            ['id', false, false],
+        ])->map(fn (array $column): array => [
+            'data' => $column[0],
+            'name' => $column[0],
+            'searchable' => $column[1] ? 'true' : 'false',
+            'orderable' => $column[2] ? 'true' : 'false',
+            'search' => ['value' => '', 'regex' => 'false'],
+        ])->all();
+
+        $gridQuery = [
+            'draw' => '1',
+            'start' => '0',
+            'length' => '25',
+            'columns' => $columns,
+            'order' => [['column' => '0', 'dir' => 'desc']],
+            'search' => ['value' => 'new corp', 'regex' => 'false'],
+        ];
+
+        $this->actingAs($user)
+            ->getJson('/audit-log/data?'.http_build_query($gridQuery))
+            ->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.entity_type', 'company')
+            ->assertJsonPath('data.0.request_id', 'req-777');
     }
 
     // --- 3. IMMUTABILITY ENFORCEMENT ON ACTIVITY_LOG & AUDIT_LOG ---

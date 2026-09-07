@@ -2,11 +2,12 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { PaginationLink, SharedPageProps } from '../../Types';
+import type { SharedPageProps } from '../../Types';
 
 type CustomerOption = {
   id: string;
@@ -31,6 +32,11 @@ type SalesOrderOption = {
       name: string;
     } | null;
     unitOfMeasure?: {
+      id: string;
+      code: string;
+      name: string;
+    } | null;
+    unit_of_measure?: {
       id: string;
       code: string;
       name: string;
@@ -70,6 +76,11 @@ type DeliveryNoteRow = {
     number?: string | null;
     customer?: CustomerOption | null;
   } | null;
+  sales_order?: {
+    id: string;
+    number?: string | null;
+    customer?: CustomerOption | null;
+  } | null;
   warehouse?: WarehouseOption | null;
   lines: Array<{
     id: string;
@@ -87,14 +98,15 @@ type DeliveryNoteRow = {
       code: string;
       name: string;
     } | null;
+    unit_of_measure?: {
+      code: string;
+      name: string;
+    } | null;
   }>;
 };
 
 type DeliveryNotesProps = SharedPageProps & {
-  deliveryNotes: {
-    data: DeliveryNoteRow[];
-    links: PaginationLink[];
-  };
+  deliveryNotes?: DeliveryNoteRow[];
   confirmedSalesOrders: SalesOrderOption[];
   warehouses: WarehouseOption[];
   filters: {
@@ -104,7 +116,7 @@ type DeliveryNotesProps = SharedPageProps & {
   };
 };
 
-export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSalesOrders, warehouses, filters }: DeliveryNotesProps) {
+export default function DeliveryNotesIndex({ locale, confirmedSalesOrders, warehouses, filters }: DeliveryNotesProps) {
   const dict = getDictionary(locale);
   const accDict = dict.app.accounting;
   const pageDict = dict.app.pages.salesDeliveryNotes;
@@ -112,6 +124,9 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
 
   const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<DeliveryNoteRow | null>(null);
+  const [tableReloadToken, setTableReloadToken] = useState(0);
+  const [warehouseFilter, setWarehouseFilter] = useState(filters.warehouse_id || '');
+  const [statusFilter, setStatusFilter] = useState(filters.status || '');
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -158,7 +173,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
         selectedSo.lines.map((l) => ({
           sales_order_line_id: l.id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || dict.app.pages.salesDeliveryNotes.noUom,
+          uom_name: (l.unitOfMeasure || l.unit_of_measure)?.name || dict.app.pages.salesDeliveryNotes.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -197,7 +212,7 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
           id: l.id,
           sales_order_line_id: l.sales_order_line_id,
           product_name: l.product?.name || '',
-          uom_name: l.unitOfMeasure?.name || dict.app.pages.salesDeliveryNotes.noUom,
+          uom_name: (l.unitOfMeasure || l.unit_of_measure)?.name || dict.app.pages.salesDeliveryNotes.noUom,
           description: l.description || '',
           quantity: l.quantity_e6 / 1000000,
         }))
@@ -229,12 +244,18 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
     if (editingNote) {
       router.put(`/sales/delivery-notes/${editingNote.id}`, payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setTableReloadToken((token) => token + 1);
+        },
       });
     } else {
       router.post('/sales/delivery-notes', payload, {
         preserveScroll: true,
-        onSuccess: () => closeModal(),
+        onSuccess: () => {
+          closeModal();
+          setTableReloadToken((token) => token + 1);
+        },
       });
     }
   };
@@ -245,7 +266,10 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
     if (action === 'cancel') confirmMsg = dict.app.pages.salesDeliveryNotes.cancelThisDeliveryNote;
 
     if (confirm(confirmMsg)) {
-      router.post(`/sales/delivery-notes/${noteId}/${action}`, {}, { preserveScroll: true });
+      router.post(`/sales/delivery-notes/${noteId}/${action}`, {}, {
+        preserveScroll: true,
+        onSuccess: () => setTableReloadToken((token) => token + 1),
+      });
     }
   };
 
@@ -285,6 +309,66 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
     return note.status === 'draft' ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
 
+  const columns = useMemo(() => [
+    { data: 'number', name: 'delivery_note.number', title: pageDict.deliveryNote },
+    { data: 'sales_order_number', name: 'sales_order_number', title: pageDict.salesOrder },
+    { data: 'customer_name', name: 'customer_name', title: pageDict.customer },
+    { data: 'warehouse_name', name: 'warehouse_name', title: pageDict.warehouse },
+    { data: 'delivery_date', name: 'delivery_note.delivery_date', title: pageDict.deliveryDate },
+    { data: 'status', name: 'delivery_note.status', title: pageDict.status },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (value: string | null) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    sales_order_number: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => {
+      const salesOrder = note.salesOrder || note.sales_order;
+      return <span className="font-mono">{salesOrder?.number || accDict.notAvailable}</span>;
+    },
+    customer_name: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => {
+      const salesOrder = note.salesOrder || note.sales_order;
+      return <span className="font-medium">{getLocalizedName(salesOrder?.customer?.name, locale) || accDict.notAvailable}</span>;
+    },
+    warehouse_name: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => (
+      <span>{note.warehouse ? `${note.warehouse.code} - ${getLocalizedName(note.warehouse.name, locale)}` : accDict.notAvailable}</span>
+    ),
+    status: (value: string) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    actions: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => {
+      const actionState = getDeliveryNoteActionState(note);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {note.status === 'draft' && canEditDeliveryNotes ? (
+            <button type="button" onClick={() => openEditModal(note)} title={pageDict.edit} aria-label={pageDict.edit} className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40">{pageDict.edit}</button>
+          ) : null}
+          {note.status === 'draft' && canConfirmDeliveryNotes ? (
+            <button type="button" onClick={() => handleAction(note.id, 'confirm')} title={pageDict.confirm} aria-label={pageDict.confirm} className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40">{pageDict.confirm}</button>
+          ) : null}
+          {note.status === 'draft' && canCancelDeliveryNotes ? (
+            <button type="button" onClick={() => handleAction(note.id, 'cancel')} title={pageDict.cancel} aria-label={pageDict.cancel} className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40">{pageDict.cancel}</button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  }), [accDict.notAvailable, canCancelDeliveryNotes, canConfirmDeliveryNotes, canEditDeliveryNotes, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({
+    warehouse_id: warehouseFilter,
+    status: statusFilter,
+  }), [statusFilter, warehouseFilter]);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="w-52">
+        <SearchableSelect options={warehouseFilterOptions} value={warehouseFilter || null} onChange={(value) => setWarehouseFilter(value || '')} />
+      </div>
+      <div className="w-44">
+        <SearchableSelect options={statusFilterOptions} value={statusFilter || null} onChange={(value) => setStatusFilter(value || '')} />
+      </div>
+    </div>
+  );
+
   return (
     <AppLayout active="delivery-notes.index">
       <Head title={dict.app.pages.salesDeliveryNotes.deliveryNotes} />
@@ -311,130 +395,19 @@ export default function DeliveryNotesIndex({ locale, deliveryNotes, confirmedSal
         }
       />
 
-      <Card className="p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder={dict.app.pages.salesDeliveryNotes.searchNumberReferenceOrCustomer}
-              defaultValue={filters.search || ''}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value;
-                  router.get('/sales/delivery-notes', { ...filters, search: val }, { preserveState: true, preserveScroll: true });
-                }
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-2.5 ps-10 pe-4 text-xs focus:border-blue-500 focus:outline-none"
-            />
-            <svg className="absolute start-3 top-3 size-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchableSelect
-              options={warehouseFilterOptions}
-              value={filters.warehouse_id || null}
-              onChange={(value) => router.get('/sales/delivery-notes', { ...filters, warehouse_id: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.salesDeliveryNotes.warehouse}
-            />
-
-            <SearchableSelect
-              options={statusFilterOptions}
-              value={filters.status || null}
-              onChange={(value) => router.get('/sales/delivery-notes', { ...filters, status: value || '' }, { preserveState: true, preserveScroll: true })}
-              label={dict.app.pages.salesDeliveryNotes.status}
-            />
-          </div>
-        </div>
-
-        {deliveryNotes.data.length === 0 ? (
-          <EmptyState
-            title={dict.app.pages.salesDeliveryNotes.noDeliveryNotesFound}
-            description={dict.app.pages.salesDeliveryNotes.confirmASalesOrderFirstThen}
-          />
-        ) : (
-          <div className={tableClasses.wrap}>
-            <table className={tableClasses.table}>
-              <thead>
-                <tr>
-                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.deliveryNote}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.salesOrder}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.customer}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.warehouse}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.deliveryDate}</th>
-                  <th className={tableClasses.th}>{dict.app.pages.salesDeliveryNotes.status}</th>
-                  <th className={`${tableClasses.th} text-end`}>{dict.app.pages.salesDeliveryNotes.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {deliveryNotes.data.map((note) => {
-                  const actionState = getDeliveryNoteActionState(note);
-
-                  return (
-                    <tr key={note.id}>
-                      <td className={`${tableClasses.td} font-mono font-bold text-blue-600`}>
-                        {note.number || dict.app.pages.salesDeliveryNotes.draft_2}
-                      </td>
-                      <td className={`${tableClasses.td} font-mono`}>{note.salesOrder?.number || accDict.notAvailable}</td>
-                      <td className={`${tableClasses.td} font-medium`}>{getLocalizedName(note.salesOrder?.customer?.name, locale) || accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{note.warehouse ? `${note.warehouse.code} - ${getLocalizedName(note.warehouse.name, locale)}` : accDict.notAvailable}</td>
-                      <td className={tableClasses.td}>{note.delivery_date}</td>
-                      <td className={tableClasses.td}>
-                        <StatusBadge tone={getStatusTone(note.status)}>
-                          {getStatusLabel(note.status)}
-                        </StatusBadge>
-                      </td>
-                      <td className={`${tableClasses.td} text-end`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {note.status === 'draft' && canEditDeliveryNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(note)}
-                              title={dict.app.pages.salesDeliveryNotes.edit}
-                              aria-label={dict.app.pages.salesDeliveryNotes.edit}
-                              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                            >
-                              {dict.app.pages.salesDeliveryNotes.edit}
-                            </button>
-                          ) : null}
-
-                          {note.status === 'draft' && canConfirmDeliveryNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note.id, 'confirm')}
-                              title={dict.app.pages.salesDeliveryNotes.confirm}
-                              aria-label={dict.app.pages.salesDeliveryNotes.confirm}
-                              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                            >
-                              {dict.app.pages.salesDeliveryNotes.confirm}
-                            </button>
-                          ) : null}
-
-                          {note.status === 'draft' && canCancelDeliveryNotes ? (
-                            <button
-                              type="button"
-                              onClick={() => handleAction(note.id, 'cancel')}
-                              title={dict.app.pages.salesDeliveryNotes.cancel}
-                              aria-label={dict.app.pages.salesDeliveryNotes.cancel}
-                              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                            >
-                              {dict.app.pages.salesDeliveryNotes.cancel}
-                            </button>
-                          ) : null}
-
-                          {actionState ? (
-                            <StatusBadge tone="muted">{actionState}</StatusBadge>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/sales/delivery-notes/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[4, 'desc']]}
+          reloadToken={tableReloadToken}
+          slots={slots}
+          tableId="sales-delivery-notes-data-table"
+          toolbar={toolbar}
+        />
       </Card>
 
       {/* Create / Edit Modal */}

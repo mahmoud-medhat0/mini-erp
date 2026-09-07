@@ -176,6 +176,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/settings/numbering', [NumberingSettingsController::class, 'store'])->middleware('permission.any:settings.numbering,settings.configure')->name('settings.numbering.store');
     Route::patch('/settings/numbering/{sequenceId}', [NumberingSettingsController::class, 'update'])->middleware('permission.any:settings.numbering,settings.configure')->name('settings.numbering.update');
     Route::get('/settings/users', [UserSettingsController::class, 'index'])->middleware('permission.any:users.configure,settings.configure')->name('settings.users');
+    Route::get('/settings/users/data', [UserSettingsController::class, 'datatable'])->middleware('permission.any:users.configure,settings.configure')->name('settings.users.datatable');
     Route::post('/settings/users', [UserSettingsController::class, 'store'])->middleware('permission.any:users.configure,settings.configure')->name('settings.users.store');
     Route::post('/settings/users/roles', [UserRoleAssignmentController::class, 'assign'])->middleware('permission.any:users.configure,settings.configure')->name('settings.users.roles.assign');
     Route::delete('/settings/users/roles', [UserRoleAssignmentController::class, 'revoke'])->middleware('permission.any:users.configure,settings.configure')->name('settings.users.roles.revoke');
@@ -189,6 +190,7 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/settings/branch-approval-rules/{id}', [BranchApprovalRuleController::class, 'update'])->middleware('permission.any:approvals.configure,settings.configure')->name('settings.branch_approval_rules.update');
     Route::delete('/settings/branch-approval-rules/{id}', [BranchApprovalRuleController::class, 'destroy'])->middleware('permission.any:approvals.configure,settings.configure')->name('settings.branch_approval_rules.destroy');
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
+    Route::get('/notifications/data', [NotificationController::class, 'data'])->name('notifications.data');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read_all');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::get('/attachments', [AttachmentController::class, 'index'])->name('attachments.index');
@@ -196,6 +198,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/attachments/{id}', [AttachmentController::class, 'show'])->name('attachments.show');
     Route::delete('/attachments/{id}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::get('/audit-log', [AuditLogController::class, 'index'])->middleware('can:audit.view')->name('audit.index');
+    Route::get('/audit-log/data', [AuditLogController::class, 'datatable'])->middleware('can:audit.view')->name('audit.datatable');
 
     // Phase 2 Accounting Core Routes
     Route::prefix('accounting')->group(function (): void {
@@ -216,6 +219,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/ledger', [GeneralLedgerController::class, 'index'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.ledger');
         Route::get('/ledger/data', [GeneralLedgerController::class, 'datatable'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.ledger.datatable');
         Route::get('/trial-balance', TrialBalanceController::class)->middleware('permission.any:accounting.view,settings.configure')->name('accounting.trial_balance');
+        Route::get('/trial-balance/data', [TrialBalanceController::class, 'data'])->middleware('permission.any:accounting.view,settings.configure')->name('accounting.trial_balance.data');
         Route::get('/periods', [FinancialPeriodController::class, 'index'])->middleware('permission.any:accounting.periods,settings.configure')->name('accounting.periods');
         Route::get('/periods/{period}/close-readiness', [FinancialPeriodController::class, 'closeReadiness'])->middleware('permission.any:accounting.periods,settings.configure')->name('accounting.periods.close_readiness');
         Route::post('/periods/fiscal-years', [FinancialPeriodController::class, 'storeFiscalYear'])->middleware('permission.any:accounting.periods,settings.configure')->name('accounting.periods.fiscal_years.store');
@@ -225,6 +229,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/opening-balances', [OpeningBalanceController::class, 'save'])->middleware('permission.any:accounting.opening_balances,settings.configure')->name('accounting.opening_balances.save');
         Route::post('/opening-balances/post', [OpeningBalanceController::class, 'post'])->middleware(['permission.all:accounting.opening_balances,view_financials', 'sensitive.confirm'])->name('accounting.opening_balances.post');
         Route::get('/fx-rates', [ExchangeRateController::class, 'index'])->middleware('permission.any:accounting.view,accounting.fx_rates,manage_fx_rates,settings.configure')->name('accounting.fx_rates');
+        Route::get('/fx-rates/data', [ExchangeRateController::class, 'datatable'])->middleware('permission.any:accounting.view,accounting.fx_rates,manage_fx_rates,settings.configure')->name('accounting.fx_rates.datatable');
         Route::post('/fx-rates', [ExchangeRateController::class, 'store'])->middleware('permission.any:accounting.create,manage_fx_rates,settings.configure')->name('accounting.fx_rates.store');
         Route::get('/currencies', [CurrencyController::class, 'index'])->middleware('permission.any:accounting.view,accounting.currencies,manage_currencies,settings.configure')->name('accounting.currencies');
         Route::post('/currencies', [CurrencyController::class, 'store'])->middleware('permission.any:accounting.create,manage_currencies,settings.configure')->name('accounting.currencies.store');
@@ -266,14 +271,17 @@ Route::middleware('auth')->group(function (): void {
     Route::patch('/suppliers/{id}', [SupplierController::class, 'update'])->middleware('can:suppliers.edit')->name('suppliers.update');
 
     Route::get('/cash-accounts', [CashAccountController::class, 'index'])->middleware('can:cash.view')->name('cash-accounts.index');
+    Route::get('/cash-accounts/data', [CashAccountController::class, 'datatable'])->middleware('can:cash.view')->name('cash-accounts.datatable');
     Route::post('/cash-accounts', [CashAccountController::class, 'store'])->middleware('can:cash.create')->name('cash-accounts.store');
     Route::patch('/cash-accounts/{id}', [CashAccountController::class, 'update'])->middleware('can:cash.edit')->name('cash-accounts.update');
 
     Route::get('/bank-accounts', [BankAccountController::class, 'index'])->middleware('can:banks.view')->name('bank-accounts.index');
+    Route::get('/bank-accounts/data', [BankAccountController::class, 'datatable'])->middleware('can:banks.view')->name('bank-accounts.datatable');
     Route::post('/bank-accounts', [BankAccountController::class, 'store'])->middleware('can:banks.create')->name('bank-accounts.store');
     Route::patch('/bank-accounts/{id}', [BankAccountController::class, 'update'])->middleware('can:banks.edit')->name('bank-accounts.update');
 
     Route::get('/treasury-transfers', [TreasuryTransferController::class, 'index'])->middleware('permission.any:cash.view,banks.view')->name('treasury-transfers.index');
+    Route::get('/treasury-transfers/data', [TreasuryTransferController::class, 'datatable'])->middleware('permission.any:cash.view,banks.view')->name('treasury-transfers.datatable');
     Route::post('/treasury-transfers', [TreasuryTransferController::class, 'store'])->middleware('permission.any:cash.create,banks.create')->name('treasury-transfers.store');
     Route::patch('/treasury-transfers/{id}', [TreasuryTransferController::class, 'update'])->middleware('permission.any:cash.edit,banks.edit')->name('treasury-transfers.update');
     Route::post('/treasury-transfers/{id}/post', [TreasuryTransferController::class, 'post'])->middleware(['permission.any:cash.post,banks.post', 'can:view_financials', 'sensitive.confirm'])->name('treasury-transfers.post');
@@ -310,6 +318,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/payable-allocations/{id}/reverse', [PayableAllocationController::class, 'reverse'])->middleware(['can:suppliers.allocations', 'sensitive.confirm'])->name('payable-allocations.reverse');
 
     Route::get('/incoming-cheques', [IncomingChequeController::class, 'index'])->middleware('can:cheques.view')->name('incoming-cheques.index');
+    Route::get('/incoming-cheques/data', [IncomingChequeController::class, 'datatable'])->middleware('can:cheques.view')->name('incoming-cheques.datatable');
     Route::post('/incoming-cheques', [IncomingChequeController::class, 'store'])->middleware('can:cheques.create')->name('incoming-cheques.store');
     Route::post('/incoming-cheques/{id}/receive', [IncomingChequeController::class, 'receive'])->middleware('can:cheques.receive')->name('incoming-cheques.receive');
     Route::post('/incoming-cheques/{id}/deposit', [IncomingChequeController::class, 'deposit'])->middleware('can:cheques.deposit')->name('incoming-cheques.deposit');
@@ -318,6 +327,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/incoming-cheques/{id}/return', [IncomingChequeController::class, 'return'])->middleware('can:cheques.return')->name('incoming-cheques.return');
 
     Route::get('/outgoing-cheques', [OutgoingChequeController::class, 'index'])->middleware('can:cheques.view')->name('outgoing-cheques.index');
+    Route::get('/outgoing-cheques/data', [OutgoingChequeController::class, 'datatable'])->middleware('can:cheques.view')->name('outgoing-cheques.datatable');
     Route::post('/outgoing-cheques', [OutgoingChequeController::class, 'store'])->middleware('can:cheques.create')->name('outgoing-cheques.store');
     Route::post('/outgoing-cheques/{id}/issue', [OutgoingChequeController::class, 'issue'])->middleware('can:cheques.issue')->name('outgoing-cheques.issue');
     Route::post('/outgoing-cheques/{id}/clear', [OutgoingChequeController::class, 'clear'])->middleware('can:cheques.clear')->name('outgoing-cheques.clear');
@@ -325,7 +335,10 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/outgoing-cheques/{id}/cancel', [OutgoingChequeController::class, 'cancel'])->middleware('can:cheques.cancel')->name('outgoing-cheques.cancel');
 
     Route::get('/bank-reconciliations', [BankReconciliationController::class, 'index'])->middleware('can:banks.view')->name('bank-reconciliations.index');
+    Route::get('/bank-reconciliations/data', [BankReconciliationController::class, 'datatable'])->middleware('can:banks.view')->name('bank-reconciliations.datatable');
     Route::post('/bank-reconciliations', [BankReconciliationController::class, 'store'])->middleware('can:banks.reconcile')->name('bank-reconciliations.store');
+    Route::get('/bank-reconciliations/{id}/lines/data', [BankReconciliationController::class, 'linesData'])->middleware('can:banks.view')->name('bank-reconciliations.lines.datatable');
+    Route::get('/bank-reconciliations/{id}/candidates/data', [BankReconciliationController::class, 'candidatesData'])->middleware('can:banks.reconcile')->name('bank-reconciliations.candidates.datatable');
     Route::get('/bank-reconciliations/{id}', [BankReconciliationController::class, 'show'])->middleware('can:banks.view')->name('bank-reconciliations.show');
     Route::post('/bank-reconciliations/{id}/lines', [BankReconciliationController::class, 'addLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.store');
     Route::patch('/bank-reconciliations/{id}/lines/{lineId}', [BankReconciliationController::class, 'updateLine'])->middleware('can:banks.reconcile')->name('bank-reconciliations.lines.update');
@@ -359,6 +372,8 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/cheque-register/data', ChequeRegisterDataTableController::class)->name('reports.cheque-register.data');
         Route::get('/cheque-register/export', [ChequeRegisterReportController::class, 'exportCsv'])->middleware('can:reports.export')->name('reports.cheque-register.export');
         Route::get('/bank-reconciliations', [BankReconciliationReportController::class, 'index'])->name('reports.bank-reconciliations');
+        Route::get('/bank-reconciliations/data', [BankReconciliationReportController::class, 'data'])->name('reports.bank-reconciliations.data');
+        Route::get('/bank-reconciliations/{id}/data', [BankReconciliationReportController::class, 'detailData'])->name('reports.bank-reconciliations.detail.data');
         Route::get('/bank-reconciliations/{id}', [BankReconciliationReportController::class, 'show'])->name('reports.bank-reconciliations.show');
         Route::get('/ar-gl-reconciliation', [ArToGlReconciliationController::class, 'index'])->name('reports.ar-gl-reconciliation');
         Route::get('/ar-gl-reconciliation/data', [ArApReconciliationDataTableController::class, 'accountsReceivable'])->name('reports.ar-gl-reconciliation.data');
@@ -392,8 +407,10 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/branch-profitability', [BranchProfitabilityReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.branch-profitability');
         Route::get('/branch-profitability/export', [BranchProfitabilityReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.branch-profitability.export');
         Route::get('/project-profitability', [ProjectProfitabilityReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.project-profitability');
+        Route::get('/project-profitability/data', [ProjectProfitabilityReportController::class, 'datatable'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.project-profitability.data');
         Route::get('/project-profitability/export', [ProjectProfitabilityReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.project-profitability.export');
         Route::get('/cost-center-actuals', [CostCenterActualsReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.cost-center-actuals');
+        Route::get('/cost-center-actuals/data', [CostCenterActualsReportController::class, 'datatable'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.cost-center-actuals.data');
         Route::get('/cost-center-actuals/export', [CostCenterActualsReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.cost-center-actuals.export');
         Route::get('/rentals', [RentalOperationsReportController::class, 'index'])->middleware('can:view_financials')->name('reports.rentals');
         Route::get('/rentals/data', RentalOperationsDataTableController::class)->name('reports.rentals.data');
@@ -404,14 +421,19 @@ Route::middleware('auth')->group(function (): void {
 
         // Phase 6 Slice 7 Fixed Asset Reports
         Route::get('/fixed-asset-register', [FixedAssetReportController::class, 'register'])->middleware('can:view_financials')->name('reports.fixed-asset-register');
+        Route::get('/fixed-asset-register/data', [FixedAssetReportController::class, 'registerData'])->middleware('can:view_financials')->name('reports.fixed-asset-register.data');
         Route::get('/fixed-asset-register/export', [FixedAssetReportController::class, 'exportRegister'])->middleware('permission.any:reports.export,fixedAssets.export')->name('reports.fixed-asset-register.export');
         Route::get('/fixed-asset-net-book-values', [FixedAssetReportController::class, 'netBookValues'])->middleware('can:view_financials')->name('reports.fixed-asset-net-book-values');
+        Route::get('/fixed-asset-net-book-values/data', [FixedAssetReportController::class, 'netBookValueData'])->middleware('can:view_financials')->name('reports.fixed-asset-net-book-values.data');
         Route::get('/fixed-asset-net-book-values/export', [FixedAssetReportController::class, 'exportNetBookValues'])->middleware('permission.any:reports.export,fixedAssets.export')->name('reports.fixed-asset-net-book-values.export');
         Route::get('/fixed-asset-depreciation', [FixedAssetReportController::class, 'depreciation'])->middleware('can:view_financials')->name('reports.fixed-asset-depreciation');
+        Route::get('/fixed-asset-depreciation/data', [FixedAssetReportController::class, 'depreciationData'])->middleware('can:view_financials')->name('reports.fixed-asset-depreciation.data');
         Route::get('/fixed-asset-depreciation/export', [FixedAssetReportController::class, 'exportDepreciation'])->middleware('permission.any:reports.export,fixedAssets.export')->name('reports.fixed-asset-depreciation.export');
         Route::get('/fixed-asset-depreciation-runs', [FixedAssetReportController::class, 'depreciationRuns'])->middleware('can:view_financials')->name('reports.fixed-asset-depreciation-runs');
+        Route::get('/fixed-asset-depreciation-runs/data', [FixedAssetReportController::class, 'depreciationRunData'])->middleware('can:view_financials')->name('reports.fixed-asset-depreciation-runs.data');
         Route::get('/fixed-asset-depreciation-runs/export', [FixedAssetReportController::class, 'exportDepreciationRuns'])->middleware('permission.any:reports.export,fixedAssets.export')->name('reports.fixed-asset-depreciation-runs.export');
         Route::get('/fixed-asset-disposals', [FixedAssetReportController::class, 'disposals'])->middleware('can:view_financials')->name('reports.fixed-asset-disposals');
+        Route::get('/fixed-asset-disposals/data', [FixedAssetReportController::class, 'disposalData'])->middleware('can:view_financials')->name('reports.fixed-asset-disposals.data');
         Route::get('/fixed-asset-disposals/export', [FixedAssetReportController::class, 'exportDisposals'])->middleware('permission.any:reports.export,fixedAssets.export')->name('reports.fixed-asset-disposals.export');
         Route::get('/balance-sheet/export', [BalanceSheetReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.balance_sheet.export');
         Route::get('/income-statement', [IncomeStatementReportController::class, 'index'])->name('reports.income_statement');
@@ -450,6 +472,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 4 Slice 2 Sales Order Routes
     Route::get('/sales/orders', [SalesOrderController::class, 'index'])->middleware('can:sales.view')->name('sales-orders.index');
+    Route::get('/sales/orders/data', [SalesOrderController::class, 'datatable'])->middleware('can:sales.view')->name('sales-orders.datatable');
     Route::post('/sales/orders', [SalesOrderController::class, 'store'])->middleware('can:sales.create')->name('sales-orders.store');
     Route::put('/sales/orders/{salesOrder}', [SalesOrderController::class, 'update'])->middleware('can:sales.edit')->name('sales-orders.update');
     Route::post('/sales/orders/{salesOrder}/submit', [SalesOrderController::class, 'submit'])->middleware('can:sales.submit')->name('sales-orders.submit');
@@ -458,6 +481,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 4 Slice 3 Purchase Order Routes
     Route::get('/purchasing/orders', [PurchaseOrderController::class, 'index'])->middleware('can:purchasing.view')->name('purchase-orders.index');
+    Route::get('/purchasing/orders/data', [PurchaseOrderController::class, 'datatable'])->middleware('can:purchasing.view')->name('purchase-orders.datatable');
     Route::post('/purchasing/orders', [PurchaseOrderController::class, 'store'])->middleware('can:purchasing.create')->name('purchase-orders.store');
     Route::put('/purchasing/orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->middleware('can:purchasing.edit')->name('purchase-orders.update');
     Route::post('/purchasing/orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit'])->middleware('can:purchasing.submit')->name('purchase-orders.submit');
@@ -466,18 +490,21 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 4 Slice 4 Fulfillment Routes (Delivery Notes & Goods Receipts)
     Route::get('/sales/delivery-notes', [DeliveryNoteController::class, 'index'])->middleware('can:sales.view')->name('delivery-notes.index');
+    Route::get('/sales/delivery-notes/data', [DeliveryNoteController::class, 'datatable'])->middleware('can:sales.view')->name('delivery-notes.datatable');
     Route::post('/sales/delivery-notes', [DeliveryNoteController::class, 'store'])->middleware('can:sales.create')->name('delivery-notes.store');
     Route::put('/sales/delivery-notes/{deliveryNote}', [DeliveryNoteController::class, 'update'])->middleware('can:sales.edit')->name('delivery-notes.update');
     Route::post('/sales/delivery-notes/{deliveryNote}/confirm', [DeliveryNoteController::class, 'confirm'])->middleware('can:sales.approve')->name('delivery-notes.confirm');
     Route::post('/sales/delivery-notes/{deliveryNote}/cancel', [DeliveryNoteController::class, 'cancel'])->middleware('can:sales.cancel')->name('delivery-notes.cancel');
 
     Route::get('/purchasing/goods-receipts', [GoodsReceiptController::class, 'index'])->middleware('can:purchasing.view')->name('goods-receipts.index');
+    Route::get('/purchasing/goods-receipts/data', [GoodsReceiptController::class, 'datatable'])->middleware('can:purchasing.view')->name('goods-receipts.datatable');
     Route::post('/purchasing/goods-receipts', [GoodsReceiptController::class, 'store'])->middleware('can:purchasing.create')->name('goods-receipts.store');
     Route::put('/purchasing/goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update'])->middleware('can:purchasing.edit')->name('goods-receipts.update');
     Route::post('/purchasing/goods-receipts/{goodsReceipt}/confirm', [GoodsReceiptController::class, 'confirm'])->middleware('can:purchasing.approve')->name('goods-receipts.confirm');
     Route::post('/purchasing/goods-receipts/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel'])->middleware('can:purchasing.cancel')->name('goods-receipts.cancel');
 
     Route::get('/purchasing/landed-costs', [LandedCostAllocationController::class, 'index'])->middleware('can:purchasing.landed_costs')->name('landed-costs.index');
+    Route::get('/purchasing/landed-costs/data', [LandedCostAllocationController::class, 'datatable'])->middleware('can:purchasing.landed_costs')->name('landed-costs.datatable');
     Route::post('/purchasing/landed-costs', [LandedCostAllocationController::class, 'store'])->middleware('can:purchasing.landed_costs')->name('landed-costs.store');
     Route::put('/purchasing/landed-costs/{id}', [LandedCostAllocationController::class, 'update'])->middleware('can:purchasing.landed_costs')->name('landed-costs.update');
     Route::post('/purchasing/landed-costs/{id}/submit', [LandedCostAllocationController::class, 'submit'])->middleware('can:purchasing.landed_costs')->name('landed-costs.submit');
@@ -487,10 +514,12 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 11 Expense Management Routes
     Route::get('/expenses/categories', [ExpenseCategoryController::class, 'index'])->middleware('can:expenses.view')->name('expense-categories.index');
+    Route::get('/expenses/categories/data', [ExpenseCategoryController::class, 'datatable'])->middleware('can:expenses.view')->name('expense-categories.datatable');
     Route::post('/expenses/categories', [ExpenseCategoryController::class, 'store'])->middleware('can:expenses.create')->name('expense-categories.store');
     Route::put('/expenses/categories/{id}', [ExpenseCategoryController::class, 'update'])->middleware('can:expenses.edit')->name('expense-categories.update');
     Route::delete('/expenses/categories/{id}', [ExpenseCategoryController::class, 'destroy'])->middleware('can:expenses.delete')->name('expense-categories.destroy');
     Route::get('/expenses', [ExpenseController::class, 'index'])->middleware('can:expenses.view')->name('expenses.index');
+    Route::get('/expenses/data', [ExpenseController::class, 'datatable'])->middleware('can:expenses.view')->name('expenses.datatable');
     Route::post('/expenses', [ExpenseController::class, 'store'])->middleware('can:expenses.create')->name('expenses.store');
     Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->middleware('can:expenses.edit')->name('expenses.update');
     Route::post('/expenses/{id}/submit', [ExpenseController::class, 'submit'])->middleware('can:expenses.submit')->name('expenses.submit');
@@ -500,6 +529,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 12 Prepaid and Accrued Expense Routes
     Route::get('/expenses/prepaids', [PrepaidScheduleController::class, 'index'])->middleware('can:expenses.view')->name('prepaid-schedules.index');
+    Route::get('/expenses/prepaids/data', [PrepaidScheduleController::class, 'datatable'])->middleware('can:expenses.view')->name('prepaid-schedules.datatable');
     Route::post('/expenses/prepaids', [PrepaidScheduleController::class, 'store'])->middleware('can:expenses.create')->name('prepaid-schedules.store');
     Route::put('/expenses/prepaids/{id}', [PrepaidScheduleController::class, 'update'])->middleware('can:expenses.edit')->name('prepaid-schedules.update');
     Route::post('/expenses/prepaids/{id}/submit', [PrepaidScheduleController::class, 'submit'])->middleware('can:expenses.submit')->name('prepaid-schedules.submit');
@@ -508,6 +538,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/expenses/prepaids/{id}/cancel', [PrepaidScheduleController::class, 'cancel'])->middleware('can:expenses.edit')->name('prepaid-schedules.cancel');
 
     Route::get('/expenses/accruals', [AccrualScheduleController::class, 'index'])->middleware('can:expenses.view')->name('accrual-schedules.index');
+    Route::get('/expenses/accruals/data', [AccrualScheduleController::class, 'datatable'])->middleware('can:expenses.view')->name('accrual-schedules.datatable');
     Route::post('/expenses/accruals', [AccrualScheduleController::class, 'store'])->middleware('can:expenses.create')->name('accrual-schedules.store');
     Route::put('/expenses/accruals/{id}', [AccrualScheduleController::class, 'update'])->middleware('can:expenses.edit')->name('accrual-schedules.update');
     Route::post('/expenses/accruals/{id}/submit', [AccrualScheduleController::class, 'submit'])->middleware('can:expenses.submit')->name('accrual-schedules.submit');
@@ -518,17 +549,20 @@ Route::middleware('auth')->group(function (): void {
     // Phase 13 Payroll Foundation Routes
     Route::prefix('payroll')->group(function (): void {
         Route::get('/employees', [PayrollEmployeeController::class, 'index'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.employees.index');
+        Route::get('/employees/data', [PayrollEmployeeController::class, 'datatable'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.employees.datatable');
         Route::post('/employees', [PayrollEmployeeController::class, 'store'])->middleware('permission.all:payroll.create,view_payroll')->name('payroll.employees.store');
         Route::put('/employees/{id}', [PayrollEmployeeController::class, 'update'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.employees.update');
         Route::post('/employees/{id}/components', [PayrollEmployeeController::class, 'storeComponent'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.employees.components.store');
         Route::delete('/employees/{id}/components/{assignmentId}', [PayrollEmployeeController::class, 'destroyComponent'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.employees.components.destroy');
 
         Route::get('/components', [PayrollComponentController::class, 'index'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.components.index');
+        Route::get('/components/data', [PayrollComponentController::class, 'datatable'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.components.datatable');
         Route::post('/components', [PayrollComponentController::class, 'store'])->middleware('permission.all:payroll.create,view_payroll')->name('payroll.components.store');
         Route::put('/components/{id}', [PayrollComponentController::class, 'update'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.components.update');
         Route::delete('/components/{id}', [PayrollComponentController::class, 'destroy'])->middleware('permission.all:payroll.delete,view_payroll')->name('payroll.components.destroy');
 
         Route::get('/runs', [PayrollRunController::class, 'index'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.runs.index');
+        Route::get('/runs/data', [PayrollRunController::class, 'datatable'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.runs.datatable');
         Route::post('/runs', [PayrollRunController::class, 'store'])->middleware('permission.all:payroll.create,view_payroll')->name('payroll.runs.store');
         Route::post('/runs/{id}/regenerate', [PayrollRunController::class, 'regenerate'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.runs.regenerate');
         Route::post('/runs/{id}/submit', [PayrollRunController::class, 'submit'])->middleware('permission.all:payroll.submit,view_payroll')->name('payroll.runs.submit');
@@ -540,11 +574,13 @@ Route::middleware('auth')->group(function (): void {
     // Phase 14 Rentals Foundation Routes
     Route::prefix('rentals')->group(function (): void {
         Route::get('/items', [RentableItemController::class, 'index'])->middleware('can:rentals.view')->name('rentals.items.index');
+        Route::get('/items/data', [RentableItemController::class, 'datatable'])->middleware('can:rentals.view')->name('rentals.items.datatable');
         Route::post('/items', [RentableItemController::class, 'store'])->middleware('can:rentals.create')->name('rentals.items.store');
         Route::put('/items/{id}', [RentableItemController::class, 'update'])->middleware('can:rentals.edit')->name('rentals.items.update');
         Route::delete('/items/{id}', [RentableItemController::class, 'destroy'])->middleware('can:rentals.delete')->name('rentals.items.destroy');
 
         Route::get('/contracts', [RentalContractController::class, 'index'])->middleware('can:rentals.view')->name('rentals.contracts.index');
+        Route::get('/contracts/data', [RentalContractController::class, 'datatable'])->middleware('can:rentals.view')->name('rentals.contracts.datatable');
         Route::post('/contracts', [RentalContractController::class, 'store'])->middleware('can:rentals.create')->name('rentals.contracts.store');
         Route::put('/contracts/{id}', [RentalContractController::class, 'update'])->middleware('can:rentals.edit')->name('rentals.contracts.update');
         Route::post('/contracts/{id}/submit', [RentalContractController::class, 'submit'])->middleware('can:rentals.submit')->name('rentals.contracts.submit');
@@ -553,6 +589,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/contracts/{id}/cancel', [RentalContractController::class, 'cancel'])->middleware('can:rentals.cancel')->name('rentals.contracts.cancel');
 
         Route::get('/invoices', [RentalInvoiceController::class, 'index'])->middleware('can:rentals.view')->name('rentals.invoices.index');
+        Route::get('/invoices/data', [RentalInvoiceController::class, 'datatable'])->middleware('can:rentals.view')->name('rentals.invoices.datatable');
         Route::post('/invoices', [RentalInvoiceController::class, 'store'])->middleware('can:rentals.invoice')->name('rentals.invoices.store');
         Route::put('/invoices/{id}', [RentalInvoiceController::class, 'update'])->middleware('can:rentals.invoice')->name('rentals.invoices.update');
         Route::post('/invoices/{id}/submit', [RentalInvoiceController::class, 'submit'])->middleware('can:rentals.submit')->name('rentals.invoices.submit');
@@ -561,11 +598,13 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/invoices/{id}/cancel', [RentalInvoiceController::class, 'cancel'])->middleware('can:rentals.cancel')->name('rentals.invoices.cancel');
 
         Route::get('/handovers', [RentalHandoverController::class, 'index'])->middleware('can:rentals.view')->name('rentals.handovers.index');
+        Route::get('/handovers/data', [RentalHandoverController::class, 'datatable'])->middleware('can:rentals.view')->name('rentals.handovers.datatable');
         Route::post('/handovers', [RentalHandoverController::class, 'store'])->middleware('can:rentals.deliver')->name('rentals.handovers.store');
         Route::post('/handovers/{id}/confirm', [RentalHandoverController::class, 'confirm'])->middleware('can:rentals.deliver')->name('rentals.handovers.confirm');
         Route::post('/handovers/{id}/cancel', [RentalHandoverController::class, 'cancel'])->middleware('can:rentals.cancel')->name('rentals.handovers.cancel');
 
         Route::get('/returns', [RentalReturnController::class, 'index'])->middleware('can:rentals.view')->name('rentals.returns.index');
+        Route::get('/returns/data', [RentalReturnController::class, 'datatable'])->middleware('can:rentals.view')->name('rentals.returns.datatable');
         Route::post('/returns', [RentalReturnController::class, 'store'])->middleware('can:rentals.return')->name('rentals.returns.store');
         Route::post('/returns/{id}/submit', [RentalReturnController::class, 'submit'])->middleware('can:rentals.return')->name('rentals.returns.submit');
         Route::post('/returns/{id}/complete', [RentalReturnController::class, 'complete'])->middleware('can:rentals.inspect')->name('rentals.returns.complete');
@@ -574,6 +613,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 4 Slice 5 Customer Invoice Routes
     Route::get('/sales/invoices', [CustomerInvoiceController::class, 'index'])->middleware('can:sales.view')->name('customer-invoices.index');
+    Route::get('/sales/invoices/data', [CustomerInvoiceController::class, 'datatable'])->middleware('can:sales.view')->name('customer-invoices.datatable');
     Route::post('/sales/invoices', [CustomerInvoiceController::class, 'store'])->middleware('can:sales.create')->name('customer-invoices.store');
     Route::put('/sales/invoices/{customerInvoice}', [CustomerInvoiceController::class, 'update'])->middleware('can:sales.edit')->name('customer-invoices.update');
     Route::post('/sales/invoices/{customerInvoice}/submit', [CustomerInvoiceController::class, 'submit'])->middleware('can:sales.submit')->name('customer-invoices.submit');
@@ -601,6 +641,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/inventory/transfers/{id}/receive', [StockTransferController::class, 'receive'])->middleware(['can:inventory.receive', 'sensitive.confirm'])->name('stock-transfers.receive');
     Route::post('/inventory/transfers/{id}/cancel', [StockTransferController::class, 'cancel'])->middleware('can:inventory.transfer')->name('stock-transfers.cancel');
     Route::get('/inventory/stock-counts', [StockCountController::class, 'index'])->middleware('can:inventory.view')->name('stock-counts.index');
+    Route::get('/inventory/stock-counts/data', [StockCountController::class, 'datatable'])->middleware('can:inventory.view')->name('stock-counts.datatable');
     Route::post('/inventory/stock-counts', [StockCountController::class, 'store'])->middleware('can:inventory.count')->name('stock-counts.store');
     Route::put('/inventory/stock-counts/{id}', [StockCountController::class, 'update'])->middleware('can:inventory.count')->name('stock-counts.update');
     Route::post('/inventory/stock-counts/{id}/submit', [StockCountController::class, 'submit'])->middleware('can:inventory.count')->name('stock-counts.submit');
@@ -608,6 +649,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/inventory/stock-counts/{id}/post', [StockCountController::class, 'post'])->middleware(['permission.all:inventory.post,view_financials', 'sensitive.confirm'])->name('stock-counts.post');
     Route::post('/inventory/stock-counts/{id}/cancel', [StockCountController::class, 'cancel'])->middleware('can:inventory.count')->name('stock-counts.cancel');
     Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->middleware('can:inventory.view')->name('stock-adjustments.index');
+    Route::get('/inventory/adjustments/data', [StockAdjustmentController::class, 'datatable'])->middleware('can:inventory.view')->name('stock-adjustments.datatable');
     Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->middleware('can:inventory.adjust')->name('stock-adjustments.store');
     Route::put('/inventory/adjustments/{id}', [StockAdjustmentController::class, 'update'])->middleware('can:inventory.adjust')->name('stock-adjustments.update');
     Route::post('/inventory/adjustments/{id}/submit', [StockAdjustmentController::class, 'submit'])->middleware('can:inventory.adjust')->name('stock-adjustments.submit');
@@ -617,6 +659,7 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 4 Slice 6 Supplier Bill Routes
     Route::get('/purchasing/bills', [SupplierBillController::class, 'index'])->middleware('can:purchasing.view')->name('supplier-bills.index');
+    Route::get('/purchasing/bills/data', [SupplierBillController::class, 'datatable'])->middleware('can:purchasing.view')->name('supplier-bills.datatable');
     Route::post('/purchasing/bills', [SupplierBillController::class, 'store'])->middleware('can:purchasing.create')->name('supplier-bills.store');
     Route::put('/purchasing/bills/{supplierBill}', [SupplierBillController::class, 'update'])->middleware('can:purchasing.edit')->name('supplier-bills.update');
     Route::post('/purchasing/bills/{supplierBill}/submit', [SupplierBillController::class, 'submit'])->middleware('can:purchasing.submit')->name('supplier-bills.submit');
@@ -627,6 +670,7 @@ Route::middleware('auth')->group(function (): void {
     // Phase 4 Slice 10 Returns & Adjustment Notes Routes
     Route::get('/sales/returns/returnable-lines/{invoiceId}', [SalesReturnController::class, 'returnableInvoiceLines'])->middleware('can:sales.returns')->name('sales-returns.returnable-lines');
     Route::get('/sales/returns', [SalesReturnController::class, 'index'])->middleware('can:sales.returns')->name('sales-returns.index');
+    Route::get('/sales/returns/data', [SalesReturnController::class, 'datatable'])->middleware('can:sales.returns')->name('sales-returns.datatable');
     Route::post('/sales/returns', [SalesReturnController::class, 'store'])->middleware('can:sales.returns')->name('sales-returns.store');
     Route::put('/sales/returns/{id}', [SalesReturnController::class, 'update'])->middleware('can:sales.returns')->name('sales-returns.update');
     Route::post('/sales/returns/{id}/submit', [SalesReturnController::class, 'submit'])->middleware('can:sales.returns')->name('sales-returns.submit');
@@ -635,6 +679,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/sales/returns/{id}/cancel', [SalesReturnController::class, 'cancel'])->middleware('can:sales.returns')->name('sales-returns.cancel');
 
     Route::get('/sales/credit-notes', [CustomerCreditNoteController::class, 'index'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.index');
+    Route::get('/sales/credit-notes/data', [CustomerCreditNoteController::class, 'datatable'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.datatable');
     Route::post('/sales/credit-notes', [CustomerCreditNoteController::class, 'store'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.store');
     Route::put('/sales/credit-notes/{id}', [CustomerCreditNoteController::class, 'update'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.update');
     Route::post('/sales/credit-notes/{id}/submit', [CustomerCreditNoteController::class, 'submit'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.submit');
@@ -643,9 +688,11 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/sales/credit-notes/{id}/cancel', [CustomerCreditNoteController::class, 'cancel'])->middleware('can:sales.credit_notes')->name('customer-credit-notes.cancel');
 
     Route::get('/sales/invoice-revisions', [CustomerInvoiceRevisionController::class, 'index'])->middleware('can:sales.invoice_revisions')->name('invoice-revisions.index');
+    Route::get('/sales/invoice-revisions/data', [CustomerInvoiceRevisionController::class, 'datatable'])->middleware('can:sales.invoice_revisions')->name('invoice-revisions.datatable');
     Route::get('/sales/invoice-revisions/{id}', [CustomerInvoiceRevisionController::class, 'show'])->middleware('can:sales.invoice_revisions')->name('invoice-revisions.show');
 
     Route::get('/purchasing/returns', [PurchaseReturnController::class, 'index'])->middleware('can:purchasing.returns')->name('purchase-returns.index');
+    Route::get('/purchasing/returns/data', [PurchaseReturnController::class, 'datatable'])->middleware('can:purchasing.returns')->name('purchase-returns.datatable');
     Route::post('/purchasing/returns', [PurchaseReturnController::class, 'store'])->middleware('can:purchasing.returns')->name('purchase-returns.store');
     Route::put('/purchasing/returns/{id}', [PurchaseReturnController::class, 'update'])->middleware('can:purchasing.returns')->name('purchase-returns.update');
     Route::post('/purchasing/returns/{id}/submit', [PurchaseReturnController::class, 'submit'])->middleware('can:purchasing.returns')->name('purchase-returns.submit');
@@ -654,6 +701,7 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/purchasing/returns/{id}/cancel', [PurchaseReturnController::class, 'cancel'])->middleware('can:purchasing.returns')->name('purchase-returns.cancel');
 
     Route::get('/purchasing/adjustment-notes', [SupplierAdjustmentNoteController::class, 'index'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.index');
+    Route::get('/purchasing/adjustment-notes/data', [SupplierAdjustmentNoteController::class, 'datatable'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.datatable');
     Route::post('/purchasing/adjustment-notes', [SupplierAdjustmentNoteController::class, 'store'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.store');
     Route::put('/purchasing/adjustment-notes/{id}', [SupplierAdjustmentNoteController::class, 'update'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.update');
     Route::post('/purchasing/adjustment-notes/{id}/submit', [SupplierAdjustmentNoteController::class, 'submit'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.submit');
@@ -662,10 +710,12 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/purchasing/adjustment-notes/{id}/cancel', [SupplierAdjustmentNoteController::class, 'cancel'])->middleware('can:purchasing.adjustment_notes')->name('supplier-adjustment-notes.cancel');
 
     Route::get('/sales/receivable-settlements', [ReceivableEntrySettlementController::class, 'index'])->middleware('can:sales.credit_notes')->name('receivable-settlements.index');
+    Route::get('/sales/receivable-settlements/data', [ReceivableEntrySettlementController::class, 'datatable'])->middleware('can:sales.credit_notes')->name('receivable-settlements.datatable');
     Route::post('/sales/receivable-settlements', [ReceivableEntrySettlementController::class, 'store'])->middleware('can:sales.credit_notes')->name('receivable-settlements.store');
     Route::post('/sales/receivable-settlements/{id}/reverse', [ReceivableEntrySettlementController::class, 'reverse'])->middleware(['can:sales.credit_notes', 'sensitive.confirm'])->name('receivable-settlements.reverse');
 
     Route::get('/purchasing/payable-settlements', [PayableEntrySettlementController::class, 'index'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.index');
+    Route::get('/purchasing/payable-settlements/data', [PayableEntrySettlementController::class, 'datatable'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.datatable');
     Route::post('/purchasing/payable-settlements', [PayableEntrySettlementController::class, 'store'])->middleware('can:purchasing.adjustment_notes')->name('payable-settlements.store');
     Route::post('/purchasing/payable-settlements/{id}/reverse', [PayableEntrySettlementController::class, 'reverse'])->middleware(['can:purchasing.adjustment_notes', 'sensitive.confirm'])->name('payable-settlements.reverse');
 
@@ -677,6 +727,7 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/fixed-asset-categories/{id}', [FixedAssetCategoryController::class, 'destroy'])->middleware('can:fixedAssets.delete')->name('fixed-asset-categories.destroy');
 
     Route::get('/fixed-asset-locations', [FixedAssetLocationController::class, 'index'])->middleware('can:fixedAssets.view')->name('fixed-asset-locations.index');
+    Route::get('/fixed-asset-locations/data', [FixedAssetLocationController::class, 'datatable'])->middleware('can:fixedAssets.view')->name('fixed-asset-locations.datatable');
     Route::post('/fixed-asset-locations', [FixedAssetLocationController::class, 'store'])->middleware('can:fixedAssets.create')->name('fixed-asset-locations.store');
     Route::put('/fixed-asset-locations/{id}', [FixedAssetLocationController::class, 'update'])->middleware('can:fixedAssets.edit')->name('fixed-asset-locations.update');
     Route::delete('/fixed-asset-locations/{id}', [FixedAssetLocationController::class, 'destroy'])->middleware('can:fixedAssets.delete')->name('fixed-asset-locations.destroy');
@@ -695,8 +746,11 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/fixed-assets/{id}/movements', [FixedAssetMovementController::class, 'store'])->middleware('can:fixedAssets.transfer')->name('fixed-assets.movements.store');
 
     Route::get('/fixed-assets-depreciation-runs', [FixedAssetDepreciationRunController::class, 'index'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.depreciation-runs.index');
+    Route::get('/fixed-assets-depreciation-runs/data', [FixedAssetDepreciationRunController::class, 'datatable'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.depreciation-runs.datatable');
     Route::post('/fixed-assets-depreciation-runs', [FixedAssetDepreciationRunController::class, 'store'])->middleware(['permission.all:fixedAssets.post,view_financials', 'sensitive.confirm'])->name('fixed-assets.depreciation-runs.store');
+    Route::get('/fixed-assets-depreciation-runs/preview/{financialPeriodId}/data', [FixedAssetDepreciationRunController::class, 'previewSchedulesData'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.depreciation-runs.preview.datatable');
     Route::get('/fixed-assets-depreciation-runs/preview/{financialPeriodId}', [FixedAssetDepreciationRunController::class, 'preview'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.depreciation-runs.preview');
+    Route::get('/fixed-assets-depreciation-runs/{id}/data', [FixedAssetDepreciationRunController::class, 'schedulesData'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.depreciation-runs.schedules.datatable');
     Route::get('/fixed-assets-depreciation-runs/{id}', [FixedAssetDepreciationRunController::class, 'show'])->middleware('permission.all:fixedAssets.view,view_financials')->name('fixed-assets.depreciation-runs.show');
     Route::post('/fixed-assets-depreciation-runs/{id}/reverse', [FixedAssetDepreciationRunController::class, 'reverse'])->middleware(['permission.all:fixedAssets.reverse,view_financials', 'sensitive.confirm'])->name('fixed-assets.depreciation-runs.reverse');
 
@@ -730,11 +784,13 @@ Route::middleware('auth')->group(function (): void {
 
     // Phase 16 Slice 1 Project & Cost Center Master Data Routes
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('can:projects.view')->name('projects.index');
+    Route::get('/projects/data', [ProjectController::class, 'datatable'])->middleware('can:projects.view')->name('projects.data');
     Route::post('/projects', [ProjectController::class, 'store'])->middleware('can:projects.create')->name('projects.store');
     Route::patch('/projects/{id}', [ProjectController::class, 'update'])->middleware('can:projects.edit')->name('projects.update');
     Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->middleware('can:projects.delete')->name('projects.destroy');
 
     Route::get('/cost-centers', [CostCenterController::class, 'index'])->middleware('can:costCenters.view')->name('cost-centers.index');
+    Route::get('/cost-centers/data', [CostCenterController::class, 'datatable'])->middleware('can:costCenters.view')->name('cost-centers.data');
     Route::post('/cost-centers', [CostCenterController::class, 'store'])->middleware('can:costCenters.create')->name('cost-centers.store');
     Route::patch('/cost-centers/{id}', [CostCenterController::class, 'update'])->middleware('can:costCenters.edit')->name('cost-centers.update');
     Route::delete('/cost-centers/{id}', [CostCenterController::class, 'destroy'])->middleware('can:costCenters.delete')->name('cost-centers.destroy');
@@ -742,6 +798,7 @@ Route::middleware('auth')->group(function (): void {
     // Phase 16 Slice 5 Budgeting Routes
     Route::prefix('budgeting')->group(function (): void {
         Route::get('/budgets', [BudgetController::class, 'index'])->middleware('permission.all:budgeting.view,view_financials')->name('budgeting.budgets.index');
+        Route::get('/budgets/data', [BudgetController::class, 'datatable'])->middleware('permission.all:budgeting.view,view_financials')->name('budgeting.budgets.datatable');
         Route::post('/budgets', [BudgetController::class, 'store'])->middleware('permission.all:budgeting.create,view_financials')->name('budgeting.budgets.store');
         Route::patch('/budgets/{budget}', [BudgetController::class, 'update'])->middleware('permission.all:budgeting.edit,view_financials')->name('budgeting.budgets.update');
         Route::delete('/budgets/{budget}', [BudgetController::class, 'destroy'])->middleware('permission.all:budgeting.delete,view_financials')->name('budgeting.budgets.destroy');
@@ -753,6 +810,7 @@ Route::middleware('auth')->group(function (): void {
 
         // Phase 16 Slice 6 Budget vs Actual Variance Routes
         Route::get('/variance', [BudgetVarianceController::class, 'index'])->middleware('permission.all:budgeting.view,reports.view,view_financials')->name('budgeting.variance.index');
+        Route::get('/variance/data', [BudgetVarianceController::class, 'datatable'])->middleware('permission.all:budgeting.view,reports.view,view_financials')->name('budgeting.variance.datatable');
         Route::get('/variance/export', [BudgetVarianceController::class, 'exportCsv'])->middleware('permission.all:budgeting.export,reports.export,view_financials')->name('budgeting.variance.export');
     });
 });

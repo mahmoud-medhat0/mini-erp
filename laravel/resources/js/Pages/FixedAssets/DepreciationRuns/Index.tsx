@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../../Components/AppLayout';
+import ServerDataTable, { type DataTableSlots } from '../../../Components/ServerDataTable';
 import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../../Components/Primitives';
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
@@ -43,7 +44,7 @@ type IndexProps = SharedPageProps & {
   };
 };
 
-export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }: IndexProps) {
+export default function DepreciationRunsIndex({ locale, openPeriods, can }: IndexProps) {
   const dict = getDictionary(locale);
   const appDict = dict.app.accounting;
   const formatAmount = (amountMinor: number) => formatAccountingAmount(amountMinor, '', { zeroAsDash: false, showCurrency: false });
@@ -53,6 +54,7 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
   const [showPostModal, setShowPostModal] = useState(false);
   const [reversingRun, setReversingRun] = useState<DepreciationRun | null>(null);
   const [reverseProcessing, setReverseProcessing] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const { data, setData, post, processing, errors } = useForm({
     financial_period_id: openPeriods[0]?.id || '',
@@ -77,7 +79,10 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
     setReverseProcessing(true);
     router.post(`/fixed-assets-depreciation-runs/${reversingRun.id}/reverse`, payload, {
       preserveScroll: true,
-      onSuccess: () => setReversingRun(null),
+      onSuccess: () => {
+        setReversingRun(null);
+        setReloadToken((token) => token + 1);
+      },
       onFinish: () => setReverseProcessing(false),
     });
   }
@@ -110,6 +115,69 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
     })),
     [appDict.periodDateSeparator, openPeriods],
   );
+
+  const columns = useMemo(() => [
+    { data: 'number', name: 'number', title: appDict.runNumber },
+    { data: 'run_date', name: 'run_date', title: appDict.runDate },
+    { data: 'financial_period', name: 'financial_period', title: appDict.financialPeriod, orderable: false },
+    { data: 'asset_count', name: 'asset_count', title: appDict.assetCount, searchable: false },
+    { data: 'total_depreciation_minor', name: 'total_depreciation_minor', title: appDict.totalDepreciation, searchable: false },
+    { data: 'status', name: 'status', title: appDict.status },
+    { data: 'actions', name: 'actions', title: appDict.actions, orderable: false, searchable: false },
+  ], [appDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    number: (data: string, _type: unknown, run: DepreciationRun): ReactElement => (
+      <Link className="font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400" href={`/fixed-assets-depreciation-runs/${run.id}`}>
+        {data}
+      </Link>
+    ),
+    run_date: (data: string): ReactElement => <span className="font-mono text-xs">{data}</span>,
+    financial_period: (data: FinancialPeriod | null): ReactElement => (
+      <span className="whitespace-nowrap text-xs">
+        {data
+          ? `${data.start_date} ${appDict.periodDateSeparator} ${data.end_date}`
+          : appDict.notAvailable}
+      </span>
+    ),
+    asset_count: (data: number): ReactElement => <span className="font-mono text-xs font-medium">{data}</span>,
+    total_depreciation_minor: (_data: number, _type: unknown, run: DepreciationRun): ReactElement => (
+      <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
+        {formatAmount(run.total_depreciation_minor)}
+      </span>
+    ),
+    status: (data: DepreciationRun['status']): ReactElement => (
+      <StatusBadge tone={runStatusTone(data)}>{formatRunStatus(data)}</StatusBadge>
+    ),
+    actions: (_data: unknown, _type: unknown, run: DepreciationRun): ReactElement => {
+      const actionState = getDepreciationRunActionState(run);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link
+            href={`/fixed-assets-depreciation-runs/${run.id}`}
+            title={appDict.viewDetail}
+            aria-label={appDict.viewDetail}
+            className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
+          >
+            {appDict.viewDetail}
+          </Link>
+          {run.status === 'posted' && canReverseDepreciationRuns ? (
+            <button
+              type="button"
+              onClick={() => handleReverseRun(run)}
+              title={appDict.reverseDepreciationRun}
+              aria-label={appDict.reverseDepreciationRun}
+              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+            >
+              {appDict.reverseDepreciationRun}
+            </button>
+          ) : null}
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  } as DataTableSlots), [appDict, canReverseDepreciationRuns, dict]);
 
   return (
     <AppLayout active="fixed-assets.depreciation-runs.index">
@@ -144,80 +212,17 @@ export default function DepreciationRunsIndex({ locale, runs, openPeriods, can }
           }
         />
 
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left rtl:text-right text-slate-600 dark:text-slate-300">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 uppercase text-[10px] text-slate-500 dark:text-slate-400">
-                <tr>
-                  <th className="px-4 py-3">{appDict.runNumber}</th>
-                  <th className="px-4 py-3">{appDict.runDate}</th>
-                  <th className="px-4 py-3">{appDict.financialPeriod}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left">{appDict.assetCount}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left">{appDict.totalDepreciation}</th>
-                  <th className="px-4 py-3 text-center">{appDict.status}</th>
-                  <th className="px-4 py-3 text-right rtl:text-left">{appDict.actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {runs.data.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500 italic">
-                      {appDict.noDataFound}
-                    </td>
-                  </tr>
-                ) : (
-                  runs.data.map((run) => {
-                    const actionState = getDepreciationRunActionState(run);
-
-                    return (
-                      <tr key={run.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                        <td className="px-4 py-3 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                          <Link href={`/fixed-assets-depreciation-runs/${run.id}`}>{run.number}</Link>
-                        </td>
-                        <td className="px-4 py-3 font-mono">{run.run_date}</td>
-                        <td className="px-4 py-3">
-                          {run.financial_period
-                            ? `${run.financial_period.start_date} ${appDict.periodDateSeparator} ${run.financial_period.end_date}`
-                            : appDict.notAvailable}
-                        </td>
-                        <td className="px-4 py-3 text-right rtl:text-left font-mono font-medium">{run.asset_count}</td>
-                        <td className="px-4 py-3 text-right rtl:text-left font-mono font-bold text-slate-900 dark:text-slate-100">
-                          {formatAmount(run.total_depreciation_minor)}
-                        </td>
-                        <td className="px-4 py-3 text-center capitalize">
-                          <StatusBadge tone={runStatusTone(run.status)}>{formatRunStatus(run.status)}</StatusBadge>
-                        </td>
-                        <td className="px-4 py-3 text-right rtl:text-left">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            <Link
-                              href={`/fixed-assets-depreciation-runs/${run.id}`}
-                              title={appDict.viewDetail}
-                              aria-label={appDict.viewDetail}
-                              className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900/50"
-                            >
-                              {appDict.viewDetail}
-                            </Link>
-                            {run.status === 'posted' && canReverseDepreciationRuns ? (
-                              <button
-                                type="button"
-                                onClick={() => handleReverseRun(run)}
-                                title={appDict.reverseDepreciationRun}
-                                aria-label={appDict.reverseDepreciationRun}
-                                className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                              >
-                                {appDict.reverseDepreciationRun}
-                              </button>
-                            ) : null}
-                            {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            ajaxUrl="/fixed-assets-depreciation-runs/data"
+            columns={columns}
+            locale={locale}
+            order={[[1, 'desc']]}
+            pageLength={25}
+            reloadToken={reloadToken}
+            slots={slots}
+            tableId="fixed-asset-depreciation-runs-table"
+          />
         </Card>
       </div>
 

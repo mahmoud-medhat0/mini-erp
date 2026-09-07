@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\BoundDataTableRequests;
 use App\Http\Middleware\EnsureAllPermissions;
 use App\Http\Middleware\EnsureAnyPermission;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
             EnsureUserIsActive::class,
             HandleInertiaRequests::class,
+            BoundDataTableRequests::class,
         ]);
 
         $middleware->alias([

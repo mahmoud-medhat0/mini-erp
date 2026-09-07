@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Application\Purchasing\LandedCostAllocationPageData;
 use App\Application\Purchasing\LandedCostAllocationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,11 @@ class LandedCostAllocationController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('Purchasing/LandedCosts', $this->pageData->indexData($request->only(['search', 'status'])));
+    }
+
+    public function datatable(Request $request): JsonResponse
+    {
+        return $this->pageData->datatable($request->only(['status']));
     }
 
     public function store(Request $request): RedirectResponse

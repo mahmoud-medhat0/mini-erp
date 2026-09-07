@@ -1,7 +1,8 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -25,10 +26,7 @@ type BankAccountRow = {
 };
 
 type BankAccountsProps = SharedPageProps & {
-  bankAccounts: {
-    data: BankAccountRow[];
-    links: PaginationLink[];
-  };
+  bankAccounts?: BankAccountRow[] | { data: BankAccountRow[]; links: PaginationLink[] };
   glAccounts: AccountOption[];
   currencies: CurrencyOption[];
   branches: Array<{ id: string; code: string; name: Record<string, string> | string }>;
@@ -39,7 +37,7 @@ type BankAccountsProps = SharedPageProps & {
   };
 };
 
-export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [], currencies = [], branches = [], filters }: BankAccountsProps) {
+export default function BankAccountsIndex({ locale, glAccounts = [], currencies = [], branches = [], filters }: BankAccountsProps) {
   const dict = getDictionary(locale);
   const can = useCan();
   const pageDict = dict.app.pages.bankAccounts;
@@ -47,6 +45,9 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
 
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccountRow | null>(null);
+  const [status, setStatus] = useState(filters.status || '');
+  const [branchId, setBranchId] = useState(filters.branch_id || '');
+  const [reloadToken, setReloadToken] = useState(0);
 
   const { data, setData, post, patch, processing, errors, reset } = useForm({
     code: '',
@@ -94,6 +95,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
         onSuccess: () => {
           setShowModal(false);
           reset();
+          setReloadToken((value) => value + 1);
         },
       });
     } else {
@@ -102,6 +104,7 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
         onSuccess: () => {
           setShowModal(false);
           reset();
+          setReloadToken((value) => value + 1);
         },
       });
     }
@@ -121,27 +124,86 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
     label: `${b.code} - ${getLocalizedName(b.name, locale)}`,
   }));
   const statusOptions = [
+    { value: '', label: pageDict.allStatuses },
     { value: 'active', label: pageDict.active },
     { value: 'inactive', label: pageDict.inactive },
   ];
-  const activeFilterCount = [filters.search, filters.status, filters.branch_id].filter(Boolean).length;
-
-  const applyFilters = (next: Record<string, string>) => {
-    const search = next.search ?? filters.search ?? '';
-    const status = next.status ?? filters.status ?? '';
-    const branchId = next.branch_id ?? filters.branch_id ?? '';
-    const params: Record<string, string> = {};
-
-    if (search) params.search = search;
-    if (status) params.status = status;
-    if (branchId) params.branch_id = branchId;
-
-    router.get('/bank-accounts', params, { preserveScroll: true, preserveState: true });
-  };
+  const activeFilterCount = [filters.search, status, branchId].filter(Boolean).length;
 
   function clearFilters() {
+    setStatus('');
+    setBranchId('');
     router.get('/bank-accounts', {}, { preserveScroll: true, preserveState: true });
   }
+
+  const columns = useMemo(() => [
+    { data: 'code', name: 'code', title: pageDict.code },
+    { data: 'bank_label', name: 'bank_label', title: pageDict.bankName, orderable: false },
+    { data: 'account_number', name: 'account_number', title: pageDict.accountNumber },
+    { data: 'branch_label', name: 'branch_label', title: pageDict.branch, orderable: false, searchable: false },
+    { data: 'currency', name: 'currency', title: pageDict.currency },
+    { data: 'gl_account_label', name: 'gl_account_label', title: pageDict.linkedGlAccount, orderable: false, searchable: false },
+    { data: 'is_active', name: 'is_active', title: pageDict.status, searchable: false },
+    { data: 'actions', name: 'actions', title: pageDict.actions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    code: (value: any) => <span className="font-mono text-xs font-bold">{value}</span>,
+    bank_label: (_value: any, _type: any, account: BankAccountRow) => (
+      <span className="font-semibold">{getLocalizedName(account.bank_name, locale)} - {getLocalizedName(account.name, locale)}</span>
+    ),
+    account_number: (value: any) => <span className="font-mono text-xs">{value}</span>,
+    branch_label: (_value: any, _type: any, account: BankAccountRow) => (
+      <span>{account.branch ? `${account.branch.code} - ${getLocalizedName(account.branch.name, locale)}` : pageDict.noBranch}</span>
+    ),
+    currency: (value: any) => <span className="font-mono text-xs font-bold">{value}</span>,
+    gl_account_label: (_value: any, _type: any, account: BankAccountRow) => (
+      <span>{account.gl_account ? `${account.gl_account.code} - ${getLocalizedName(account.gl_account.name, locale)}` : accDict.notAvailable}</span>
+    ),
+    is_active: (_value: any, _type: any, account: BankAccountRow) => (
+      <StatusBadge tone={account.is_active ? 'ok' : 'muted'}>
+        {account.is_active ? pageDict.active : pageDict.inactive}
+      </StatusBadge>
+    ),
+    actions: (_value: any, _type: any, account: BankAccountRow) => (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {can('banks.edit') ? (
+          <button
+            type="button"
+            onClick={() => openEditModal(account)}
+            title={pageDict.edit}
+            aria-label={pageDict.edit}
+            className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
+          >
+            {pageDict.edit}
+          </button>
+        ) : (
+          <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
+        )}
+      </div>
+    ),
+  }), [accDict.notAvailable, can, dict.app.actions.restricted, locale, pageDict]);
+
+  const tableFilters = useMemo(() => ({ status, branch_id: branchId }), [branchId, status]);
+  const toolbar = (
+    <div className="flex flex-wrap items-center gap-3">
+      <SearchableSelect
+        options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]}
+        value={branchId || null}
+        onChange={(value) => setBranchId(value || '')}
+        className="w-56"
+        isSearchable
+      />
+      <SearchableSelect
+        options={statusOptions}
+        value={status || null}
+        onChange={(value) => setStatus(value || '')}
+        className="w-44"
+        isSearchable={false}
+      />
+      <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
+    </div>
+  );
 
   return (
     <AppLayout active="bank-accounts.index">
@@ -165,99 +227,21 @@ export default function BankAccountsIndex({ locale, bankAccounts, glAccounts = [
         }
       />
 
-      <Card className="p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            placeholder={dict.app.pages.bankAccounts.searchByCodeBankAccountNumber}
-            defaultValue={filters.search || ''}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const target = e.target as HTMLInputElement;
-                applyFilters({ search: target.value });
-              }
-            }}
-            className="w-72 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2 text-xs text-[var(--text-primary)] outline-hidden focus:border-[var(--primary)]"
-          />
-          <SearchableSelect
-            options={[{ value: '', label: pageDict.allBranches }, ...branchOptions]}
-            value={filters.branch_id || ''}
-            onChange={(value) => applyFilters({ branch_id: value || '' })}
-            className="w-56"
-            isSearchable
-          />
-          <SearchableSelect
-            options={[{ value: '', label: pageDict.allStatuses }, ...statusOptions]}
-            value={filters.status || ''}
-            onChange={(value) => applyFilters({ status: value || '' })}
-            className="w-44"
-            isSearchable={false}
-          />
-          <Button variant="secondary" onClick={clearFilters} disabled={activeFilterCount === 0}>{accDict.clearFilters}</Button>
-        </div>
-      </Card>
-
-      {bankAccounts.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.bankAccounts.noBankAccountsFound}
-          description={dict.app.pages.bankAccounts.getStartedByCreatingYourFirst}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/bank-accounts/data"
+          columns={columns}
+          filters={tableFilters}
+          initialSearch={filters.search || ''}
+          locale={locale}
+          order={[[0, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="bank-accounts-data-table"
+          toolbar={toolbar}
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.code}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.bankName}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.accountNumber}</th>
-                <th className={tableClasses.th}>{pageDict.branch}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.currency}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.linkedGlAccount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.status}</th>
-                <th className={tableClasses.th}>{dict.app.pages.bankAccounts.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bankAccounts.data.map((acc) => (
-                <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                  <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{acc.code}</td>
-                  <td className={`${tableClasses.td} font-semibold`}>{getLocalizedName(acc.bank_name, locale)} - {getLocalizedName(acc.name, locale)}</td>
-                  <td className={`${tableClasses.td} font-mono text-xs`}>{acc.account_number}</td>
-                  <td className={tableClasses.td}>
-                    {acc.branch ? `${acc.branch.code} - ${getLocalizedName(acc.branch.name, locale)}` : pageDict.noBranch}
-                  </td>
-                  <td className={`${tableClasses.td} font-mono text-xs font-bold`}>{acc.currency}</td>
-                  <td className={tableClasses.td}>
-                    {acc.gl_account ? `${acc.gl_account.code} - ${getLocalizedName(acc.gl_account.name, locale)}` : accDict.notAvailable}
-                  </td>
-                  <td className={tableClasses.td}>
-                    <StatusBadge tone={acc.is_active ? 'ok' : 'muted'}>
-                      {acc.is_active ? dict.app.pages.bankAccounts.active : dict.app.pages.bankAccounts.inactive}
-                    </StatusBadge>
-                  </td>
-                  <td className={tableClasses.td}>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      {can('banks.edit') ? (
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(acc)}
-                          title={pageDict.edit}
-                          aria-label={pageDict.edit}
-                          className="text-xs font-bold text-[var(--primary)] hover:underline cursor-pointer"
-                        >
-                          {dict.app.pages.bankAccounts.edit}
-                        </button>
-                      ) : (
-                        <StatusBadge tone="muted">{dict.app.actions.restricted}</StatusBadge>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Modal Form */}
       {showModal ? (

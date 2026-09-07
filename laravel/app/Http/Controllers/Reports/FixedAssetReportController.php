@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Reports;
 use App\Application\Reports\FixedAssetCsvReportExporter;
 use App\Application\Reports\FixedAssetReportService;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Reports\FixedAssetReportDataTableRequest;
 use App\Http\Requests\Reports\ReportFilterRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,7 +25,7 @@ class FixedAssetReportController extends Controller
         $this->authorizeReportView();
 
         return Inertia::render('Reports/FixedAssetRegisterReport', [
-            'assets' => $this->reportService->register($this->filters($request, ['search', 'category_id', 'status'])),
+            'assets' => [],
             'filters' => $request->only(['search', 'category_id', 'status']),
         ]);
     }
@@ -33,7 +35,7 @@ class FixedAssetReportController extends Controller
         $this->authorizeReportView();
 
         return Inertia::render('Reports/FixedAssetNetBookValueReport', [
-            'assets' => $this->reportService->netBookValues($this->filters($request, ['search', 'category_id', 'status'])),
+            'assets' => [],
             'filters' => $request->only(['search', 'category_id', 'status']),
         ]);
     }
@@ -43,7 +45,7 @@ class FixedAssetReportController extends Controller
         $this->authorizeReportView();
 
         return Inertia::render('Reports/FixedAssetDepreciationReport', [
-            'schedules' => $this->reportService->depreciationSchedule($this->filters($request, ['search', 'status'])),
+            'schedules' => [],
             'filters' => $request->only(['search', 'status']),
         ]);
     }
@@ -53,7 +55,7 @@ class FixedAssetReportController extends Controller
         $this->authorizeReportView();
 
         return Inertia::render('Reports/FixedAssetDepreciationRunReport', [
-            'runs' => $this->reportService->depreciationRuns($this->filters($request, ['period_id', 'status'])),
+            'runs' => [],
             'filters' => $request->only(['period_id', 'status']),
         ]);
     }
@@ -63,9 +65,44 @@ class FixedAssetReportController extends Controller
         $this->authorizeReportView();
 
         return Inertia::render('Reports/FixedAssetDisposalReport', [
-            'disposals' => $this->reportService->disposals($this->filters($request, ['search', 'disposal_type', 'status'])),
+            'disposals' => [],
             'filters' => $request->only(['search', 'disposal_type', 'status']),
         ]);
+    }
+
+    public function registerData(FixedAssetReportDataTableRequest $request): JsonResponse
+    {
+        $this->authorizeReportView();
+
+        return $this->reportService->registerDataTable($request->reportFilters());
+    }
+
+    public function netBookValueData(FixedAssetReportDataTableRequest $request): JsonResponse
+    {
+        $this->authorizeReportView();
+
+        return $this->reportService->netBookValueDataTable($request->reportFilters());
+    }
+
+    public function depreciationData(FixedAssetReportDataTableRequest $request): JsonResponse
+    {
+        $this->authorizeReportView();
+
+        return $this->reportService->depreciationScheduleDataTable($request->reportFilters());
+    }
+
+    public function depreciationRunData(FixedAssetReportDataTableRequest $request): JsonResponse
+    {
+        $this->authorizeReportView();
+
+        return $this->reportService->depreciationRunDataTable($request->reportFilters());
+    }
+
+    public function disposalData(FixedAssetReportDataTableRequest $request): JsonResponse
+    {
+        $this->authorizeReportView();
+
+        return $this->reportService->disposalDataTable($request->reportFilters());
     }
 
     public function exportRegister(ReportFilterRequest $request): StreamedResponse

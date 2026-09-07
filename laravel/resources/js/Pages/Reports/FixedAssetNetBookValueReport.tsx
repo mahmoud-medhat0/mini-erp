@@ -1,8 +1,9 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import SearchableSelect from '../../Components/SearchableSelect';
-import { Card, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Card, PageHeader, StatusBadge } from '../../Components/Primitives';
 import type { SharedPageProps } from '../../Types/page';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -12,11 +13,10 @@ import {
   localizedName,
   statusTone,
   type FixedAssetReportAsset,
-  type Paginated,
 } from './fixedAssetReportUtils';
 
 type ReportProps = SharedPageProps & {
-  assets: Paginated<FixedAssetReportAsset>;
+  assets: FixedAssetReportAsset[];
   filters: {
     search?: string;
     category_id?: string;
@@ -24,7 +24,7 @@ type ReportProps = SharedPageProps & {
   };
 };
 
-export default function FixedAssetNetBookValueReport({ locale, assets, filters }: ReportProps) {
+export default function FixedAssetNetBookValueReport({ locale, filters }: ReportProps) {
   const dict = getDictionary(locale);
   const reportDict = dict.app.pages.reports;
   const can = useCan();
@@ -53,6 +53,46 @@ export default function FixedAssetNetBookValueReport({ locale, assets, filters }
     { value: 'fully_depreciated', label: fixedAssetStatusLabel('fully_depreciated', dict) },
     { value: 'disposed', label: fixedAssetStatusLabel('disposed', dict) },
   ];
+
+  const columns = useMemo(() => [
+    { data: 'asset_number', name: 'asset_number', title: reportDict.assetNumber },
+    { data: 'name', name: 'name', title: reportDict.assetName, orderable: false },
+    { data: 'cost_minor', name: 'cost_minor', title: reportDict.cost, searchable: false },
+    { data: 'opening_accumulated_depreciation_minor', name: 'opening_accumulated_depreciation_minor', title: reportDict.openingAccumulatedDepreciation, searchable: false },
+    { data: 'posted_accumulated_depreciation_minor', name: 'posted_accumulated_depreciation_minor', title: reportDict.postedAccumulatedDepreciation, searchable: false },
+    { data: 'total_accumulated_depreciation_minor', name: 'total_accumulated_depreciation_minor', title: reportDict.totalAccumulatedDepreciation, searchable: false },
+    { data: 'net_book_value_minor', name: 'net_book_value_minor', title: reportDict.netBookValue, searchable: false },
+    { data: 'status', name: 'status', title: reportDict.status },
+  ], [reportDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    asset_number: (data: string, _type: unknown, asset: FixedAssetReportAsset) => (
+      <Link href={`/fixed-assets/${asset.id}`} className="font-mono font-semibold text-[var(--primary)] hover:underline">
+        {data}
+      </Link>
+    ),
+    name: (data: FixedAssetReportAsset['name']) => localizedName(data, locale),
+    cost_minor: (data: number, _type: unknown, asset: FixedAssetReportAsset) => (
+      <span className="font-mono">{formatMinor(Number(data), asset.currency)}</span>
+    ),
+    opening_accumulated_depreciation_minor: (data: number, _type: unknown, asset: FixedAssetReportAsset) => (
+      <span className="font-mono">{formatMinor(Number(data), asset.currency)}</span>
+    ),
+    posted_accumulated_depreciation_minor: (data: number, _type: unknown, asset: FixedAssetReportAsset) => (
+      <span className="font-mono">{formatMinor(Number(data), asset.currency)}</span>
+    ),
+    total_accumulated_depreciation_minor: (data: number, _type: unknown, asset: FixedAssetReportAsset) => (
+      <span className="font-mono">{formatMinor(Number(data), asset.currency)}</span>
+    ),
+    net_book_value_minor: (data: number, _type: unknown, asset: FixedAssetReportAsset) => (
+      <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+        {formatMinor(Number(data), asset.currency)}
+      </span>
+    ),
+    status: (data: string) => (
+      <StatusBadge tone={statusTone(data)}>{fixedAssetStatusLabel(data, dict)}</StatusBadge>
+    ),
+  }), [dict, locale]);
 
   return (
     <AppLayout active="reports.index">
@@ -111,60 +151,19 @@ export default function FixedAssetNetBookValueReport({ locale, assets, filters }
           </div>
         </Card>
 
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{reportDict.assetNumber}</th>
-                <th className={tableClasses.th}>{reportDict.assetName}</th>
-                <th className={tableClasses.th}>{reportDict.cost}</th>
-                <th className={tableClasses.th}>{reportDict.openingAccumulatedDepreciation}</th>
-                <th className={tableClasses.th}>{reportDict.postedAccumulatedDepreciation}</th>
-                <th className={tableClasses.th}>{reportDict.totalAccumulatedDepreciation}</th>
-                <th className={tableClasses.th}>{reportDict.netBookValue}</th>
-                <th className={tableClasses.th}>{reportDict.status}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assets.data.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className={`${tableClasses.td} text-center text-[var(--text-secondary)]`}>
-                    {reportDict.noFixedAssetReportRows}
-                  </td>
-                </tr>
-              ) : (
-                assets.data.map((asset) => (
-                  <tr key={asset.id}>
-                    <td className={`${tableClasses.td} font-mono font-semibold`}>
-                      <Link href={`/fixed-assets/${asset.id}`} className="text-[var(--primary)] hover:underline">
-                        {asset.asset_number}
-                      </Link>
-                    </td>
-                    <td className={tableClasses.td}>{localizedName(asset.name, locale)}</td>
-                    <td className={`${tableClasses.td} font-mono`}>{formatMinor(asset.cost_minor, asset.currency)}</td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(asset.opening_accumulated_depreciation_minor, asset.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(asset.posted_accumulated_depreciation_minor, asset.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono`}>
-                      {formatMinor(asset.total_accumulated_depreciation_minor, asset.currency)}
-                    </td>
-                    <td className={`${tableClasses.td} font-mono font-semibold text-emerald-600 dark:text-emerald-400`}>
-                      {formatMinor(asset.net_book_value_minor, asset.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusTone(asset.status)}>
-                        {fixedAssetStatusLabel(asset.status, dict)}
-                      </StatusBadge>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Card className="overflow-hidden p-0">
+          <ServerDataTable
+            key={`fixed-asset-net-book-values-${JSON.stringify(filters)}`}
+            ajaxUrl="/reports/fixed-asset-net-book-values/data"
+            columns={columns}
+            filters={{ category_id: filters.category_id || '', status: filters.status || '' }}
+            initialSearch={filters.search || ''}
+            locale={locale}
+            order={[[0, 'asc']]}
+            slots={slots}
+            tableId="fixed-asset-net-book-values-data-table"
+          />
+        </Card>
       </div>
     </AppLayout>
   );

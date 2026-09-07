@@ -111,6 +111,7 @@ class Phase16Slice1ProjectCostCenterTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->get('/projects')->assertForbidden();
+        $this->actingAs($user)->get('/projects/data')->assertForbidden();
         $this->actingAs($user)->post('/projects', [
             'code' => 'PRJ-UNAUTH',
             'name' => ['en' => 'Unauthorized Project'],
@@ -136,6 +137,7 @@ class Phase16Slice1ProjectCostCenterTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)->get('/cost-centers')->assertForbidden();
+        $this->actingAs($user)->get('/cost-centers/data')->assertForbidden();
         $this->actingAs($user)->post('/cost-centers', [
             'code' => 'CC-UNAUTH',
             'name' => ['en' => 'Unauthorized CC'],
@@ -164,7 +166,7 @@ class Phase16Slice1ProjectCostCenterTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Projects/Index')
-            ->has('projects.data')
+            ->missing('projects')
             ->has('filters')
         );
 
@@ -235,6 +237,81 @@ class Phase16Slice1ProjectCostCenterTest extends TestCase
         $this->assertNotNull($deleteActivity);
     }
 
+    public function test_project_and_cost_center_data_feeds_paginate_search_and_filter_on_the_server(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo(['projects.view', 'costCenters.view']);
+
+        Project::query()->create([
+            'code' => 'PRJ-DT-ALPHA',
+            'name' => ['en' => 'Needle Project'],
+            'status' => 'active',
+            'is_billable' => true,
+            'is_active' => true,
+        ]);
+        Project::query()->create([
+            'code' => 'PRJ-DT-BETA',
+            'name' => ['en' => 'Background Project'],
+            'status' => 'on_hold',
+            'is_billable' => false,
+            'is_active' => true,
+        ]);
+
+        $projectPageQuery = http_build_query([
+            'draw' => 1,
+            'start' => 0,
+            'length' => 1,
+            'columns' => [['data' => 'code', 'name' => 'code', 'searchable' => 'true', 'orderable' => 'true']],
+        ]);
+        $projectPage = $this->actingAs($user)->getJson("/projects/data?{$projectPageQuery}");
+        $projectPage->assertOk()
+            ->assertJsonPath('recordsTotal', 2)
+            ->assertJsonCount(1, 'data');
+
+        $projectFilteredQuery = http_build_query([
+            'draw' => 2,
+            'start' => 0,
+            'length' => 25,
+            'columns' => [['data' => 'code', 'name' => 'code', 'searchable' => 'true', 'orderable' => 'true']],
+            'project_search' => 'Needle',
+            'status' => 'active',
+            'is_billable' => 'true',
+        ]);
+        $projectFiltered = $this->actingAs($user)->getJson("/projects/data?{$projectFilteredQuery}");
+        $projectFiltered->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.code', 'PRJ-DT-ALPHA')
+            ->assertJsonPath('data.0.name.en', 'Needle Project');
+
+        CostCenter::query()->create([
+            'code' => 'CC-DT-OPS',
+            'name' => ['en' => 'Needle Operations'],
+            'category' => 'operations',
+            'is_active' => true,
+        ]);
+        CostCenter::query()->create([
+            'code' => 'CC-DT-FIN',
+            'name' => ['en' => 'Background Finance'],
+            'category' => 'finance',
+            'is_active' => false,
+        ]);
+
+        $costCenterFilteredQuery = http_build_query([
+            'draw' => 3,
+            'start' => 0,
+            'length' => 25,
+            'columns' => [['data' => 'code', 'name' => 'code', 'searchable' => 'true', 'orderable' => 'true']],
+            'cost_center_search' => 'Needle',
+            'category' => 'operations',
+            'status' => 'active',
+        ]);
+        $costCenterFiltered = $this->actingAs($user)->getJson("/cost-centers/data?{$costCenterFilteredQuery}");
+        $costCenterFiltered->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.code', 'CC-DT-OPS')
+            ->assertJsonPath('data.0.name.en', 'Needle Operations');
+    }
+
     public function test_authorized_user_can_manage_cost_centers_with_audit_logging(): void
     {
         $user = User::factory()->create();
@@ -245,7 +322,7 @@ class Phase16Slice1ProjectCostCenterTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
             ->component('CostCenters/Index')
-            ->has('costCenters.data')
+            ->missing('costCenters')
             ->has('filters')
         );
 

@@ -5,16 +5,17 @@ namespace App\Application\Sales;
 use App\Models\DeliveryNote;
 use App\Models\SalesOrder;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class DeliveryNotePageData
 {
     /**
      * @param  array{search?: mixed, status?: mixed, warehouse_id?: mixed}  $filters
      * @return array{
-     *     deliveryNotes: LengthAwarePaginator,
+     *     deliveryNotes: array,
      *     confirmedSalesOrders: Collection<int, SalesOrder>,
      *     warehouses: Collection<int, Warehouse>,
      *     filters: array{search: mixed, status: mixed, warehouse_id: mixed}
@@ -29,7 +30,7 @@ class DeliveryNotePageData
         ];
 
         return [
-            'deliveryNotes' => $this->deliveryNotes($normalizedFilters),
+            'deliveryNotes' => [],
             'confirmedSalesOrders' => $this->confirmedSalesOrders(),
             'warehouses' => $this->activeWarehouses(),
             'filters' => $normalizedFilters,
@@ -39,41 +40,56 @@ class DeliveryNotePageData
     /**
      * @param  array{search: mixed, status: mixed, warehouse_id: mixed}  $filters
      */
-    private function deliveryNotes(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        $query = DeliveryNote::query()->with([
-            'salesOrder.customer',
-            'warehouse',
-            'lines.product',
-            'lines.unitOfMeasure',
-        ]);
+        $status = (string) ($filters['status'] ?? '');
+        $warehouseId = (string) ($filters['warehouse_id'] ?? '');
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $search = (string) $filters['search'];
-                $query->where('number', 'like', "%{$search}%")
-                    ->orWhere('reference', 'like', "%{$search}%")
-                    ->orWhereHas('salesOrder', function (Builder $salesOrderQuery) use ($search): void {
-                        $salesOrderQuery->where('number', 'like', "%{$search}%")
-                            ->orWhereHas('customer', function (Builder $customerQuery) use ($search): void {
-                                $customerQuery->where('code', 'like', "%{$search}%")
-                                    ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
-                            });
-                    });
-            });
-        }
+        $query = DeliveryNote::query()
+            ->with(['salesOrder.customer', 'warehouse', 'lines.product', 'lines.unitOfMeasure'])
+            ->leftJoin('sales_order as delivery_sales_order', 'delivery_sales_order.id', '=', 'delivery_note.sales_order_id')
+            ->leftJoin('customer as delivery_customer', 'delivery_customer.id', '=', 'delivery_sales_order.customer_id')
+            ->leftJoin('warehouse as delivery_warehouse', 'delivery_warehouse.id', '=', 'delivery_note.warehouse_id')
+            ->select('delivery_note.*')
+            ->when($status && in_array($status, DeliveryNoteService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('delivery_note.status', $status))
+            ->when($warehouseId, fn (Builder $query) => $query->where('delivery_note.warehouse_id', $warehouseId));
 
-        if ($filters['status'] && in_array($filters['status'], DeliveryNoteService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        if ($filters['warehouse_id']) {
-            $query->where('warehouse_id', $filters['warehouse_id']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('delivery_note.number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('delivery_note.number', 'like', "%{$keyword}%")
+                        ->orWhere('delivery_note.reference', 'like', "%{$keyword}%")
+                        ->orWhere('delivery_note.notes', 'like', "%{$keyword}%")
+                        ->orWhere('delivery_sales_order.number', 'like', "%{$keyword}%")
+                        ->orWhere('delivery_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(delivery_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('sales_order_number', fn (Builder $query, string $keyword) => $query->where('delivery_sales_order.number', 'like', "%{$keyword}%"))
+            ->filterColumn('customer_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('delivery_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(delivery_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('warehouse_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('delivery_warehouse.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(delivery_warehouse.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('sales_order_number', 'delivery_sales_order.number $1')
+            ->orderColumn('customer_name', 'delivery_customer.code $1')
+            ->orderColumn('warehouse_name', 'delivery_warehouse.code $1')
+            ->addColumn('sales_order_number', fn (DeliveryNote $row) => $row->salesOrder?->number ?? '')
+            ->addColumn('customer_name', fn (DeliveryNote $row) => $row->salesOrder?->customer?->name ?? '')
+            ->addColumn('warehouse_name', fn (DeliveryNote $row) => $row->warehouse?->name ?? '')
+            ->addColumn('actions', fn () => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 
     /**

@@ -230,15 +230,27 @@ class Phase16Slice4ProjectCostCenterReportsTest extends TestCase
         $this->assertContains('can:reports.view', $prjRoute->gatherMiddleware());
         $this->assertContains('can:view_financials', $prjRoute->gatherMiddleware());
 
+        $prjDataRoute = Route::getRoutes()->getByName('reports.project-profitability.data');
+        $this->assertNotNull($prjDataRoute);
+        $this->assertContains('can:reports.view', $prjDataRoute->gatherMiddleware());
+        $this->assertContains('can:view_financials', $prjDataRoute->gatherMiddleware());
+
         $ccRoute = Route::getRoutes()->getByName('reports.cost-center-actuals');
         $this->assertNotNull($ccRoute);
         $this->assertContains('can:reports.view', $ccRoute->gatherMiddleware());
         $this->assertContains('can:view_financials', $ccRoute->gatherMiddleware());
 
+        $ccDataRoute = Route::getRoutes()->getByName('reports.cost-center-actuals.data');
+        $this->assertNotNull($ccDataRoute);
+        $this->assertContains('can:reports.view', $ccDataRoute->gatherMiddleware());
+        $this->assertContains('can:view_financials', $ccDataRoute->gatherMiddleware());
+
         // Unauthorized user without permissions
         $unauth = User::factory()->create();
         $this->actingAs($unauth)->get('/reports/project-profitability')->assertForbidden();
         $this->actingAs($unauth)->get('/reports/cost-center-actuals')->assertForbidden();
+        $this->actingAs($unauth)->get('/reports/project-profitability/data')->assertForbidden();
+        $this->actingAs($unauth)->get('/reports/cost-center-actuals/data')->assertForbidden();
 
         // User with reports.view only (missing view_financials)
         $this->actingAs($this->reportOnlyUser)->get('/reports/project-profitability')->assertForbidden();
@@ -254,7 +266,7 @@ class Phase16Slice4ProjectCostCenterReportsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Reports/ProjectProfitability')
-                ->has('reportData.rows')
+                ->missing('reportData.rows')
                 ->has('reportData.summary_by_currency')
                 ->has('projects')
                 ->has('costCenters')
@@ -268,7 +280,7 @@ class Phase16Slice4ProjectCostCenterReportsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Reports/CostCenterActuals')
-                ->has('reportData.rows')
+                ->missing('reportData.rows')
                 ->has('reportData.summary_by_currency')
                 ->has('costCenters')
                 ->has('projects')
@@ -306,6 +318,77 @@ class Phase16Slice4ProjectCostCenterReportsTest extends TestCase
 
         $ccCsv = $ccResponse->streamedContent();
         $this->assertStringContainsString('COST CENTER ACTUALS REPORT', $ccCsv);
+    }
+
+    public function test_report_data_feeds_paginate_filter_and_keep_full_result_summaries(): void
+    {
+        $this->postJournal([
+            ['account_id' => $this->cashAccount->id, 'debit_minor' => 100000, 'credit_minor' => 0],
+            ['account_id' => $this->revenueAccount->id, 'project_id' => $this->projectAlpha->id, 'debit_minor' => 0, 'credit_minor' => 100000],
+        ]);
+        $this->postJournal([
+            ['account_id' => $this->cashAccount->id, 'debit_minor' => 50000, 'credit_minor' => 0],
+            ['account_id' => $this->revenueAccount->id, 'project_id' => $this->projectBeta->id, 'debit_minor' => 0, 'credit_minor' => 50000],
+        ]);
+
+        $query = http_build_query([
+            'draw' => 1,
+            'start' => 0,
+            'length' => 1,
+            'columns' => [['data' => 'project_code', 'name' => 'project_code', 'searchable' => 'true', 'orderable' => 'true']],
+            'date_from' => '2045-01-01',
+            'date_to' => '2045-01-31',
+        ]);
+        $projectPage = $this->actingAs($this->adminUser)->getJson("/reports/project-profitability/data?{$query}");
+        $projectPage->assertOk()
+            ->assertJsonPath('recordsTotal', 2)
+            ->assertJsonCount(1, 'data');
+
+        $searchQuery = http_build_query([
+            'draw' => 2,
+            'start' => 0,
+            'length' => 25,
+            'columns' => [['data' => 'project_code', 'name' => 'project_code', 'searchable' => 'true', 'orderable' => 'true']],
+            'date_from' => '2045-01-01',
+            'date_to' => '2045-01-31',
+            'search' => ['value' => 'BETA'],
+        ]);
+        $this->actingAs($this->adminUser)
+            ->getJson("/reports/project-profitability/data?{$searchQuery}")
+            ->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.project_code', 'PRJ-BETA')
+            ->assertJsonPath('data.0.net_revenue_minor', 50000);
+
+        $this->actingAs($this->adminUser)
+            ->get('/reports/project-profitability?date_from=2045-01-01&date_to=2045-01-31')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('reportData.summary_by_currency.EGP.net_revenue_minor', 150000)
+                ->missing('reportData.rows')
+            );
+
+        $this->postJournal([
+            ['account_id' => $this->opexAccount->id, 'cost_center_id' => $this->costCenterHQ->id, 'debit_minor' => 12000, 'credit_minor' => 0],
+            ['account_id' => $this->cashAccount->id, 'debit_minor' => 0, 'credit_minor' => 12000],
+        ]);
+
+        $costCenterQuery = http_build_query([
+            'draw' => 3,
+            'start' => 0,
+            'length' => 25,
+            'columns' => [['data' => 'cost_center_code', 'name' => 'cost_center_code', 'searchable' => 'true', 'orderable' => 'true']],
+            'date_from' => '2045-01-01',
+            'date_to' => '2045-01-31',
+            'cost_center_id' => (string) $this->costCenterHQ->id,
+        ]);
+        $this->actingAs($this->adminUser)
+            ->getJson("/reports/cost-center-actuals/data?{$costCenterQuery}")
+            ->assertOk()
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.cost_center_code', 'CC-HQ')
+            ->assertJsonPath('data.0.debit_minor', 12000)
+            ->assertJsonPath('data.0.accounts.0.account_code', '60100');
     }
 
     public function test_project_profitability_reads_only_posted_ledger_rows_and_ignores_draft_journals(): void

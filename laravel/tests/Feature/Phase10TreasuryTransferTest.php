@@ -14,6 +14,7 @@ use App\Models\FinancialPeriod;
 use App\Models\FiscalYear;
 use App\Models\JournalEntry;
 use App\Models\LedgerEntry;
+use App\Models\TreasuryTransfer;
 use App\Models\User;
 use Database\Seeders\AccountingCoreSeeder;
 use Database\Seeders\RbacSeeder;
@@ -235,16 +236,62 @@ class Phase10TreasuryTransferTest extends TestCase
 
     public function test_treasury_transfer_page_renders_with_branch_aware_options(): void
     {
+        TreasuryTransfer::query()->create([
+            'number' => 'TR-SEARCH-001',
+            'transfer_date' => '2026-01-15',
+            'source_type' => 'cash',
+            'source_cash_account_id' => $this->cashAccount->id,
+            'destination_type' => 'bank',
+            'destination_bank_account_id' => $this->bankAccount->id,
+            'source_branch_id' => $this->northBranch->id,
+            'destination_branch_id' => $this->southBranch->id,
+            'currency' => 'EGP',
+            'amount_minor' => 10000,
+            'fx_rate_e6' => 1000000,
+            'status' => 'draft',
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'financial_period_id' => $this->period->id,
+        ]);
+
         $this->get('/treasury-transfers')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('TreasuryTransfers/Index')
-                ->has('transfers.data')
+                ->missing('transfers')
                 ->has('cashAccounts')
                 ->has('bankAccounts')
                 ->has('fiscalYears')
                 ->has('financialPeriods')
             );
+
+        $gridQuery = [
+            'draw' => '1',
+            'start' => '0',
+            'length' => '25',
+            'columns' => collect([
+                ['number', true, true],
+                ['transfer_date', true, true],
+                ['source_label', true, false],
+                ['destination_label', true, false],
+                ['amount_minor', false, true],
+                ['status', false, true],
+                ['id', false, false],
+            ])->map(fn (array $column): array => [
+                'data' => $column[0],
+                'name' => $column[0],
+                'searchable' => $column[1] ? 'true' : 'false',
+                'orderable' => $column[2] ? 'true' : 'false',
+                'search' => ['value' => '', 'regex' => 'false'],
+            ])->all(),
+            'order' => [],
+            'search' => ['value' => 'NORTH-CASH', 'regex' => 'false'],
+        ];
+
+        $this->getJson('/treasury-transfers/data?'.http_build_query($gridQuery))
+            ->assertOk()
+            ->assertJsonStructure(['draw', 'recordsTotal', 'recordsFiltered', 'data'])
+            ->assertJsonPath('recordsFiltered', 1)
+            ->assertJsonPath('data.0.number', 'TR-SEARCH-001');
     }
 
     private function createAssetAccount(string $code, string $name): Account

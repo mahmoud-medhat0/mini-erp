@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass
 from html import escape
@@ -10,7 +9,7 @@ from typing import Iterable, Sequence
 import arabic_reshaper
 from bidi.algorithm import get_display
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
@@ -45,7 +44,7 @@ BODY_BOTTOM = 17 * mm
 CONTENT_WIDTH = PAGE_WIDTH - BODY_LEFT - BODY_RIGHT
 
 NAVY = colors.HexColor("#0F172A")
-SLATE = colors.HexColor("#475569")
+SLATE = colors.HexColor("#334155")
 MUTED = colors.HexColor("#64748B")
 PALE = colors.HexColor("#F8FAFC")
 BORDER = colors.HexColor("#E2E8F0")
@@ -61,23 +60,47 @@ RED = colors.HexColor("#DC2626")
 RED_PALE = colors.HexColor("#FEF2F2")
 WHITE = colors.white
 
-FONT_REGULAR = "ArialArabic"
-FONT_BOLD = "ArialArabicBold"
+FONT_REGULAR = "SegoeArabic"
+FONT_MEDIUM = "SegoeArabicMedium"
+FONT_SEMIBOLD = "SegoeArabicSemiBold"
+FONT_BOLD = "SegoeArabicBold"
+
+GUIDE_VERSION = "1.2"
+GUIDE_DATE_ISO = "2026-09-07"
+GUIDE_DATE_AR = "7 سبتمبر 2026"
 
 
 def register_fonts() -> None:
     candidates = [
-        (Path("C:/Windows/Fonts/arial.ttf"), Path("C:/Windows/Fonts/arialbd.ttf")),
-        (Path("C:/Windows/Fonts/tahoma.ttf"), Path("C:/Windows/Fonts/tahomabd.ttf")),
+        (
+            Path("C:/Windows/Fonts/segoeui.ttf"),
+            Path("C:/Windows/Fonts/seguisb.ttf"),
+            Path("C:/Windows/Fonts/seguisb.ttf"),
+            Path("C:/Windows/Fonts/segoeuib.ttf"),
+        ),
+        (
+            Path("C:/Windows/Fonts/arial.ttf"),
+            Path("C:/Windows/Fonts/arialbd.ttf"),
+            Path("C:/Windows/Fonts/arialbd.ttf"),
+            Path("C:/Windows/Fonts/arialbd.ttf"),
+        ),
+        (
+            Path("C:/Windows/Fonts/tahoma.ttf"),
+            Path("C:/Windows/Fonts/tahomabd.ttf"),
+            Path("C:/Windows/Fonts/tahomabd.ttf"),
+            Path("C:/Windows/Fonts/tahomabd.ttf"),
+        ),
     ]
 
-    for regular, bold in candidates:
-        if regular.exists() and bold.exists():
+    for regular, medium, semibold, bold in candidates:
+        if all(path.exists() for path in (regular, medium, semibold, bold)):
             pdfmetrics.registerFont(TTFont(FONT_REGULAR, str(regular)))
+            pdfmetrics.registerFont(TTFont(FONT_MEDIUM, str(medium)))
+            pdfmetrics.registerFont(TTFont(FONT_SEMIBOLD, str(semibold)))
             pdfmetrics.registerFont(TTFont(FONT_BOLD, str(bold)))
             return
 
-    raise FileNotFoundError("Arabic-capable Arial or Tahoma fonts were not found.")
+    raise FileNotFoundError("No supported Arabic font family was found.")
 
 
 def clean_text(text: str) -> str:
@@ -193,13 +216,15 @@ class RTLText(Flowable):
 class RTLHeading(RTLText):
     def __init__(self, text: str, *, level: int, bookmark: str) -> None:
         if level == 0:
-            font_size, leading, color = 24, 35, NAVY
+            font_size, leading, color = 25, 34, NAVY
+            font_name = FONT_BOLD
         else:
-            font_size, leading, color = 16, 25, BLUE_DARK
+            font_size, leading, color = 16, 23, BLUE_DARK
+            font_name = FONT_SEMIBOLD
 
         super().__init__(
             text,
-            font_name=FONT_BOLD,
+            font_name=font_name,
             font_size=font_size,
             leading=leading,
             color=color,
@@ -426,7 +451,10 @@ def draw_cover_page(canvas, doc) -> None:
     canvas.setFillColor(colors.HexColor("#312E81"))
     canvas.circle(12 * mm, 16 * mm, 48 * mm, fill=1, stroke=0)
     canvas.setFillColor(colors.HexColor("#3B82F6"))
-    canvas.roundRect(18 * mm, PAGE_HEIGHT - 26 * mm, 16 * mm, 6 * mm, 3 * mm, fill=1, stroke=0)
+    canvas.roundRect(18 * mm, PAGE_HEIGHT - 26 * mm, 31 * mm, 6 * mm, 3 * mm, fill=1, stroke=0)
+    canvas.setFillColor(WHITE)
+    canvas.setFont(FONT_SEMIBOLD, 7.4)
+    canvas.drawCentredString(33.5 * mm, PAGE_HEIGHT - 24.25 * mm, "USER GUIDE")
     canvas.restoreState()
 
 
@@ -437,18 +465,22 @@ def draw_body_page(canvas, doc) -> None:
     canvas.setFillColor(BLUE)
     canvas.rect(0, PAGE_HEIGHT - 4, PAGE_WIDTH, 4, fill=1, stroke=0)
 
-    canvas.setFont(FONT_REGULAR, 8.5)
+    canvas.setFont(FONT_MEDIUM, 9)
     canvas.setFillColor(MUTED)
     canvas.drawRightString(
         PAGE_WIDTH - BODY_RIGHT,
         PAGE_HEIGHT - 11 * mm,
         rtl_visual("دليل نظام Mini ERP"),
     )
-    canvas.drawString(BODY_LEFT, PAGE_HEIGHT - 11 * mm, "v1.1 | 2026-08-31")
+    canvas.drawString(
+        BODY_LEFT,
+        PAGE_HEIGHT - 11 * mm,
+        f"v{GUIDE_VERSION} | {GUIDE_DATE_ISO}",
+    )
 
     canvas.setStrokeColor(BORDER)
     canvas.line(BODY_LEFT, 12 * mm, PAGE_WIDTH - BODY_RIGHT, 12 * mm)
-    canvas.setFont(FONT_REGULAR, 9)
+    canvas.setFont(FONT_MEDIUM, 9.2)
     canvas.setFillColor(MUTED)
     canvas.drawCentredString(
         PAGE_WIDTH / 2,
@@ -458,12 +490,12 @@ def draw_body_page(canvas, doc) -> None:
     canvas.restoreState()
 
 
-def paragraph(text: str, *, size: float = 11.2, color: colors.Color = SLATE) -> RTLText:
-    return RTLText(text, font_size=size, leading=size * 1.65, color=color)
+def paragraph(text: str, *, size: float = 11.5, color: colors.Color = SLATE) -> RTLText:
+    return RTLText(text, font_size=size, leading=size * 1.5, color=color)
 
 
 def bullet(text: str, *, color: colors.Color = SLATE) -> RTLText:
-    return RTLText(text, font_size=10.6, leading=17.4, color=color, bullet=True)
+    return RTLText(text, font_size=10.9, leading=16.6, color=color, bullet=True)
 
 
 def callout(
@@ -474,9 +506,9 @@ def callout(
     border: colors.Color = BLUE,
 ) -> Table:
     content = [
-        RTLText(title, font_name=FONT_BOLD, font_size=12.2, leading=19, color=NAVY),
+        RTLText(title, font_name=FONT_SEMIBOLD, font_size=12.5, leading=19, color=NAVY),
         Spacer(1, 4),
-        RTLText(body, font_size=10.6, leading=17.4, color=SLATE),
+        RTLText(body, font_size=10.9, leading=16.6, color=SLATE),
     ]
     table = Table([[content]], colWidths=[CONTENT_WIDTH])
     table.setStyle(
@@ -502,9 +534,9 @@ def cards(items: Sequence[tuple[str, str]], columns: int = 2) -> Table:
         for title, body in items[index : index + columns]:
             row.append(
                 [
-                    RTLText(title, font_name=FONT_BOLD, font_size=11.5, leading=18.5, color=BLUE_DARK),
+                    RTLText(title, font_name=FONT_SEMIBOLD, font_size=11.6, leading=17.8, color=BLUE_DARK),
                     Spacer(1, 4),
-                    RTLText(body, font_size=9.8, leading=16, color=SLATE),
+                    RTLText(body, font_size=10.2, leading=15.7, color=SLATE),
                 ]
             )
         while len(row) < columns:
@@ -537,7 +569,7 @@ def workflow_diagram(steps: Sequence[str]) -> list[Flowable]:
         arrow_width = 26
         step_width = (CONTENT_WIDTH - (len(chunk) - 1) * arrow_width) / len(chunk)
         for index, step in enumerate(reversed(chunk)):
-            cells.append(RTLText(step, font_name=FONT_BOLD, font_size=9.5, leading=14.8, color=NAVY))
+            cells.append(RTLText(step, font_name=FONT_SEMIBOLD, font_size=9.8, leading=15, color=NAVY))
             widths.append(step_width)
             if index < len(chunk) - 1:
                 cells.append(
@@ -546,8 +578,8 @@ def workflow_diagram(steps: Sequence[str]) -> list[Flowable]:
                         ParagraphStyle(
                             "Arrow",
                             fontName=FONT_BOLD,
-                            fontSize=16,
-                            leading=18,
+                            fontSize=17,
+                            leading=19,
                             textColor=BLUE,
                             alignment=TA_RIGHT,
                         ),
@@ -584,13 +616,13 @@ def numbered_table(items: Sequence[str]) -> LongTable:
                     ParagraphStyle(
                         "StepNumber",
                         fontName=FONT_BOLD,
-                        fontSize=10,
+                        fontSize=10.6,
                         leading=16,
                         textColor=WHITE,
                         alignment=TA_RIGHT,
                     ),
                 ),
-                RTLText(item, font_size=10.3, leading=17.2, color=SLATE),
+                RTLText(item, font_size=10.6, leading=16.3, color=SLATE),
             ]
         )
 
@@ -645,7 +677,7 @@ MODULES: list[Module] = [
             Screen("/accounting/opening-balances", "الأرصدة الافتتاحية", "إدخال المدين والدائن والتأكد من التوازن ثم الترحيل."),
             Screen("/accounting/journal", "دفتر اليومية", "البحث عن القيود وتصفية حالاتها وفتح التفاصيل."),
             Screen("/accounting/journal/create", "قيد جديد", "إدخال الفترة والتاريخ والعملة والسطور وحفظ قيد متوازن."),
-            Screen("/accounting/journal/{id}", "تفاصيل القيد", "الإرسال والاعتماد والترحيل والعكس بقيد مرتبط."),
+            Screen("/accounting/journal/{journalEntry}", "تفاصيل القيد", "الإرسال والاعتماد والترحيل والعكس بقيد مرتبط."),
             Screen("/accounting/ledger", "دفتر الأستاذ", "عرض حركات حساب محدد ورصيده الجاري حسب الفترة."),
             Screen("/accounting/trial-balance", "ميزان المراجعة", "مراجعة أرصدة الحسابات وتساوي إجمالي المدين والدائن."),
         ],
@@ -1050,6 +1082,8 @@ ALL_ROUTE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
             ("/reports/customer-invoices", "تقرير فواتير العملاء"),
             ("/reports/supplier-bills", "تقرير فواتير الموردين"),
             ("/reports/stock-movements", "تقرير حركات المخزون"),
+            ("/reports/product-statement", "كشف حركة منتج"),
+            ("/reports/warehouse-statement", "كشف حركة مخزن"),
             ("/reports/branch-operations", "تشغيل الفروع"),
             ("/reports/branch-profitability", "ربحية الفروع"),
             ("/reports/project-profitability", "ربحية المشروعات"),
@@ -1058,6 +1092,7 @@ ALL_ROUTE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
             ("/reports/balance-sheet", "الميزانية العمومية"),
             ("/reports/income-statement", "قائمة الدخل"),
             ("/reports/cash-flow", "التدفقات النقدية"),
+            ("/reports/financial-ratios", "النسب المالية"),
             ("/reports/fixed-asset-register", "سجل الأصول الثابتة"),
             ("/reports/fixed-asset-net-book-values", "صافي القيمة الدفترية"),
             ("/reports/fixed-asset-depreciation", "جدول إهلاك الأصول"),
@@ -1073,18 +1108,18 @@ ALL_ROUTE_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
 
 def screen_table(screens: Sequence[Screen]) -> LongTable:
     header = [
-        RTLText("المسار", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
-        RTLText("الصفحة وما تفعله", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
+        RTLText("المسار", font_name=FONT_SEMIBOLD, font_size=10, color=WHITE),
+        RTLText("الصفحة وما تفعله", font_name=FONT_SEMIBOLD, font_size=10, color=WHITE),
     ]
     rows: list[list[object]] = [header]
     for screen in screens:
         rows.append(
             [
-                LTRText(screen.route, font_name=FONT_BOLD, font_size=8.4, color=BLUE_DARK),
+                LTRText(screen.route, font_name=FONT_REGULAR, font_size=8.8, color=BLUE_DARK),
                 [
-                    RTLText(screen.title, font_name=FONT_BOLD, font_size=10.5, leading=16.5, color=NAVY),
+                    RTLText(screen.title, font_name=FONT_SEMIBOLD, font_size=10.5, leading=16, color=NAVY),
                     Spacer(1, 3),
-                    RTLText(screen.description, font_size=9.5, leading=15.5, color=SLATE),
+                    RTLText(screen.description, font_size=9.8, leading=15.2, color=SLATE),
                 ],
             ]
         )
@@ -1102,10 +1137,10 @@ def screen_table(screens: Sequence[Screen]) -> LongTable:
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("BOX", (0, 0), (-1, -1), 0.6, BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.35, BORDER),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 7.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7.5),
     ]
     for row in range(1, len(rows)):
         if row % 2 == 0:
@@ -1117,20 +1152,20 @@ def screen_table(screens: Sequence[Screen]) -> LongTable:
 def role_table() -> LongTable:
     rows: list[list[object]] = [
         [
-            RTLText("الدور", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
-            RTLText("النطاق الافتراضي", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
+            RTLText("الدور", font_name=FONT_SEMIBOLD, font_size=10, color=WHITE),
+            RTLText("النطاق الافتراضي", font_name=FONT_SEMIBOLD, font_size=10, color=WHITE),
         ]
     ]
     for role, scope in ROLES:
         role_label = (
-            RTLText(role, font_name=FONT_BOLD, font_size=9.2, color=BLUE_DARK)
+            RTLText(role, font_name=FONT_SEMIBOLD, font_size=9.4, color=BLUE_DARK)
             if contains_arabic(role)
-            else LTRText(role, font_name=FONT_BOLD, font_size=9.2, color=BLUE_DARK)
+            else LTRText(role, font_name=FONT_SEMIBOLD, font_size=9.4, color=BLUE_DARK)
         )
         rows.append(
             [
                 role_label,
-                RTLText(scope, font_size=10, leading=16.5, color=SLATE),
+                RTLText(scope, font_size=10.1, leading=15.6, color=SLATE),
             ]
         )
 
@@ -1161,19 +1196,19 @@ def role_table() -> LongTable:
 def route_directory_table(group_title: str, routes: Sequence[tuple[str, str]]) -> LongTable:
     rows: list[list[object]] = [
         [
-            RTLText(group_title, font_name=FONT_BOLD, font_size=12, leading=18, color=WHITE),
+            RTLText(group_title, font_name=FONT_SEMIBOLD, font_size=12.5, leading=18.5, color=WHITE),
             "",
         ],
         [
-            RTLText("المسار", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
-            RTLText("اسم الشاشة", font_name=FONT_BOLD, font_size=9.5, color=WHITE),
+            RTLText("المسار", font_name=FONT_SEMIBOLD, font_size=10, color=WHITE),
+            RTLText("اسم الشاشة", font_name=FONT_SEMIBOLD, font_size=10, color=WHITE),
         ]
     ]
     for route, title in routes:
         rows.append(
             [
-                LTRText(route, font_name=FONT_BOLD, font_size=8.3, color=BLUE_DARK),
-                RTLText(title, font_size=9.5, leading=15, color=SLATE),
+                LTRText(route, font_name=FONT_REGULAR, font_size=8.8, color=BLUE_DARK),
+                RTLText(title, font_name=FONT_MEDIUM, font_size=10, leading=15.2, color=SLATE),
             ]
         )
 
@@ -1192,10 +1227,10 @@ def route_directory_table(group_title: str, routes: Sequence[tuple[str, str]]) -
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("BOX", (0, 0), (-1, -1), 0.5, BORDER),
         ("INNERGRID", (0, 0), (-1, -1), 0.3, BORDER),
-        ("LEFTPADDING", (0, 0), (-1, -1), 7),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
-        ("TOPPADDING", (0, 0), (-1, -1), 7),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7.5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7.5),
+        ("TOPPADDING", (0, 0), (-1, -1), 7.5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7.5),
     ]
     for row in range(2, len(rows)):
         if row % 2 == 1:
@@ -1230,7 +1265,7 @@ class StoryBuilder:
             OutlineMarker(title, level=level, bookmark=f"heading-{self.heading_counter}")
         )
 
-    def p(self, text: str, *, size: float = 11.2, color: colors.Color = SLATE) -> None:
+    def p(self, text: str, *, size: float = 11.5, color: colors.Color = SLATE) -> None:
         self.story.extend([paragraph(text, size=size, color=color), Spacer(1, 7)])
 
     def bullets(self, items: Iterable[str]) -> None:
@@ -1242,21 +1277,37 @@ class StoryBuilder:
 def build_story() -> list[Flowable]:
     builder = StoryBuilder()
     story = builder.story
+    route_count = sum(len(routes) for _, routes in ALL_ROUTE_GROUPS)
+    report_count = next(
+        len(routes) for title, routes in ALL_ROUTE_GROUPS if title == "التقارير"
+    )
 
     story.extend(
         [
-            Spacer(1, 31 * mm),
+            Spacer(1, 28 * mm),
+            Paragraph(
+                "MINI ERP",
+                ParagraphStyle(
+                    "CoverBrand",
+                    fontName=FONT_SEMIBOLD,
+                    fontSize=13,
+                    leading=18,
+                    textColor=colors.HexColor("#93C5FD"),
+                    alignment=TA_RIGHT,
+                ),
+            ),
+            Spacer(1, 3 * mm),
             RTLText(
-                "الدليل الشامل لنظام Mini ERP",
+                "الدليل الشامل لاستخدام النظام",
                 font_name=FONT_BOLD,
-                font_size=34,
-                leading=48,
+                font_size=36,
+                leading=47,
                 color=WHITE,
             ),
             Spacer(1, 5 * mm),
             RTLText(
                 "دليل المستخدم والإدارة والتشغيل المالي",
-                font_name=FONT_BOLD,
+                font_name=FONT_SEMIBOLD,
                 font_size=18.5,
                 leading=28,
                 color=colors.HexColor("#BFDBFE"),
@@ -1265,49 +1316,62 @@ def build_story() -> list[Flowable]:
         ]
     )
 
+    def cover_stat_label(text: str) -> Paragraph:
+        return Paragraph(
+            escape(rtl_visual(text)),
+            ParagraphStyle(
+                "CoverStatLabel",
+                fontName=FONT_MEDIUM,
+                fontSize=10.5,
+                leading=16,
+                textColor=colors.HexColor("#BFDBFE"),
+                alignment=TA_CENTER,
+            ),
+        )
+
     stat_rows = [
         [
             [
                 Paragraph(
-                    "132",
+                    str(route_count),
                     ParagraphStyle(
                         "CoverStat",
                         fontName=FONT_BOLD,
-                        fontSize=25,
-                        leading=29,
+                        fontSize=26,
+                        leading=30,
                         textColor=WHITE,
-                        alignment=TA_RIGHT,
+                        alignment=TA_CENTER,
                     ),
                 ),
-                RTLText("شاشة فعلية", font_size=10.5, leading=16, color=colors.HexColor("#BFDBFE")),
+                cover_stat_label("شاشة فعلية"),
             ],
             [
                 Paragraph(
-                    "35",
+                    str(report_count),
                     ParagraphStyle(
                         "CoverStat2",
                         fontName=FONT_BOLD,
-                        fontSize=25,
-                        leading=29,
+                        fontSize=26,
+                        leading=30,
                         textColor=WHITE,
-                        alignment=TA_RIGHT,
+                        alignment=TA_CENTER,
                     ),
                 ),
-                RTLText("شاشة تقارير", font_size=10.5, leading=16, color=colors.HexColor("#BFDBFE")),
+                cover_stat_label("شاشة تقارير"),
             ],
             [
                 Paragraph(
                     "AR + EN",
                     ParagraphStyle(
                         "CoverStat3",
-                        fontName=FONT_BOLD,
-                        fontSize=20,
-                        leading=29,
+                        fontName=FONT_SEMIBOLD,
+                        fontSize=22,
+                        leading=30,
                         textColor=WHITE,
-                        alignment=TA_RIGHT,
+                        alignment=TA_CENTER,
                     ),
                 ),
-                RTLText("واجهة ثنائية اللغة", font_size=10.5, leading=16, color=colors.HexColor("#BFDBFE")),
+                cover_stat_label("واجهة ثنائية اللغة"),
             ],
         ]
     ]
@@ -1331,17 +1395,17 @@ def build_story() -> list[Flowable]:
             stats,
             Spacer(1, 22 * mm),
             RTLText(
-                "الإصدار 1.1 | 31 أغسطس 2026",
-                font_name=FONT_BOLD,
+                f"الإصدار {GUIDE_VERSION} | {GUIDE_DATE_AR}",
+                font_name=FONT_SEMIBOLD,
                 font_size=12.5,
-                leading=20,
+                leading=19,
                 color=colors.HexColor("#DBEAFE"),
             ),
             Spacer(1, 3 * mm),
             RTLText(
                 "مبني على تطبيق Laravel الفعلي ومساراته وصلاحياته الحالية",
-                font_size=11,
-                leading=18,
+                font_size=11.2,
+                leading=17,
                 color=colors.HexColor("#94A3B8"),
             ),
             NextPageTemplate("Body"),
@@ -1354,9 +1418,9 @@ def build_story() -> list[Flowable]:
     toc.levelStyles = [
         ParagraphStyle(
             "TOCLevel0",
-            fontName=FONT_BOLD,
+            fontName=FONT_SEMIBOLD,
             fontSize=12.5,
-            leading=22,
+            leading=20.5,
             textColor=NAVY,
             leftIndent=12,
             rightIndent=10,
@@ -1368,7 +1432,7 @@ def build_story() -> list[Flowable]:
             "TOCLevel1",
             fontName=FONT_REGULAR,
             fontSize=10.5,
-            leading=18,
+            leading=17,
             textColor=SLATE,
             leftIndent=22,
             rightIndent=20,
@@ -1402,7 +1466,7 @@ def build_story() -> list[Flowable]:
     )
     story.extend([Spacer(1, 8), callout(
         "مصدر الحقيقة",
-        "يعتمد الدليل على تطبيق laravel الفعلي وعدد 132 شاشة Inertia نشطة. لم يتم اعتبار تطبيق Next.js القديم أو المواصفات المستقبلية وظائف جاهزة.",
+        f"يعتمد الدليل على تطبيق laravel الفعلي وعدد {route_count} شاشة Inertia نشطة. لم يتم اعتبار تطبيق Next.js القديم أو المواصفات المستقبلية وظائف جاهزة.",
         background=EMERALD_PALE,
         border=EMERALD,
     )])
@@ -1418,7 +1482,7 @@ def build_story() -> list[Flowable]:
 
     builder.heading("تسجيل الدخول والواجهة والجولة الإرشادية", page_break=True)
     builder.p(
-        "افتح صفحة تسجيل الدخول، واختر اللغة والمظهر، ثم أدخل البريد وكلمة المرور اللذين خصصهما المسؤول. بعد الدخول، تعرض القائمة الجانبية فقط الوحدات المسموح بها لحسابك."
+        "افتح صفحة تسجيل الدخول، واختر اللغة والمظهر، ثم أدخل البريد وكلمة المرور اللذين خصصهما المسؤول. بعد الدخول، تعرض القائمة الجانبية الروابط المضافة إليها والمسموح بها لحسابك؛ وقد تفتح بعض الشاشات من صفحة الوحدة أو رابط المستند أو المسار المذكور في الفهرس."
     )
     story.extend(workflow_diagram(["تسجيل الدخول", "اختيار القسم", "تشغيل الجولة", "تنفيذ المهمة"]))
     builder.heading("زر الجولة الإرشادية", level=1)
@@ -1443,10 +1507,12 @@ def build_story() -> list[Flowable]:
     story.append(
         cards(
             [
-                ("القائمة الجانبية", "تنقل بين الوحدات، ويمكن طيها على سطح المكتب أو فتحها من زر القائمة على الهاتف."),
+                ("القائمة الجانبية", "تعرض اختصارات الوحدات المسموح بها، ويمكن طيها على سطح المكتب أو فتحها من زر القائمة على الهاتف."),
                 ("الشريط العلوي", "الجولة والإشعارات واللغة والمظهر وحالة النظام وقائمة المستخدم."),
                 ("عنوان الصفحة", "يوضح الغرض وغالبًا يضم أزرار الإنشاء أو التصدير أو الطباعة."),
                 ("الحالات", "شارات توضح مسودة أو مرسل أو معتمد أو مرحل أو ملغي أو مكتمل حسب نوع المستند."),
+                ("الجداول", "استخدم البحث والمرشحات واختيار عدد الصفوف وأزرار الصفحات، ثم افتح السجل من الرابط أو إجراء الصف."),
+                ("رسائل الحالة", "راقب رسائل النجاح والخطأ العائمة ومؤشر الاتصال قبل إعادة تنفيذ العملية أو الانتقال للشاشة التالية."),
             ]
         )
     )
@@ -1501,15 +1567,15 @@ def build_story() -> list[Flowable]:
 
     builder.heading("مركز التقارير", page_break=True)
     builder.p(
-        "يجمع مركز التقارير 35 شاشة مالية وفرعية وتشغيلية وضريبية. تعرض الأزرار والمرشحات وفق التقرير والصلاحية، لذلك استخدم التصدير أو الطباعة فقط عندما يظهر الزر."
+        f"يجمع مركز التقارير {report_count} شاشة مالية وفرعية وتشغيلية وضريبية. تعرض الأزرار والمرشحات وفق التقرير والصلاحية، لذلك استخدم التصدير أو الطباعة فقط عندما يظهر الزر."
     )
     story.append(
         cards(
             [
-                ("القوائم المالية", "الميزانية العمومية وقائمة الدخل والتدفقات النقدية."),
+                ("القوائم والتحليل المالي", "الميزانية العمومية وقائمة الدخل والتدفقات النقدية والنسب المالية."),
                 ("العملاء والموردون", "الكشوف والأعمار ومطابقة AR وAP مع الأستاذ."),
                 ("الخزينة والبنوك", "دفتر الخزينة والبنك والشيكات وتسويات البنك."),
-                ("التشغيل", "أوامر البيع والشراء والتسليم والاستلام والفواتير وحركات المخزون."),
+                ("التشغيل والمخزون", "الأوامر والتسليم والاستلام والفواتير وحركات المخزون وكشفا المنتج والمخزن."),
                 ("الأبعاد", "الفروع والمشروعات ومراكز التكلفة والموازنة مقابل الفعلي."),
                 ("الأصول والضرائب والإيجارات", "سجل وإهلاك واستبعاد الأصول، VAT، وتشغيل الإيجارات."),
             ]
@@ -1519,6 +1585,7 @@ def build_story() -> list[Flowable]:
     builder.bullets(
         [
             "اختر الفترة أو التاريخ المرجعي والعملة المطلوبة.",
+            "في النسب المالية اختر فترة واحدة للتحليل الحالي، أو وضع الاتجاه وحدد عدة فترات للمقارنة الزمنية.",
             "حدد الفرع أو المشروع أو مركز التكلفة أو الحالة عندما تتوفر هذه المرشحات.",
             "طبق المرشحات وراجع إجماليات الملخص قبل تفاصيل السطور.",
             "افتح المستند المصدر من الرابط عندما يكون متاحًا.",
@@ -1602,11 +1669,10 @@ def build_story() -> list[Flowable]:
     )])
 
     builder.heading("فهرس جميع شاشات النظام", page_break=True)
-    route_count = sum(len(routes) for _, routes in ALL_ROUTE_GROUPS)
     builder.p(
-        f"الفهرس التالي يحصر {route_count} شاشة Inertia فعلية ومسار الوصول إليها. المسارات التي تحتوي على id تفتح سجلًا محددًا من الصفحة الأم."
+        f"الفهرس التالي يحصر {route_count} شاشة Inertia فعلية ومسار الوصول إليها. المسارات التي تحتوي على قيمة بين الأقواس المعقوفة تفتح سجلًا محددًا من الصفحة الأم."
     )
-    assert route_count == 132, f"Expected 132 active screens, found {route_count}."
+    assert route_count == 135, f"Expected 135 active screens, found {route_count}."
 
     for group_title, routes in ALL_ROUTE_GROUPS:
         builder.outline_marker(group_title, level=1)

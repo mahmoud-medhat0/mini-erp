@@ -5,15 +5,16 @@ namespace App\Application\Expenses;
 use App\Models\Account;
 use App\Models\ExpenseCategory;
 use App\Models\TaxCode;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Http\JsonResponse;
+use Yajra\DataTables\Facades\DataTables;
 
 class ExpenseCategoryPageData
 {
     /**
      * @param  array<string, mixed>  $filters
      * @return array{
-     *     categories: LengthAwarePaginator,
+     *     categories: array<int, never>,
      *     expenseAccounts: EloquentCollection<int, Account>,
      *     taxCodes: EloquentCollection<int, TaxCode>,
      *     filters: array{search: string}
@@ -23,26 +24,33 @@ class ExpenseCategoryPageData
     {
         $search = trim((string) ($filters['search'] ?? ''));
 
-        $categories = ExpenseCategory::query()
-            ->with(['defaultExpenseAccount', 'defaultTaxCode'])
-            ->withCount('expenseLines')
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('code', 'like', "%{$search}%")
-                        ->orWhere('name->en', 'like', "%{$search}%")
-                        ->orWhere('name->ar', 'like', "%{$search}%");
-                });
-            })
-            ->orderBy('code')
-            ->paginate(15)
-            ->withQueryString();
-
         return [
-            'categories' => $categories,
+            'categories' => [],
             'expenseAccounts' => $this->expenseAccountOptions(),
             'taxCodes' => TaxCode::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'calculation_mode', 'recoverability_mode']),
             'filters' => ['search' => $search],
         ];
+    }
+
+    public function datatable(): JsonResponse
+    {
+        $query = ExpenseCategory::query()
+            ->with(['defaultExpenseAccount', 'defaultTaxCode'])
+            ->select('expense_category.*')
+            ->withCount('expenseLines');
+
+        return DataTables::eloquent($query)
+            ->addColumn('name_text', fn (ExpenseCategory $category): string => (string) $category->name)
+            ->addColumn('default_expense_account_text', fn (): string => '')
+            ->addColumn('default_tax_code_text', fn (): string => '')
+            ->addColumn('actions', fn (): string => '')
+            ->filterColumn('name_text', function ($builder, string $keyword): void {
+                $builder->where(function ($inner) use ($keyword): void {
+                    $inner->where('expense_category.name->en', 'like', "%{$keyword}%")
+                        ->orWhere('expense_category.name->ar', 'like', "%{$keyword}%");
+                });
+            })
+            ->toJson();
     }
 
     /**

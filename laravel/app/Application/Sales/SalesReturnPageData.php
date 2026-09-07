@@ -11,16 +11,17 @@ use App\Models\SalesReturn;
 use App\Models\SalesReturnLine;
 use App\Models\TaxCode;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class SalesReturnPageData
 {
     /**
      * @param  array{search?: mixed, status?: mixed, customer_id?: mixed, warehouse_id?: mixed}  $filters
      * @return array{
-     *     salesReturns: LengthAwarePaginator,
+     *     salesReturns: array,
      *     activeCustomers: Collection<int, Customer>,
      *     confirmedDeliveryNotes: Collection<int, DeliveryNote>,
      *     postedCustomerInvoices: Collection<int, CustomerInvoice>,
@@ -39,7 +40,7 @@ class SalesReturnPageData
         ];
 
         return [
-            'salesReturns' => $this->salesReturns($normalizedFilters),
+            'salesReturns' => [],
             'activeCustomers' => $this->activeCustomers(),
             'confirmedDeliveryNotes' => $this->confirmedDeliveryNotes(),
             'postedCustomerInvoices' => $this->postedCustomerInvoices(),
@@ -111,45 +112,73 @@ class SalesReturnPageData
     /**
      * @param  array{search: mixed, status: mixed, customer_id: mixed, warehouse_id: mixed}  $filters
      */
-    private function salesReturns(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
-        $query = SalesReturn::query()->with([
-            'customer',
-            'deliveryNote',
-            'warehouse',
-            'customerInvoice',
-            'lines.product',
-            'lines.unitOfMeasure',
-            'journalEntry',
-        ]);
+        $status = (string) ($filters['status'] ?? '');
+        $customerId = (string) ($filters['customer_id'] ?? '');
+        $warehouseId = (string) ($filters['warehouse_id'] ?? '');
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $search = (string) $filters['search'];
-                $query->where('number', 'like', "%{$search}%")
-                    ->orWhere('reason', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function (Builder $customerQuery) use ($search): void {
-                        $customerQuery->where('code', 'like', "%{$search}%")
-                            ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.mb_strtolower($search).'%']);
-                    });
-            });
-        }
+        $query = SalesReturn::query()
+            ->with([
+                'customer',
+                'deliveryNote',
+                'warehouse',
+                'customerInvoice',
+                'lines.product',
+                'lines.unitOfMeasure',
+                'journalEntry',
+            ])
+            ->leftJoin('customer as return_customer', 'return_customer.id', '=', 'sales_return.customer_id')
+            ->leftJoin('delivery_note as returned_delivery', 'returned_delivery.id', '=', 'sales_return.delivery_note_id')
+            ->leftJoin('customer_invoice as returned_invoice', 'returned_invoice.id', '=', 'sales_return.customer_invoice_id')
+            ->leftJoin('warehouse as return_warehouse', 'return_warehouse.id', '=', 'sales_return.warehouse_id')
+            ->select('sales_return.*')
+            ->when($status && in_array($status, SalesReturnService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('sales_return.status', $status))
+            ->when($customerId, fn (Builder $query) => $query->where('sales_return.customer_id', $customerId))
+            ->when($warehouseId, fn (Builder $query) => $query->where('sales_return.warehouse_id', $warehouseId));
 
-        if ($filters['status'] && in_array($filters['status'], SalesReturnService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        if ($filters['customer_id']) {
-            $query->where('customer_id', $filters['customer_id']);
-        }
-
-        if ($filters['warehouse_id']) {
-            $query->where('warehouse_id', $filters['warehouse_id']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('sales_return.number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('sales_return.number', 'like', "%{$keyword}%")
+                        ->orWhere('sales_return.reason', 'like', "%{$keyword}%")
+                        ->orWhere('sales_return.notes', 'like', "%{$keyword}%")
+                        ->orWhere('return_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(return_customer.name AS TEXT)) LIKE ?', [$needle])
+                        ->orWhere('returned_delivery.number', 'like', "%{$keyword}%")
+                        ->orWhere('returned_invoice.number', 'like', "%{$keyword}%")
+                        ->orWhere('return_warehouse.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(return_warehouse.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('customer_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('return_customer.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(return_customer.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->filterColumn('delivery_note_number', fn (Builder $query, string $keyword) => $query->where('returned_delivery.number', 'like', "%{$keyword}%"))
+            ->filterColumn('invoice_number', fn (Builder $query, string $keyword) => $query->where('returned_invoice.number', 'like', "%{$keyword}%"))
+            ->filterColumn('warehouse_name', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('return_warehouse.code', 'like', "%{$keyword}%")
+                        ->orWhereRaw('LOWER(CAST(return_warehouse.name AS TEXT)) LIKE ?', [$needle]);
+                });
+            })
+            ->orderColumn('customer_name', 'return_customer.code $1')
+            ->orderColumn('delivery_note_number', 'returned_delivery.number $1')
+            ->orderColumn('invoice_number', 'returned_invoice.number $1')
+            ->orderColumn('warehouse_name', 'return_warehouse.code $1')
+            ->addColumn('customer_name', fn (SalesReturn $row) => $row->customer?->name ?? '')
+            ->addColumn('delivery_note_number', fn (SalesReturn $row) => $row->deliveryNote?->number ?? '')
+            ->addColumn('invoice_number', fn (SalesReturn $row) => $row->customerInvoice?->number ?? '')
+            ->addColumn('warehouse_name', fn (SalesReturn $row) => $row->warehouse?->name ?? '')
+            ->addColumn('actions', fn () => '')
+            ->rawColumns(['actions'])
+            ->toJson();
     }
 
     /**

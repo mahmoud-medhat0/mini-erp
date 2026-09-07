@@ -1,20 +1,23 @@
 ﻿import { Head, router, useForm } from '@inertiajs/react';
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
+import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
-import type { CurrencyOption, PaginationLink, SharedPageProps } from '../../Types';
+import type { CurrencyOption, SharedPageProps } from '../../Types';
 
 type OutgoingChequeRow = {
   id: string;
   cheque_number: string;
   supplier_id: string;
-  supplier?: { id: string; code: string; name: string };
+  supplier_code: string;
+  supplier_name: Record<string, string> | string;
   bank_account_id: string;
-  bank_account?: { id: string; name: string };
+  bank_account_code: string;
+  bank_account_name: Record<string, string> | string;
   due_date: string;
   currency: string;
   amount_minor: number;
@@ -24,10 +27,6 @@ type OutgoingChequeRow = {
 };
 
 type OutgoingChequesProps = SharedPageProps & {
-  cheques: {
-    data: OutgoingChequeRow[];
-    links: PaginationLink[];
-  };
   suppliers: Array<{ id: string; code: string; name: string }>;
   bankAccounts: Array<{ id: string; code: string; name: string }>;
   fiscalYears: Array<{ id: string; year: number; name: string }>;
@@ -41,7 +40,6 @@ type OutgoingChequesProps = SharedPageProps & {
 
 export default function OutgoingChequesIndex({
   locale,
-  cheques,
   suppliers = [],
   bankAccounts = [],
   fiscalYears = [],
@@ -49,7 +47,6 @@ export default function OutgoingChequesIndex({
   currencies = [],
   filters,
 }: OutgoingChequesProps) {
-  const isAr = locale === 'ar';
   const dict = getDictionary(locale);
   const pageDict = dict.app.pages.outgoingCheques;
   const accDict = dict.app.accounting;
@@ -63,6 +60,7 @@ export default function OutgoingChequesIndex({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeActionCheque, setActiveActionCheque] = useState<OutgoingChequeRow | null>(null);
   const [actionType, setActionType] = useState<'issue' | 'clear' | 'return' | 'cancel' | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // Form for creation
   const createForm = useForm({
@@ -102,6 +100,7 @@ export default function OutgoingChequesIndex({
       onSuccess: () => {
         setShowCreateModal(false);
         createForm.reset();
+        setReloadToken((token) => token + 1);
       },
     });
   };
@@ -119,6 +118,7 @@ export default function OutgoingChequesIndex({
       onSuccess: () => {
         setActiveActionCheque(null);
         setActionType(null);
+        setReloadToken((token) => token + 1);
       },
     });
   };
@@ -151,13 +151,13 @@ export default function OutgoingChequesIndex({
     router.get('/outgoing-cheques', {}, { preserveScroll: true, preserveState: true });
   }
 
-  const statusToneMap: Record<string, 'muted' | 'info' | 'warning' | 'ok' | 'danger'> = {
+  const statusToneMap = useMemo<Record<string, 'muted' | 'info' | 'warning' | 'ok' | 'danger'>>(() => ({
     draft: 'muted',
     issued: 'info',
     cleared: 'ok',
     returned: 'warning',
     cancelled: 'danger',
-  };
+  }), []);
 
   const isOutgoingChequeActionable = (cheque: OutgoingChequeRow) => ['draft', 'issued'].includes(cheque.status);
 
@@ -174,6 +174,100 @@ export default function OutgoingChequesIndex({
 
     return isOutgoingChequeActionable(cheque) ? dict.app.actions.restricted : dict.app.actions.noActions;
   };
+
+  const columns = useMemo(() => [
+    { data: 'cheque_number', name: 'cheque_number', title: pageDict.chequeNo, className: 'font-mono text-xs font-bold' },
+    { data: 'supplier_name', name: 'supplier_name', title: pageDict.supplier },
+    { data: 'bank_account_name', name: 'bank_account_name', title: pageDict.bankAccount },
+    { data: 'due_date', name: 'due_date', title: pageDict.dueDate, className: 'font-mono text-xs', width: '115px' },
+    { data: 'amount_minor', name: 'amount_minor', title: pageDict.amount, searchable: false, className: 'text-end' },
+    { data: 'status', name: 'status', title: pageDict.currentStatus, searchable: false, width: '110px' },
+    { data: 'id', name: 'id', title: pageDict.validLifecycleActions, orderable: false, searchable: false, className: 'text-end' },
+  ], [pageDict]);
+
+  const slots = useMemo<DataTableSlots>(() => ({
+    supplier_name: (data: OutgoingChequeRow['supplier_name'], _type: unknown, row: OutgoingChequeRow): ReactElement => (
+      <span className="font-semibold">{row.supplier_code} - {getLocalizedName(data, locale)}</span>
+    ),
+    bank_account_name: (data: OutgoingChequeRow['bank_account_name'], _type: unknown, row: OutgoingChequeRow): ReactElement => (
+      <span>{row.bank_account_code} - {data ? getLocalizedName(data, locale) : accDict.notAvailable}</span>
+    ),
+    amount_minor: (data: number, _type: unknown, row: OutgoingChequeRow): ReactElement => (
+      <span className="font-mono text-xs font-bold">{formatMoney(data, row.currency)}</span>
+    ),
+    status: (_data: string, _type: unknown, row: OutgoingChequeRow): ReactElement => (
+      <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
+        {pageDict.statuses[row.status]}
+      </StatusBadge>
+    ),
+    id: (_data: string, _type: unknown, row: OutgoingChequeRow): ReactElement => {
+      const actionState = getOutgoingChequeActionState(row);
+
+      return (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {row.status === 'draft' && canIssueOutgoingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'issue')}
+              title={pageDict.issue}
+              aria-label={pageDict.issue}
+              className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
+            >
+              {pageDict.issue}
+            </button>
+          ) : null}
+
+          {row.status === 'issued' && canClearOutgoingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'clear')}
+              title={pageDict.clear}
+              aria-label={pageDict.clear}
+              className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+            >
+              {pageDict.clear}
+            </button>
+          ) : null}
+
+          {row.status === 'issued' && canReturnOutgoingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'return')}
+              title={pageDict.return}
+              aria-label={pageDict.return}
+              className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
+            >
+              {pageDict.return}
+            </button>
+          ) : null}
+
+          {row.status === 'issued' && canCancelOutgoingCheques ? (
+            <button
+              type="button"
+              onClick={() => openActionModal(row, 'cancel')}
+              title={pageDict.cancel}
+              aria-label={pageDict.cancel}
+              className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
+            >
+              {pageDict.cancel}
+            </button>
+          ) : null}
+
+          {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
+        </div>
+      );
+    },
+  } as unknown as DataTableSlots), [
+    accDict.notAvailable,
+    canCancelOutgoingCheques,
+    canClearOutgoingCheques,
+    canIssueOutgoingCheques,
+    canReturnOutgoingCheques,
+    dict,
+    locale,
+    pageDict,
+    statusToneMap,
+  ]);
 
   return (
     <AppLayout active="outgoing-cheques.index">
@@ -217,105 +311,19 @@ export default function OutgoingChequesIndex({
         </div>
       </Card>
 
-      {cheques.data.length === 0 ? (
-        <EmptyState
-          title={dict.app.pages.outgoingCheques.noOutgoingChequesFound}
-          description={dict.app.pages.outgoingCheques.getStartedByCreatingYourFirst}
+      <Card className="overflow-hidden p-0">
+        <ServerDataTable
+          ajaxUrl="/outgoing-cheques/data"
+          columns={columns}
+          filters={{ status: filters.status || '', supplier_id: filters.supplier_id || '' }}
+          locale={locale}
+          order={[[3, 'asc']]}
+          pageLength={25}
+          reloadToken={reloadToken}
+          slots={slots}
+          tableId="outgoing-cheques-table"
         />
-      ) : (
-        <div className={tableClasses.wrap}>
-          <table className={tableClasses.table}>
-            <thead>
-              <tr>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.chequeNo}</th>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.supplier}</th>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.bankAccount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.dueDate}</th>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.amount}</th>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.currentStatus}</th>
-                <th className={tableClasses.th}>{dict.app.pages.outgoingCheques.validLifecycleActions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cheques.data.map((row) => {
-                const actionState = getOutgoingChequeActionState(row);
-
-                return (
-                  <tr key={row.id} className="hover:bg-[var(--background)]/50 transition-colors">
-                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>{row.cheque_number}</td>
-                    <td className={`${tableClasses.td} font-semibold`}>
-                      {row.supplier ? `${row.supplier.code} - ${getLocalizedName(row.supplier.name, locale)}` : accDict.notAvailable}
-                    </td>
-                    <td className={tableClasses.td}>{getLocalizedName(row.bank_account?.name, locale) || accDict.notAvailable}</td>
-                    <td className={`${tableClasses.td} font-mono text-xs`}>{row.due_date}</td>
-                    <td className={`${tableClasses.td} font-mono font-bold text-xs`}>
-                      {formatMoney(row.amount_minor, row.currency)}
-                    </td>
-                    <td className={tableClasses.td}>
-                      <StatusBadge tone={statusToneMap[row.status] || 'muted'}>
-                        {pageDict.statuses[row.status]}
-                      </StatusBadge>
-                    </td>
-                    <td className={tableClasses.td}>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {row.status === 'draft' && canIssueOutgoingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'issue')}
-                            title={pageDict.issue}
-                            aria-label={pageDict.issue}
-                            className="inline-flex h-8 items-center rounded-md border border-blue-200 px-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:border-blue-900/60 dark:text-blue-300 dark:hover:bg-blue-950/40"
-                          >
-                            {pageDict.issue}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'issued' && canClearOutgoingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'clear')}
-                            title={pageDict.clear}
-                            aria-label={pageDict.clear}
-                            className="inline-flex h-8 items-center rounded-md border border-emerald-200 px-2.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                          >
-                            {pageDict.clear}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'issued' && canReturnOutgoingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'return')}
-                            title={pageDict.return}
-                            aria-label={pageDict.return}
-                            className="inline-flex h-8 items-center rounded-md border border-amber-200 px-2.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-900/60 dark:text-amber-300 dark:hover:bg-amber-950/40"
-                          >
-                            {pageDict.return}
-                          </button>
-                        ) : null}
-
-                        {row.status === 'issued' && canCancelOutgoingCheques ? (
-                          <button
-                            type="button"
-                            onClick={() => openActionModal(row, 'cancel')}
-                            title={pageDict.cancel}
-                            aria-label={pageDict.cancel}
-                            className="inline-flex h-8 items-center rounded-md border border-red-200 px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                          >
-                            {pageDict.cancel}
-                          </button>
-                        ) : null}
-
-                        {actionState ? <StatusBadge tone="muted">{actionState}</StatusBadge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      </Card>
 
       {/* Creation Modal */}
       {showCreateModal ? (

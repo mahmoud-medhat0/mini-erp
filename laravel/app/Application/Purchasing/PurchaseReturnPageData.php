@@ -7,9 +7,10 @@ use App\Models\PurchaseReturn;
 use App\Models\Supplier;
 use App\Models\TaxCode;
 use App\Models\Warehouse;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Yajra\DataTables\Facades\DataTables;
 
 class PurchaseReturnPageData
 {
@@ -27,7 +28,7 @@ class PurchaseReturnPageData
         ];
 
         return [
-            'purchaseReturns' => $this->purchaseReturns($normalizedFilters),
+            'purchaseReturns' => [],
             'activeSuppliers' => $this->activeSuppliers(),
             'confirmedGoodsReceipts' => $this->confirmedGoodsReceipts(),
             'taxCodes' => $this->activeTaxCodes(),
@@ -39,8 +40,12 @@ class PurchaseReturnPageData
     /**
      * @param  array{search: mixed, status: mixed, supplier_id: mixed, warehouse_id: mixed}  $filters
      */
-    private function purchaseReturns(array $filters): LengthAwarePaginator
+    public function datatable(array $filters = []): JsonResponse
     {
+        $status = (string) ($filters['status'] ?? '');
+        $supplierId = (string) ($filters['supplier_id'] ?? '');
+        $warehouseId = (string) ($filters['warehouse_id'] ?? '');
+
         $query = PurchaseReturn::query()->with([
             'supplier',
             'goodsReceipt.purchaseOrder.supplier',
@@ -49,33 +54,31 @@ class PurchaseReturnPageData
             'lines.product',
             'lines.unitOfMeasure',
             'journalEntry',
-        ]);
+        ])
+            ->when($status && in_array($status, PurchaseReturnService::ALLOWED_STATUSES, true), fn (Builder $query) => $query->where('status', $status))
+            ->when($supplierId, fn (Builder $query) => $query->where('supplier_id', $supplierId))
+            ->when($warehouseId, fn (Builder $query) => $query->where('warehouse_id', $warehouseId));
 
-        if ($filters['search']) {
-            $query->where(function (Builder $query) use ($filters): void {
-                $query->where('number', 'like', "%{$filters['search']}%")
-                    ->orWhere('reason', 'like', "%{$filters['search']}%")
-                    ->orWhereHas('supplier', function (Builder $supplierQuery) use ($filters): void {
-                        $supplierQuery->where('name', 'like', "%{$filters['search']}%");
-                    });
-            });
-        }
-
-        if ($filters['status'] && in_array($filters['status'], PurchaseReturnService::ALLOWED_STATUSES, true)) {
-            $query->where('status', $filters['status']);
-        }
-
-        if ($filters['supplier_id']) {
-            $query->where('supplier_id', $filters['supplier_id']);
-        }
-
-        if ($filters['warehouse_id']) {
-            $query->where('warehouse_id', $filters['warehouse_id']);
-        }
-
-        return $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        return DataTables::eloquent($query)
+            ->filterColumn('number', function (Builder $query, string $keyword): void {
+                $needle = '%'.mb_strtolower($keyword).'%';
+                $query->where(function (Builder $inner) use ($keyword, $needle): void {
+                    $inner->where('number', 'like', "%{$keyword}%")
+                        ->orWhere('reason', 'like', "%{$keyword}%")
+                        ->orWhere('notes', 'like', "%{$keyword}%")
+                        ->orWhereHas('supplier', function (Builder $supplierQuery) use ($keyword, $needle): void {
+                            $supplierQuery->whereRaw('LOWER(CAST(supplier.name AS TEXT)) LIKE ?', [$needle])
+                                ->orWhere('code', 'like', "%{$keyword}%");
+                        })
+                        ->orWhereHas('goodsReceipt', fn (Builder $receiptQuery) => $receiptQuery->where('number', 'like', "%{$keyword}%"))
+                        ->orWhereHas('warehouse', fn (Builder $warehouseQuery) => $warehouseQuery->where('code', 'like', "%{$keyword}%")->orWhereRaw('LOWER(CAST(warehouse.name AS TEXT)) LIKE ?', [$needle]));
+                });
+            })
+            ->addColumn('supplier_name', fn (PurchaseReturn $row) => $row->supplier?->code ?? '')
+            ->addColumn('receipt_number', fn (PurchaseReturn $row) => $row->goodsReceipt?->number ?? '')
+            ->addColumn('warehouse_name', fn (PurchaseReturn $row) => $row->warehouse?->code ?? '')
+            ->addColumn('actions', fn () => '')
+            ->toJson();
     }
 
     /**
