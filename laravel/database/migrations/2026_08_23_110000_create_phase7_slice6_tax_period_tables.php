@@ -15,7 +15,7 @@ return new class extends Migration
             $table->date('end_date');
             $table->string('status', 32)->default('open'); // open, draft_return, filed
             $table->timestamp('filed_at')->nullable();
-            $table->uuid('filed_by')->nullable();
+            $table->foreignId('filed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->string('file_reference')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
@@ -33,9 +33,9 @@ return new class extends Migration
             $table->bigInteger('net_payable_minor')->default(0);
             $table->jsonb('snapshot')->nullable();
             $table->timestamp('generated_at')->nullable();
-            $table->uuid('generated_by')->nullable();
+            $table->foreignId('generated_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('filed_at')->nullable();
-            $table->uuid('filed_by')->nullable();
+            $table->foreignId('filed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
 
             $table->foreign('tax_period_id')->references('id')->on('tax_periods')->onDelete('cascade');
