@@ -510,7 +510,7 @@ export default function SupplierAdjustmentNotesIndex({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <DatePicker
                     label={dict.app.pages.purchasingSupplierAdjustmentNotes.adjustmentDate_2}
                     value={data.adjustment_date}
@@ -533,7 +533,7 @@ export default function SupplierAdjustmentNotesIndex({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">{dict.app.pages.purchasingSupplierAdjustmentNotes.direction} *</label>
                     <SearchableSelect

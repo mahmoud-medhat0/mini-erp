@@ -148,7 +148,7 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
   );
 
   return (
-    <AppLayout active="customers.index">
+    <AppLayout active="customers.index" pagination="none">
       <Head title={dict.app.pages.customers.customersMiniErp} />
 
       <PageHeader
@@ -189,7 +189,7 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.code_2} *</label>
                   <input type="text" value={data.code} onChange={(e) => setData('code', e.target.value)}
@@ -204,7 +204,7 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.customerNameEn} *</label>
                   <input id="customer-name-en" type="text" dir="ltr" value={data.name_en}
@@ -221,7 +221,7 @@ export default function CustomersIndex({ locale, filters }: CustomersProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.phone_2}</label>
                   <input type="text" value={data.phone} onChange={(e) => setData('phone', e.target.value)}

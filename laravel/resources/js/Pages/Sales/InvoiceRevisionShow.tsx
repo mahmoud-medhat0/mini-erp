@@ -138,26 +138,28 @@ export default function InvoiceRevisionShow({ locale, revision, snapshot }: Invo
             </div>
           </div>
 
-          <table className="mt-6 w-full border-collapse text-xs">
-            <thead>
-              <tr>
-                <th className={`${thStyle} w-40`}></th>
-                <th className={thStyle}>{dict.app.pages.salesInvoiceRevisions.original}</th>
-                <th className={thStyle}>{dict.app.pages.salesInvoiceRevisions.credited}</th>
-                <th className={thStyle}>{dict.app.pages.salesInvoiceRevisions.net}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {totalsRows.map((row, idx) => (
-                <tr key={row.label} className={idx === totalsRows.length - 1 ? 'bg-slate-50 font-extrabold' : ''}>
-                  <td className={`${cellStyle} font-bold`}>{row.label}</td>
-                  <td className={`${cellStyle} text-end font-mono`}>{formatMoney(row.original, currency)}</td>
-                  <td className={`${cellStyle} text-end font-mono`}>-{formatMoney(row.credited, currency)}</td>
-                  <td className={`${cellStyle} text-end font-mono`}>{formatMoney(row.net, currency)}</td>
+          <div className="overflow-x-auto">
+            <table className="mt-6 w-full border-collapse text-xs">
+              <thead>
+                <tr>
+                  <th className={`${thStyle} w-40`}></th>
+                  <th className={thStyle}>{dict.app.pages.salesInvoiceRevisions.original}</th>
+                  <th className={thStyle}>{dict.app.pages.salesInvoiceRevisions.credited}</th>
+                  <th className={thStyle}>{dict.app.pages.salesInvoiceRevisions.net}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {totalsRows.map((row, idx) => (
+                  <tr key={row.label} className={idx === totalsRows.length - 1 ? 'bg-slate-50 font-extrabold' : ''}>
+                    <td className={`${cellStyle} font-bold`}>{row.label}</td>
+                    <td className={`${cellStyle} text-end font-mono`}>{formatMoney(row.original, currency)}</td>
+                    <td className={`${cellStyle} text-end font-mono`}>-{formatMoney(row.credited, currency)}</td>
+                    <td className={`${cellStyle} text-end font-mono`}>{formatMoney(row.net, currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <h2 className="mt-8 mb-2 text-sm font-extrabold uppercase tracking-wider">{dict.app.pages.salesInvoiceRevisions.linesTableTitle}</h2>
           <div className="overflow-x-auto">

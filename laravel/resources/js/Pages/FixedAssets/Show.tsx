@@ -376,7 +376,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
               {appDict.assetInformation}
             </h3>
 
-            <dl className="grid grid-cols-2 gap-4 text-sm">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-slate-500 dark:text-slate-400">{appDict.assetNumber}</dt>
                 <dd className="font-mono font-medium text-slate-900 dark:text-slate-100">{asset.asset_number}</dd>

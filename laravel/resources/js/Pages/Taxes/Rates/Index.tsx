@@ -237,7 +237,7 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 {errors.rate_bps && <p className="text-xs text-rose-600 mt-1">{errors.rate_bps}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <DatePicker
                   label={taxDict.effectiveFrom}
                   value={data.effective_from}

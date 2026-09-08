@@ -238,7 +238,7 @@ export default function CashAccountsIndex({ locale, glAccounts = [], currencies 
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.cashAccounts.code_2} *

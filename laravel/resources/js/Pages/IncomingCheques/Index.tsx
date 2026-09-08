@@ -364,7 +364,7 @@ export default function IncomingChequesIndex({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.incomingCheques.chequeNumber} *
@@ -391,7 +391,7 @@ export default function IncomingChequesIndex({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <DatePicker
                     label={dict.app.pages.incomingCheques.dueDate_2}

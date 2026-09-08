@@ -345,7 +345,7 @@ export default function PayrollRunsIndex({
             <h2 className="text-base font-bold">{pageDict.details}</h2>
             {selectedRun ? (
               <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                   <div>
                     <div className="text-xs text-[var(--text-muted)]">{pageDict.employees}</div>
                     <div className="font-bold">{selectedRun.employee_count}</div>

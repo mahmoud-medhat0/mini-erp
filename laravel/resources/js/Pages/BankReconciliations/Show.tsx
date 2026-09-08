@@ -374,7 +374,7 @@ export default function BankReconciliationShow({
                 required
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.bankReconciliationsShow.debitMoneyOut}

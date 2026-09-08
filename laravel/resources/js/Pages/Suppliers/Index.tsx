@@ -223,7 +223,7 @@ export default function SuppliersIndex({ locale, filters = {} }: SuppliersProps)
   );
 
   return (
-    <AppLayout active="suppliers.index">
+    <AppLayout active="suppliers.index" pagination="none">
       <Head title={dict.app.pages.suppliers.suppliersMiniErp} />
 
       <PageHeader
@@ -268,7 +268,7 @@ export default function SuppliersIndex({ locale, filters = {} }: SuppliersProps)
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.suppliers.code_2} *
@@ -297,7 +297,7 @@ export default function SuppliersIndex({ locale, filters = {} }: SuppliersProps)
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.suppliers.supplierNameEn} *
@@ -330,7 +330,7 @@ export default function SuppliersIndex({ locale, filters = {} }: SuppliersProps)
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.suppliers.phone_2}

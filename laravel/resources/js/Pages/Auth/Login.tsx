@@ -72,7 +72,7 @@ export default function Login() {
             </div>
             <div>
               <span className="text-lg font-bold tracking-tight text-white">Mini ERP</span>
-              <span className="ml-2 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-semibold text-blue-300 border border-blue-400/30">
+              <span className="ms-2 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-semibold text-blue-300 border border-blue-400/30">
                 Enterprise v1.0
               </span>
             </div>

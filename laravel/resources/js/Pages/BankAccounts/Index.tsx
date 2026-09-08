@@ -252,7 +252,7 @@ export default function BankAccountsIndex({ locale, glAccounts = [], currencies 
             </h2>
 
             <form onSubmit={submit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.bankAccounts.code_2} *
@@ -306,7 +306,7 @@ export default function BankAccountsIndex({ locale, glAccounts = [], currencies 
                 {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.bankAccounts.bankName_2} *
@@ -346,7 +346,7 @@ export default function BankAccountsIndex({ locale, glAccounts = [], currencies 
                 {errors.gl_account_id && <p className="text-xs text-red-500 mt-1">{errors.gl_account_id}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {pageDict.iban}

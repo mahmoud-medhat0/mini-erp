@@ -130,7 +130,7 @@ export default function VatGlReconciliation({ locale, report, currencies, filter
 
         {report.warnings.map((w, i) => (
           <div key={i} className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-medium">
-            <span className="font-mono font-bold mr-2">[{w.code}]</span>
+            <span className="font-mono font-bold me-2">[{w.code}]</span>
             {resolveWarningText(w.message_key, w.code)}
           </div>
         ))}

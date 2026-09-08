@@ -331,7 +331,7 @@ export default function BranchOperations({ locale, reportData, filters, branches
                   onClick={() => setTableSearch('')}
                   title={pageDict.clearSearch}
                   aria-label={pageDict.clearSearch}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  className="absolute end-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 >
                   ✕
                 </button>

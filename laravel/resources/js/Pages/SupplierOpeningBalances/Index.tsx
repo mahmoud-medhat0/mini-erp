@@ -191,7 +191,7 @@ export default function SupplierOpeningBalancesIndex({
   }));
 
   return (
-    <AppLayout active="supplier-opening-balances.index">
+    <AppLayout active="supplier-opening-balances.index" pagination="none">
       <Head title={dict.app.pages.supplierOpeningBalances.supplierOpeningBalancesMiniErp} />
 
       <PageHeader
@@ -253,7 +253,7 @@ export default function SupplierOpeningBalancesIndex({
                 {errors.supplier_id && <p className="text-xs text-red-500 mt-1">{errors.supplier_id}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {(dict.app.pages.customerOpeningBalances as any).fiscalYear || 'Fiscal Year'} *
@@ -283,7 +283,7 @@ export default function SupplierOpeningBalancesIndex({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.supplierOpeningBalances.entryDate} *
@@ -308,7 +308,7 @@ export default function SupplierOpeningBalancesIndex({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.supplierOpeningBalances.currency} *

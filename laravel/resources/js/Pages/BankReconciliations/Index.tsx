@@ -234,7 +234,7 @@ export default function BankReconciliationsIndex({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.bankReconciliations.financialPeriod} *
@@ -260,7 +260,7 @@ export default function BankReconciliationsIndex({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <DatePicker
                     label={dict.app.pages.bankReconciliations.dateFrom}
@@ -279,7 +279,7 @@ export default function BankReconciliationsIndex({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.bankReconciliations.openingStatementBalance} *

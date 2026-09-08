@@ -568,7 +568,7 @@ export default function CustomerCreditNotesIndex({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <DatePicker
                     label={dict.app.pages.salesCustomerCreditNotes.creditDate_2}
                     value={data.credit_date}

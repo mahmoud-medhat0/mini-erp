@@ -334,7 +334,7 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-sm">
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
                 <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.sequenceKey}</span>
                 <span className="font-mono font-bold text-[var(--text-primary)]">journal.entry</span>

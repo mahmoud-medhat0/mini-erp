@@ -197,7 +197,7 @@ export default function CustomerOpeningBalancesIndex({
   }));
 
   return (
-    <AppLayout active="customer-opening-balances.index">
+    <AppLayout active="customer-opening-balances.index" pagination="none">
       <Head title={dict.app.pages.customerOpeningBalances.customerOpeningBalancesMiniErp} />
 
       <PageHeader
@@ -257,7 +257,7 @@ export default function CustomerOpeningBalancesIndex({
                 {errors.customer_id && <p className="text-xs text-red-500 mt-1">{errors.customer_id}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <DatePicker
                     label={dict.app.pages.customerOpeningBalances.entryDate}
@@ -279,7 +279,7 @@ export default function CustomerOpeningBalancesIndex({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                     {dict.app.pages.customerOpeningBalances.currency_2} *

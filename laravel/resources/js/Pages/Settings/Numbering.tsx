@@ -298,7 +298,7 @@ function SequenceDetailModal({
         </div>
 
         {/* Detailed Grid Breakdown */}
-        <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-sm">
           <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
             <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{dict.app.fields.prefix}</span>
             <span className="font-mono font-bold text-[var(--text-primary)]">{sequence.prefix || accDict.notAvailable}</span>

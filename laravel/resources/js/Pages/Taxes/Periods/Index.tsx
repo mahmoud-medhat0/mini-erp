@@ -149,7 +149,7 @@ export default function TaxPeriodsIndex({ locale, periods }: TaxPeriodsIndexProp
             {errors.period_label && <p className="text-xs text-rose-500 mt-1">{errors.period_label}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1 text-[var(--text-secondary)]">
                 {t.startDate} *

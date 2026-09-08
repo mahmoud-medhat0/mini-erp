@@ -326,7 +326,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                     <p>{tx('closeBlockersDesc')}</p>
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                  <div className="max-h-48 overflow-y-auto space-y-1.5 pe-1">
                     {readiness.blockers.map((b, idx) => (
                       <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs">
                         <div className="flex items-center gap-2">

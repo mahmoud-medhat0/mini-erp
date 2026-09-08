@@ -1024,7 +1024,7 @@ export default function FinancialStatementMappings({
               </div>
 
               <form onSubmit={submitLineForm} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
                       {accDict.code}
@@ -1055,7 +1055,7 @@ export default function FinancialStatementMappings({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
                       {fieldsDict.nameEn}
@@ -1086,7 +1086,7 @@ export default function FinancialStatementMappings({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
                       {accDict.section}
@@ -1114,7 +1114,7 @@ export default function FinancialStatementMappings({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
                       {accDict.cashFlowActivity}

@@ -250,7 +250,7 @@ export default function VatSummary({ locale, report, filters }: VatSummaryProps)
                 <span className="text-xs text-[var(--text-secondary)] block">{t.outputVatShort}</span>
                 <span className="font-bold text-emerald-600">{formatVatMoney(report.summary.total_output_tax_minor)}</span>
               </div>
-              <div className="border-l border-[var(--border-color)] pl-6">
+              <div className="border-s border-[var(--border-color)] ps-6">
                 <span className="text-xs text-[var(--text-secondary)] block">{t.inputVatShort}</span>
                 <span className="font-bold text-sky-600">{formatVatMoney(report.summary.total_input_tax_minor)}</span>
               </div>

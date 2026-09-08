@@ -181,7 +181,7 @@ export default function Notifications({ items, counts, filters, locale }: Notifi
   };
 
   return (
-    <AppLayout active="notifications">
+    <AppLayout active="notifications" pagination="none">
       <Head title={dict.app.nav.notifications} />
 
       <PageHeader
