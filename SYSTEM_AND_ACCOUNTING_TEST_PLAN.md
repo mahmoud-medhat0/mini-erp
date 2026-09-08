@@ -238,3 +238,92 @@ Already covered by `SecurityHardeningTest`, `RbacCrudEnforcementTest`, and matri
 ## 9. Suggested next step
 
 I can start immediately on the parts that don't need you: run Phase 0 in full, execute Phase 1's checks against the real account-mapping codes once you confirm them (or I read them from Settings → Account Mappings myself), and complete Phase 4. That gets the automatable ~2 hours done and hands you a short, concrete list of anything red — before you or an accountant spend the 3–5 hours on Phase 2's manual walkthrough.
+
+---
+
+## 10. Extended module verification — executed 2026-09-08 (continued session)
+
+Following up on "what's still missing," every remaining gap from Section 9 was actually executed, the same way as Phase 2: by calling the real Application-layer services with real data and checking the results, not by inspection alone. **This pass found and fixed 3 real defects** — none of them cosmetic, one of them (§10.5) affecting the majority of the Sales and Rentals list pages in the app.
+
+### 10.1 Fixed Assets — full lifecycle (create → capitalize → depreciate → dispose)
+
+Executed via `FixedAssetRegisterService`, `FixedAssetCapitalizationService`, `FixedAssetDepreciationEngineService`, `FixedAssetDepreciationPostingService`, `FixedAssetDisposalPostingService`:
+
+- Capitalization: `Dr 1600 (Fixed Asset Cost) 3,600,000 / Cr 1699 (Fixed Asset Clearing) 3,600,000` ✅ balanced
+- Straight-line schedule generation (36 months, 1,000.00 EGP/month) ✅ correct
+- Depreciation run posting for a period: ✅ posted, ledger matches the schedule exactly
+- Disposal (sale, proceeds 3,000,000 against a 3,500,000 net book value): preview correctly computed a 500,000 loss; posted journal `Dr 1690 (Accum. Depr.) 100,000 / Dr 1699 (Clearing/Proceeds) 3,000,000 / Dr 5910 (Loss on Disposal) 500,000 / Cr 1600 (Cost) 3,600,000` — balanced exactly.
+
+### 10.2 Payroll — full lifecycle
+
+Used the pre-seeded `ACC-EMP-001` (base salary 1,500,000), assigned a transport allowance (+20,000) and a 10% deduction, ran `PayrollRunService`:
+
+- Gross 1,520,000, deductions 150,000, net 1,370,000 — all correct.
+- Posted journal: `Dr 5700 (Payroll Expense) 1,520,000 / Cr 2600 (Payroll Payable) 1,370,000 / Cr 2610 (Deductions Payable) 150,000` — balanced exactly.
+
+### 10.3 Rentals — full lifecycle
+
+Item → Contract (submit/approve) → Handover (confirm — correctly auto-activates the contract and flips the item to `rented`) → mixed Invoice (rent + deposit, 14% VAT) via `RentalContractService`/`RentalFulfillmentService`/`RentalInvoiceService`:
+
+- Invoice: 50,000 rent + 10,000 deposit = 60,000 subtotal, 7,000 tax (14% of the rent line only, deposit correctly untaxed), 67,000 total.
+- Posted journal: `Dr 1200 (AR) 67,000 / Cr 4300 (Rental Revenue) 50,000 / Cr 2620 (Deposit Liability) 10,000 / Cr 2200 (Output Tax) 7,000` — balanced exactly.
+
+### 10.4 Period Close — readiness, closing, reopening, immutability — 2 real bugs found and fixed
+
+Calling `PeriodService::checkCloseReadiness()` for real (Step 12 of the acceptance script, and the backing check for `/accounting/periods`) crashed immediately with a Postgres error: **`column "credit_note_date" does not exist`**. This is not an edge case — the query is unconditional, so it fails on *every* call, for *every* period, regardless of data. Investigating further (by checking every table/column the same function touches against the real schema) turned up a second, identical mistake:
+
+| # | File | Bug | Fix |
+|---|---|---|---|
+| 1 | `app/Application/Accounting/PeriodService.php` | Queried `customer_credit_note.credit_note_date` — the real column is `credit_date` | Renamed both references |
+| 2 | same file | Queried `supplier_adjustment_note.note_date` — the real column is `adjustment_date`; and the GL-level `opening_balance` check queried a nonexistent `financial_period_id`/`entry_date` (that table is scoped by `fiscal_year_id` only, with no per-row date at all) | Renamed `note_date` → `adjustment_date`; rewrote the opening-balance check to filter by `fiscal_year_id` and report `created_at` instead of a nonexistent date column |
+
+After the fix: `checkCloseReadiness()` runs clean (`can_close: true`, zero blockers), `closePeriod()` closes the period, a new posting attempt into the closed period is correctly rejected (`"No open financial period covers date..."`), `reopenPeriod()` correctly reopens it, and re-closing afterward works. Full cycle confirmed. 36 targeted PHPUnit tests around this area (`Phase5Slice4PeriodCloseTest`, `Phase5Slice6FinalCloseOutTest`, `Phase13PayrollFoundationTest`, `Phase14RentalBillingTest`, `Phase10FixedAssetMovementTest`) still pass after the fix.
+
+### 10.5 Bank Reconciliation — full cycle
+
+Reopened the period (to test `reopenPeriod` too), created a draft reconciliation on `ACC-BANK-01`, added two statement lines matching the payment and receipt journal entries from Phase 2's Order-to-Cash cycle, matched both, and reconciled:
+
+- Statement movement −627,000 = system movement −627,000 = matched movement −627,000, **difference 0** — perfectly reconciled.
+- Status flow confirmed: `draft → in_progress → reconciled` (not `finalized` as this plan originally guessed — the real status name is `reconciled`).
+
+### 10.6 Master reconciliation across every module exercised (P2P + O2C + Fixed Assets + Payroll + Rentals)
+
+Re-ran the Phase 1 script one more time after all of the above: **44 ledger lines, 25,435,000 debit = 25,435,000 credit**, AR/AP control accounts tie to their subledgers exactly, accumulated depreciation ties to posted schedules (correctly excluding the disposed asset — see the note in the script), no duplicate numbering, no posting into a closed period. Every check passes on real, non-trivial, cross-module data.
+
+### 10.7 RBAC persona boundaries — real HTTP checks, not inspection
+
+Created one throwaway user per named persona (`SALES`, `PURCHASING`, `INVENTORY`, `AUDITOR`, `ACCOUNTANT` — all roles already existed in `RbacSeeder`) and hit real routes as each, checking actual HTTP status codes:
+
+- SALES: allowed on Customers/Sales Orders/Delivery/Invoices; denied (403) on Payroll, Settings, Purchasing. ✅
+- PURCHASING: allowed on Suppliers/POs/GRNs/Bills; denied on Payroll, Settings, Sales. ✅
+- INVENTORY: allowed on Warehouses/Stock Balances; denied on Payroll, Settings, Accounting Journal. ✅
+- AUDITOR: allowed on Reports/Ledger/Audit Log; denied on Payroll. One initial "mismatch" — AUDITOR can view `/settings` (200, not 403) — turned out to be **intentional**: `RbacSeeder` explicitly grants `AUDITOR` the `settings.view` permission (read-only audit visibility into company configuration is part of the role's designed scope), confirmed by inspecting the role's actual permission list. Not a defect.
+- ACCOUNTANT: broad access confirmed (GL, Journal, Ledger, Trial Balance, AR/AP, Fixed Assets); denied on `/settings/users` specifically. ✅
+
+### 10.8 Playwright E2E suite (`npm run e2e`) — 43 passed, 4 failed → all 4 explained, 1 was a real bug (now fixed)
+
+| Failing spec | Root cause | Verdict |
+|---|---|---|
+| `datatable-alignment.spec.ts` (`/customer-opening-balances`) | Grid was empty on the freshly-seeded DB; DataTables' own "No data available" placeholder row (1 `<td colspan>`) doesn't satisfy the test's own empty-grid skip guard, which checks `tbody tr` count (the placeholder row counts as 1 row even though it holds no real data) | Test fragility on empty datasets, not an app defect |
+| `account-mappings.spec.ts` (key label) | Same empty-grid-vs-skip-guard pattern | Test fragility, not an app defect |
+| `statement-mappings.spec.ts` (collapsed panel) | Toggle button only renders when there are unmapped accounts to show; the fresh seed's chart of accounts happens to be fully mapped already | Test fragility (environment-dependent), not an app defect |
+| `object-object-crawl.spec.ts` (`/rentals/items` renders `[object Object]`) | **Real bug** — see §10.9 below | **Fixed** |
+
+### 10.9 The big one: `datatables.net-react` slot-targeting mismatch across 11 pages
+
+Chasing the `[object Object]` failure down: `RentableItems.tsx`'s "Item" column displayed the literal string `[object Object]` instead of the item's translated name. Root cause, confirmed by reading `datatables.net-react`'s own source: a non-numeric `slots` key is turned into a DataTables column target of `` `${key}:name` `` — meaning **the slot key must match the column's `name` field, not its `data` field.** `RentableItems.tsx` declared its columns with a dot-qualified `name` (e.g. `rentable_item.name`, for server-side sort/filter against the joined table) but keyed its slots with the bare `data` value (`name`). The two never matched, so the custom React renderer silently never attached, and DataTables fell back to stringifying the raw cell object.
+
+A quick static scan (regex-matching every `{ data: X, name: Y }` column pair against every slots key across the codebase) found the exact same pattern in **10 more files** — meaning `number` (document links), `total_minor`/`*_total_minor` (currency amounts), `status` (colored badges), and various date/type columns were silently rendering as raw, unformatted values on:
+
+`Rentals/RentableItems.tsx`, `Rentals/Contracts.tsx`, `Rentals/Handovers.tsx`, `Rentals/Returns.tsx`, `Rentals/Invoices.tsx`, `Sales/SalesOrders.tsx`, `Sales/DeliveryNotes.tsx`, `Sales/CustomerInvoices.tsx`, `Sales/SalesReturns.tsx`, `Sales/CustomerCreditNotes.tsx`, `Sales/InvoiceRevisions.tsx`
+
+All 11 fixed by renaming each affected slot key to the exact qualified `name` the column declares (verified with a second automated pass — zero mismatches remain). Confirmed live, before/after:
+
+- Before: Sales Orders "Total Amount" column showed raw `600000`; Rentable Items "Item" column showed `[object Object]`.
+- After: Sales Orders shows `6,000.00 EGP` in the accounting-amount style, with a green "Confirmed" status badge; Rentable Items shows "Acceptance Rental Generator" with its Active/Inactive sub-label.
+
+`npm run typecheck` and `npm run build` both clean after the fix.
+
+### 10.10 What's now verified vs. what still needs a human
+
+With §10 complete, the only items from the original "what's missing" list that remain are the ones that were always going to need a human: Phase 2's business-judgment sign-off on real numbers by an actual accountant, and a visual walkthrough of the newly-shipped UI sections (Bank Reconciliation reporting, Cheque Register report, the Accounting Hub page) that Phase 3 called out — everything else that could be exercised programmatically now has been, and every defect found along the way has been fixed and re-verified.

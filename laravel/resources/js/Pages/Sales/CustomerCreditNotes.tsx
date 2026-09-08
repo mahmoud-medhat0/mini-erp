@@ -403,7 +403,11 @@ export default function CustomerCreditNotesIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => (
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'customer_credit_note.number': (value: string | null) => (
       <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>
     ),
     customer_name: (_value: unknown, _type: unknown, note: CreditNoteRow) => (
@@ -415,10 +419,10 @@ export default function CustomerCreditNotesIndex({
     sales_return_number: (_value: unknown, _type: unknown, note: CreditNoteRow) => (
       <span className="font-mono">{(note.salesReturn || note.sales_return)?.number || accDict.notAvailable}</span>
     ),
-    total_minor: (value: number, _type: unknown, note: CreditNoteRow) => (
+    'customer_credit_note.total_minor': (value: number, _type: unknown, note: CreditNoteRow) => (
       <span className="font-mono font-semibold accounting-amount">{formatMoney(value, note.currency)}</span>
     ),
-    status: (value: string) => (
+    'customer_credit_note.status': (value: string) => (
       <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>
     ),
     actions: (_value: unknown, _type: unknown, note: CreditNoteRow) => {

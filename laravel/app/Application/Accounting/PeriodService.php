@@ -557,14 +557,14 @@ class PeriodService
         // 18. Customer Credit Notes
         $cns = DB::table('customer_credit_note')
             ->whereIn('status', ['draft', 'submitted', 'approved'])
-            ->whereBetween('credit_note_date', [$startDate, $endDate])->get();
+            ->whereBetween('credit_date', [$startDate, $endDate])->get();
         foreach ($cns as $cn) {
             $blockers[] = [
                 'entity_type' => 'customer_credit_note',
                 'id' => (string) $cn->id,
                 'number_or_reference' => (string) ($cn->number ?? $cn->id),
                 'status' => (string) $cn->status,
-                'date' => (string) $cn->credit_note_date,
+                'date' => (string) $cn->credit_date,
                 'reason_code' => 'unposted_customer_credit_note',
             ];
         }
@@ -587,32 +587,32 @@ class PeriodService
         // 20. Supplier Adjustment Notes
         $sans = DB::table('supplier_adjustment_note')
             ->whereIn('status', ['draft', 'submitted', 'approved'])
-            ->whereBetween('note_date', [$startDate, $endDate])->get();
+            ->whereBetween('adjustment_date', [$startDate, $endDate])->get();
         foreach ($sans as $san) {
             $blockers[] = [
                 'entity_type' => 'supplier_adjustment_note',
                 'id' => (string) $san->id,
                 'number_or_reference' => (string) ($san->number ?? $san->id),
                 'status' => (string) $san->status,
-                'date' => (string) $san->note_date,
+                'date' => (string) $san->adjustment_date,
                 'reason_code' => 'unposted_supplier_adjustment_note',
             ];
         }
 
         // 21. Opening Balances (GL, Customer, Supplier)
+        // Note: `opening_balance` (GL-level) has no financial_period_id/entry_date column -
+        // it is scoped by fiscal year only, so it is blocked for every period in that year.
         $obs = DB::table('opening_balance')
             ->where('status', 'draft')
-            ->where(function ($q) use ($period, $startDate, $endDate) {
-                $q->where('financial_period_id', $period->id)
-                    ->orWhereBetween('entry_date', [$startDate, $endDate]);
-            })->get();
+            ->where('fiscal_year_id', $period->fiscal_year_id)
+            ->get();
         foreach ($obs as $ob) {
             $blockers[] = [
                 'entity_type' => 'opening_balance',
                 'id' => (string) $ob->id,
                 'number_or_reference' => (string) ($ob->number ?? $ob->id),
                 'status' => (string) $ob->status,
-                'date' => (string) $ob->entry_date,
+                'date' => (string) $ob->created_at,
                 'reason_code' => 'unposted_opening_balance',
             ];
         }

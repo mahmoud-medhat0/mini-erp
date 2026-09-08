@@ -513,7 +513,11 @@ export default function SalesReturnsIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => (
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'sales_return.number': (value: string | null) => (
       <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>
     ),
     customer_name: (_value: unknown, _type: unknown, ret: SalesReturnRow) => (
@@ -528,7 +532,7 @@ export default function SalesReturnsIndex({
     warehouse_name: (_value: unknown, _type: unknown, ret: SalesReturnRow) => (
       <>{ret.warehouse ? `${ret.warehouse.code} - ${getLocalizedName(ret.warehouse.name, locale)}` : accDict.notAvailable}</>
     ),
-    status: (value: string) => (
+    'sales_return.status': (value: string) => (
       <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>
     ),
     actions: (_value: unknown, _type: unknown, ret: SalesReturnRow) => {

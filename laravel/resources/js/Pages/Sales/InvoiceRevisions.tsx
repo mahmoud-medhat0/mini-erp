@@ -58,7 +58,11 @@ export default function InvoiceRevisionsIndex({ locale, filters }: InvoiceRevisi
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    display_string: (value: string, _type: unknown, row: RevisionRow) => (
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'customer_invoice_revision.display_string': (value: string, _type: unknown, row: RevisionRow) => (
       <span className="font-mono font-bold text-blue-600">
         {value}
         <span className="ms-1 text-[10px] font-semibold text-[var(--text-muted)]">#{row.revision_no}</span>
@@ -72,13 +76,13 @@ export default function InvoiceRevisionsIndex({ locale, filters }: InvoiceRevisi
       const invoice = row.customerInvoice || row.customer_invoice;
       return <span className="font-medium">{getLocalizedName(invoice?.customer?.name, locale) || accDict.notAvailable}</span>;
     },
-    original_total_minor: (value: number, _type: unknown, row: RevisionRow) => (
+    'customer_invoice_revision.original_total_minor': (value: number, _type: unknown, row: RevisionRow) => (
       <span className="font-mono font-semibold">{formatMoney(value, row.currency)}</span>
     ),
-    credited_total_minor: (value: number, _type: unknown, row: RevisionRow) => (
+    'customer_invoice_revision.credited_total_minor': (value: number, _type: unknown, row: RevisionRow) => (
       <span className="font-mono font-semibold text-red-600">{formatMoney(value, row.currency)}</span>
     ),
-    net_total_minor: (value: number, _type: unknown, row: RevisionRow) => (
+    'customer_invoice_revision.net_total_minor': (value: number, _type: unknown, row: RevisionRow) => (
       <span className="font-mono font-bold">{formatMoney(value, row.currency)}</span>
     ),
     actions: (_value: unknown, _type: unknown, row: RevisionRow) => (

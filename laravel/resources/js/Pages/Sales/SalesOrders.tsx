@@ -355,16 +355,21 @@ export default function SalesOrdersIndex({ locale, customers, currencies, produc
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => (
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` (e.g. `sales_order.number`) for server-side
+    // ordering, so the slot keys must match that qualified name exactly or
+    // they silently never attach and DataTables renders the raw cell value.
+    'sales_order.number': (value: string | null) => (
       <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>
     ),
     customer_name: (_value: unknown, _type: unknown, row: SalesOrderRow) => (
       <span className="font-medium">{getLocalizedName(row.customer?.name, locale) || accDict.notAvailable}</span>
     ),
-    total_minor: (value: number, _type: unknown, row: SalesOrderRow) => (
+    'sales_order.total_minor': (value: number, _type: unknown, row: SalesOrderRow) => (
       <span className="font-semibold accounting-amount">{formatMoney(value, row.currency)}</span>
     ),
-    status: (value: string) => (
+    'sales_order.status': (value: string) => (
       <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>
     ),
     actions: (_value: unknown, _type: unknown, order: SalesOrderRow) => {

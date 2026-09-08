@@ -321,19 +321,25 @@ export default function RentableItemsIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    code: (value: string, _type: unknown, item: RentableItem) => (
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` (e.g. `rentable_item.code`) so the backend can
+    // order/filter against the joined table unambiguously, so the slot keys
+    // below must match that qualified name exactly or they silently never
+    // attach and DataTables falls back to stringifying the raw cell value.
+    'rentable_item.code': (value: string, _type: unknown, item: RentableItem) => (
       <div>
         <div className="font-mono text-sm font-bold">{value}</div>
         {item.serial_number ? <div className="mt-1 text-xs text-[var(--text-muted)]">{item.serial_number}</div> : null}
       </div>
     ),
-    name: (_value: unknown, _type: unknown, item: RentableItem) => (
+    'rentable_item.name': (_value: unknown, _type: unknown, item: RentableItem) => (
       <div>
         <div className="font-semibold">{namePart(item.name, activeLocale)}</div>
         <div className="mt-1 text-xs text-[var(--text-muted)]">{item.is_active ? pageDict.active : pageDict.inactive}</div>
       </div>
     ),
-    item_source: (value: string, _type: unknown, item: RentableItem) => (
+    'rentable_item.item_source': (value: string, _type: unknown, item: RentableItem) => (
       <div>
         <div className="text-sm font-semibold">{pageDict.sources[value as keyof typeof pageDict.sources] || value}</div>
         <div className="mt-1 text-xs text-[var(--text-muted)]">{sourceLabel(item)}</div>
@@ -345,10 +351,10 @@ export default function RentableItemsIndex({
         <div className="mt-1 text-xs text-[var(--text-muted)]">{item.warehouse ? `${item.warehouse.code} - ${namePart(item.warehouse.name, activeLocale)}` : pageDict.noWarehouse}</div>
       </div>
     ),
-    status: (value: string) => (
+    'rentable_item.status': (value: string) => (
       <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>
     ),
-    condition_status: (value: string) => (
+    'rentable_item.condition_status': (value: string) => (
       <StatusBadge tone={conditionTone(value)}>{pageDict.conditions[value as keyof typeof pageDict.conditions] || value}</StatusBadge>
     ),
     rates: (_value: unknown, _type: unknown, item: RentableItem) => (

@@ -352,7 +352,11 @@ export default function RentalContractsIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null, _type: unknown, contract: Contract) => (
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'rental_contract.number': (value: string | null, _type: unknown, contract: Contract) => (
       <div>
         <div className="font-mono text-sm font-bold">{value || pageDict.notNumbered}</div>
         {contract.reference ? <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.reference}</div> : null}
@@ -364,13 +368,13 @@ export default function RentalContractsIndex({
         <div className="mt-1 text-xs text-[var(--text-muted)]">{contract.branch ? `${contract.branch.code} - ${namePart(contract.branch.name, activeLocale)}` : pageDict.noBranch}</div>
       </div>
     ),
-    period: (_value: unknown, _type: unknown, contract: Contract) => (
+    'rental_contract.start_date': (_value: unknown, _type: unknown, contract: Contract) => (
       <div>
         <div className="font-semibold">{formatDate(contract.start_date)} - {formatDate(contract.expected_end_date)}</div>
         <div className="mt-1 text-xs text-[var(--text-muted)]">{pageDict.contractDate}: {formatDate(contract.contract_date)}</div>
       </div>
     ),
-    status: (value: string) => (
+    'rental_contract.status': (value: string) => (
       <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>
     ),
     items: (_value: unknown, _type: unknown, contract: Contract) => (

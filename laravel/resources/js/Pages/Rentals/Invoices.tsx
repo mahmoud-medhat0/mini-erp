@@ -540,15 +540,19 @@ export default function RentalInvoicesIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'rental_invoice.number': (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
     contract_number: (_value: unknown, _type: unknown, invoice: RentalInvoice) => invoice.contract?.number || pageDict.notNumbered,
     customer_name: (_value: unknown, _type: unknown, invoice: RentalInvoice) => (
       invoice.customer ? `${invoice.customer.code} - ${namePart(invoice.customer.name, activeLocale)}` : pageDict.customer
     ),
-    invoice_date: (value: string) => formatDate(value),
-    invoice_type: (value: string) => pageDict.invoiceTypes[value as keyof typeof pageDict.invoiceTypes] || value,
-    total_minor: (value: number, _type: unknown, invoice: RentalInvoice) => <AccountingAmount amountMinor={value} currency={invoice.currency} />,
-    status: (value: string) => (
+    'rental_invoice.invoice_date': (value: string) => formatDate(value),
+    'rental_invoice.invoice_type': (value: string) => pageDict.invoiceTypes[value as keyof typeof pageDict.invoiceTypes] || value,
+    'rental_invoice.total_minor': (value: number, _type: unknown, invoice: RentalInvoice) => <AccountingAmount amountMinor={value} currency={invoice.currency} />,
+    'rental_invoice.status': (value: string) => (
       <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>
     ),
     actions: (_value: unknown, _type: unknown, invoice: RentalInvoice) => {

@@ -320,7 +320,11 @@ export default function DeliveryNotesIndex({ locale, confirmedSalesOrders, wareh
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'delivery_note.number': (value: string | null) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
     sales_order_number: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => {
       const salesOrder = note.salesOrder || note.sales_order;
       return <span className="font-mono">{salesOrder?.number || accDict.notAvailable}</span>;
@@ -332,7 +336,7 @@ export default function DeliveryNotesIndex({ locale, confirmedSalesOrders, wareh
     warehouse_name: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => (
       <span>{note.warehouse ? `${note.warehouse.code} - ${getLocalizedName(note.warehouse.name, locale)}` : accDict.notAvailable}</span>
     ),
-    status: (value: string) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    'delivery_note.status': (value: string) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
     actions: (_value: unknown, _type: unknown, note: DeliveryNoteRow) => {
       const actionState = getDeliveryNoteActionState(note);
 

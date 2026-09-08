@@ -208,15 +208,19 @@ export default function RentalReturnsIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'rental_return.number': (value: string | null) => <span className="font-mono font-bold">{value || pageDict.notNumbered}</span>,
     contract_number: (_value: unknown, _type: unknown, rentalReturn: RentalReturn) => (
       <div>
         <div className="font-semibold">{rentalReturn.contract?.number || pageDict.notNumbered}</div>
         <div className="mt-1 text-xs text-[var(--text-muted)]">{rentalReturn.customer ? `${rentalReturn.customer.code} - ${namePart(rentalReturn.customer.name, activeLocale)}` : ''}</div>
       </div>
     ),
-    return_date: (value: string) => formatDate(value),
-    status: (value: string) => <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>,
+    'rental_return.return_date': (value: string) => formatDate(value),
+    'rental_return.status': (value: string) => <StatusBadge tone={statusTone(value)}>{pageDict.statuses[value as keyof typeof pageDict.statuses] || value}</StatusBadge>,
     items: (_value: unknown, _type: unknown, rentalReturn: RentalReturn) => rentalReturn.lines?.map((line) => line.rentable_item?.code).filter(Boolean).join(', '),
     damage_total_minor: (value: number | null, _type: unknown, rentalReturn: RentalReturn) => (
       <AccountingAmount amountMinor={Number(value || 0)} currency={rentalReturn.contract?.currency || pageDict.noCurrency} />

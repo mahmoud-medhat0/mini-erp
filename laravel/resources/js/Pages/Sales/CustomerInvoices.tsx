@@ -493,14 +493,18 @@ export default function CustomerInvoicesIndex({
   ], [pageDict]);
 
   const slots = useMemo<DataTableSlots>(() => ({
-    number: (value: string | null) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
+    // datatables.net-react targets a slot by the column's DataTables `name`
+    // (as `<name>:name`), not its `data` key - these columns declare a
+    // dot-qualified `name` for server-side ordering, so the slot keys must
+    // match that qualified name exactly or they silently never attach.
+    'customer_invoice.number': (value: string | null) => <span className="font-mono font-bold text-blue-600">{value || pageDict.draft_2}</span>,
     customer_name: (_value: unknown, _type: unknown, invoice: CustomerInvoiceRow) => (
       <span className="font-medium">{getLocalizedName(invoice.customer?.name, locale) || accDict.notAvailable}</span>
     ),
-    total_minor: (value: number, _type: unknown, invoice: CustomerInvoiceRow) => (
+    'customer_invoice.total_minor': (value: number, _type: unknown, invoice: CustomerInvoiceRow) => (
       <span className="font-mono font-semibold">{formatMoney(value, invoice.currency)}</span>
     ),
-    status: (value: string) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
+    'customer_invoice.status': (value: string) => <StatusBadge tone={getStatusTone(value)}>{getStatusLabel(value)}</StatusBadge>,
     actions: (_value: unknown, _type: unknown, invoice: CustomerInvoiceRow) => {
       const actionState = getCustomerInvoiceActionState(invoice);
 
