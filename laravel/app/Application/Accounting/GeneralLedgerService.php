@@ -278,6 +278,14 @@ class GeneralLedgerService
             ->editColumn('account_name', fn (stdClass $row): array|string => $this->decodeTranslations($row->account_name))
             ->editColumn('debit_balance', fn (stdClass $row): int => (int) $row->debit_balance)
             ->editColumn('credit_balance', fn (stdClass $row): int => (int) $row->credit_balance)
+            // Yajra's default escape='*' HTML-escapes every column, including
+            // recursing into this decoded {en, ar} translation array - marking
+            // it raw prevents e.g. "Sales Returns & Allowances" rendering as
+            // "Sales Returns &amp; Allowances". Safe here: the frontend slot
+            // renderer (datatables.net-react) renders this as plain React
+            // text (no dangerouslySetInnerHTML anywhere in the codebase), so
+            // React's own escaping still protects against XSS regardless.
+            ->rawColumns(['account_name', 'account_name.en', 'account_name.ar'])
             ->toJson();
     }
 

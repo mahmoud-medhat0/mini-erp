@@ -110,6 +110,8 @@ class BudgetPageData
             ->editColumn('name', fn (Budget $budget): array => $budget->getTranslations('name'))
             ->editColumn('lines_count', fn (Budget $budget): int => (int) $budget->lines_count)
             ->editColumn('total_amount_minor', fn (Budget $budget): int => (int) ($budget->total_amount_minor ?? 0))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the {en, ar} translation map.
+            ->rawColumns(['name', 'name.en', 'name.ar'])
             ->toJson();
     }
 

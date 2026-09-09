@@ -82,7 +82,9 @@ class ChequeRegisterDataTableService
         $dataTable
             ->editColumn('party_name', fn (stdClass $row): array|string => $this->translatableName($row->party_name))
             ->editColumn('bank_account_name', fn (stdClass $row): array|string => $this->translatableName($row->bank_account_name))
-            ->editColumn('amount_minor', fn (stdClass $row): int => (int) $row->amount_minor);
+            ->editColumn('amount_minor', fn (stdClass $row): int => (int) $row->amount_minor)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+            ->rawColumns(['party_name', 'party_name.en', 'party_name.ar', 'bank_account_name', 'bank_account_name.en', 'bank_account_name.ar']);
 
         foreach (['party_name', 'cheque_number', 'due_date', 'bank_account_name', 'status', 'amount_minor'] as $column) {
             $dataTable->orderColumn(

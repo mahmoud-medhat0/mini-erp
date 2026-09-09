@@ -123,6 +123,8 @@ class SupplierOpeningBalancePageData
             ->orderColumn('status', 'supplier_opening_balance.status $1')
             ->orderColumn('id', 'supplier_opening_balance.id $1')
             ->editColumn('supplier_name', fn ($row) => $this->decodeTranslations($row->supplier_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['supplier_name', 'supplier_name.en', 'supplier_name.ar'])
             ->toJson();
     }
 

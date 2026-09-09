@@ -763,6 +763,15 @@ class BudgetVarianceReportService
             ->editColumn('account_name', fn (stdClass $row): array|string => $this->decodeTranslations($row->account_name))
             ->editColumn('project_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->project_name))
             ->editColumn('cost_center_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->cost_center_name))
+            // Yajra's default escape='*' HTML-escapes every column, including
+            // recursing into these decoded {en, ar} translation arrays -
+            // marking them raw prevents e.g. "Sales Returns & Allowances"
+            // rendering as "Sales Returns &amp; Allowances". Safe here: the
+            // frontend slot renderers (datatables.net-react) render these as
+            // plain React text (no dangerouslySetInnerHTML anywhere in the
+            // codebase), so React's own escaping still protects against XSS
+            // regardless of this flag.
+            ->rawColumns(['account_name', 'account_name.en', 'account_name.ar', 'project_name', 'project_name.en', 'project_name.ar', 'cost_center_name', 'cost_center_name.en', 'cost_center_name.ar'])
             ->editColumn('period_month', fn (stdClass $row): int => (int) $row->period_month)
             ->editColumn('budget_minor', fn (stdClass $row): int => (int) $row->budget_minor)
             ->editColumn('actual_minor', fn (stdClass $row): int => (int) $row->actual_minor)

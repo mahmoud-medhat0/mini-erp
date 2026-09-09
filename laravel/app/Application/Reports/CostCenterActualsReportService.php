@@ -298,6 +298,14 @@ class CostCenterActualsReportService
                     ->orderBy('cost_center_actuals.currency');
             })
             ->editColumn('cost_center_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->cost_center_name))
+            // Yajra's default escape='*' would HTML-escape "&" etc. inside the decoded
+            // {en, ar} maps - including the nested `accounts.N.account_name` entries
+            // built by accountBreakdown() below, whose array indices vary per row and
+            // can't be listed statically via rawColumns(). Disable escaping for this
+            // response entirely instead: safe here since the frontend slot renderers
+            // (datatables.net-react) render every value as plain React text (no
+            // dangerouslySetInnerHTML anywhere in the codebase).
+            ->escapeColumns([])
             ->editColumn('is_unassigned', fn (stdClass $row): bool => (bool) $row->is_unassigned)
             ->editColumn('ledger_row_count', fn (stdClass $row): int => (int) $row->ledger_row_count)
             ->editColumn('debit_minor', fn (stdClass $row): int => (int) $row->debit_minor)

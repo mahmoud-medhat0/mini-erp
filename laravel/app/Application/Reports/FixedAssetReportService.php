@@ -188,6 +188,8 @@ class FixedAssetReportService
             ->addColumn('financial_period', fn (FixedAssetDepreciationSchedule $schedule): ?array => $this->financialPeriodReference($schedule->financialPeriod))
             ->addColumn('depreciation_run_number', fn (FixedAssetDepreciationSchedule $schedule): ?string => $schedule->depreciationRun?->number)
             ->addColumn('journal_number', fn (FixedAssetDepreciationSchedule $schedule): ?string => $schedule->journalEntry?->number)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the {en, ar} translation maps nested under `asset`.
+            ->rawColumns(['asset.name', 'asset.name.en', 'asset.name.ar', 'asset.category.name', 'asset.category.name.en', 'asset.category.name.ar'])
             ->toJson();
     }
 
@@ -245,6 +247,8 @@ class FixedAssetReportService
             ->addColumn('financial_period', fn (FixedAssetDisposal $disposal): ?array => $this->financialPeriodReference($disposal->financialPeriod))
             ->addColumn('journal_number', fn (FixedAssetDisposal $disposal): ?string => $disposal->journalEntry?->number)
             ->addColumn('reversal_journal_number', fn (FixedAssetDisposal $disposal): ?string => $disposal->reversalJournalEntry?->number)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the {en, ar} translation maps nested under `asset`.
+            ->rawColumns(['asset.name', 'asset.name.en', 'asset.name.ar', 'asset.category.name', 'asset.category.name.en', 'asset.category.name.ar'])
             ->toJson();
     }
 
@@ -287,7 +291,9 @@ class FixedAssetReportService
             ->editColumn('opening_accumulated_depreciation_minor', fn (FixedAsset $asset): int => (int) $asset->opening_accumulated_depreciation_minor)
             ->editColumn('posted_accumulated_depreciation_minor', fn (FixedAsset $asset): int => (int) $asset->posted_accumulated_depreciation_minor)
             ->editColumn('total_accumulated_depreciation_minor', fn (FixedAsset $asset): int => (int) $asset->total_accumulated_depreciation_minor)
-            ->editColumn('net_book_value_minor', fn (FixedAsset $asset): int => (int) $asset->net_book_value_minor);
+            ->editColumn('net_book_value_minor', fn (FixedAsset $asset): int => (int) $asset->net_book_value_minor)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the {en, ar} translation maps.
+            ->rawColumns(['name', 'name.en', 'name.ar', 'category.name', 'category.name.en', 'category.name.ar']);
     }
 
     /**

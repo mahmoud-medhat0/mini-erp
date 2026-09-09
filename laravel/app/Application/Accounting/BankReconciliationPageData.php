@@ -191,6 +191,8 @@ class BankReconciliationPageData
             ->orderColumn('status', 'bank_reconciliation.status $1')
             ->orderColumn('id', 'bank_reconciliation.id $1')
             ->editColumn('bank_account_name', fn ($row) => $this->decodeTranslations($row->bank_account_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['bank_account_name', 'bank_account_name.en', 'bank_account_name.ar'])
             ->toJson();
     }
 

@@ -84,6 +84,8 @@ class SupplierPaymentPageData
             ->editColumn('supplier_name', fn ($row) => $this->decodeTranslations($row->supplier_name))
             ->editColumn('cash_account_name', fn ($row) => $this->decodeTranslations($row->cash_account_name))
             ->editColumn('bank_account_name', fn ($row) => $this->decodeTranslations($row->bank_account_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+            ->rawColumns(['supplier_name', 'supplier_name.en', 'supplier_name.ar', 'cash_account_name', 'cash_account_name.en', 'cash_account_name.ar', 'bank_account_name', 'bank_account_name.en', 'bank_account_name.ar'])
             ->toJson();
     }
 

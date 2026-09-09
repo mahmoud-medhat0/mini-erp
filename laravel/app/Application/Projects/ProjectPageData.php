@@ -77,6 +77,8 @@ class ProjectPageData
             ->editColumn('is_billable', fn (Project $project): bool => (bool) $project->is_billable)
             ->editColumn('is_active', fn (Project $project): bool => (bool) $project->is_active)
             ->editColumn('lock_version', fn (Project $project): int => (int) $project->lock_version)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the {en, ar} translation map.
+            ->rawColumns(['name', 'name.en', 'name.ar'])
             ->toJson();
     }
 

@@ -76,7 +76,9 @@ class ProductPageData
             ->addColumn('category_name', fn ($row) => $row->category?->name ? $this->translatableName($row->category->name) : null)
             ->editColumn('status', fn ($row) => $row->status)
             ->addColumn('actions', fn ($row) => '')
-            ->rawColumns(['actions'])
+            // name/uom_name/category_name also need to be raw: Yajra's default escape='*'
+            // would otherwise HTML-escape "&" etc. inside the decoded {en, ar} maps.
+            ->rawColumns(['actions', 'name', 'name.en', 'name.ar', 'uom_name', 'uom_name.en', 'uom_name.ar', 'category_name', 'category_name.en', 'category_name.ar'])
             ->toJson();
     }
 

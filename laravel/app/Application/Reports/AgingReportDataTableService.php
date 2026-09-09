@@ -22,6 +22,8 @@ class AgingReportDataTableService
     {
         return $this->dataTable($this->groupedQuery($filters, 'receivable'))
             ->editColumn('customer_name', fn (stdClass $row): array|string => $this->translatableName($row->customer_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['customer_name', 'customer_name.en', 'customer_name.ar'])
             ->toJson();
     }
 
@@ -30,6 +32,8 @@ class AgingReportDataTableService
     {
         return $this->dataTable($this->groupedQuery($filters, 'payable'))
             ->editColumn('supplier_name', fn (stdClass $row): array|string => $this->translatableName($row->supplier_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['supplier_name', 'supplier_name.en', 'supplier_name.ar'])
             ->toJson();
     }
 

@@ -71,7 +71,9 @@ class WarehousePageData
             ->addColumn('branch_name', fn ($row) => $row->branch?->code ?? '')
             ->addColumn('locations_list', fn ($row) => (string) ($row->locations?->count() ?? 0))
             ->addColumn('actions', fn ($row) => '')
-            ->rawColumns(['actions'])
+            // 'name' also needs to be raw: Yajra's default escape='*' would otherwise
+            // HTML-escape "&" etc. inside the decoded {en, ar} translation map.
+            ->rawColumns(['actions', 'name', 'name.en', 'name.ar'])
             ->toJson();
     }
 

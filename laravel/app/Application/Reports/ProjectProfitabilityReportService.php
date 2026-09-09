@@ -299,6 +299,8 @@ class ProjectProfitabilityReportService
                     ->orderBy('project_profitability.currency');
             })
             ->editColumn('project_name', fn (stdClass $row): array|string|null => $this->decodeNullableTranslations($row->project_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['project_name', 'project_name.en', 'project_name.ar'])
             ->editColumn('is_unassigned', fn (stdClass $row): bool => (bool) $row->is_unassigned)
             ->editColumn('ledger_row_count', fn (stdClass $row): int => (int) $row->ledger_row_count)
             ->editColumn('debit_minor', fn (stdClass $row): int => (int) $row->debit_minor)

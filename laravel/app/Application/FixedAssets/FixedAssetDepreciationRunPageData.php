@@ -170,6 +170,8 @@ class FixedAssetDepreciationRunPageData
             ->orderColumn('net_book_value_minor', 'fixed_asset_depreciation_schedule.net_book_value_minor $1')
             ->editColumn('asset_name', fn (object $row) => $this->decodeTranslations($row->asset_name))
             ->editColumn('category_name', fn (object $row) => $this->decodeTranslations($row->category_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+            ->rawColumns(['asset_name', 'asset_name.en', 'asset_name.ar', 'category_name', 'category_name.en', 'category_name.ar'])
             ->toJson();
     }
 

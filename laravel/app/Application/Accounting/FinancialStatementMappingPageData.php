@@ -142,6 +142,8 @@ class FinancialStatementMappingPageData
             ->editColumn('line_name', fn ($row) => $this->decodeTranslations($row->line_name))
             ->editColumn('group_name', fn ($row) => $this->decodeTranslations($row->group_name))
             ->editColumn('account_type_name', fn ($row) => $this->decodeTranslations($row->account_type_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+            ->rawColumns(['name', 'name.en', 'name.ar', 'line_name', 'line_name.en', 'line_name.ar', 'group_name', 'group_name.en', 'group_name.ar', 'account_type_name', 'account_type_name.en', 'account_type_name.ar'])
             ->toJson();
     }
 

@@ -89,6 +89,9 @@ class VatRegisterDataTableService
             fn (stdClass $row): array|string => $this->translatableName($row->entity_name),
         );
 
+        // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+        $dataTable->rawColumns(['entity_name', 'entity_name.en', 'entity_name.ar']);
+
         foreach (['tax_rate_bps', 'subtotal_minor', 'tax_amount_minor', 'gross_amount_minor'] as $column) {
             $dataTable->editColumn($column, fn (stdClass $row): int => (int) $row->{$column});
         }

@@ -87,6 +87,8 @@ class ExchangeRatePageData
             ->orderColumn('rate_e6', 'exchange_rate.rate_e6 $1')
             ->editColumn('currency_name', fn ($row) => $this->decodeTranslations($row->currency_name))
             ->addColumn('rate_decimal', fn ($row) => ((int) $row->rate_e6) / 1_000_000)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['currency_name', 'currency_name.en', 'currency_name.ar'])
             ->toJson();
     }
 

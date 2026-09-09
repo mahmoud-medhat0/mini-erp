@@ -84,6 +84,8 @@ class CustomerReceiptPageData
             ->editColumn('customer_name', fn ($row) => $this->decodeTranslations($row->customer_name))
             ->editColumn('cash_account_name', fn ($row) => $this->decodeTranslations($row->cash_account_name))
             ->editColumn('bank_account_name', fn ($row) => $this->decodeTranslations($row->bank_account_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+            ->rawColumns(['customer_name', 'customer_name.en', 'customer_name.ar', 'cash_account_name', 'cash_account_name.en', 'cash_account_name.ar', 'bank_account_name', 'bank_account_name.en', 'bank_account_name.ar'])
             ->toJson();
     }
 

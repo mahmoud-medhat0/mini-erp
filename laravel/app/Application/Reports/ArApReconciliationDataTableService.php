@@ -51,6 +51,8 @@ class ArApReconciliationDataTableService
         return $this->dataTable($query)
             ->editColumn('partner_name', fn (stdClass $row): array|string => $this->queryService->translatableName($row->partner_name))
             ->editColumn('subledger_balance_minor', fn (stdClass $row): int => (int) $row->subledger_balance_minor)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['partner_name', 'partner_name.en', 'partner_name.ar'])
             ->toJson();
     }
 

@@ -123,12 +123,18 @@ class RentalOperationsDataTableService
             });
         });
 
+        $translatedNameRawColumns = [];
         foreach (['customer_name', 'branch_name'] as $column) {
             $dataTable->editColumn(
                 $column,
                 fn (stdClass $row): array|string|null => $this->translatableName($row->{$column}),
             );
+            $translatedNameRawColumns = [...$translatedNameRawColumns, $column, "{$column}.en", "{$column}.ar"];
         }
+        // rawColumns() replaces the raw-column list on each call (it does not merge),
+        // so it must be called once with every translated column collected above -
+        // prevents Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+        $dataTable->rawColumns($translatedNameRawColumns);
 
         foreach ([
             'line_count',

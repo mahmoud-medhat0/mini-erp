@@ -73,7 +73,9 @@ class CustomerPageData
             ->editColumn('name', fn ($row) => $this->translatableName($row->name))
             ->editColumn('status', fn ($row) => $row->status)
             ->addColumn('actions', fn ($row) => '')
-            ->rawColumns(['actions'])
+            // 'name' also needs to be raw: Yajra's default escape='*' would otherwise
+            // HTML-escape "&" etc. inside the decoded {en, ar} translation map.
+            ->rawColumns(['actions', 'name', 'name.en', 'name.ar'])
             ->toJson();
     }
 

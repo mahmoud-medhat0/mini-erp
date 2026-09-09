@@ -73,6 +73,8 @@ class CostCenterPageData
             ->editColumn('name', fn (CostCenter $costCenter): array => $costCenter->getTranslations('name'))
             ->editColumn('is_active', fn (CostCenter $costCenter): bool => (bool) $costCenter->is_active)
             ->editColumn('lock_version', fn (CostCenter $costCenter): int => (int) $costCenter->lock_version)
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the {en, ar} translation map.
+            ->rawColumns(['name', 'name.en', 'name.ar'])
             ->toJson();
     }
 

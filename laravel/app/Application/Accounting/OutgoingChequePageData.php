@@ -92,6 +92,8 @@ class OutgoingChequePageData
             ->orderColumn('id', 'outgoing_cheque.id $1')
             ->editColumn('supplier_name', fn ($row) => $this->decodeTranslations($row->supplier_name))
             ->editColumn('bank_account_name', fn ($row) => $this->decodeTranslations($row->bank_account_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} maps.
+            ->rawColumns(['supplier_name', 'supplier_name.en', 'supplier_name.ar', 'bank_account_name', 'bank_account_name.en', 'bank_account_name.ar'])
             ->toJson();
     }
 

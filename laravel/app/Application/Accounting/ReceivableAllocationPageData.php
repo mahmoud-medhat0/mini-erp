@@ -115,6 +115,8 @@ class ReceivableAllocationPageData
             })
             ->orderColumn('customer_name', 'customer.code $1')
             ->editColumn('customer_name', fn ($row) => $this->decodeTranslations($row->customer_name))
+            // Prevent Yajra's default escaping from turning e.g. "&" into "&amp;" inside the decoded {en, ar} map.
+            ->rawColumns(['customer_name', 'customer_name.en', 'customer_name.ar'])
             ->toJson();
     }
 
