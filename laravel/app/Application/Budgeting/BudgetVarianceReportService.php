@@ -7,6 +7,7 @@ use App\Models\Budget;
 use App\Models\FinancialPeriod;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,27 @@ class BudgetVarianceReportService
     public function __construct(
         private readonly ReportCurrencyResolver $currencyResolver,
     ) {}
+
+    /**
+     * `.name` columns are translatable `json` on Postgres, which has no
+     * equality operator for `json` (only `jsonb`) and so cannot be used in
+     * GROUP BY - cast to `::text` there. SQLite has no such distinct json
+     * type (it's stored as plain TEXT already) and does not understand the
+     * `::text` cast syntax, so only apply it on pgsql.
+     */
+    private function groupableTextColumn(string $qualifiedColumn): Expression|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? DB::raw("{$qualifiedColumn}::text")
+            : $qualifiedColumn;
+    }
+
+    private function groupableTextSelect(string $qualifiedColumn, string $alias): Expression|string
+    {
+        return DB::connection()->getDriverName() === 'pgsql'
+            ? DB::raw("{$qualifiedColumn}::text as {$alias}")
+            : "{$qualifiedColumn} as {$alias}";
+    }
 
     /**
      * @return array{
@@ -226,24 +248,33 @@ class BudgetVarianceReportService
                 'cost_center.name as cost_center_name',
             ])
             ->selectRaw('COALESCE(SUM(budget_line.amount_minor), 0) as budget_minor')
+            // Group only by each joined table's own primary key (plus the plain
+            // scalar columns already unique per group) - `account.name` /
+            // `project.name` / `cost_center.name` are translatable `json`
+            // columns, and Postgres has no equality operator for `json`
+            // (only `jsonb`), so listing them directly in GROUP BY fails
+            // outright. They're functionally dependent on their table's `id`,
+            // which Postgres already accepts here to allow selecting them
+            // without grouping by them.
             ->groupBy(
                 'budget_line.financial_period_id',
                 'budget_line.account_id',
                 'budget_line.project_id',
                 'budget_line.cost_center_id',
                 'budget_line.currency',
+                'financial_period.id',
                 'financial_period.month',
                 'financial_period.start_date',
                 'financial_period.end_date',
                 'financial_period.fiscal_year_id',
+                'account.id',
                 'account.code',
-                'account.name',
                 'account.type',
                 'account.nature',
+                'project.id',
                 'project.code',
-                'project.name',
-                'cost_center.code',
-                'cost_center.name'
+                'cost_center.id',
+                'cost_center.code'
             )
             ->get();
 
@@ -285,24 +316,28 @@ class BudgetVarianceReportService
             ->selectRaw('COUNT(ledger_entry.id) as ledger_row_count')
             ->selectRaw('COALESCE(SUM(ledger_entry.debit_minor), 0) as debit_minor')
             ->selectRaw('COALESCE(SUM(ledger_entry.credit_minor), 0) as credit_minor')
+            // Same fix as the budget-lines query above: group by each joined
+            // table's primary key instead of its translatable `json` name
+            // column, which Postgres cannot compare for equality/grouping.
             ->groupBy(
                 'ledger_entry.financial_period_id',
                 'ledger_entry.account_id',
                 'ledger_entry.project_id',
                 'ledger_entry.cost_center_id',
                 'ledger_entry.currency',
+                'financial_period.id',
                 'financial_period.month',
                 'financial_period.start_date',
                 'financial_period.end_date',
                 'financial_period.fiscal_year_id',
+                'account.id',
                 'account.code',
-                'account.name',
                 'account.type',
                 'account.nature',
+                'project.id',
                 'project.code',
-                'project.name',
-                'cost_center.code',
-                'cost_center.name'
+                'cost_center.id',
+                'cost_center.code'
             )
             ->get();
 
@@ -915,13 +950,13 @@ class BudgetVarianceReportService
                 'variance_budget_period.end_date as period_end_date',
                 'variance_budget_period.fiscal_year_id',
                 'variance_budget_account.code as account_code',
-                'variance_budget_account.name as account_name',
+                $this->groupableTextSelect('variance_budget_account.name', 'account_name'),
                 'variance_budget_account.type as account_type',
                 'variance_budget_account.nature as account_nature',
                 'variance_budget_project.code as project_code',
-                'variance_budget_project.name as project_name',
+                $this->groupableTextSelect('variance_budget_project.name', 'project_name'),
                 'variance_budget_cost_center.code as cost_center_code',
-                'variance_budget_cost_center.name as cost_center_name',
+                $this->groupableTextSelect('variance_budget_cost_center.name', 'cost_center_name'),
             ])
             ->selectRaw('1 AS has_budget')
             ->selectRaw('0 AS has_actual')
@@ -929,6 +964,12 @@ class BudgetVarianceReportService
             ->selectRaw('0 AS debit_minor')
             ->selectRaw('0 AS credit_minor')
             ->selectRaw('0 AS ledger_row_count')
+            // `.name` columns are translatable `json`, which Postgres cannot
+            // compare for GROUP BY equality (only `jsonb` supports that) -
+            // cast to `::text` for grouping purposes only. The SELECT above
+            // still returns the untouched json column value (Postgres/PDO
+            // always serializes json to a string over the wire regardless),
+            // so decoding it downstream is unaffected.
             ->groupBy([
                 'variance_budget_line.financial_period_id',
                 'variance_budget_line.account_id',
@@ -940,13 +981,13 @@ class BudgetVarianceReportService
                 'variance_budget_period.end_date',
                 'variance_budget_period.fiscal_year_id',
                 'variance_budget_account.code',
-                'variance_budget_account.name',
+                $this->groupableTextColumn('variance_budget_account.name'),
                 'variance_budget_account.type',
                 'variance_budget_account.nature',
                 'variance_budget_project.code',
-                'variance_budget_project.name',
+                $this->groupableTextColumn('variance_budget_project.name'),
                 'variance_budget_cost_center.code',
-                'variance_budget_cost_center.name',
+                $this->groupableTextColumn('variance_budget_cost_center.name'),
             ]);
 
         $actualRows = DB::table('ledger_entry as variance_ledger_entry')
@@ -975,13 +1016,13 @@ class BudgetVarianceReportService
                 'variance_actual_period.end_date as period_end_date',
                 'variance_actual_period.fiscal_year_id',
                 'variance_actual_account.code as account_code',
-                'variance_actual_account.name as account_name',
+                $this->groupableTextSelect('variance_actual_account.name', 'account_name'),
                 'variance_actual_account.type as account_type',
                 'variance_actual_account.nature as account_nature',
                 'variance_actual_project.code as project_code',
-                'variance_actual_project.name as project_name',
+                $this->groupableTextSelect('variance_actual_project.name', 'project_name'),
                 'variance_actual_cost_center.code as cost_center_code',
-                'variance_actual_cost_center.name as cost_center_name',
+                $this->groupableTextSelect('variance_actual_cost_center.name', 'cost_center_name'),
             ])
             ->selectRaw('0 AS has_budget')
             ->selectRaw('1 AS has_actual')
@@ -989,6 +1030,9 @@ class BudgetVarianceReportService
             ->selectRaw('COALESCE(SUM(variance_ledger_entry.debit_minor), 0) AS debit_minor')
             ->selectRaw('COALESCE(SUM(variance_ledger_entry.credit_minor), 0) AS credit_minor')
             ->selectRaw('COUNT(variance_ledger_entry.id) AS ledger_row_count')
+            // See the matching comment on $budgetRows above: `.name` columns
+            // are translatable `json` and must be cast to `::text` to be
+            // usable in a Postgres GROUP BY.
             ->groupBy([
                 'variance_ledger_entry.financial_period_id',
                 'variance_ledger_entry.account_id',
@@ -1000,13 +1044,13 @@ class BudgetVarianceReportService
                 'variance_actual_period.end_date',
                 'variance_actual_period.fiscal_year_id',
                 'variance_actual_account.code',
-                'variance_actual_account.name',
+                $this->groupableTextColumn('variance_actual_account.name'),
                 'variance_actual_account.type',
                 'variance_actual_account.nature',
                 'variance_actual_project.code',
-                'variance_actual_project.name',
+                $this->groupableTextColumn('variance_actual_project.name'),
                 'variance_actual_cost_center.code',
-                'variance_actual_cost_center.name',
+                $this->groupableTextColumn('variance_actual_cost_center.name'),
             ]);
 
         $union = $budgetRows->unionAll($actualRows);
@@ -1031,16 +1075,39 @@ class BudgetVarianceReportService
         ];
         $qualifiedDimensions = array_map(fn (string $column): string => "variance_source.{$column}", $dimensions);
 
+        // `account_name`/`project_name`/`cost_center_name` are translatable
+        // `json` columns carried through the UNION above. Postgres has no
+        // equality operator for `json` (only `jsonb`), so grouping by them
+        // directly fails, and unlike a direct table join there is no primary
+        // key on this derived table for Postgres's functional-dependency
+        // relaxation to key off. Cast to `::text` consistently in both the
+        // SELECT and GROUP BY (aliased back to the original column name) -
+        // Postgres/PDO already serializes json to a string for a non-native
+        // client, so downstream json_decode() of the value is unaffected.
+        $jsonDimensionColumns = ['account_name', 'project_name', 'cost_center_name'];
+        $qualifiedDimensionSelects = array_map(
+            fn (string $column) => in_array($column, $jsonDimensionColumns, true)
+                ? $this->groupableTextSelect("variance_source.{$column}", $column)
+                : "variance_source.{$column}",
+            $dimensions
+        );
+        $qualifiedDimensionGroupBy = array_map(
+            fn (string $column) => in_array($column, $jsonDimensionColumns, true)
+                ? $this->groupableTextColumn("variance_source.{$column}")
+                : "variance_source.{$column}",
+            $dimensions
+        );
+
         $merged = DB::query()
             ->fromSub($union, 'variance_source')
-            ->select($qualifiedDimensions)
+            ->select($qualifiedDimensionSelects)
             ->selectRaw('MAX(variance_source.has_budget) AS has_budget')
             ->selectRaw('MAX(variance_source.has_actual) AS has_actual')
             ->selectRaw('COALESCE(SUM(variance_source.budget_minor), 0) AS budget_minor')
             ->selectRaw('COALESCE(SUM(variance_source.debit_minor), 0) AS debit_minor')
             ->selectRaw('COALESCE(SUM(variance_source.credit_minor), 0) AS credit_minor')
             ->selectRaw('COALESCE(SUM(variance_source.ledger_row_count), 0) AS ledger_row_count')
-            ->groupBy($qualifiedDimensions);
+            ->groupBy($qualifiedDimensionGroupBy);
 
         $actualExpression = '(CASE WHEN variance_merged.account_nature = \'credit\' THEN variance_merged.credit_minor - variance_merged.debit_minor ELSE variance_merged.debit_minor - variance_merged.credit_minor END)';
         $varianceExpression = "({$actualExpression} - variance_merged.budget_minor)";
