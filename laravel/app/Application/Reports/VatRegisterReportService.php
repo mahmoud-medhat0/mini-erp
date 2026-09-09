@@ -6,7 +6,6 @@ use App\Models\CustomerCreditNote;
 use App\Models\CustomerInvoice;
 use App\Models\PurchaseReturn;
 use App\Models\RentalInvoice;
-use App\Models\SalesReturn;
 use App\Models\SupplierAdjustmentNote;
 use App\Models\SupplierBill;
 use Carbon\Carbon;
@@ -115,47 +114,31 @@ class VatRegisterReportService
                 }
             }
 
-            // 3. Output VAT - Sales Returns (-)
-            $salesReturns = SalesReturn::query()
-                ->with(['customer', 'lines.taxCode'])
-                ->where('status', 'posted')
-                ->whereBetween('return_date', [$fromDate, $toDate])
-                ->get();
-
-            foreach ($salesReturns as $sr) {
-                foreach ($sr->lines as $line) {
-                    if (! $line->tax_code_id) {
-                        continue;
-                    }
-                    if ($taxCodeId && $line->tax_code_id !== $taxCodeId) {
-                        continue;
-                    }
-
-                    $subtotal = -abs((int) $line->stock_value_minor);
-                    $tax = -abs((int) $line->tax_amount_minor);
-                    $gross = -abs((int) ($line->gross_amount_minor ?: (abs($subtotal) + abs($tax))));
-
-                    $rows[] = [
-                        'document_type' => 'sales_return',
-                        'document_id' => (string) $sr->id,
-                        'document_number' => $sr->number ?? 'DRAFT',
-                        'document_date' => Carbon::parse($sr->return_date)->format('Y-m-d'),
-                        'entity_type' => 'customer',
-                        'entity_name' => $sr->customer?->name ?? '—',
-                        'tax_category' => 'output',
-                        'tax_code_id' => (string) $line->tax_code_id,
-                        'tax_code' => $line->taxCode?->code ?? '—',
-                        'tax_rate_bps' => (int) $line->tax_rate_bps,
-                        'subtotal_minor' => $subtotal,
-                        'tax_amount_minor' => $tax,
-                        'gross_amount_minor' => $gross,
-                    ];
-
-                    $totalOutputSubtotal += $subtotal;
-                    $totalOutputTax += $tax;
-                    $totalOutputGross += $gross;
-                }
-            }
+            // 3. Output VAT - Sales Returns: intentionally NOT a register source.
+            //
+            // SalesReturnService::post() never posts to AR or any tax account in
+            // any disposition (restock_original_cost, restock_manual_value,
+            // scrap_no_restock) - it only ever posts inventory movements (and,
+            // for restock_manual_value with a variance, an inventory-return-
+            // variance/COGS journal). line->tax_amount_minor and
+            // line->stock_value_minor on a sales return line are values copied
+            // from the originating invoice line purely for display; neither one
+            // ever corresponds to a real ledger_entry, in any scenario.
+            //
+            // The only document that actually reverses AR/output tax for a
+            // return is its linked CustomerCreditNote, which conditionally
+            // posts to `output_tax_payable` exactly when tax_minor > 0
+            // (CustomerCreditNoteService::post()) - already captured by the
+            // credit-note block above, independent of tax_mode or whether
+            // sales_return_id is set. Including the return's copied figures
+            // here as well double-counts a single real reversal as two
+            // register rows, understating total_output_tax_minor relative to
+            // the true `output_tax_payable` GL balance by the return's share
+            // whenever a linked credit note also posts tax. Keeping this
+            // register limited to documents that actually move the ledger
+            // guarantees it reconciles against the GL in every scenario -
+            // with a credit note or without one, tax_mode 'none' or not,
+            // sales_return_id linked or not.
 
             // 4. Output VAT - Rental Invoices (+)
             $rentalInvoices = RentalInvoice::query()
