@@ -114,7 +114,15 @@ class AccountingDemoSeederTest extends TestCase
         $responseTb->assertOk();
         $responseTb->assertInertia(fn ($page) => $page
             ->component('Accounting/TrialBalance')
-            ->has('rows', 0)
+            ->missing('rows')
+            ->where('totals.debit', 0)
+            ->where('totals.credit', 0)
         );
+
+        // Trial-balance rows are streamed by the server-backed grid.
+        $this->actingAs($user)
+            ->getJson(route('accounting.trial_balance.data'))
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 0);
     }
 }

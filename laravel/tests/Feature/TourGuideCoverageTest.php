@@ -31,9 +31,16 @@ class TourGuideCoverageTest extends TestCase
                 continue;
             }
 
+            $relativePath = str_replace('\\', '/', $file->getPathname());
+
+            // This is a reusable server-backed table embedded inside the
+            // depreciation-run page, not a routable Inertia page.
+            if (str_ends_with($relativePath, '/Pages/FixedAssets/DepreciationRuns/ScheduleDataTable.tsx')) {
+                continue;
+            }
+
             $pageCount++;
             $source = (string) file_get_contents($file->getPathname());
-            $relativePath = str_replace('\\', '/', $file->getPathname());
 
             if (str_ends_with($relativePath, '/Pages/Auth/Login.tsx')) {
                 $this->assertStringContainsString('<TourGuide', $source);

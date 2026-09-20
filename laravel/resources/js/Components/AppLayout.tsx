@@ -324,14 +324,14 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'sales-orders.index': 'sales.view',
   'delivery-notes.index': 'sales.view',
   'customer-invoices.index': 'sales.view',
-  'sales-returns.index': 'sales.view',
-  'customer-credit-notes.index': 'sales.view',
-  'invoice-revisions.index': 'sales.view',
+  'sales-returns.index': 'sales.returns',
+  'customer-credit-notes.index': 'sales.credit_notes',
+  'invoice-revisions.index': 'sales.invoice_revisions',
   'purchase-orders.index': 'purchasing.view',
   'goods-receipts.index': 'purchasing.view',
   'landed-costs.index': 'purchasing.landed_costs',
-  'purchase-returns.index': 'purchasing.view',
-  'supplier-adjustment-notes.index': 'purchasing.view',
+  'purchase-returns.index': 'purchasing.returns',
+  'supplier-adjustment-notes.index': 'purchasing.adjustment_notes',
   'supplier-bills.index': 'purchasing.view',
   'warehouses.index': 'inventory.view',
   'stock-transfers.index': 'inventory.view',
@@ -376,6 +376,23 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const isRentalsActive = active.startsWith('rentals');
   const isCashBankActive = active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury');
   const isCatalogActive = active.startsWith('catalog') || active.includes('product') || active.includes('uom');
+  const isSalesActive = [
+    'sales-orders.index',
+    'delivery-notes.index',
+    'customer-invoices.index',
+    'sales-returns.index',
+    'customer-credit-notes.index',
+    'invoice-revisions.index',
+    'invoice-revisions.show',
+  ].includes(active);
+  const isPurchasingActive = [
+    'purchase-orders.index',
+    'goods-receipts.index',
+    'landed-costs.index',
+    'supplier-bills.index',
+    'purchase-returns.index',
+    'supplier-adjustment-notes.index',
+  ].includes(active);
   const isInventoryActive = active.includes('inventory') || active.includes('warehouse') || active.includes('stock-');
   const isFixedAssetsActive = active.startsWith('fixed-asset');
   const isProjectsActive = active.startsWith('project') || active.startsWith('cost-center') || active.startsWith('budgeting');
@@ -391,6 +408,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const [rentalsExpanded, setRentalsExpanded] = useState(() => isRentalsActive);
   const [cashBankExpanded, setCashBankExpanded] = useState(() => isCashBankActive);
   const [catalogExpanded, setCatalogExpanded] = useState(() => isCatalogActive);
+  const [salesExpanded, setSalesExpanded] = useState(() => isSalesActive);
+  const [purchasingExpanded, setPurchasingExpanded] = useState(() => isPurchasingActive);
   const [inventoryExpanded, setInventoryExpanded] = useState(() => isInventoryActive);
   const [fixedAssetsExpanded, setFixedAssetsExpanded] = useState(() => isFixedAssetsActive);
   const [projectsCostCentersExpanded, setProjectsCostCentersExpanded] = useState(() => isProjectsActive);
@@ -409,6 +428,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     if (isRentalsActive) setRentalsExpanded(true);
     if (isCashBankActive) setCashBankExpanded(true);
     if (isCatalogActive) setCatalogExpanded(true);
+    if (isSalesActive) setSalesExpanded(true);
+    if (isPurchasingActive) setPurchasingExpanded(true);
     if (isInventoryActive) setInventoryExpanded(true);
     if (isFixedAssetsActive) setFixedAssetsExpanded(true);
     if (isProjectsActive) setProjectsCostCentersExpanded(true);
@@ -424,6 +445,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     isRentalsActive,
     isCashBankActive,
     isCatalogActive,
+    isSalesActive,
+    isPurchasingActive,
     isInventoryActive,
     isFixedAssetsActive,
     isProjectsActive,
@@ -452,6 +475,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     rentalsExpanded,
     cashBankExpanded,
     catalogExpanded,
+    salesExpanded,
+    purchasingExpanded,
     inventoryExpanded,
     fixedAssetsExpanded,
     projectsCostCentersExpanded,
@@ -608,8 +633,11 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const showPayrollGroup = can('payroll.view') && can('view_payroll');
   const showRentalsGroup = can('rentals.view');
   const showCashBankGroup = can('cash.view') || can('banks.view') || can('cheques.view');
-  const showCatalogGroup =
-    can('products.view') || can('uom.view') || can('sales.view') || can('purchasing.view') || can('purchasing.landed_costs');
+  const showCatalogGroup = can('products.view') || can('uom.view');
+  const showSalesGroup =
+    can('sales.view') || can('sales.returns') || can('sales.credit_notes') || can('sales.invoice_revisions');
+  const showPurchasingGroup =
+    can('purchasing.view') || can('purchasing.landed_costs') || can('purchasing.returns') || can('purchasing.adjustment_notes');
   const showInventoryGroup = can('inventory.view');
   const showFixedAssetsGroup = can('fixedAssets.view');
   const showProjectsCostCentersGroup = can('projects.view') || can('costCenters.view') || (can('budgeting.view') && can('view_financials'));
@@ -926,7 +954,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'accounting.opening_balances' as NavKey, href: '/accounting/opening-balances', label: accDict.openingBalances, icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
                         { key: 'accounting.fx_rates' as NavKey, href: '/accounting/fx-rates', label: accDict.fxRates, icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
                         { key: 'accounting.currencies' as NavKey, href: '/accounting/currencies', label: accDict.currencies, icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                        { key: 'taxes.codes.index' as NavKey, href: '/taxes/codes', label: taxesDict.title, icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z' },
+                        { key: 'taxes.codes.index' as NavKey, href: '/taxes/codes', label: taxesDict.taxCodes, icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z' },
+                        { key: 'taxes.rates.index' as NavKey, href: '/taxes/rates', label: taxesDict.taxRates, icon: 'M4 19L20 5M7 7h.01M17 17h.01' },
                         { key: 'taxes.periods.index' as NavKey, href: '/taxes/periods', label: taxesDict.periods.title, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
@@ -1407,7 +1436,141 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                   ) : null}
                 </div>
 
-                {/* 6. Inventory Dropdown Group */}
+                {/* 6. Sales Dropdown Group */}
+                <div className={`space-y-1 ${showSalesGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      isSalesActive
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/sales/orders"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setSalesExpanded(true);
+                      }}
+                      data-active={active === 'sales-orders.index' ? 'true' : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.salesOperations : undefined}
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isSalesActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2 4h14M9 21h.01M17 21h.01" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.salesOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setSalesExpanded(!salesExpanded)} className={`p-1 transition-colors cursor-pointer ${isSalesActive ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                        <svg className={`size-3.5 transition-transform duration-200 ${salesExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(salesExpanded && !sidebarCollapsed) ? (
+                    <div className="border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1">
+                      {[
+                        { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: dict.app.nav.layoutKeys.salesOrders },
+                        { key: 'delivery-notes.index' as NavKey, href: '/sales/delivery-notes', label: dict.app.nav.layoutKeys.deliveryNotes },
+                        { key: 'customer-invoices.index' as NavKey, href: '/sales/invoices', label: dict.app.nav.layoutKeys.customerInvoices },
+                        { key: 'sales-returns.index' as NavKey, href: '/sales/returns', label: dict.app.nav.layoutKeys.salesReturns },
+                        { key: 'customer-credit-notes.index' as NavKey, href: '/sales/credit-notes', label: dict.app.nav.layoutKeys.creditNotes },
+                        { key: 'invoice-revisions.index' as NavKey, href: '/sales/invoice-revisions', label: dict.app.nav.layoutKeys.invoiceRevisions },
+                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key || (subItem.key === 'invoice-revisions.index' && active === 'invoice-revisions.show');
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium no-underline transition-all ${
+                              isSubActive ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <span className="truncate">{subItem.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 7. Purchasing Dropdown Group */}
+                <div className={`space-y-1 ${showPurchasingGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      isPurchasingActive
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/purchasing/orders"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setPurchasingExpanded(true);
+                      }}
+                      data-active={active === 'purchase-orders.index' ? 'true' : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.purchasingOperations : undefined}
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isPurchasingActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12h14V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 5a3 3 0 016 0M9 11h6M9 15h6" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.purchasingOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setPurchasingExpanded(!purchasingExpanded)} className={`p-1 transition-colors cursor-pointer ${isPurchasingActive ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                        <svg className={`size-3.5 transition-transform duration-200 ${purchasingExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(purchasingExpanded && !sidebarCollapsed) ? (
+                    <div className="border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1">
+                      {[
+                        { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: dict.app.nav.layoutKeys.purchaseOrders },
+                        { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: dict.app.nav.layoutKeys.goodsReceipts },
+                        { key: 'landed-costs.index' as NavKey, href: '/purchasing/landed-costs', label: dict.app.nav.layoutKeys.landedCosts },
+                        { key: 'supplier-bills.index' as NavKey, href: '/purchasing/bills', label: dict.app.nav.layoutKeys.supplierBills },
+                        { key: 'purchase-returns.index' as NavKey, href: '/purchasing/returns', label: dict.app.nav.layoutKeys.purchaseReturns },
+                        { key: 'supplier-adjustment-notes.index' as NavKey, href: '/purchasing/adjustment-notes', label: dict.app.nav.layoutKeys.adjustmentNotes },
+                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium no-underline transition-all ${
+                              isSubActive ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <span className="truncate">{subItem.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 8. Inventory Dropdown Group */}
                 <div className={`space-y-1 ${showInventoryGroup ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
