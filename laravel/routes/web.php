@@ -34,6 +34,8 @@ use App\Http\Controllers\CustomerOpeningBalanceController;
 use App\Http\Controllers\CustomerReceiptController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryNoteController;
+use App\Http\Controllers\Equipment\ToolCategoryController;
+use App\Http\Controllers\Equipment\ToolController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FinancialStatementMappingController;
@@ -61,6 +63,7 @@ use App\Http\Controllers\PrepaidScheduleController;
 use App\Http\Controllers\Projects\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\Purchasing\PurchaseRequestController;
 use App\Http\Controllers\ReceivableAllocationController;
 use App\Http\Controllers\ReceivableEntrySettlementController;
 use App\Http\Controllers\RentableItemController;
@@ -108,6 +111,7 @@ use App\Http\Controllers\Reports\SupplierStatementController;
 use App\Http\Controllers\Reports\VatRegisterDataTableController;
 use App\Http\Controllers\Reports\VatReportController;
 use App\Http\Controllers\Reports\WarehouseStatementController;
+use App\Http\Controllers\Sales\SalesQuotationController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\Settings\BranchApprovalRuleController;
@@ -492,6 +496,28 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/purchasing/orders/{purchaseOrder}/confirm', [PurchaseOrderController::class, 'confirm'])->middleware('can:purchasing.approve')->name('purchase-orders.confirm');
     Route::post('/purchasing/orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->middleware('can:purchasing.cancel')->name('purchase-orders.cancel');
 
+    // Phase 27 Sales Quotation Routes
+    Route::get('/sales/quotations', [SalesQuotationController::class, 'index'])->middleware('can:sales.view')->name('sales-quotations.index');
+    Route::get('/sales/quotations/data', [SalesQuotationController::class, 'datatable'])->middleware('can:sales.view')->name('sales-quotations.datatable');
+    Route::post('/sales/quotations', [SalesQuotationController::class, 'store'])->middleware('can:sales.create')->name('sales-quotations.store');
+    Route::put('/sales/quotations/{id}', [SalesQuotationController::class, 'update'])->middleware('can:sales.edit')->name('sales-quotations.update');
+    Route::post('/sales/quotations/{id}/submit', [SalesQuotationController::class, 'submit'])->middleware('can:sales.submit')->name('sales-quotations.submit');
+    Route::post('/sales/quotations/{id}/accept', [SalesQuotationController::class, 'accept'])->middleware('can:sales.approve')->name('sales-quotations.accept');
+    Route::post('/sales/quotations/{id}/reject', [SalesQuotationController::class, 'reject'])->middleware('can:sales.approve')->name('sales-quotations.reject');
+    Route::post('/sales/quotations/{id}/cancel', [SalesQuotationController::class, 'cancel'])->middleware('can:sales.cancel')->name('sales-quotations.cancel');
+    Route::post('/sales/quotations/{id}/convert', [SalesQuotationController::class, 'convert'])->middleware('can:sales.create')->name('sales-quotations.convert');
+
+    // Phase 27 Purchase Request Routes
+    Route::get('/purchasing/requests', [PurchaseRequestController::class, 'index'])->middleware('can:purchasing.view')->name('purchase-requests.index');
+    Route::get('/purchasing/requests/data', [PurchaseRequestController::class, 'datatable'])->middleware('can:purchasing.view')->name('purchase-requests.datatable');
+    Route::post('/purchasing/requests', [PurchaseRequestController::class, 'store'])->middleware('can:purchasing.create')->name('purchase-requests.store');
+    Route::put('/purchasing/requests/{id}', [PurchaseRequestController::class, 'update'])->middleware('can:purchasing.edit')->name('purchase-requests.update');
+    Route::post('/purchasing/requests/{id}/submit', [PurchaseRequestController::class, 'submit'])->middleware('can:purchasing.submit')->name('purchase-requests.submit');
+    Route::post('/purchasing/requests/{id}/approve', [PurchaseRequestController::class, 'approve'])->middleware('can:purchasing.approve')->name('purchase-requests.approve');
+    Route::post('/purchasing/requests/{id}/reject', [PurchaseRequestController::class, 'reject'])->middleware('can:purchasing.approve')->name('purchase-requests.reject');
+    Route::post('/purchasing/requests/{id}/cancel', [PurchaseRequestController::class, 'cancel'])->middleware('can:purchasing.cancel')->name('purchase-requests.cancel');
+    Route::post('/purchasing/requests/{id}/convert', [PurchaseRequestController::class, 'convert'])->middleware('can:purchasing.create')->name('purchase-requests.convert');
+
     // Phase 4 Slice 4 Fulfillment Routes (Delivery Notes & Goods Receipts)
     Route::get('/sales/delivery-notes', [DeliveryNoteController::class, 'index'])->middleware('can:sales.view')->name('delivery-notes.index');
     Route::get('/sales/delivery-notes/data', [DeliveryNoteController::class, 'datatable'])->middleware('can:sales.view')->name('delivery-notes.datatable');
@@ -613,6 +639,25 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/returns/{id}/submit', [RentalReturnController::class, 'submit'])->middleware('can:rentals.return')->name('rentals.returns.submit');
         Route::post('/returns/{id}/complete', [RentalReturnController::class, 'complete'])->middleware('can:rentals.inspect')->name('rentals.returns.complete');
         Route::post('/returns/{id}/cancel', [RentalReturnController::class, 'cancel'])->middleware('can:rentals.cancel')->name('rentals.returns.cancel');
+    });
+
+    // Phase 26 Tools & Equipment Custody Routes
+    Route::prefix('equipment')->group(function (): void {
+        Route::get('/categories', [ToolCategoryController::class, 'index'])->middleware('can:equipment.view')->name('equipment.categories.index');
+        Route::get('/categories/data', [ToolCategoryController::class, 'datatable'])->middleware('can:equipment.view')->name('equipment.categories.datatable');
+        Route::post('/categories', [ToolCategoryController::class, 'store'])->middleware('can:equipment.create')->name('equipment.categories.store');
+        Route::put('/categories/{id}', [ToolCategoryController::class, 'update'])->middleware('can:equipment.edit')->name('equipment.categories.update');
+        Route::delete('/categories/{id}', [ToolCategoryController::class, 'destroy'])->middleware('can:equipment.delete')->name('equipment.categories.destroy');
+
+        Route::get('/tools', [ToolController::class, 'index'])->middleware('can:equipment.view')->name('equipment.tools.index');
+        Route::get('/tools/data', [ToolController::class, 'datatable'])->middleware('can:equipment.view')->name('equipment.tools.datatable');
+        Route::post('/tools', [ToolController::class, 'store'])->middleware('can:equipment.create')->name('equipment.tools.store');
+        Route::put('/tools/{id}', [ToolController::class, 'update'])->middleware('can:equipment.edit')->name('equipment.tools.update');
+        Route::delete('/tools/{id}', [ToolController::class, 'destroy'])->middleware('can:equipment.delete')->name('equipment.tools.destroy');
+        Route::post('/tools/{id}/issue', [ToolController::class, 'issue'])->middleware('can:equipment.edit')->name('equipment.tools.issue');
+        Route::post('/tools/{id}/return', [ToolController::class, 'returnToStock'])->middleware('can:equipment.edit')->name('equipment.tools.return');
+        Route::post('/tools/{id}/transfer', [ToolController::class, 'transfer'])->middleware('can:equipment.edit')->name('equipment.tools.transfer');
+        Route::post('/tools/{id}/status', [ToolController::class, 'markStatus'])->middleware('can:equipment.edit')->name('equipment.tools.status');
     });
 
     // Phase 4 Slice 5 Customer Invoice Routes

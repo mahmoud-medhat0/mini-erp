@@ -15,6 +15,10 @@ use App\Models\User;
 
 class DashboardPageData
 {
+    public function __construct(
+        private readonly DashboardFinancialSnapshotService $financialSnapshotService,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -23,6 +27,11 @@ class DashboardPageData
         $user = User::query()->findOrFail($userId);
         $counts = [];
         $health = [];
+        $financial = null;
+
+        if ($user->can('view_financials')) {
+            $financial = $this->financialSnapshotService->snapshot();
+        }
 
         if ($this->canAny($user, ['accounting.view', 'settings.configure'])) {
             $counts['accounts'] = Account::query()->count();
@@ -71,6 +80,7 @@ class DashboardPageData
         return [
             'counts' => $counts,
             'health' => $health,
+            'financial' => $financial,
         ];
     }
 

@@ -45,6 +45,8 @@ export type NavKey =
   | 'rentals.handovers.index'
   | 'rentals.returns.index'
   | 'rentals.items.index'
+  | 'equipment.tools.index'
+  | 'equipment.categories.index'
   | 'cash-accounts.index'
   | 'bank-accounts.index'
   | 'treasury-transfers.index'
@@ -61,6 +63,7 @@ export type NavKey =
   | 'products.index'
   | 'product-categories.index'
   | 'uoms.index'
+  | 'sales-quotations.index'
   | 'sales-orders.index'
   | 'delivery-notes.index'
   | 'customer-invoices.index'
@@ -68,6 +71,7 @@ export type NavKey =
   | 'customer-credit-notes.index'
   | 'invoice-revisions.index'
   | 'invoice-revisions.show'
+  | 'purchase-requests.index'
   | 'purchase-orders.index'
   | 'goods-receipts.index'
   | 'landed-costs.index'
@@ -312,6 +316,8 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'rentals.handovers.index': 'rentals.view',
   'rentals.returns.index': 'rentals.view',
   'rentals.items.index': 'rentals.view',
+  'equipment.tools.index': 'equipment.view',
+  'equipment.categories.index': 'equipment.view',
   'cash-accounts.index': 'cash.view',
   'bank-accounts.index': 'banks.view',
   'treasury-transfers.index': 'cash.view',
@@ -321,12 +327,14 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'products.index': 'products.view',
   'product-categories.index': 'products.view',
   'uoms.index': 'uom.view',
+  'sales-quotations.index': 'sales.view',
   'sales-orders.index': 'sales.view',
   'delivery-notes.index': 'sales.view',
   'customer-invoices.index': 'sales.view',
   'sales-returns.index': 'sales.returns',
   'customer-credit-notes.index': 'sales.credit_notes',
   'invoice-revisions.index': 'sales.invoice_revisions',
+  'purchase-requests.index': 'purchasing.view',
   'purchase-orders.index': 'purchasing.view',
   'goods-receipts.index': 'purchasing.view',
   'landed-costs.index': 'purchasing.landed_costs',
@@ -374,9 +382,11 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const isExpensesActive = active.startsWith('expense') || active.startsWith('prepaid') || active.startsWith('accrual');
   const isPayrollActive = active.startsWith('payroll');
   const isRentalsActive = active.startsWith('rentals');
+  const isEquipmentActive = active.startsWith('equipment');
   const isCashBankActive = active.includes('cash') || active.includes('bank') || active.includes('cheque') || active.includes('treasury');
   const isCatalogActive = active.startsWith('catalog') || active.includes('product') || active.includes('uom');
   const isSalesActive = [
+    'sales-quotations.index',
     'sales-orders.index',
     'delivery-notes.index',
     'customer-invoices.index',
@@ -386,6 +396,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     'invoice-revisions.show',
   ].includes(active);
   const isPurchasingActive = [
+    'purchase-requests.index',
     'purchase-orders.index',
     'goods-receipts.index',
     'landed-costs.index',
@@ -406,6 +417,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const [expensesExpanded, setExpensesExpanded] = useState(() => isExpensesActive);
   const [payrollExpanded, setPayrollExpanded] = useState(() => isPayrollActive);
   const [rentalsExpanded, setRentalsExpanded] = useState(() => isRentalsActive);
+  const [equipmentExpanded, setEquipmentExpanded] = useState(() => isEquipmentActive);
   const [cashBankExpanded, setCashBankExpanded] = useState(() => isCashBankActive);
   const [catalogExpanded, setCatalogExpanded] = useState(() => isCatalogActive);
   const [salesExpanded, setSalesExpanded] = useState(() => isSalesActive);
@@ -426,6 +438,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     if (isExpensesActive) setExpensesExpanded(true);
     if (isPayrollActive) setPayrollExpanded(true);
     if (isRentalsActive) setRentalsExpanded(true);
+    if (isEquipmentActive) setEquipmentExpanded(true);
     if (isCashBankActive) setCashBankExpanded(true);
     if (isCatalogActive) setCatalogExpanded(true);
     if (isSalesActive) setSalesExpanded(true);
@@ -443,6 +456,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     isExpensesActive,
     isPayrollActive,
     isRentalsActive,
+    isEquipmentActive,
     isCashBankActive,
     isCatalogActive,
     isSalesActive,
@@ -473,6 +487,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     expensesExpanded,
     payrollExpanded,
     rentalsExpanded,
+    equipmentExpanded,
     cashBankExpanded,
     catalogExpanded,
     salesExpanded,
@@ -632,6 +647,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const showExpensesGroup = can('expenses.view');
   const showPayrollGroup = can('payroll.view') && can('view_payroll');
   const showRentalsGroup = can('rentals.view');
+  const showEquipmentGroup = can('equipment.view');
   const showCashBankGroup = can('cash.view') || can('banks.view') || can('cheques.view');
   const showCatalogGroup = can('products.view') || can('uom.view');
   const showSalesGroup =
@@ -1305,6 +1321,69 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     </div>
                   ) : null}
                 </div>
+
+                {/* 6b. Equipment Dropdown Group */}
+                <div className={`space-y-1 ${showEquipmentGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      isEquipmentActive
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/equipment/tools"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setEquipmentExpanded(true);
+                      }}
+                      data-active={active === 'equipment.tools.index' || (active as string) === 'equipment' ? 'true' : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.equipmentOperations : undefined}
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isEquipmentActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.equipmentOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setEquipmentExpanded(!equipmentExpanded)} className={`p-1 transition-colors cursor-pointer ${isEquipmentActive ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                        <svg className={`size-3.5 transition-transform duration-200 ${equipmentExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(equipmentExpanded && !sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'equipment.tools.index' as NavKey, href: '/equipment/tools', label: dict.app.nav.layoutKeys.tools },
+                        { key: 'equipment.categories.index' as NavKey, href: '/equipment/categories', label: dict.app.nav.layoutKeys.toolCategories },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
                             {/* 7. Cash, Bank & Cheques Dropdown Group */}
                 <div className={`space-y-1 ${showCashBankGroup ? '' : 'hidden'}`}>
                   <div
@@ -1476,6 +1555,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                   {(salesExpanded && !sidebarCollapsed) ? (
                     <div className="border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1">
                       {[
+                        { key: 'sales-quotations.index' as NavKey, href: '/sales/quotations', label: dict.app.nav.layoutKeys.salesQuotations },
                         { key: 'sales-orders.index' as NavKey, href: '/sales/orders', label: dict.app.nav.layoutKeys.salesOrders },
                         { key: 'delivery-notes.index' as NavKey, href: '/sales/delivery-notes', label: dict.app.nav.layoutKeys.deliveryNotes },
                         { key: 'customer-invoices.index' as NavKey, href: '/sales/invoices', label: dict.app.nav.layoutKeys.customerInvoices },
@@ -1543,6 +1623,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                   {(purchasingExpanded && !sidebarCollapsed) ? (
                     <div className="border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1">
                       {[
+                        { key: 'purchase-requests.index' as NavKey, href: '/purchasing/requests', label: dict.app.nav.layoutKeys.purchaseRequests },
                         { key: 'purchase-orders.index' as NavKey, href: '/purchasing/orders', label: dict.app.nav.layoutKeys.purchaseOrders },
                         { key: 'goods-receipts.index' as NavKey, href: '/purchasing/goods-receipts', label: dict.app.nav.layoutKeys.goodsReceipts },
                         { key: 'landed-costs.index' as NavKey, href: '/purchasing/landed-costs', label: dict.app.nav.layoutKeys.landedCosts },

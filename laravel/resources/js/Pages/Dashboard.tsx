@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 
 import AppLayout from '../Components/AppLayout';
 import { Card, EmptyState, PageHeader } from '../Components/Primitives';
+import { formatMoney } from '../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../lib/i18n';
 import { useCanAny } from '../lib/permissions';
 import type { SharedPageProps } from '../Types';
@@ -24,9 +25,29 @@ type DashboardHealth = {
   latestPostingAt?: string | null;
 };
 
+type DashboardFinancial = {
+  currency: string;
+  asOfDate: string;
+  periodFrom: string;
+  revenueMinor: number;
+  expensesMinor: number;
+  grossProfitMinor: number;
+  netProfitMinor: number;
+  cashBalanceMinor: number;
+  bankBalanceMinor: number;
+  receivablesOutstandingMinor: number;
+  receivablesOverdueMinor: number;
+  payablesOutstandingMinor: number;
+  payablesOverdueMinor: number;
+  inventoryValueMinor: number;
+  fixedAssetsNetBookValueMinor: number;
+  activeRentalContracts: number;
+};
+
 type DashboardProps = SharedPageProps & {
   counts?: Partial<Record<DashboardCountKey, number>>;
   health?: DashboardHealth;
+  financial?: DashboardFinancial | null;
 };
 
 const metricConfig = [
@@ -76,7 +97,7 @@ const metricConfig = [
 
 const focusClasses = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]';
 
-export default function Dashboard({ counts = {}, health = {}, auth, locale, notifications }: DashboardProps) {
+export default function Dashboard({ counts = {}, health = {}, financial = null, auth, locale, notifications }: DashboardProps) {
   const dict = getDictionary(locale);
   const canAny = useCanAny();
   const canAll = (permissions: string[]) => permissions.every((permission) => auth.permissions.includes(permission));
@@ -201,6 +222,119 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
     } : null,
   ].filter((item): item is NonNullable<typeof item> => item !== null);
 
+  const financialTiles = financial ? [
+    {
+      key: 'revenue',
+      label: dict.app.dashboard.financial.revenue,
+      value: formatMoney(financial.revenueMinor, financial.currency),
+      href: '/reports/income-statement',
+      tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 10v2m8-6a8 8 0 11-16 0 8 8 0 0116 0z',
+    },
+    {
+      key: 'expenses',
+      label: dict.app.dashboard.financial.expenses,
+      value: formatMoney(financial.expensesMinor, financial.currency),
+      href: '/reports/income-statement',
+      tone: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      icon: 'M20 12H4',
+    },
+    {
+      key: 'grossProfit',
+      label: dict.app.dashboard.financial.grossProfit,
+      value: formatMoney(financial.grossProfitMinor, financial.currency),
+      href: '/reports/income-statement',
+      tone: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
+    },
+    {
+      key: 'netProfit',
+      label: dict.app.dashboard.financial.netProfit,
+      value: formatMoney(financial.netProfitMinor, financial.currency),
+      href: '/reports/income-statement',
+      tone: financial.netProfitMinor >= 0
+        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+    },
+    {
+      key: 'cash',
+      label: dict.app.dashboard.financial.cash,
+      value: formatMoney(financial.cashBalanceMinor, financial.currency),
+      href: '/reports/cash-book',
+      tone: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
+      icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
+    },
+    {
+      key: 'bank',
+      label: dict.app.dashboard.financial.bank,
+      value: formatMoney(financial.bankBalanceMinor, financial.currency),
+      href: '/reports/bank-book',
+      tone: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+      icon: 'M3 21h18M5 21V9m4 12V9m4 12V9m4 12V9m-9-4l5-4 5 4M4 9h16',
+    },
+    {
+      key: 'receivablesOutstanding',
+      label: dict.app.dashboard.financial.receivablesOutstanding,
+      value: formatMoney(financial.receivablesOutstandingMinor, financial.currency),
+      href: '/reports/ar-aging',
+      tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+      icon: 'M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-6a4 4 0 11-8 0 4 4 0 018 0zm8 2a3 3 0 11-6 0 3 3 0 016 0z',
+    },
+    {
+      key: 'receivablesOverdue',
+      label: dict.app.dashboard.financial.receivablesOverdue,
+      value: formatMoney(financial.receivablesOverdueMinor, financial.currency),
+      href: '/reports/ar-aging',
+      tone: financial.receivablesOverdueMinor > 0
+        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+      icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
+    },
+    {
+      key: 'payablesOutstanding',
+      label: dict.app.dashboard.financial.payablesOutstanding,
+      value: formatMoney(financial.payablesOutstandingMinor, financial.currency),
+      href: '/reports/ap-aging',
+      tone: 'bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400',
+      icon: 'M3 7h18M5 7l1 12h12l1-12M9 7V5a3 3 0 016 0v2',
+    },
+    {
+      key: 'payablesOverdue',
+      label: dict.app.dashboard.financial.payablesOverdue,
+      value: formatMoney(financial.payablesOverdueMinor, financial.currency),
+      href: '/reports/ap-aging',
+      tone: financial.payablesOverdueMinor > 0
+        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+      icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
+    },
+    {
+      key: 'inventoryValue',
+      label: dict.app.dashboard.financial.inventoryValue,
+      value: formatMoney(financial.inventoryValueMinor, financial.currency),
+      href: '/inventory/stock-balances',
+      tone: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
+      icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+    },
+    {
+      key: 'fixedAssetsNbv',
+      label: dict.app.dashboard.financial.fixedAssetsNbv,
+      value: formatMoney(financial.fixedAssetsNetBookValueMinor, financial.currency),
+      href: '/reports/fixed-asset-net-book-values',
+      tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+      icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h1m-1-4h1m-1-4h1m-1-4h1m-5 8h1m-1-4h1m-1-4h1',
+    },
+    {
+      key: 'activeRentals',
+      label: dict.app.dashboard.financial.activeRentals,
+      value: numberFormatter.format(financial.activeRentalContracts),
+      href: '/rentals/contracts?status=active',
+      tone: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+      icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z',
+    },
+  ] : [];
+
   return (
     <AppLayout active="dashboard">
       <Head title={dict.app.nav.dashboard} />
@@ -256,6 +390,44 @@ export default function Dashboard({ counts = {}, health = {}, auth, locale, noti
           ) : null}
         </div>
       </section>
+
+      {financial ? (
+        <section className="mb-7" data-tour="dashboard-financial">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="section-accent-bar h-5" aria-hidden="true" />
+              <h2 className="m-0 text-base font-extrabold text-[var(--text-primary)]">{dict.app.dashboard.financialSnapshotTitle}</h2>
+            </div>
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
+              {interpolate(dict.app.dashboard.financialAsOf, { date: financial.asOfDate })}
+            </span>
+          </div>
+          <p className="mb-3 mt-0 text-xs leading-5 text-[var(--text-secondary)]">
+            {interpolate(dict.app.dashboard.financialSnapshotDescription, { currency: financial.currency })}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {financialTiles.map((tile) => (
+              <Link
+                key={tile.key}
+                href={tile.href}
+                className={`group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--primary)] hover:shadow-xl hover:shadow-blue-500/10 motion-reduce:transform-none ${focusClasses}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-bold text-[var(--text-secondary)]">{tile.label}</span>
+                  <span className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${tile.tone}`}>
+                    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={tile.icon} />
+                    </svg>
+                  </span>
+                </div>
+                <strong className="mt-4 block text-2xl font-black text-[var(--text-primary)]" dir="ltr">
+                  {tile.value}
+                </strong>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {(visibleMetrics.length > 0 || notifications.unreadCount > 0) ? (
         <section className="mb-7" data-tour="dashboard-metrics">
