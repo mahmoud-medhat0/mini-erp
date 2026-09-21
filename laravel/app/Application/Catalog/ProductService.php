@@ -36,6 +36,15 @@ class ProductService
             ]);
         }
 
+        $barcode = $this->normalizeBarcode($data['barcode'] ?? null);
+        if ($barcode !== null && Product::query()->where('barcode', $barcode)->exists()) {
+            throw ValidationException::withMessages([
+                'barcode' => [__('Barcode [:barcode] is already assigned to another product.', ['barcode' => $barcode])],
+            ]);
+        }
+
+        $reorderLevel = $this->normalizeReorderLevel($data['reorder_level'] ?? null);
+
         $type = $data['type'] ?? 'stock';
         if (! in_array($type, self::ALLOWED_TYPES, true)) {
             throw ValidationException::withMessages([
@@ -84,6 +93,7 @@ class ProductService
 
         $product = Product::query()->create([
             'code' => $code,
+            'barcode' => $barcode,
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'type' => $type,
@@ -92,6 +102,7 @@ class ProductService
             'status' => $status,
             'is_sales_enabled' => $data['is_sales_enabled'] ?? true,
             'is_purchase_enabled' => $data['is_purchase_enabled'] ?? true,
+            'reorder_level' => $reorderLevel,
             'created_by' => $actorId,
             'updated_by' => $actorId,
             'lock_version' => 1,
@@ -127,6 +138,20 @@ class ProductService
                 ]);
             }
             $product->code = $code;
+        }
+
+        if (array_key_exists('barcode', $data)) {
+            $barcode = $this->normalizeBarcode($data['barcode']);
+            if ($barcode !== null && Product::query()->where('barcode', $barcode)->where('id', '!=', $id)->exists()) {
+                throw ValidationException::withMessages([
+                    'barcode' => [__('Barcode [:barcode] is already assigned to another product.', ['barcode' => $barcode])],
+                ]);
+            }
+            $product->barcode = $barcode;
+        }
+
+        if (array_key_exists('reorder_level', $data)) {
+            $product->reorder_level = $this->normalizeReorderLevel($data['reorder_level']);
         }
 
         if (isset($data['name'])) {
@@ -226,5 +251,28 @@ class ProductService
             before: $before,
             after: null,
         );
+    }
+
+    private function normalizeBarcode(mixed $value): ?string
+    {
+        $barcode = trim((string) ($value ?? ''));
+
+        return $barcode === '' ? null : $barcode;
+    }
+
+    private function normalizeReorderLevel(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $reorderLevel = (int) $value;
+        if ($reorderLevel < 0) {
+            throw ValidationException::withMessages([
+                'reorder_level' => [__('Reorder level cannot be negative.')],
+            ]);
+        }
+
+        return $reorderLevel;
     }
 }

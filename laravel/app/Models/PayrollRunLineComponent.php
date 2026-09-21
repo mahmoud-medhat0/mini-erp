@@ -17,6 +17,7 @@ class PayrollRunLineComponent extends Model
     protected $fillable = [
         'payroll_run_line_id',
         'payroll_component_id',
+        'payroll_employee_loan_id',
         'expense_account_id',
         'liability_account_id',
         'code',
@@ -52,5 +53,10 @@ class PayrollRunLineComponent extends Model
     public function liabilityAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'liability_account_id');
+    }
+
+    public function loan(): BelongsTo
+    {
+        return $this->belongsTo(PayrollEmployeeLoan::class, 'payroll_employee_loan_id');
     }
 }

@@ -24,6 +24,7 @@ type ProductCategoryOption = {
 type ProductRow = {
   id: string;
   code: string;
+  barcode?: string | null;
   name: TranslatedName;
   description?: string | null;
   type: 'stock' | 'service' | 'non_stock';
@@ -32,6 +33,7 @@ type ProductRow = {
   status: 'active' | 'inactive';
   is_sales_enabled: boolean;
   is_purchase_enabled: boolean;
+  reorder_level?: number | null;
   lock_version: number;
   created_at: string;
   unit_of_measure?: UnitOfMeasureOption | null;
@@ -76,8 +78,9 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductRow | null>(null);
 
-  const { data, setData, post, put, delete: destroy, processing, errors, reset } = useForm({
+  const { data, setData, post, put, transform, delete: destroy, processing, errors, reset } = useForm({
     code: '',
+    barcode: '',
     name: '',
     description: '',
     type: 'stock' as 'stock' | 'service' | 'non_stock',
@@ -86,6 +89,7 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
     status: 'active' as 'active' | 'inactive',
     is_sales_enabled: true,
     is_purchase_enabled: true,
+    reorder_level: '',
     lock_version: 1,
   });
   const productSubmitLabel = processing ? pageDict.saving : pageDict.save;
@@ -95,6 +99,7 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
     setEditingProduct(null);
     setData({
       code: '',
+      barcode: '',
       name: '',
       description: '',
       type: 'stock',
@@ -103,6 +108,7 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
       status: 'active',
       is_sales_enabled: true,
       is_purchase_enabled: true,
+      reorder_level: '',
       lock_version: 1,
     });
     setShowModal(true);
@@ -112,6 +118,7 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
     setEditingProduct(product);
     setData({
       code: product.code,
+      barcode: product.barcode || '',
       name: getLocalizedName(product.name, locale),
       description: product.description || '',
       type: product.type,
@@ -120,6 +127,7 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
       status: product.status,
       is_sales_enabled: product.is_sales_enabled,
       is_purchase_enabled: product.is_purchase_enabled,
+      reorder_level: product.reorder_level != null ? String(product.reorder_level) : '',
       lock_version: product.lock_version,
     });
     setShowModal(true);
@@ -133,6 +141,11 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    transform((formData) => ({
+      ...formData,
+      barcode: formData.barcode.trim() === '' ? null : formData.barcode.trim(),
+      reorder_level: formData.reorder_level === '' ? null : Number(formData.reorder_level),
+    }));
     if (editingProduct) {
       put(`/catalog/products/${editingProduct.id}`, {
         preserveScroll: true,
@@ -431,6 +444,37 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
                     isSearchable={false}
                     error={errors.type}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                    {pageDict.barcode}
+                  </label>
+                  <input
+                    type="text"
+                    value={data.barcode}
+                    onChange={(e) => setData('barcode', e.target.value)}
+                    placeholder={pageDict.barcodePlaceholder}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono focus:border-blue-500 focus:outline-none"
+                  />
+                  {errors.barcode ? <p className="mt-1 text-[10px] text-red-500">{errors.barcode}</p> : null}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
+                    {pageDict.reorderLevel}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={data.reorder_level}
+                    onChange={(e) => setData('reorder_level', e.target.value)}
+                    placeholder={pageDict.reorderLevelPlaceholder}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs focus:border-blue-500 focus:outline-none"
+                  />
+                  {errors.reorder_level ? <p className="mt-1 text-[10px] text-red-500">{errors.reorder_level}</p> : null}
                 </div>
               </div>
 

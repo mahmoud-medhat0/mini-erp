@@ -37,6 +37,7 @@ class SupplierPaymentPageData
     public function datatable(array $filters = []): JsonResponse
     {
         $status = (string) ($filters['status'] ?? '');
+        $isAdvance = (string) ($filters['is_advance'] ?? '');
 
         $query = SupplierPayment::query()
             ->join('supplier', 'supplier.id', '=', 'supplier_payment.supplier_id')
@@ -49,6 +50,7 @@ class SupplierPaymentPageData
                 'supplier_payment.payment_date',
                 'supplier_payment.reference',
                 'supplier_payment.description',
+                'supplier_payment.is_advance',
                 'supplier_payment.cash_account_id',
                 'supplier_payment.bank_account_id',
                 'supplier_payment.currency',
@@ -68,6 +70,10 @@ class SupplierPaymentPageData
             ->when(
                 in_array($status, ['draft', 'posted'], true),
                 fn ($q) => $q->where('supplier_payment.status', $status),
+            )
+            ->when(
+                in_array($isAdvance, ['1', '0'], true),
+                fn ($q) => $q->where('supplier_payment.is_advance', $isAdvance === '1'),
             )
             ->orderBy('supplier_payment.created_at', 'desc');
 

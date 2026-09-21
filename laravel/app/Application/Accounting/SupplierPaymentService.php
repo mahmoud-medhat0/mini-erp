@@ -48,6 +48,7 @@ class SupplierPaymentService
             'payment_date' => $data['payment_date'],
             'reference' => $data['reference'] ?? null,
             'description' => $data['description'] ?? null,
+            'is_advance' => (bool) ($data['is_advance'] ?? false),
             'cash_account_id' => $data['cash_account_id'] ?? null,
             'bank_account_id' => $data['bank_account_id'] ?? null,
             'currency' => $data['currency'],

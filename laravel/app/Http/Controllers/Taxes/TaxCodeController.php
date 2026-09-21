@@ -40,7 +40,7 @@ class TaxCodeController extends Controller
             'name' => ['required', 'array'],
             'name.en' => ['required', 'string', 'max:255'],
             'name.ar' => ['required', 'string', 'max:255'],
-            'tax_type' => ['nullable', 'string', 'in:vat'],
+            'tax_type' => ['nullable', 'string', 'in:vat,withholding'],
             'calculation_mode' => ['required', 'string', 'in:exclusive,inclusive,exempt'],
             'recoverability_mode' => ['required', 'string', 'in:full,none'],
             'is_active' => ['boolean'],

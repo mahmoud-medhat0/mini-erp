@@ -43,6 +43,7 @@ export default function SupplierPaymentsIndex({
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
   const [postingPaymentId, setPostingPaymentId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [advanceFilter, setAdvanceFilter] = useState('');
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     supplier_id: '',
@@ -51,6 +52,7 @@ export default function SupplierPaymentsIndex({
     payment_date: new Date().toISOString().split('T')[0],
     reference: '',
     description: 'Supplier Payment',
+    is_advance: false,
     cash_account_id: '',
     bank_account_id: '',
     currency: currencies[0]?.code || '',
@@ -102,6 +104,7 @@ export default function SupplierPaymentsIndex({
     { data: 'source', name: 'source', title: dict.app.pages.supplierPayments.sourceAccount, orderable: false, searchable: false },
     { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.supplierPayments.totalAmount, width: '120px' },
     { data: 'unapplied_minor', name: 'unapplied_minor', title: dict.app.pages.supplierPayments.unapplied, width: '120px' },
+    { data: 'is_advance', name: 'is_advance', title: dict.app.pages.supplierPayments.isAdvance, searchable: false, width: '90px' },
     { data: 'status', name: 'status', title: dict.app.pages.supplierPayments.status, searchable: false, width: '100px' },
     { data: 'actions', name: 'actions', title: dict.app.pages.supplierPayments.actions, orderable: false, searchable: false, width: '90px', className: 'text-end' },
   ], [dict]);
@@ -129,6 +132,7 @@ export default function SupplierPaymentsIndex({
         {formatMoney(d, row?.currency)}
       </span>
     ),
+    is_advance: (d: any) => (d ? <StatusBadge tone="info">{dict.app.pages.supplierPayments.isAdvance}</StatusBadge> : null),
     status: (d: any) => (
       <StatusBadge tone={d === 'posted' ? 'ok' : 'warning'}>
         {d === 'posted' ? dict.app.pages.supplierPayments.posted : dict.app.pages.supplierPayments.draft}
@@ -164,11 +168,16 @@ export default function SupplierPaymentsIndex({
     ),
   } as Record<string, (data: any, type: any, row: any) => ReactElement>), [dict, accDict, locale, canPostPayment]);
 
-  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+  const tableFilters = useMemo(() => ({ status: statusFilter, is_advance: advanceFilter }), [statusFilter, advanceFilter]);
 
   const statusOptions = [
     { value: 'draft', label: dict.app.pages.supplierPayments.draft },
     { value: 'posted', label: dict.app.pages.supplierPayments.posted },
+  ];
+
+  const advanceOptions = [
+    { value: '1', label: dict.app.pages.supplierPayments.isAdvance },
+    { value: '0', label: dict.app.pages.supplierPayments.notAdvance },
   ];
 
   const toolbar = (
@@ -183,6 +192,13 @@ export default function SupplierPaymentsIndex({
         options={[{ value: '', label: locale === 'ar' ? 'جميع الحالات' : 'All Statuses' }, ...statusOptions]}
         value={statusFilter}
         onChange={(v) => setStatusFilter(v || '')}
+        className="w-44"
+        isSearchable={false}
+      />
+      <SearchableSelect
+        options={[{ value: '', label: dict.app.pages.supplierPayments.allPayments }, ...advanceOptions]}
+        value={advanceFilter}
+        onChange={(v) => setAdvanceFilter(v || '')}
         className="w-44"
         isSearchable={false}
       />
@@ -354,6 +370,11 @@ export default function SupplierPaymentsIndex({
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono text-[var(--text-primary)]"
                 />
               </div>
+
+              <label className="flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)]">
+                <input type="checkbox" checked={data.is_advance} onChange={(e) => setData('is_advance', e.target.checked)} />
+                {dict.app.pages.supplierPayments.isAdvanceHint}
+              </label>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
                 <button

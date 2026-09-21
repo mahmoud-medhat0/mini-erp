@@ -41,6 +41,10 @@ class AccountingAccountMappingService
         'payroll_expense',
         'payroll_payable',
         'payroll_deductions_payable',
+        'employee_loan_receivable',
+        'withholding_tax_payable',
+        'partner_capital_account',
+        'partner_loan_payable',
         'rental_revenue',
         'rental_damage_revenue',
         'rental_late_fee_revenue',
@@ -201,10 +205,11 @@ class AccountingAccountMappingService
     private function assertAccountMatchesKey(string $key, Account $account): void
     {
         $expectedTypes = match ($key) {
-            'ar_control', 'cheques_under_collection', 'inventory_asset', 'input_tax_receivable', 'fixed_asset_cost', 'accumulated_depreciation', 'fixed_asset_clearing', 'prepaid_expense_asset' => ['asset'],
+            'ar_control', 'cheques_under_collection', 'inventory_asset', 'input_tax_receivable', 'fixed_asset_cost', 'accumulated_depreciation', 'fixed_asset_clearing', 'prepaid_expense_asset', 'employee_loan_receivable' => ['asset'],
             'ap_control', 'cheques_payable', 'grni_clearing', 'output_tax_payable', 'accrued_expense_liability',
-            'payroll_payable', 'payroll_deductions_payable', 'rental_deposit_liability' => ['liability'],
-            'opening_balance_offset' => ['equity'],
+            'payroll_payable', 'payroll_deductions_payable', 'rental_deposit_liability', 'withholding_tax_payable',
+            'partner_loan_payable' => ['liability'],
+            'opening_balance_offset', 'partner_capital_account' => ['equity'],
             'sales_revenue', 'sales_returns', 'fixed_asset_disposal_gain', 'inventory_adjustment_gain',
             'rental_revenue', 'rental_damage_revenue', 'rental_late_fee_revenue', 'rental_other_revenue' => ['revenue'],
             'purchase_expense', 'cogs', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss',
@@ -224,11 +229,12 @@ class AccountingAccountMappingService
             'ar_control', 'cheques_under_collection', 'purchase_expense', 'inventory_asset', 'cogs',
             'sales_returns', 'purchase_returns_allowances', 'inventory_return_variance', 'inventory_scrap_loss',
             'inventory_adjustment_loss', 'input_tax_receivable', 'fixed_asset_cost', 'depreciation_expense',
-            'fixed_asset_disposal_loss', 'fixed_asset_clearing', 'prepaid_expense_asset', 'payroll_expense' => 'debit',
+            'fixed_asset_disposal_loss', 'fixed_asset_clearing', 'prepaid_expense_asset', 'payroll_expense', 'employee_loan_receivable' => 'debit',
             'ap_control', 'cheques_payable', 'sales_revenue', 'grni_clearing',
             'output_tax_payable', 'accumulated_depreciation', 'fixed_asset_disposal_gain', 'inventory_adjustment_gain',
             'accrued_expense_liability', 'payroll_payable', 'payroll_deductions_payable', 'rental_revenue',
-            'rental_damage_revenue', 'rental_late_fee_revenue', 'rental_other_revenue', 'rental_deposit_liability' => 'credit',
+            'rental_damage_revenue', 'rental_late_fee_revenue', 'rental_other_revenue', 'rental_deposit_liability',
+            'withholding_tax_payable', 'partner_loan_payable', 'partner_capital_account' => 'credit',
             'opening_balance_offset' => null,
         };
 

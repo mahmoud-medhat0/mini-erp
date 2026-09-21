@@ -37,9 +37,11 @@ export type NavKey =
   | 'expense-categories.index'
   | 'prepaid-schedules.index'
   | 'accrual-schedules.index'
+  | 'recurring.templates.index'
   | 'payroll.employees.index'
   | 'payroll.components.index'
   | 'payroll.runs.index'
+  | 'payroll.loans.index'
   | 'rentals.contracts.index'
   | 'rentals.invoices.index'
   | 'rentals.handovers.index'
@@ -106,6 +108,7 @@ export type NavKey =
   | 'reports.project-profitability'
   | 'reports.cost-center-actuals'
   | 'reports.rentals'
+  | 'reports.payroll'
   | 'reports.balance_sheet'
   | 'reports.income_statement'
   | 'reports.cash_flow'
@@ -123,11 +126,18 @@ export type NavKey =
   | 'taxes.codes.index'
   | 'taxes.rates.index'
   | 'taxes.periods.index'
+  | 'taxes.withholding.index'
   | 'taxes.periods.show'
   | 'projects.index'
   | 'cost-centers.index'
   | 'budgeting.budgets'
-  | 'budgeting.variance';
+  | 'budgeting.variance'
+  | 'partners.index'
+  | 'partners.transactions.index'
+  | 'partners.loans.index'
+  | 'reports.forecast'
+  | 'reports.equity-statement'
+  | 'reports.reorder-level';
 
 type AppLayoutProps = {
   active: NavKey;
@@ -273,10 +283,14 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'cost-centers.index': 'costCenters.view',
   'budgeting.budgets': 'budgeting.view',
   'budgeting.variance': 'budgeting.view',
+  'partners.index': 'partners.view',
+  'partners.transactions.index': 'partners.view',
+  'partners.loans.index': 'partners.view',
   'accounting.index': 'accounting.view',
   'taxes.codes.index': 'taxes.view',
   'taxes.rates.index': 'taxes.view',
   'taxes.periods.index': 'taxes.view',
+  'taxes.withholding.index': 'taxes.view',
   'taxes.periods.show': 'taxes.view',
   'accounting.coa': 'accounting.view',
   'accounting.journal': 'accounting.view',
@@ -308,9 +322,11 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'expense-categories.index': 'expenses.view',
   'prepaid-schedules.index': 'expenses.view',
   'accrual-schedules.index': 'expenses.view',
+  'recurring.templates.index': 'recurring.view',
   'payroll.employees.index': 'view_payroll',
   'payroll.components.index': 'view_payroll',
   'payroll.runs.index': 'view_payroll',
+  'payroll.loans.index': 'view_payroll',
   'rentals.contracts.index': 'rentals.view',
   'rentals.invoices.index': 'rentals.view',
   'rentals.handovers.index': 'rentals.view',
@@ -351,9 +367,13 @@ const NAV_PERMS: Partial<Record<NavKey, NavPermission>> = {
   'reports.income_statement': 'view_financials',
   'reports.cash_flow': 'view_financials',
   'reports.financial-ratios': 'view_financials',
+  'reports.forecast': 'view_financials',
+  'reports.equity-statement': 'view_financials',
+  'reports.reorder-level': 'view_financials',
   'reports.branch-operations': 'view_financials',
   'reports.branch-profitability': 'view_financials',
   'reports.rentals': 'view_financials',
+  'reports.payroll': 'view_payroll',
   'audit.view': 'audit.view',
 };
 
@@ -379,7 +399,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const isAccountingActive = active.startsWith('accounting') || active.startsWith('taxes');
   const isArActive = active.startsWith('customer') || active.startsWith('receivable');
   const isApActive = active.startsWith('supplier') || active.startsWith('payable');
-  const isExpensesActive = active.startsWith('expense') || active.startsWith('prepaid') || active.startsWith('accrual');
+  const isExpensesActive = active.startsWith('expense') || active.startsWith('prepaid') || active.startsWith('accrual') || active.startsWith('recurring');
   const isPayrollActive = active.startsWith('payroll');
   const isRentalsActive = active.startsWith('rentals');
   const isEquipmentActive = active.startsWith('equipment');
@@ -407,6 +427,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const isInventoryActive = active.includes('inventory') || active.includes('warehouse') || active.includes('stock-');
   const isFixedAssetsActive = active.startsWith('fixed-asset');
   const isProjectsActive = active.startsWith('project') || active.startsWith('cost-center') || active.startsWith('budgeting');
+  const isPartnersActive = active.startsWith('partners');
   const isReportsActive = active.startsWith('reports');
   const isAdminActive = active.startsWith('settings') || active.startsWith('audit');
 
@@ -425,6 +446,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const [inventoryExpanded, setInventoryExpanded] = useState(() => isInventoryActive);
   const [fixedAssetsExpanded, setFixedAssetsExpanded] = useState(() => isFixedAssetsActive);
   const [projectsCostCentersExpanded, setProjectsCostCentersExpanded] = useState(() => isProjectsActive);
+  const [partnersExpanded, setPartnersExpanded] = useState(() => isPartnersActive);
   const [reportsExpanded, setReportsExpanded] = useState(() => isReportsActive);
   const [currentTheme, setCurrentTheme] = useState<string>(props.theme || 'system');
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
@@ -446,6 +468,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     if (isInventoryActive) setInventoryExpanded(true);
     if (isFixedAssetsActive) setFixedAssetsExpanded(true);
     if (isProjectsActive) setProjectsCostCentersExpanded(true);
+    if (isPartnersActive) setPartnersExpanded(true);
     if (isReportsActive) setReportsExpanded(true);
     if (isAdminActive) setAdminExpanded(true);
   }, [
@@ -464,6 +487,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     isInventoryActive,
     isFixedAssetsActive,
     isProjectsActive,
+    isPartnersActive,
     isReportsActive,
     isAdminActive,
   ]);
@@ -495,6 +519,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     inventoryExpanded,
     fixedAssetsExpanded,
     projectsCostCentersExpanded,
+    partnersExpanded,
     reportsExpanded,
     adminExpanded,
   ]);
@@ -648,6 +673,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const showPayrollGroup = can('payroll.view') && can('view_payroll');
   const showRentalsGroup = can('rentals.view');
   const showEquipmentGroup = can('equipment.view');
+  const showPartnersGroup = can('partners.view');
   const showCashBankGroup = can('cash.view') || can('banks.view') || can('cheques.view');
   const showCatalogGroup = can('products.view') || can('uom.view');
   const showSalesGroup =
@@ -973,6 +999,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'taxes.codes.index' as NavKey, href: '/taxes/codes', label: taxesDict.taxCodes, icon: 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z' },
                         { key: 'taxes.rates.index' as NavKey, href: '/taxes/rates', label: taxesDict.taxRates, icon: 'M4 19L20 5M7 7h.01M17 17h.01' },
                         { key: 'taxes.periods.index' as NavKey, href: '/taxes/periods', label: taxesDict.periods.title, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                        { key: 'taxes.withholding.index' as NavKey, href: '/taxes/withholding', label: taxesDict.taxTypes.withholding, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
@@ -1175,6 +1202,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'expense-categories.index' as NavKey, href: '/expenses/categories', label: dict.app.nav.layoutKeys.expenseCategories },
                         { key: 'prepaid-schedules.index' as NavKey, href: '/expenses/prepaids', label: dict.app.nav.layoutKeys.prepaidSchedules },
                         { key: 'accrual-schedules.index' as NavKey, href: '/expenses/accruals', label: dict.app.nav.layoutKeys.accrualSchedules },
+                        { key: 'recurring.templates.index' as NavKey, href: '/recurring/templates', label: dict.app.nav.layoutKeys.recurringTemplates },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
                         <Link
                           key={subItem.key}
@@ -1233,6 +1261,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'payroll.runs.index' as NavKey, href: '/payroll/runs', label: dict.app.nav.layoutKeys.payrollRuns },
+                        { key: 'payroll.loans.index' as NavKey, href: '/payroll/loans', label: dict.app.nav.layoutKeys.payrollLoans },
                         { key: 'payroll.employees.index' as NavKey, href: '/payroll/employees', label: dict.app.nav.layoutKeys.employees },
                         { key: 'payroll.components.index' as NavKey, href: '/payroll/components', label: dict.app.nav.layoutKeys.payrollComponents },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
@@ -1364,6 +1393,70 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       {[
                         { key: 'equipment.tools.index' as NavKey, href: '/equipment/tools', label: dict.app.nav.layoutKeys.tools },
                         { key: 'equipment.categories.index' as NavKey, href: '/equipment/categories', label: dict.app.nav.layoutKeys.toolCategories },
+                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        const isSubActive = active === subItem.key;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            onClick={() => setMobileMenuOpen(false)}
+                            data-active={isSubActive ? 'true' : undefined}
+                            title={sidebarCollapsed ? subItem.label : undefined}
+                            className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                              sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                            } ${active === subItem.key ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-500/30' : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'}`}
+                          >
+                            {!sidebarCollapsed ? <span className="truncate">{subItem.label}</span> : null}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 6c. Partners & Equity Dropdown Group */}
+                <div className={`space-y-1 ${showPartnersGroup ? '' : 'hidden'}`}>
+                  <div
+                    className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                    } ${
+                      isPartnersActive
+                        ? sidebarCollapsed
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <Link
+                      href="/partners"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setPartnersExpanded(true);
+                      }}
+                      data-active={active === 'partners.index' || (active as string) === 'partners' ? 'true' : undefined}
+                      title={sidebarCollapsed ? dict.app.nav.layoutKeys.partnersOperations : undefined}
+                      className={`flex flex-1 items-center no-underline text-inherit ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}
+                    >
+                      <svg className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${isPartnersActive ? (sidebarCollapsed ? 'text-white' : 'text-blue-600 dark:text-blue-400') : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.layoutKeys.partnersOperations}</span> : null}
+                    </Link>
+                    {!sidebarCollapsed ? (
+                      <button type="button" onClick={() => setPartnersExpanded(!partnersExpanded)} className={`p-1 transition-colors cursor-pointer ${isPartnersActive ? 'text-blue-600 dark:text-blue-400 hover:text-blue-700' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
+                        <svg className={`size-3.5 transition-transform duration-200 ${partnersExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(partnersExpanded && !sidebarCollapsed) ? (
+                    <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
+                      {[
+                        { key: 'partners.index' as NavKey, href: '/partners', label: dict.app.nav.layoutKeys.partners },
+                        { key: 'partners.transactions.index' as NavKey, href: '/partners/transactions', label: dict.app.nav.layoutKeys.partnerTransactions },
+                        { key: 'partners.loans.index' as NavKey, href: '/partners/loans', label: dict.app.nav.layoutKeys.partnerLoans },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
@@ -1908,10 +2001,14 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'reports.branch-operations' as NavKey, href: '/reports/branch-operations', label: dict.app.nav.layoutKeys.branchOperations },
                         { key: 'reports.branch-profitability' as NavKey, href: '/reports/branch-profitability', label: dict.app.nav.layoutKeys.branchProfitability },
                         { key: 'reports.rentals' as NavKey, href: '/reports/rentals', label: dict.app.nav.layoutKeys.rentalOperationsReport },
+                        { key: 'reports.payroll' as NavKey, href: '/reports/payroll', label: dict.app.nav.layoutKeys.payrollReport },
                         { key: 'reports.balance_sheet' as NavKey, href: '/reports/balance-sheet', label: accDict.balanceSheet },
                         { key: 'reports.income_statement' as NavKey, href: '/reports/income-statement', label: accDict.incomeStatement },
                         { key: 'reports.cash_flow' as NavKey, href: '/reports/cash-flow', label: accDict.cashFlowStatement },
                         { key: 'reports.financial-ratios' as NavKey, href: '/reports/financial-ratios', label: accDict.financialRatios },
+                        { key: 'reports.forecast' as NavKey, href: '/reports/forecast', label: dict.app.pages.forecast.title },
+                        { key: 'reports.equity-statement' as NavKey, href: '/reports/equity-statement', label: dict.app.pages.equityStatement.title },
+                        { key: 'reports.reorder-level' as NavKey, href: '/reports/reorder-level', label: dict.app.pages.reorderLevel.title },
                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (

@@ -17,6 +17,7 @@ class Product extends Model
 
     protected $fillable = [
         'code',
+        'barcode',
         'name',
         'description',
         'type',
@@ -25,6 +26,7 @@ class Product extends Model
         'status',
         'is_sales_enabled',
         'is_purchase_enabled',
+        'reorder_level',
         'created_by',
         'updated_by',
         'lock_version',
@@ -37,6 +39,7 @@ class Product extends Model
         return [
             'is_sales_enabled' => 'boolean',
             'is_purchase_enabled' => 'boolean',
+            'reorder_level' => 'integer',
             'lock_version' => 'integer',
         ];
     }

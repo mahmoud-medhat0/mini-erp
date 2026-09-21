@@ -8,13 +8,14 @@ import type { SharedPageProps } from '../../../Types/page';
 
 type CalculationMode = 'exclusive' | 'inclusive' | 'exempt';
 type RecoverabilityMode = 'full' | 'none';
+type TaxType = 'vat' | 'withholding';
 type TaxCodeForm = {
   code: string;
   name: {
     en: string;
     ar: string;
   };
-  tax_type: 'vat';
+  tax_type: TaxType;
   calculation_mode: CalculationMode;
   recoverability_mode: RecoverabilityMode;
   is_active: boolean;
@@ -41,6 +42,19 @@ export default function TaxCodeCreate({ locale }: SharedPageProps) {
     post('/taxes/codes', { preserveScroll: true });
   }
 
+  function handleTaxTypeChange(value: TaxType | null) {
+    const nextType = value || 'vat';
+    if (nextType === 'withholding') {
+      setData({ ...data, tax_type: nextType, calculation_mode: 'exclusive', recoverability_mode: 'none' });
+      return;
+    }
+    setData('tax_type', nextType);
+  }
+
+  const taxTypeOptions: Array<{ value: TaxType; label: string }> = [
+    { value: 'vat', label: taxDict.taxTypes.vat },
+    { value: 'withholding', label: taxDict.taxTypes.withholding },
+  ];
   const calculationModeOptions: Array<{ value: CalculationMode; label: string }> = [
     { value: 'exclusive', label: taxDict.exclusive },
     { value: 'inclusive', label: taxDict.inclusive },
@@ -116,31 +130,48 @@ export default function TaxCodeCreate({ locale }: SharedPageProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {taxDict.calculationMode}
-                </label>
-                <SearchableSelect<CalculationMode>
-                  options={calculationModeOptions}
-                  value={data.calculation_mode}
-                  onChange={(value) => setData('calculation_mode', value || 'exclusive')}
-                  isClearable={false}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
-                  {taxDict.recoverabilityMode}
-                </label>
-                <SearchableSelect<RecoverabilityMode>
-                  options={recoverabilityModeOptions}
-                  value={data.recoverability_mode}
-                  onChange={(value) => setData('recoverability_mode', value || 'full')}
-                  isClearable={false}
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                {taxDict.taxType}
+              </label>
+              <SearchableSelect<TaxType>
+                options={taxTypeOptions}
+                value={data.tax_type}
+                onChange={handleTaxTypeChange}
+                isClearable={false}
+              />
+              {data.tax_type === 'withholding' ? (
+                <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">{taxDict.taxTypeHint}</p>
+              ) : null}
             </div>
+
+            {data.tax_type === 'vat' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                    {taxDict.calculationMode}
+                  </label>
+                  <SearchableSelect<CalculationMode>
+                    options={calculationModeOptions}
+                    value={data.calculation_mode}
+                    onChange={(value) => setData('calculation_mode', value || 'exclusive')}
+                    isClearable={false}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
+                    {taxDict.recoverabilityMode}
+                  </label>
+                  <SearchableSelect<RecoverabilityMode>
+                    options={recoverabilityModeOptions}
+                    value={data.recoverability_mode}
+                    onChange={(value) => setData('recoverability_mode', value || 'full')}
+                    isClearable={false}
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="pt-2">
               <label htmlFor="is_active" className="inline-flex items-center gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer select-none">

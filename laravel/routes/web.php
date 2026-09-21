@@ -54,8 +54,12 @@ use App\Http\Controllers\IncomingChequeController;
 use App\Http\Controllers\LandedCostAllocationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OutgoingChequeController;
+use App\Http\Controllers\Partners\PartnerController;
+use App\Http\Controllers\Partners\PartnerLoanController;
+use App\Http\Controllers\Partners\PartnerTransactionController;
 use App\Http\Controllers\PayableAllocationController;
 use App\Http\Controllers\PayableEntrySettlementController;
+use App\Http\Controllers\Payroll\PayrollEmployeeLoanController;
 use App\Http\Controllers\PayrollComponentController;
 use App\Http\Controllers\PayrollEmployeeController;
 use App\Http\Controllers\PayrollRunController;
@@ -66,6 +70,7 @@ use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\Purchasing\PurchaseRequestController;
 use App\Http\Controllers\ReceivableAllocationController;
 use App\Http\Controllers\ReceivableEntrySettlementController;
+use App\Http\Controllers\Recurring\RecurringTemplateController;
 use App\Http\Controllers\RentableItemController;
 use App\Http\Controllers\RentalContractController;
 use App\Http\Controllers\RentalHandoverController;
@@ -91,17 +96,21 @@ use App\Http\Controllers\Reports\CostCenterActualsReportController;
 use App\Http\Controllers\Reports\CustomerInvoiceReportController;
 use App\Http\Controllers\Reports\CustomerStatementController;
 use App\Http\Controllers\Reports\DeliveryNoteReportController;
+use App\Http\Controllers\Reports\EquityStatementReportController;
 use App\Http\Controllers\Reports\FinancialRatiosReportController;
 use App\Http\Controllers\Reports\FixedAssetReportController;
+use App\Http\Controllers\Reports\ForecastReportController;
 use App\Http\Controllers\Reports\GoodsReceiptReportController;
 use App\Http\Controllers\Reports\IncomeStatementReportController;
 use App\Http\Controllers\Reports\OperationalReportDataTableController;
 use App\Http\Controllers\Reports\PartnerStatementDataTableController;
+use App\Http\Controllers\Reports\PayrollReportController;
 use App\Http\Controllers\Reports\ProductStatementController;
 use App\Http\Controllers\Reports\ProjectProfitabilityReportController;
 use App\Http\Controllers\Reports\PurchaseOrderReportController;
 use App\Http\Controllers\Reports\RentalOperationsDataTableController;
 use App\Http\Controllers\Reports\RentalOperationsReportController;
+use App\Http\Controllers\Reports\ReorderLevelReportController;
 use App\Http\Controllers\Reports\ReportsHubController;
 use App\Http\Controllers\Reports\SalesOrderReportController;
 use App\Http\Controllers\Reports\StockMovementReportController;
@@ -135,6 +144,7 @@ use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\Taxes\TaxCodeController;
 use App\Http\Controllers\Taxes\TaxPeriodController;
 use App\Http\Controllers\Taxes\TaxRateController;
+use App\Http\Controllers\Taxes\WithholdingTaxController;
 use App\Http\Controllers\TreasuryTransferController;
 use App\Http\Controllers\WarehouseController;
 use Illuminate\Http\Request;
@@ -420,6 +430,9 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/cost-center-actuals', [CostCenterActualsReportController::class, 'index'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.cost-center-actuals');
         Route::get('/cost-center-actuals/data', [CostCenterActualsReportController::class, 'datatable'])->middleware(['can:reports.view', 'can:view_financials'])->name('reports.cost-center-actuals.data');
         Route::get('/cost-center-actuals/export', [CostCenterActualsReportController::class, 'exportCsv'])->middleware(['can:reports.view', 'permission.all:reports.export,view_financials'])->name('reports.cost-center-actuals.export');
+
+        Route::get('/payroll', [PayrollReportController::class, 'index'])->middleware('permission.all:reports.view,view_financials,view_payroll')->name('reports.payroll');
+        Route::get('/payroll/data', [PayrollReportController::class, 'datatable'])->middleware('permission.all:reports.view,view_financials,view_payroll')->name('reports.payroll.data');
         Route::get('/rentals', [RentalOperationsReportController::class, 'index'])->middleware('can:view_financials')->name('reports.rentals');
         Route::get('/rentals/data', RentalOperationsDataTableController::class)->name('reports.rentals.data');
         Route::get('/rentals/export', [RentalOperationsReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.rentals.export');
@@ -450,6 +463,9 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/cash-flow/export', [CashFlowReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.cash_flow.export');
         Route::get('/financial-ratios', [FinancialRatiosReportController::class, 'index'])->name('reports.financial-ratios');
         Route::get('/financial-ratios/export', [FinancialRatiosReportController::class, 'exportCsv'])->middleware('permission.all:reports.export,view_financials')->name('reports.financial-ratios.export');
+        Route::get('/forecast', [ForecastReportController::class, 'index'])->name('reports.forecast');
+        Route::get('/equity-statement', [EquityStatementReportController::class, 'index'])->name('reports.equity-statement');
+        Route::get('/reorder-level', [ReorderLevelReportController::class, 'index'])->name('reports.reorder-level');
 
         // Phase 7 Slice 5 VAT Reports
         Route::get('/vat-register', [VatReportController::class, 'register'])->middleware('can:view_financials')->name('reports.vat-register');
@@ -599,6 +615,13 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/runs/{id}/approve', [PayrollRunController::class, 'approve'])->middleware('permission.all:payroll.approve,view_payroll')->name('payroll.runs.approve');
         Route::post('/runs/{id}/post', [PayrollRunController::class, 'post'])->middleware(['permission.all:payroll.post,view_payroll,view_financials', 'sensitive.confirm'])->name('payroll.runs.post');
         Route::post('/runs/{id}/cancel', [PayrollRunController::class, 'cancel'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.runs.cancel');
+
+        // Phase 28 Employee Loans/Advances
+        Route::get('/loans', [PayrollEmployeeLoanController::class, 'index'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.loans.index');
+        Route::get('/loans/data', [PayrollEmployeeLoanController::class, 'datatable'])->middleware('permission.all:payroll.view,view_payroll')->name('payroll.loans.datatable');
+        Route::post('/loans', [PayrollEmployeeLoanController::class, 'store'])->middleware(['permission.all:payroll.create,view_payroll,view_financials', 'sensitive.confirm'])->name('payroll.loans.store');
+        Route::post('/loans/{id}/settle', [PayrollEmployeeLoanController::class, 'settle'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.loans.settle');
+        Route::post('/loans/{id}/cancel', [PayrollEmployeeLoanController::class, 'cancel'])->middleware('permission.all:payroll.edit,view_payroll')->name('payroll.loans.cancel');
     });
 
     // Phase 14 Rentals Foundation Routes
@@ -830,6 +853,42 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/taxes/periods/{id}', [TaxPeriodController::class, 'show'])->middleware('can:taxes.view')->name('taxes.periods.show');
     Route::post('/taxes/periods/{id}/draft', [TaxPeriodController::class, 'generateDraft'])->middleware('can:taxes.edit')->name('taxes.periods.draft');
     Route::post('/taxes/returns/{id}/file', [TaxPeriodController::class, 'fileReturn'])->middleware(['can:taxes.file', 'sensitive.confirm'])->name('taxes.returns.file');
+
+    // Phase 29 Withholding Tax (WHT) Framework Routes
+    Route::get('/taxes/withholding', [WithholdingTaxController::class, 'index'])->middleware('can:taxes.view')->name('taxes.withholding.index');
+    Route::get('/taxes/withholding/data', [WithholdingTaxController::class, 'datatable'])->middleware('can:taxes.view')->name('taxes.withholding.datatable');
+    Route::post('/taxes/withholding', [WithholdingTaxController::class, 'store'])->middleware('can:taxes.edit')->name('taxes.withholding.store');
+    Route::post('/taxes/withholding/{id}/post', [WithholdingTaxController::class, 'post'])->middleware(['can:taxes.file', 'sensitive.confirm'])->name('taxes.withholding.post');
+    Route::post('/taxes/withholding/{id}/cancel', [WithholdingTaxController::class, 'cancel'])->middleware('can:taxes.edit')->name('taxes.withholding.cancel');
+
+    // Phase 30 Partners & Equity Routes
+    Route::get('/partners', [PartnerController::class, 'index'])->middleware('can:partners.view')->name('partners.index');
+    Route::get('/partners/data', [PartnerController::class, 'datatable'])->middleware('can:partners.view')->name('partners.datatable');
+    Route::post('/partners', [PartnerController::class, 'store'])->middleware('can:partners.create')->name('partners.store');
+    Route::put('/partners/{id}', [PartnerController::class, 'update'])->middleware('can:partners.edit')->name('partners.update');
+    Route::delete('/partners/{id}', [PartnerController::class, 'destroy'])->middleware('can:partners.delete')->name('partners.destroy');
+
+    Route::get('/partners/transactions', [PartnerTransactionController::class, 'index'])->middleware('can:partners.view')->name('partners.transactions.index');
+    Route::get('/partners/transactions/data', [PartnerTransactionController::class, 'datatable'])->middleware('can:partners.view')->name('partners.transactions.datatable');
+    Route::post('/partners/transactions', [PartnerTransactionController::class, 'store'])->middleware('can:partners.create')->name('partners.transactions.store');
+    Route::post('/partners/transactions/{id}/post', [PartnerTransactionController::class, 'post'])->middleware(['permission.all:partners.post,view_financials', 'sensitive.confirm'])->name('partners.transactions.post');
+    Route::post('/partners/transactions/{id}/cancel', [PartnerTransactionController::class, 'cancel'])->middleware('can:partners.edit')->name('partners.transactions.cancel');
+
+    Route::get('/partners/loans', [PartnerLoanController::class, 'index'])->middleware('can:partners.view')->name('partners.loans.index');
+    Route::get('/partners/loans/data', [PartnerLoanController::class, 'datatable'])->middleware('can:partners.view')->name('partners.loans.datatable');
+    Route::post('/partners/loans', [PartnerLoanController::class, 'store'])->middleware(['permission.all:partners.create,view_financials', 'sensitive.confirm'])->name('partners.loans.store');
+    Route::post('/partners/loans/{id}/repay', [PartnerLoanController::class, 'repay'])->middleware(['permission.all:partners.post,view_financials', 'sensitive.confirm'])->name('partners.loans.repay');
+    Route::post('/partners/loans/{id}/cancel', [PartnerLoanController::class, 'cancel'])->middleware('can:partners.edit')->name('partners.loans.cancel');
+
+    // Phase 31 Recurring Transactions Engine Routes
+    Route::get('/recurring/templates', [RecurringTemplateController::class, 'index'])->middleware('can:recurring.view')->name('recurring.templates.index');
+    Route::get('/recurring/templates/data', [RecurringTemplateController::class, 'datatable'])->middleware('can:recurring.view')->name('recurring.templates.datatable');
+    Route::post('/recurring/templates', [RecurringTemplateController::class, 'store'])->middleware('can:recurring.create')->name('recurring.templates.store');
+    Route::put('/recurring/templates/{id}', [RecurringTemplateController::class, 'update'])->middleware('can:recurring.edit')->name('recurring.templates.update');
+    Route::post('/recurring/templates/{id}/pause', [RecurringTemplateController::class, 'pause'])->middleware('can:recurring.edit')->name('recurring.templates.pause');
+    Route::post('/recurring/templates/{id}/resume', [RecurringTemplateController::class, 'resume'])->middleware('can:recurring.edit')->name('recurring.templates.resume');
+    Route::post('/recurring/templates/{id}/cancel', [RecurringTemplateController::class, 'cancel'])->middleware('can:recurring.edit')->name('recurring.templates.cancel');
+    Route::delete('/recurring/templates/{id}', [RecurringTemplateController::class, 'destroy'])->middleware('can:recurring.delete')->name('recurring.templates.destroy');
 
     // Phase 16 Slice 1 Project & Cost Center Master Data Routes
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('can:projects.view')->name('projects.index');

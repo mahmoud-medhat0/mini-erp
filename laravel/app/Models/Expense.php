@@ -16,6 +16,7 @@ class Expense extends Model
 
     protected $fillable = [
         'number',
+        'recurring_template_id',
         'expense_date',
         'due_date',
         'branch_id',
@@ -114,5 +115,10 @@ class Expense extends Model
     public function payableEntry(): BelongsTo
     {
         return $this->belongsTo(PayableEntry::class, 'payable_entry_id');
+    }
+
+    public function recurringTemplate(): BelongsTo
+    {
+        return $this->belongsTo(RecurringTemplate::class, 'recurring_template_id');
     }
 }

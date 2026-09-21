@@ -117,6 +117,12 @@ Schedule::command('tokens:gc --batch=100')
     ->withoutOverlapping()
     ->description('Delete expired auth and idempotency tokens');
 
+Schedule::command('recurring:generate')
+    ->dailyAt('01:30')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->description('Generate draft documents for recurring templates due today');
+
 // Retention defaults to 14 days. Adjust once the owner selects a retention option
 // in spec/BACKUP_RESTORE_DRILL.md. Runs in a low-traffic window as that doc requires.
 // Requires the PostgreSQL client (pg_dump) on the host PATH; the command fails

@@ -22,6 +22,7 @@ class CustomerReceipt extends Model
         'receipt_date',
         'reference',
         'description',
+        'is_advance',
         'cash_account_id',
         'bank_account_id',
         'currency',
@@ -43,6 +44,7 @@ class CustomerReceipt extends Model
     {
         return [
             'receipt_date' => 'date:Y-m-d',
+            'is_advance' => 'boolean',
             'amount_minor' => 'integer',
             'allocated_minor' => 'integer',
             'unapplied_minor' => 'integer',

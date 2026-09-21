@@ -27,7 +27,7 @@ class CustomerReceiptController extends Controller
     {
         Gate::authorize('customers.view');
 
-        return $this->pageData->datatable($request->only(['status']));
+        return $this->pageData->datatable($request->only(['status', 'is_advance']));
     }
 
     public function store(Request $request): RedirectResponse
@@ -39,6 +39,7 @@ class CustomerReceiptController extends Controller
             'receipt_date' => ['required', 'date'],
             'reference' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
+            'is_advance' => ['sometimes', 'boolean'],
             'cash_account_id' => ['nullable', 'string', 'uuid', 'exists:cash_account,id'],
             'bank_account_id' => ['nullable', 'string', 'uuid', 'exists:bank_account,id'],
             'currency' => ['required', 'string', 'size:3', 'exists:currency,code'],

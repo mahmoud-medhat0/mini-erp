@@ -35,6 +35,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:64'],
+            'barcode' => ['nullable', 'string', 'max:64'],
             'name' => ['required'],
             'description' => ['nullable'],
             'type' => ['required', 'string', 'in:stock,service,non_stock'],
@@ -43,6 +44,7 @@ class ProductController extends Controller
             'status' => ['required', 'string', 'in:active,inactive'],
             'is_sales_enabled' => ['boolean'],
             'is_purchase_enabled' => ['boolean'],
+            'reorder_level' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $this->productService->create($validated, $request->user()?->id);
@@ -54,6 +56,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:64'],
+            'barcode' => ['nullable', 'string', 'max:64'],
             'name' => ['required'],
             'description' => ['nullable'],
             'type' => ['required', 'string', 'in:stock,service,non_stock'],
@@ -62,6 +65,7 @@ class ProductController extends Controller
             'status' => ['required', 'string', 'in:active,inactive'],
             'is_sales_enabled' => ['boolean'],
             'is_purchase_enabled' => ['boolean'],
+            'reorder_level' => ['nullable', 'integer', 'min:0'],
             'lock_version' => ['nullable', 'integer'],
         ]);
 

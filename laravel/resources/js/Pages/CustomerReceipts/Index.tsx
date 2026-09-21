@@ -21,6 +21,7 @@ type CustomerReceiptRow = {
   bank_account_name?: Record<string, string> | string;
   receipt_date: string;
   reference?: string | null;
+  is_advance?: boolean;
   currency: string;
   amount_minor: number;
   allocated_minor: number;
@@ -64,6 +65,7 @@ export default function CustomerReceiptsIndex({
   const [destinationType, setDestinationType] = useState<CashBankDestinationType>('cash');
   const [postingReceiptId, setPostingReceiptId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
+  const [advanceFilter, setAdvanceFilter] = useState('');
 
   const { data, setData, post, transform, processing, errors, reset } = useForm({
     customer_id: '',
@@ -72,6 +74,7 @@ export default function CustomerReceiptsIndex({
     receipt_date: new Date().toISOString().split('T')[0],
     reference: '',
     description: 'Customer Receipt',
+    is_advance: false,
     cash_account_id: '',
     bank_account_id: '',
     currency: currencies[0]?.code || '',
@@ -123,6 +126,7 @@ export default function CustomerReceiptsIndex({
     { data: 'destination', name: 'destination', title: dict.app.pages.customerReceipts.destination, orderable: false, searchable: false },
     { data: 'amount_minor', name: 'amount_minor', title: dict.app.pages.customerReceipts.totalAmount, width: '120px' },
     { data: 'unapplied_minor', name: 'unapplied_minor', title: dict.app.pages.customerReceipts.unapplied, width: '120px' },
+    { data: 'is_advance', name: 'is_advance', title: dict.app.pages.customerReceipts.isAdvance, searchable: false, width: '90px' },
     { data: 'status', name: 'status', title: dict.app.pages.customerReceipts.status, searchable: false, width: '100px' },
     { data: 'actions', name: 'actions', title: dict.app.pages.customerReceipts.actions, orderable: false, searchable: false, width: '90px', className: 'text-end' },
   ], [dict]);
@@ -150,6 +154,7 @@ export default function CustomerReceiptsIndex({
         {formatMoney(d, row?.currency)}
       </span>
     ),
+    is_advance: (d: any) => (d ? <StatusBadge tone="info">{dict.app.pages.customerReceipts.isAdvance}</StatusBadge> : null),
     status: (d: any) => (
       <StatusBadge tone={d === 'posted' ? 'ok' : 'warning'}>
         {d === 'posted' ? dict.app.pages.customerReceipts.posted : dict.app.pages.customerReceipts.draft}
@@ -185,11 +190,16 @@ export default function CustomerReceiptsIndex({
     ),
   } as Record<string, (data: any, type: any, row: any) => ReactElement>), [dict, accDict, locale, canPostReceipt]);
 
-  const tableFilters = useMemo(() => ({ status: statusFilter }), [statusFilter]);
+  const tableFilters = useMemo(() => ({ status: statusFilter, is_advance: advanceFilter }), [statusFilter, advanceFilter]);
 
   const statusOptions = [
     { value: 'draft', label: dict.app.pages.customerReceipts.draft },
     { value: 'posted', label: dict.app.pages.customerReceipts.posted },
+  ];
+
+  const advanceOptions = [
+    { value: '1', label: dict.app.pages.customerReceipts.isAdvance },
+    { value: '0', label: dict.app.pages.customerReceipts.notAdvance },
   ];
 
   const toolbar = (
@@ -204,6 +214,13 @@ export default function CustomerReceiptsIndex({
         options={[{ value: '', label: locale === 'ar' ? 'جميع الحالات' : 'All Statuses' }, ...statusOptions]}
         value={statusFilter}
         onChange={(v) => setStatusFilter(v || '')}
+        className="w-44"
+        isSearchable={false}
+      />
+      <SearchableSelect
+        options={[{ value: '', label: dict.app.pages.customerReceipts.allReceipts }, ...advanceOptions]}
+        value={advanceFilter}
+        onChange={(v) => setAdvanceFilter(v || '')}
         className="w-44"
         isSearchable={false}
       />
@@ -375,6 +392,11 @@ export default function CustomerReceiptsIndex({
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs font-mono text-[var(--text-primary)]"
                 />
               </div>
+
+              <label className="flex items-center gap-2 text-xs font-bold uppercase text-[var(--text-secondary)]">
+                <input type="checkbox" checked={data.is_advance} onChange={(e) => setData('is_advance', e.target.checked)} />
+                {dict.app.pages.customerReceipts.isAdvanceHint}
+              </label>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
                 <button

@@ -37,6 +37,7 @@ class CustomerReceiptPageData
     public function datatable(array $filters = []): JsonResponse
     {
         $status = (string) ($filters['status'] ?? '');
+        $isAdvance = (string) ($filters['is_advance'] ?? '');
 
         $query = CustomerReceipt::query()
             ->join('customer', 'customer.id', '=', 'customer_receipt.customer_id')
@@ -49,6 +50,7 @@ class CustomerReceiptPageData
                 'customer_receipt.receipt_date',
                 'customer_receipt.reference',
                 'customer_receipt.description',
+                'customer_receipt.is_advance',
                 'customer_receipt.cash_account_id',
                 'customer_receipt.bank_account_id',
                 'customer_receipt.currency',
@@ -68,6 +70,10 @@ class CustomerReceiptPageData
             ->when(
                 in_array($status, ['draft', 'posted'], true),
                 fn ($q) => $q->where('customer_receipt.status', $status),
+            )
+            ->when(
+                in_array($isAdvance, ['1', '0'], true),
+                fn ($q) => $q->where('customer_receipt.is_advance', $isAdvance === '1'),
             )
             ->orderBy('customer_receipt.created_at', 'desc');
 

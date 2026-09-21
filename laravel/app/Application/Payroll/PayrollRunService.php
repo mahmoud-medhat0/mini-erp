@@ -14,6 +14,8 @@ use App\Models\Employee;
 use App\Models\FinancialPeriod;
 use App\Models\JournalEntry;
 use App\Models\PayrollComponent;
+use App\Models\PayrollEmployeeLoan;
+use App\Models\PayrollEmployeeLoanInstallment;
 use App\Models\PayrollPeriod;
 use App\Models\PayrollRun;
 use App\Models\PayrollRunLine;
@@ -243,10 +245,63 @@ class PayrollRunService
                 'lock_version' => $run->lock_version + 1,
             ]);
 
+            $this->applyLoanRepayments($run);
+
             $this->auditLogger->record($actorId, 'payroll_run.post', 'payroll_run', $run->id, before: $before, after: $run->fresh()->toArray());
 
             return $run->fresh($this->defaultRelations());
         });
+    }
+
+    /**
+     * Decrements each loan referenced by a LOAN_REPAYMENT component on this
+     * now-posted run, recording an installment row per loan. Guarded by the
+     * unique (loan_id, payroll_run_id) index on the installment table and by
+     * post()'s own idempotency check, so this never double-applies even if
+     * called again for an already-posted run.
+     */
+    private function applyLoanRepayments(PayrollRun $run): void
+    {
+        $run->loadMissing('lines.components');
+
+        foreach ($run->lines as $line) {
+            foreach ($line->components as $component) {
+                if ($component->payroll_employee_loan_id === null) {
+                    continue;
+                }
+
+                /** @var PayrollEmployeeLoan $loan */
+                $loan = PayrollEmployeeLoan::query()->whereKey($component->payroll_employee_loan_id)->lockForUpdate()->firstOrFail();
+
+                $alreadyApplied = PayrollEmployeeLoanInstallment::query()
+                    ->where('payroll_employee_loan_id', $loan->id)
+                    ->where('payroll_run_id', $run->id)
+                    ->exists();
+                if ($alreadyApplied) {
+                    continue;
+                }
+
+                $amount = min((int) $component->amount_minor, (int) $loan->remaining_balance_minor);
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                PayrollEmployeeLoanInstallment::query()->create([
+                    'payroll_employee_loan_id' => $loan->id,
+                    'payroll_run_id' => $run->id,
+                    'payroll_run_line_id' => $line->id,
+                    'amount_minor' => $amount,
+                    'applied_date' => $run->payroll_date,
+                ]);
+
+                $remaining = (int) $loan->remaining_balance_minor - $amount;
+                $loan->update([
+                    'remaining_balance_minor' => $remaining,
+                    'status' => $remaining <= 0 ? 'completed' : 'active',
+                    'lock_version' => $loan->lock_version + 1,
+                ]);
+            }
+        }
     }
 
     public function ensurePayrollPeriod(array $data, ?int $actorId = null): PayrollPeriod
@@ -331,6 +386,7 @@ class PayrollRunService
             if ($baseSalary > 0) {
                 $snapshots[] = [
                     'payroll_component_id' => null,
+                    'payroll_employee_loan_id' => null,
                     'expense_account_id' => null,
                     'liability_account_id' => null,
                     'code' => 'BASE_SALARY',
@@ -363,6 +419,7 @@ class PayrollRunService
 
                 $snapshots[] = [
                     'payroll_component_id' => $component->id,
+                    'payroll_employee_loan_id' => null,
                     'expense_account_id' => $component->expense_account_id,
                     'liability_account_id' => $component->liability_account_id,
                     'code' => $component->code,
@@ -370,6 +427,11 @@ class PayrollRunService
                     'type' => $component->type,
                     'amount_minor' => $amount,
                 ];
+            }
+
+            foreach ($this->activeLoanRepaymentSnapshots($employee, $period) as $loanSnapshot) {
+                $deductions += $loanSnapshot['amount_minor'];
+                $snapshots[] = $loanSnapshot;
             }
 
             if ($earnings <= 0 && $deductions <= 0) {
@@ -412,6 +474,52 @@ class PayrollRunService
             'deductions_minor' => $deductionsTotal,
             'net_minor' => $netTotal,
         ]);
+    }
+
+    /**
+     * Loan repayment deductions for a payroll line, one snapshot per active
+     * loan the employee holds. Deterministically ordered by disbursement date
+     * then id so post() can re-derive the same set of (loan, amount) pairs
+     * without needing to persist anything beyond the snapshot itself.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function activeLoanRepaymentSnapshots(Employee $employee, PayrollPeriod $period): array
+    {
+        $loans = PayrollEmployeeLoan::query()
+            ->where('employee_id', $employee->id)
+            ->where('status', 'active')
+            ->where('disbursement_date', '<=', $period->end_date)
+            ->orderBy('disbursement_date')
+            ->orderBy('id')
+            ->get();
+
+        if ($loans->isEmpty()) {
+            return [];
+        }
+
+        $receivableAccount = $this->mappingService->getAccount('employee_loan_receivable', null);
+
+        $snapshots = [];
+        foreach ($loans as $loan) {
+            $amount = min((int) $loan->installment_amount_minor, (int) $loan->remaining_balance_minor);
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $snapshots[] = [
+                'payroll_component_id' => null,
+                'payroll_employee_loan_id' => $loan->id,
+                'expense_account_id' => null,
+                'liability_account_id' => $receivableAccount->id,
+                'code' => 'LOAN_REPAYMENT',
+                'name' => ['en' => 'Loan Repayment', 'ar' => 'خصم سداد سلفة'],
+                'type' => 'deduction',
+                'amount_minor' => $amount,
+            ];
+        }
+
+        return $snapshots;
     }
 
     /**
