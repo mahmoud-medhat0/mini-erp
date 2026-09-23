@@ -88,15 +88,17 @@ export default function WithholdingTaxIndex({ locale, taxCodes, suppliers, curre
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    router.post('/taxes/withholding', {
-      tax_code_id: form.data.tax_code_id,
-      supplier_id: form.data.supplier_id,
-      reference: form.data.reference || null,
-      entry_date: form.data.entry_date,
-      currency: form.data.currency,
-      base_amount_minor: Math.round(Number(form.data.base_amount || 0) * 100),
-      notes: form.data.notes || null,
-    }, {
+    form.transform((data) => ({
+      tax_code_id: data.tax_code_id,
+      supplier_id: data.supplier_id,
+      reference: data.reference || null,
+      entry_date: data.entry_date,
+      currency: data.currency,
+      base_amount_minor: Math.round(Number(data.base_amount || 0) * 100),
+      notes: data.notes || null,
+    }));
+
+    form.post('/taxes/withholding', {
       preserveScroll: true,
       onSuccess: () => {
         setShowForm(false);
@@ -173,14 +175,15 @@ export default function WithholdingTaxIndex({ locale, taxCodes, suppliers, curre
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>{pageDict.close}</Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              <SearchableSelect label={pageDict.taxCode} value={form.data.tax_code_id || null} onChange={(value) => form.setData('tax_code_id', value || '')} options={taxCodeOptions} isClearable={false} required />
-              <SearchableSelect label={pageDict.supplier} value={form.data.supplier_id || null} onChange={(value) => form.setData('supplier_id', value || '')} options={supplierOptions} isClearable={false} required />
+              <SearchableSelect label={pageDict.taxCode} value={form.data.tax_code_id || null} onChange={(value) => form.setData('tax_code_id', value || '')} options={taxCodeOptions} isClearable={false} required error={form.errors.tax_code_id} />
+              <SearchableSelect label={pageDict.supplier} value={form.data.supplier_id || null} onChange={(value) => form.setData('supplier_id', value || '')} options={supplierOptions} isClearable={false} required error={form.errors.supplier_id} />
               <DatePicker label={pageDict.entryDate} value={form.data.entry_date} onChange={(value) => form.setData('entry_date', value || '')} required />
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.baseAmount}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={form.data.base_amount} onChange={(event) => form.setData('base_amount', event.target.value)} required />
+                {form.errors['base_amount_minor' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['base_amount_minor' as keyof typeof form.errors]}</p> : null}
               </label>
               <SearchableSelect label={pageDict.currency} value={form.data.currency || null} onChange={(value) => form.setData('currency', value || '')} options={currencyOptions} isClearable={false} required />
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">

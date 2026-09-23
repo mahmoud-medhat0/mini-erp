@@ -75,31 +75,17 @@ export default function ToolCategories({ locale, can }: Props) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const payload = {
-      code: form.data.code,
-      name: form.data.name,
-      is_active: form.data.is_active,
-      lock_version: form.data.lock_version,
+    const onSuccess = () => {
+      setShowModal(false);
+      setReloadToken((value) => value + 1);
     };
 
     if (editing) {
-      router.put(`/equipment/categories/${editing.id}`, payload, {
-        preserveScroll: true,
-        onSuccess: () => {
-          setShowModal(false);
-          setReloadToken((value) => value + 1);
-        },
-      });
+      form.put(`/equipment/categories/${editing.id}`, { preserveScroll: true, onSuccess });
       return;
     }
 
-    router.post('/equipment/categories', payload, {
-      preserveScroll: true,
-      onSuccess: () => {
-        setShowModal(false);
-        setReloadToken((value) => value + 1);
-      },
-    });
+    form.post('/equipment/categories', { preserveScroll: true, onSuccess });
   }
 
   function handleDelete(category: CategoryRow) {
@@ -163,6 +149,7 @@ export default function ToolCategories({ locale, can }: Props) {
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.nameEn}
                 <input className="input mt-1" value={form.data.name.en} onChange={(event) => form.setData('name', { ...form.data.name, en: event.target.value })} />
+                {form.errors['name.en'] ? <p className="mt-1 text-xs text-rose-600">{form.errors['name.en']}</p> : null}
               </label>
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.nameAr}

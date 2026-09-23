@@ -162,39 +162,26 @@ export default function Tools({ locale, categories = [], branches = [], employee
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    const payload = {
-      code: form.data.code,
-      name: form.data.name,
-      description: form.data.description,
-      tool_category_id: form.data.tool_category_id,
-      serial_number: form.data.serial_number || null,
-      quantity: form.data.quantity,
-      branch_id: form.data.branch_id || null,
-      location_note: form.data.location_note || null,
-      notes: form.data.notes || null,
-      is_active: form.data.is_active,
-      reason: form.data.reason || null,
-      lock_version: form.data.lock_version,
+    form.transform((data) => ({
+      ...data,
+      serial_number: data.serial_number || null,
+      branch_id: data.branch_id || null,
+      location_note: data.location_note || null,
+      notes: data.notes || null,
+      reason: data.reason || null,
+    }));
+
+    const onSuccess = () => {
+      setShowForm(false);
+      setTableReloadToken((value) => value + 1);
     };
 
     if (editing) {
-      router.put(`/equipment/tools/${editing.id}`, payload, {
-        preserveScroll: true,
-        onSuccess: () => {
-          setShowForm(false);
-          setTableReloadToken((value) => value + 1);
-        },
-      });
+      form.put(`/equipment/tools/${editing.id}`, { preserveScroll: true, onSuccess });
       return;
     }
 
-    router.post('/equipment/tools', payload, {
-      preserveScroll: true,
-      onSuccess: () => {
-        setShowForm(false);
-        setTableReloadToken((value) => value + 1);
-      },
-    });
+    form.post('/equipment/tools', { preserveScroll: true, onSuccess });
   }
 
   function deleteTool(tool: Tool) {
@@ -226,34 +213,33 @@ export default function Tools({ locale, categories = [], branches = [], employee
     };
 
     if (type === 'issue') {
-      router.post(`/equipment/tools/${tool.id}/issue`, {
-        custodian_employee_id: custodyForm.data.custodian_employee_id,
-        branch_id: custodyForm.data.branch_id || null,
-        reason: custodyForm.data.reason || null,
-      }, { preserveScroll: true, onSuccess });
+      custodyForm.transform((data) => ({
+        custodian_employee_id: data.custodian_employee_id,
+        branch_id: data.branch_id || null,
+        reason: data.reason || null,
+      }));
+      custodyForm.post(`/equipment/tools/${tool.id}/issue`, { preserveScroll: true, onSuccess });
       return;
     }
 
     if (type === 'return') {
-      router.post(`/equipment/tools/${tool.id}/return`, {
-        reason: custodyForm.data.reason || null,
-      }, { preserveScroll: true, onSuccess });
+      custodyForm.transform((data) => ({ reason: data.reason || null }));
+      custodyForm.post(`/equipment/tools/${tool.id}/return`, { preserveScroll: true, onSuccess });
       return;
     }
 
     if (type === 'transfer') {
-      router.post(`/equipment/tools/${tool.id}/transfer`, {
-        branch_id: custodyForm.data.branch_id || null,
-        custodian_employee_id: custodyForm.data.custodian_employee_id || null,
-        reason: custodyForm.data.reason || null,
-      }, { preserveScroll: true, onSuccess });
+      custodyForm.transform((data) => ({
+        branch_id: data.branch_id || null,
+        custodian_employee_id: data.custodian_employee_id || null,
+        reason: data.reason || null,
+      }));
+      custodyForm.post(`/equipment/tools/${tool.id}/transfer`, { preserveScroll: true, onSuccess });
       return;
     }
 
-    router.post(`/equipment/tools/${tool.id}/status`, {
-      status: custodyForm.data.status,
-      reason: custodyForm.data.reason || null,
-    }, { preserveScroll: true, onSuccess });
+    custodyForm.transform((data) => ({ status: data.status, reason: data.reason || null }));
+    custodyForm.post(`/equipment/tools/${tool.id}/status`, { preserveScroll: true, onSuccess });
   }
 
   const columns = useMemo(() => [
@@ -351,7 +337,7 @@ export default function Tools({ locale, categories = [], branches = [], employee
                 {pageDict.nameAr}
                 <input className="input mt-1" value={form.data.name.ar} onChange={(event) => form.setData('name', { ...form.data.name, ar: event.target.value })} />
               </label>
-              <SearchableSelect options={categoryOptions} value={form.data.tool_category_id || null} onChange={(value) => form.setData('tool_category_id', value || '')} label={pageDict.category} />
+              <SearchableSelect options={categoryOptions} value={form.data.tool_category_id || null} onChange={(value) => form.setData('tool_category_id', value || '')} label={pageDict.category} required error={form.errors.tool_category_id} />
             </div>
 
             <div className="grid gap-4 xl:grid-cols-4">
@@ -364,7 +350,7 @@ export default function Tools({ locale, categories = [], branches = [], employee
                 {pageDict.quantity}
                 <input className="input mt-1" type="number" min={1} value={form.data.quantity} onChange={(event) => form.setData('quantity', Number(event.target.value) || 1)} />
               </label>
-              <SearchableSelect options={branchOptions} value={form.data.branch_id || null} onChange={(value) => form.setData('branch_id', value || '')} label={pageDict.branch} />
+              <SearchableSelect options={branchOptions} value={form.data.branch_id || null} onChange={(value) => form.setData('branch_id', value || '')} label={pageDict.branch} error={form.errors.branch_id} />
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.locationNote}
                 <input className="input mt-1" value={form.data.location_note} onChange={(event) => form.setData('location_note', event.target.value)} />
@@ -426,19 +412,19 @@ export default function Tools({ locale, categories = [], branches = [], employee
 
             <form onSubmit={submitCustodyAction} className="mt-4 space-y-4">
               {custodyAction.type === 'issue' ? (
-                <SearchableSelect options={employeeOptions} value={custodyForm.data.custodian_employee_id || null} onChange={(value) => custodyForm.setData('custodian_employee_id', value || '')} label={pageDict.custodianEmployee} />
+                <SearchableSelect options={employeeOptions} value={custodyForm.data.custodian_employee_id || null} onChange={(value) => custodyForm.setData('custodian_employee_id', value || '')} label={pageDict.custodianEmployee} required error={custodyForm.errors.custodian_employee_id} />
               ) : null}
 
               {custodyAction.type === 'issue' || custodyAction.type === 'transfer' ? (
-                <SearchableSelect options={branchOptions} value={custodyForm.data.branch_id || null} onChange={(value) => custodyForm.setData('branch_id', value || '')} label={pageDict.targetBranch} />
+                <SearchableSelect options={branchOptions} value={custodyForm.data.branch_id || null} onChange={(value) => custodyForm.setData('branch_id', value || '')} label={pageDict.targetBranch} error={custodyForm.errors.branch_id} />
               ) : null}
 
               {custodyAction.type === 'transfer' ? (
-                <SearchableSelect options={employeeOptions} value={custodyForm.data.custodian_employee_id || null} onChange={(value) => custodyForm.setData('custodian_employee_id', value || '')} label={pageDict.targetCustodian} />
+                <SearchableSelect options={employeeOptions} value={custodyForm.data.custodian_employee_id || null} onChange={(value) => custodyForm.setData('custodian_employee_id', value || '')} label={pageDict.targetCustodian} error={custodyForm.errors.custodian_employee_id} />
               ) : null}
 
               {custodyAction.type === 'status' ? (
-                <SearchableSelect options={statusChangeOptions} value={custodyForm.data.status} onChange={(value) => custodyForm.setData('status', value || 'available')} label={pageDict.newStatus} />
+                <SearchableSelect options={statusChangeOptions} value={custodyForm.data.status} onChange={(value) => custodyForm.setData('status', value || 'available')} label={pageDict.newStatus} required error={custodyForm.errors.status} />
               ) : null}
 
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">

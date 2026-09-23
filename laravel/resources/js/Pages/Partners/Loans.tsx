@@ -102,16 +102,18 @@ export default function PartnerLoans({ locale, partners, cashAccounts, bankAccou
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    router.post('/partners/loans', {
-      partner_id: form.data.partner_id,
-      currency: form.data.currency,
-      principal_minor: Math.round(Number(form.data.principal_amount || 0) * 100),
-      disbursement_date: form.data.disbursement_date,
-      disbursement_method: form.data.disbursement_method,
-      cash_account_id: form.data.disbursement_method === 'cash' ? form.data.cash_account_id : null,
-      bank_account_id: form.data.disbursement_method === 'bank' ? form.data.bank_account_id : null,
-      notes: form.data.notes || null,
-    }, {
+    form.transform((data) => ({
+      partner_id: data.partner_id,
+      currency: data.currency,
+      principal_minor: Math.round(Number(data.principal_amount || 0) * 100),
+      disbursement_date: data.disbursement_date,
+      disbursement_method: data.disbursement_method,
+      cash_account_id: data.disbursement_method === 'cash' ? data.cash_account_id : null,
+      bank_account_id: data.disbursement_method === 'bank' ? data.bank_account_id : null,
+      notes: data.notes || null,
+    }));
+
+    form.post('/partners/loans', {
       preserveScroll: true,
       onSuccess: () => {
         setShowForm(false);
@@ -137,14 +139,16 @@ export default function PartnerLoans({ locale, partners, cashAccounts, bankAccou
   function submitRepay(event: FormEvent) {
     event.preventDefault();
     if (!repayTarget) return;
-    router.post(`/partners/loans/${repayTarget.id}/repay`, {
-      repayment_date: repayForm.data.repayment_date,
-      amount_minor: Math.round(Number(repayForm.data.amount || 0) * 100),
-      repayment_method: repayForm.data.repayment_method,
-      cash_account_id: repayForm.data.repayment_method === 'cash' ? repayForm.data.cash_account_id : null,
-      bank_account_id: repayForm.data.repayment_method === 'bank' ? repayForm.data.bank_account_id : null,
-      notes: repayForm.data.notes || null,
-    }, {
+    repayForm.transform((data) => ({
+      repayment_date: data.repayment_date,
+      amount_minor: Math.round(Number(data.amount || 0) * 100),
+      repayment_method: data.repayment_method,
+      cash_account_id: data.repayment_method === 'cash' ? data.cash_account_id : null,
+      bank_account_id: data.repayment_method === 'bank' ? data.bank_account_id : null,
+      notes: data.notes || null,
+    }));
+
+    repayForm.post(`/partners/loans/${repayTarget.id}/repay`, {
       preserveScroll: true,
       onSuccess: () => {
         setRepayTarget(null);
@@ -213,6 +217,7 @@ export default function PartnerLoans({ locale, partners, cashAccounts, bankAccou
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.principal}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={form.data.principal_amount} onChange={(event) => form.setData('principal_amount', event.target.value)} required />
+                {form.errors['principal_minor' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['principal_minor' as keyof typeof form.errors]}</p> : null}
               </label>
               <DatePicker label={pageDict.disbursementDate} value={form.data.disbursement_date} onChange={(value) => form.setData('disbursement_date', value || '')} required />
             </div>
@@ -268,6 +273,7 @@ export default function PartnerLoans({ locale, partners, cashAccounts, bankAccou
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.amount}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={repayForm.data.amount} onChange={(event) => repayForm.setData('amount', event.target.value)} required />
+                {repayForm.errors['amount_minor' as keyof typeof repayForm.errors] ? <p className="mt-1 text-xs text-rose-600">{repayForm.errors['amount_minor' as keyof typeof repayForm.errors]}</p> : null}
               </label>
               <SearchableSelect
                 label={pageDict.repaymentMethod}

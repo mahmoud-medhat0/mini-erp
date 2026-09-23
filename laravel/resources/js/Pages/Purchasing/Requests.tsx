@@ -156,9 +156,9 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    const payload = {
-      ...form.data,
-      supplier_id: form.data.supplier_id || null,
+    form.transform((data) => ({
+      ...data,
+      supplier_id: data.supplier_id || null,
       lines: lines.map((line) => ({
         product_id: line.product_id,
         unit_of_measure_id: line.unit_of_measure_id,
@@ -166,15 +166,16 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
         quantity_e6: Math.round(Number(line.quantity) * 1_000_000),
         estimated_unit_price_minor: Math.round(Number(line.estimated_unit_price || 0) * 100),
       })),
-    };
+    }));
+
     const onSuccess = () => {
       setShowModal(false);
       setTableReloadToken((value) => value + 1);
     };
     if (editing) {
-      router.put(`/purchasing/requests/${editing.id}`, payload, { preserveScroll: true, onSuccess });
+      form.put(`/purchasing/requests/${editing.id}`, { preserveScroll: true, onSuccess });
     } else {
-      router.post('/purchasing/requests', payload, { preserveScroll: true, onSuccess });
+      form.post('/purchasing/requests', { preserveScroll: true, onSuccess });
     }
   }
 
@@ -198,16 +199,20 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
   function submitConvert(event: FormEvent) {
     event.preventDefault();
     if (!convertTarget) return;
-    const unitPriceMinorByLine: Record<string, number> = {};
-    Object.entries(convertForm.data.prices).forEach(([lineId, majorPrice]) => {
-      unitPriceMinorByLine[lineId] = Math.round(Number(majorPrice) * 100);
+    convertForm.transform((data) => {
+      const unitPriceMinorByLine: Record<string, number> = {};
+      Object.entries(data.prices).forEach(([lineId, majorPrice]) => {
+        unitPriceMinorByLine[lineId] = Math.round(Number(majorPrice) * 100);
+      });
+      return {
+        supplier_id: data.supplier_id || null,
+        order_date: data.order_date,
+        expected_receipt_date: data.expected_receipt_date || null,
+        unit_price_minor_by_line: unitPriceMinorByLine,
+      };
     });
-    router.post(`/purchasing/requests/${convertTarget.id}/convert`, {
-      supplier_id: convertForm.data.supplier_id || null,
-      order_date: convertForm.data.order_date,
-      expected_receipt_date: convertForm.data.expected_receipt_date || null,
-      unit_price_minor_by_line: unitPriceMinorByLine,
-    }, {
+
+    convertForm.post(`/purchasing/requests/${convertTarget.id}/convert`, {
       preserveScroll: true,
       onSuccess: () => {
         setConvertTarget(null);
@@ -277,7 +282,7 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
             <p className="mb-4 -mt-2 text-xs text-[var(--text-secondary)]">{pageDict.formHint}</p>
             <form onSubmit={submitForm} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <SearchableSelect label={pageDict.preferredSupplier} value={form.data.supplier_id || null} onChange={(value) => form.setData('supplier_id', value || '')} options={supplierOptions} />
+                <SearchableSelect label={pageDict.preferredSupplier} value={form.data.supplier_id || null} onChange={(value) => form.setData('supplier_id', value || '')} options={supplierOptions} error={form.errors.supplier_id} />
                 <DatePicker label={pageDict.date} value={form.data.requested_date} onChange={(value) => form.setData('requested_date', value || '')} required />
                 <DatePicker label={pageDict.neededBy} value={form.data.needed_by_date} onChange={(value) => form.setData('needed_by_date', value || '')} />
               </div>

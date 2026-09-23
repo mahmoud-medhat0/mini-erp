@@ -150,8 +150,8 @@ export default function Quotations({ locale, customers, products, currencies, st
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    const payload = {
-      ...form.data,
+    form.transform((data) => ({
+      ...data,
       lines: lines.map((line) => ({
         product_id: line.product_id,
         unit_of_measure_id: line.unit_of_measure_id,
@@ -159,15 +159,16 @@ export default function Quotations({ locale, customers, products, currencies, st
         quantity_e6: Math.round(Number(line.quantity) * 1_000_000),
         unit_price_minor: Math.round(Number(line.unit_price) * 100),
       })),
-    };
+    }));
+
     const onSuccess = () => {
       setShowModal(false);
       setTableReloadToken((value) => value + 1);
     };
     if (editing) {
-      router.put(`/sales/quotations/${editing.id}`, payload, { preserveScroll: true, onSuccess });
+      form.put(`/sales/quotations/${editing.id}`, { preserveScroll: true, onSuccess });
     } else {
-      router.post('/sales/quotations', payload, { preserveScroll: true, onSuccess });
+      form.post('/sales/quotations', { preserveScroll: true, onSuccess });
     }
   }
 
@@ -182,7 +183,7 @@ export default function Quotations({ locale, customers, products, currencies, st
   function submitConvert(event: FormEvent) {
     event.preventDefault();
     if (!convertTarget) return;
-    router.post(`/sales/quotations/${convertTarget.id}/convert`, convertForm.data, {
+    convertForm.post(`/sales/quotations/${convertTarget.id}/convert`, {
       preserveScroll: true,
       onSuccess: () => {
         setConvertTarget(null);

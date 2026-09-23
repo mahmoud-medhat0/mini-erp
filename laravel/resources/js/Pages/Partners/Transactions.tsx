@@ -100,15 +100,17 @@ export default function PartnerTransactions({ locale, partners, cashAccounts, ba
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    router.post('/partners/transactions', {
-      partner_id: form.data.partner_id,
-      transaction_type: form.data.transaction_type,
-      transaction_date: form.data.transaction_date,
-      currency: form.data.currency,
-      amount_minor: Math.round(Number(form.data.amount || 0) * 100),
-      reference: form.data.reference || null,
-      notes: form.data.notes || null,
-    }, {
+    form.transform((data) => ({
+      partner_id: data.partner_id,
+      transaction_type: data.transaction_type,
+      transaction_date: data.transaction_date,
+      currency: data.currency,
+      amount_minor: Math.round(Number(data.amount || 0) * 100),
+      reference: data.reference || null,
+      notes: data.notes || null,
+    }));
+
+    form.post('/partners/transactions', {
       preserveScroll: true,
       onSuccess: () => {
         setShowForm(false);
@@ -127,11 +129,13 @@ export default function PartnerTransactions({ locale, partners, cashAccounts, ba
   function submitPost(event: FormEvent) {
     event.preventDefault();
     if (!postTarget) return;
-    router.post(`/partners/transactions/${postTarget.id}/post`, {
-      settlement_method: postForm.data.settlement_method,
-      cash_account_id: postForm.data.settlement_method === 'cash' ? postForm.data.cash_account_id : null,
-      bank_account_id: postForm.data.settlement_method === 'bank' ? postForm.data.bank_account_id : null,
-    }, {
+    postForm.transform((data) => ({
+      settlement_method: data.settlement_method,
+      cash_account_id: data.settlement_method === 'cash' ? data.cash_account_id : null,
+      bank_account_id: data.settlement_method === 'bank' ? data.bank_account_id : null,
+    }));
+
+    postForm.post(`/partners/transactions/${postTarget.id}/post`, {
       preserveScroll: true,
       onSuccess: () => {
         setPostTarget(null);
@@ -206,6 +210,7 @@ export default function PartnerTransactions({ locale, partners, cashAccounts, ba
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.amount}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={form.data.amount} onChange={(event) => form.setData('amount', event.target.value)} required />
+                {form.errors['amount_minor' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['amount_minor' as keyof typeof form.errors]}</p> : null}
               </label>
               <SearchableSelect label={pageDict.currency} value={form.data.currency || null} onChange={(value) => form.setData('currency', value || '')} options={currencyOptions} isClearable={false} required />
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">

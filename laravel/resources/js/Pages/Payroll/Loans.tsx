@@ -100,18 +100,20 @@ export default function PayrollLoans({ locale, employees, cashAccounts, bankAcco
 
   function submitForm(event: FormEvent) {
     event.preventDefault();
-    router.post('/payroll/loans', {
-      employee_id: form.data.employee_id,
-      loan_type: form.data.loan_type,
-      currency: form.data.currency,
-      principal_minor: Math.round(Number(form.data.principal_amount || 0) * 100),
-      installment_amount_minor: Math.round(Number(form.data.installment_amount || 0) * 100),
-      disbursement_date: form.data.disbursement_date,
-      disbursement_method: form.data.disbursement_method,
-      cash_account_id: form.data.disbursement_method === 'cash' ? form.data.cash_account_id : null,
-      bank_account_id: form.data.disbursement_method === 'bank' ? form.data.bank_account_id : null,
-      notes: form.data.notes || null,
-    }, {
+    form.transform((data) => ({
+      employee_id: data.employee_id,
+      loan_type: data.loan_type,
+      currency: data.currency,
+      principal_minor: Math.round(Number(data.principal_amount || 0) * 100),
+      installment_amount_minor: Math.round(Number(data.installment_amount || 0) * 100),
+      disbursement_date: data.disbursement_date,
+      disbursement_method: data.disbursement_method,
+      cash_account_id: data.disbursement_method === 'cash' ? data.cash_account_id : null,
+      bank_account_id: data.disbursement_method === 'bank' ? data.bank_account_id : null,
+      notes: data.notes || null,
+    }));
+
+    form.post('/payroll/loans', {
       preserveScroll: true,
       onSuccess: () => {
         setShowForm(false);
@@ -131,7 +133,7 @@ export default function PayrollLoans({ locale, employees, cashAccounts, bankAcco
   function submitSettle(event: FormEvent) {
     event.preventDefault();
     if (!settleTarget) return;
-    router.post(`/payroll/loans/${settleTarget.id}/settle`, settleForm.data, {
+    settleForm.post(`/payroll/loans/${settleTarget.id}/settle`, {
       preserveScroll: true,
       onSuccess: () => {
         setSettleTarget(null);
@@ -195,10 +197,12 @@ export default function PayrollLoans({ locale, employees, cashAccounts, bankAcco
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.principal}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={form.data.principal_amount} onChange={(event) => form.setData('principal_amount', event.target.value)} required />
+                {form.errors['principal_minor' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['principal_minor' as keyof typeof form.errors]}</p> : null}
               </label>
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.installment}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={form.data.installment_amount} onChange={(event) => form.setData('installment_amount', event.target.value)} required />
+                {form.errors['installment_amount_minor' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['installment_amount_minor' as keyof typeof form.errors]}</p> : null}
               </label>
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.currency}

@@ -163,41 +163,34 @@ export default function RecurringTemplates({ locale, expenseCategories, supplier
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const payload = {
-      code: form.data.code,
-      name: form.data.name,
-      frequency: form.data.frequency,
-      interval_count: form.data.interval_count,
-      start_date: form.data.start_date,
-      end_date: form.data.end_date || null,
-      lock_version: form.data.lock_version,
+    form.transform((data) => ({
+      code: data.code,
+      name: data.name,
+      frequency: data.frequency,
+      interval_count: data.interval_count,
+      start_date: data.start_date,
+      end_date: data.end_date || null,
+      lock_version: data.lock_version,
       template_payload: {
-        ...form.data.template_payload,
-        supplier_id: form.data.template_payload.settlement_method === 'payable' ? form.data.template_payload.supplier_id || null : null,
-        cash_account_id: form.data.template_payload.settlement_method === 'cash' ? form.data.template_payload.cash_account_id || null : null,
-        bank_account_id: form.data.template_payload.settlement_method === 'bank' ? form.data.template_payload.bank_account_id || null : null,
+        ...data.template_payload,
+        supplier_id: data.template_payload.settlement_method === 'payable' ? data.template_payload.supplier_id || null : null,
+        cash_account_id: data.template_payload.settlement_method === 'cash' ? data.template_payload.cash_account_id || null : null,
+        bank_account_id: data.template_payload.settlement_method === 'bank' ? data.template_payload.bank_account_id || null : null,
         unit_amount_minor: Math.round(Number(amountDisplay || 0) * 100),
       },
+    }));
+
+    const onSuccess = () => {
+      setShowModal(false);
+      setTableReloadToken((value) => value + 1);
     };
 
     if (editing) {
-      router.put(`/recurring/templates/${editing.id}`, payload, {
-        preserveScroll: true,
-        onSuccess: () => {
-          setShowModal(false);
-          setTableReloadToken((value) => value + 1);
-        },
-      });
+      form.put(`/recurring/templates/${editing.id}`, { preserveScroll: true, onSuccess });
       return;
     }
 
-    router.post('/recurring/templates', payload, {
-      preserveScroll: true,
-      onSuccess: () => {
-        setShowModal(false);
-        setTableReloadToken((value) => value + 1);
-      },
-    });
+    form.post('/recurring/templates', { preserveScroll: true, onSuccess });
   }
 
   function pauseTemplate(row: TemplateRow) {
@@ -309,6 +302,7 @@ export default function RecurringTemplates({ locale, expenseCategories, supplier
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.amount}
                 <input className="input mt-1" type="number" step="0.01" min="0.01" value={amountDisplay} onChange={(event) => setAmountDisplay(event.target.value)} required />
+                {form.errors['template_payload.unit_amount_minor' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['template_payload.unit_amount_minor' as keyof typeof form.errors]}</p> : null}
               </label>
               <SearchableSelect label={pageDict.currency} value={payload.currency || null} onChange={(value) => form.setData('template_payload', { ...payload, currency: value || '' })} options={currencyOptions} isClearable={false} required />
             </div>
@@ -323,13 +317,13 @@ export default function RecurringTemplates({ locale, expenseCategories, supplier
                 required
               />
               {payload.settlement_method === 'payable' ? (
-                <SearchableSelect label={pageDict.supplier} value={payload.supplier_id || null} onChange={(value) => form.setData('template_payload', { ...payload, supplier_id: value || '' })} options={supplierOptions} isClearable={false} required />
+                <SearchableSelect label={pageDict.supplier} value={payload.supplier_id || null} onChange={(value) => form.setData('template_payload', { ...payload, supplier_id: value || '' })} options={supplierOptions} isClearable={false} required error={form.errors['template_payload.supplier_id' as keyof typeof form.errors]} />
               ) : null}
               {payload.settlement_method === 'cash' ? (
-                <SearchableSelect label={pageDict.cashAccount} value={payload.cash_account_id || null} onChange={(value) => form.setData('template_payload', { ...payload, cash_account_id: value || '' })} options={cashAccountOptions} isClearable={false} required />
+                <SearchableSelect label={pageDict.cashAccount} value={payload.cash_account_id || null} onChange={(value) => form.setData('template_payload', { ...payload, cash_account_id: value || '' })} options={cashAccountOptions} isClearable={false} required error={form.errors['template_payload.cash_account_id' as keyof typeof form.errors]} />
               ) : null}
               {payload.settlement_method === 'bank' ? (
-                <SearchableSelect label={pageDict.bankAccount} value={payload.bank_account_id || null} onChange={(value) => form.setData('template_payload', { ...payload, bank_account_id: value || '' })} options={bankAccountOptions} isClearable={false} required />
+                <SearchableSelect label={pageDict.bankAccount} value={payload.bank_account_id || null} onChange={(value) => form.setData('template_payload', { ...payload, bank_account_id: value || '' })} options={bankAccountOptions} isClearable={false} required error={form.errors['template_payload.bank_account_id' as keyof typeof form.errors]} />
               ) : null}
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.reference}

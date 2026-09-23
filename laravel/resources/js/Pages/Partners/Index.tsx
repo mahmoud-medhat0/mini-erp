@@ -80,33 +80,23 @@ export default function PartnersIndex({ locale, can }: Props) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const payload = {
-      code: form.data.code,
-      name: form.data.name,
-      share_bps: Math.round(Number(form.data.share_percent || 0) * 100),
-      status: form.data.status,
-      notes: form.data.notes || null,
-      lock_version: form.data.lock_version,
+    form.transform((data) => ({
+      ...data,
+      share_bps: Math.round(Number(data.share_percent || 0) * 100),
+      notes: data.notes || null,
+    }));
+
+    const onSuccess = () => {
+      setShowModal(false);
+      setReloadToken((value) => value + 1);
     };
 
     if (editing) {
-      router.put(`/partners/${editing.id}`, payload, {
-        preserveScroll: true,
-        onSuccess: () => {
-          setShowModal(false);
-          setReloadToken((value) => value + 1);
-        },
-      });
+      form.put(`/partners/${editing.id}`, { preserveScroll: true, onSuccess });
       return;
     }
 
-    router.post('/partners', payload, {
-      preserveScroll: true,
-      onSuccess: () => {
-        setShowModal(false);
-        setReloadToken((value) => value + 1);
-      },
-    });
+    form.post('/partners', { preserveScroll: true, onSuccess });
   }
 
   function handleDelete(partner: PartnerRow) {
@@ -171,6 +161,7 @@ export default function PartnersIndex({ locale, can }: Props) {
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.nameEn}
                 <input className="input mt-1" value={form.data.name.en} onChange={(event) => form.setData('name', { ...form.data.name, en: event.target.value })} />
+                {form.errors['name.en'] ? <p className="mt-1 text-xs text-rose-600">{form.errors['name.en']}</p> : null}
               </label>
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.nameAr}
@@ -179,6 +170,7 @@ export default function PartnersIndex({ locale, can }: Props) {
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.sharePercent}
                 <input className="input mt-1" type="number" step="0.01" min="0" max="100" value={form.data.share_percent} onChange={(event) => form.setData('share_percent', event.target.value)} />
+                {form.errors['share_bps' as keyof typeof form.errors] ? <p className="mt-1 text-xs text-rose-600">{form.errors['share_bps' as keyof typeof form.errors]}</p> : null}
               </label>
             </div>
 
