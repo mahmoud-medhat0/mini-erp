@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../../Components/AppLayout';
 import ServerDataTable, { type DataTableSlots } from '../../../Components/ServerDataTable';
-import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../../Components/Primitives';
 import { formatAccountingAmount } from '../../../lib/accountingHelpers';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
@@ -226,12 +226,37 @@ export default function DepreciationRunsIndex({ locale, openPeriods, can }: Inde
         </Card>
       </div>
 
-      {showPostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{appDict.newDepreciationRun}</h3>
-
-            <form onSubmit={handlePostRun} className="mt-4 space-y-4">
+      <Modal
+        isOpen={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        title={appDict.newDepreciationRun}
+        closeLabel={appDict.cancel}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowPostModal(false)}
+              title={appDict.cancel}
+              aria-label={appDict.cancel}
+              className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] rounded-md hover:opacity-80 cursor-pointer"
+            >
+              {appDict.cancel}
+            </button>
+            <button
+              type="submit"
+              form="depreciation-run-form"
+              disabled={processing}
+              title={appDict.postDepreciationRun}
+              aria-label={appDict.postDepreciationRun}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+            >
+              {appDict.postDepreciationRun}
+            </button>
+          </>
+        }
+      >
+            <form id="depreciation-run-form" onSubmit={handlePostRun} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {appDict.financialPeriod}
@@ -267,30 +292,8 @@ export default function DepreciationRunsIndex({ locale, openPeriods, can }: Inde
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowPostModal(false)}
-                  title={appDict.cancel}
-                  aria-label={appDict.cancel}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
-                >
-                  {appDict.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={appDict.postDepreciationRun}
-                  aria-label={appDict.postDepreciationRun}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {appDict.postDepreciationRun}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       <SensitiveActionModal
         isOpen={reversingRun !== null}

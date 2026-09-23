@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -275,12 +275,21 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
         />
       </Card>
 
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4">
-          <div className="my-8 w-full max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
-            <h3 className="mb-4 text-base font-bold text-[var(--text-primary)]">{editing ? pageDict.editTitle : pageDict.createTitle}</h3>
-            <p className="mb-4 -mt-2 text-xs text-[var(--text-secondary)]">{pageDict.formHint}</p>
-            <form onSubmit={submitForm} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editing ? pageDict.editTitle : pageDict.createTitle}
+        closeLabel={pageDict.cancelAction}
+        size="3xl"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="purchase-request-form" disabled={form.processing}>{editing ? pageDict.update : pageDict.save}</Button>
+          </>
+        }
+      >
+            <p className="mb-4 text-xs text-[var(--text-secondary)]">{pageDict.formHint}</p>
+            <form id="purchase-request-form" onSubmit={submitForm} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <SearchableSelect label={pageDict.preferredSupplier} value={form.data.supplier_id || null} onChange={(value) => form.setData('supplier_id', value || '')} options={supplierOptions} error={form.errors.supplier_id} />
                 <DatePicker label={pageDict.date} value={form.data.requested_date} onChange={(value) => form.setData('requested_date', value || '')} required />
@@ -317,21 +326,24 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={form.processing}>{editing ? pageDict.update : pageDict.save}</Button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
-      {convertTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4">
-          <div className="my-8 w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{pageDict.convertTitle}</h3>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">{pageDict.convertHint}</p>
-            <form onSubmit={submitConvert} className="mt-4 space-y-4">
+      <Modal
+        isOpen={Boolean(convertTarget)}
+        onClose={() => setConvertTarget(null)}
+        title={pageDict.convertTitle}
+        closeLabel={pageDict.cancelAction}
+        size="2xl"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setConvertTarget(null)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="purchase-request-convert-form" disabled={convertForm.processing}>{pageDict.confirmConvert}</Button>
+          </>
+        }
+      >
+            <p className="mb-4 text-xs text-[var(--text-secondary)]">{pageDict.convertHint}</p>
+            <form id="purchase-request-convert-form" onSubmit={submitConvert} className="space-y-4">
               <SearchableSelect label={pageDict.supplier} value={convertForm.data.supplier_id || null} onChange={(value) => convertForm.setData('supplier_id', value || '')} options={supplierOptions} isClearable={false} required />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <DatePicker label={pageDict.orderDate} value={convertForm.data.order_date} onChange={(value) => convertForm.setData('order_date', value || '')} />
@@ -340,7 +352,7 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
 
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">{pageDict.finalPrices}</h4>
-                {convertTarget.lines.map((line) => (
+                {(convertTarget?.lines || []).map((line) => (
                   <div key={line.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] p-2.5">
                     <span className="text-xs">{line.product ? namePart(line.product.name, activeLocale) : line.product_id}</span>
                     <input
@@ -356,14 +368,8 @@ export default function PurchaseRequests({ locale, suppliers, products, currenci
                 ))}
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setConvertTarget(null)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={convertForm.processing}>{pageDict.confirmConvert}</Button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

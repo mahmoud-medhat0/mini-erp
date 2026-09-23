@@ -1,7 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -244,14 +244,36 @@ export default function BankAccountsIndex({ locale, glAccounts = [], currencies 
       </Card>
 
       {/* Modal Form */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {editingAccount ? dict.app.pages.bankAccounts.editBankAccount : dict.app.pages.bankAccounts.createBankAccount_2}
-            </h2>
-
-            <form onSubmit={submit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingAccount ? dict.app.pages.bankAccounts.editBankAccount : dict.app.pages.bankAccounts.createBankAccount_2}
+        closeLabel={pageDict.cancel}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              title={pageDict.cancel}
+              aria-label={pageDict.cancel}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.bankAccounts.cancel}
+            </button>
+            <button
+              type="submit"
+              form="bank-account-form"
+              disabled={processing}
+              title={pageDict.saveAccount}
+              aria-label={pageDict.saveAccount}
+              className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
+            >
+              {processing ? dict.app.pages.bankAccounts.saving : dict.app.pages.bankAccounts.saveAccount}
+            </button>
+          </>
+        }
+      >
+            <form id="bank-account-form" onSubmit={submit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
@@ -384,30 +406,8 @@ export default function BankAccountsIndex({ locale, glAccounts = [], currencies 
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  title={pageDict.cancel}
-                  aria-label={pageDict.cancel}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
-                >
-                  {dict.app.pages.bankAccounts.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={pageDict.saveAccount}
-                  aria-label={pageDict.saveAccount}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
-                >
-                  {processing ? dict.app.pages.bankAccounts.saving : dict.app.pages.bankAccounts.saveAccount}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

@@ -2,7 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, EmptyState, PageHeader } from '../../Components/Primitives';
+import { Card, EmptyState, Modal, PageHeader } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -287,31 +287,49 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
         />
       ) : null}
 
-      {activeModalPeriod && modalMode ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-xl p-6 bg-[var(--surface)] border border-[var(--border)] shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-              <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                {modalMode === 'close'
-                  ? `${tx('closePeriod')} (${tx('month')} ${activeModalPeriod.month})`
-                  : `${tx('reopenPeriod')} (${tx('month')} ${activeModalPeriod.month})`}
-              </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModalPeriod(null);
-                  setModalMode(null);
-                }}
-                title={ax('close')}
-                aria-label={ax('close')}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-              >
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
+      <Modal
+        isOpen={Boolean(activeModalPeriod && modalMode)}
+        onClose={() => {
+          setActiveModalPeriod(null);
+          setModalMode(null);
+        }}
+        title={
+          activeModalPeriod ? (
+            modalMode === 'close'
+              ? `${tx('closePeriod')} (${tx('month')} ${activeModalPeriod.month})`
+              : `${tx('reopenPeriod')} (${tx('month')} ${activeModalPeriod.month})`
+          ) : ''
+        }
+        closeLabel={ax('close')}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveModalPeriod(null);
+                setModalMode(null);
+              }}
+              title={ax('cancel')}
+              aria-label={ax('cancel')}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {ax('cancel')}
+            </button>
+            <button
+              type="submit"
+              form="period-close-reopen-form"
+              disabled={actionForm.processing || closeNote.trim().length < 3 || (modalMode === 'close' && readiness !== null && !readiness.can_close)}
+              title={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
+              aria-label={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
+              className={`rounded-xl px-5 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer ${
+                modalMode === 'close' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
+              }`}
+            >
+              {modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
+            </button>
+          </>
+        }
+      >
             {modalMode === 'close' ? (
               loadingReadiness ? (
                 <div className="py-6 text-center text-xs text-[var(--text-muted)] font-mono animate-pulse">
@@ -347,7 +365,7 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
               )
             ) : null}
 
-            <form onSubmit={submitCloseOrReopen} className="space-y-4 pt-2">
+            <form id="period-close-reopen-form" onSubmit={submitCloseOrReopen} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                   {tx('closeNote')}
@@ -361,35 +379,8 @@ export default function Periods({ locale, fiscalYears = [] }: PeriodsProps) {
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveModalPeriod(null);
-                    setModalMode(null);
-                  }}
-                  title={ax('cancel')}
-                  aria-label={ax('cancel')}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--background)]"
-                >
-                  {ax('cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionForm.processing || closeNote.trim().length < 3 || (modalMode === 'close' && readiness !== null && !readiness.can_close)}
-                  title={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
-                  aria-label={modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
-                  className={`rounded-xl px-5 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50 ${
-                    modalMode === 'close' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
-                  }`}
-                >
-                  {modalMode === 'close' ? tx('closePeriod') : tx('reopenPeriod')}
-                </button>
-              </div>
             </form>
-          </Card>
-        </div>
-      ) : null}
+      </Modal>
 
       <div className="space-y-6">
         {fiscalYears.map((fy) => {

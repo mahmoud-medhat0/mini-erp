@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -263,12 +263,21 @@ export default function PartnerLoans({ locale, partners, cashAccounts, bankAccou
         />
       </Card>
 
-      {repayTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{pageDict.repayTitle}</h3>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">{formatMoney(repayTarget.remaining_balance_minor, repayTarget.currency)}</p>
-            <form onSubmit={submitRepay} className="mt-4 space-y-4">
+      <Modal
+        isOpen={Boolean(repayTarget)}
+        onClose={() => setRepayTarget(null)}
+        title={pageDict.repayTitle}
+        closeLabel={pageDict.cancelAction}
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setRepayTarget(null)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="partner-loan-repay-form" disabled={repayForm.processing}>{pageDict.confirmRepay}</Button>
+          </>
+        }
+      >
+            {repayTarget ? <p className="mb-4 text-xs text-[var(--text-secondary)]">{formatMoney(repayTarget.remaining_balance_minor, repayTarget.currency)}</p> : null}
+            <form id="partner-loan-repay-form" onSubmit={submitRepay} className="space-y-4">
               <DatePicker label={pageDict.repaymentDate} value={repayForm.data.repayment_date} onChange={(value) => repayForm.setData('repayment_date', value || '')} required />
               <label className="block text-xs font-bold uppercase text-[var(--text-secondary)]">
                 {pageDict.amount}
@@ -288,14 +297,8 @@ export default function PartnerLoans({ locale, partners, cashAccounts, bankAccou
               ) : (
                 <SearchableSelect label={pageDict.bankAccount} value={repayForm.data.bank_account_id || null} onChange={(value) => repayForm.setData('bank_account_id', value || '')} options={bankAccountOptions} isClearable={false} required error={repayForm.errors.bank_account_id} />
               )}
-              <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setRepayTarget(null)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={repayForm.processing}>{pageDict.confirmRepay}</Button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

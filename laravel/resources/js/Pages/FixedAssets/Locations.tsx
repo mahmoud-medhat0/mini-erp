@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -254,14 +254,37 @@ export default function FixedAssetLocationsIndex({ locale, branches = [], filter
         </Card>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {editingLocation ? appDict.editAssetLocation : appDict.createAssetLocation}
-            </h3>
-
-            <form onSubmit={submit} className="mt-4 space-y-4">
+      <Modal
+        isOpen={showForm}
+        onClose={() => setShowForm(false)}
+        title={editingLocation ? appDict.editAssetLocation : appDict.createAssetLocation}
+        closeLabel={appDict.cancel}
+        size="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              title={appDict.cancel}
+              aria-label={appDict.cancel}
+              className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] rounded-md hover:opacity-80 cursor-pointer"
+            >
+              {appDict.cancel}
+            </button>
+            <button
+              type="submit"
+              form="asset-location-form"
+              disabled={form.processing}
+              title={locationSubmitLabel}
+              aria-label={locationSubmitLabel}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+            >
+              {locationSubmitLabel}
+            </button>
+          </>
+        }
+      >
+            <form id="asset-location-form" onSubmit={submit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{appDict.code}</label>
@@ -322,30 +345,8 @@ export default function FixedAssetLocationsIndex({ locale, branches = [], filter
 
               {formErrors.location && <p className="text-xs text-rose-600">{formErrors.location}</p>}
 
-              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  title={appDict.cancel}
-                  aria-label={appDict.cancel}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
-                >
-                  {appDict.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={form.processing}
-                  title={locationSubmitLabel}
-                  aria-label={locationSubmitLabel}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {locationSubmitLabel}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </AppLayout>
   );
 }

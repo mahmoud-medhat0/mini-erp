@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import DatePicker from '../../Components/DatePicker';
 import { formatMoney } from '../../lib/accountingHelpers';
@@ -250,24 +250,27 @@ export default function PayrollLoans({ locale, employees, cashAccounts, bankAcco
         />
       </Card>
 
-      {settleTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{pageDict.settleTitle}</h3>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">{pageDict.settleHint}</p>
-            <form onSubmit={submitSettle} className="mt-4 space-y-4">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {pageDict.settleReason}
-                <textarea className="input mt-1 min-h-20" value={settleForm.data.reason} onChange={(event) => settleForm.setData('reason', event.target.value)} required />
-              </label>
-              <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setSettleTarget(null)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={settleForm.processing}>{pageDict.confirmSettle}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <Modal
+        isOpen={Boolean(settleTarget)}
+        onClose={() => setSettleTarget(null)}
+        title={pageDict.settleTitle}
+        closeLabel={pageDict.cancelAction}
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setSettleTarget(null)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="payroll-loan-settle-form" disabled={settleForm.processing}>{pageDict.confirmSettle}</Button>
+          </>
+        }
+      >
+        <p className="mb-4 text-xs text-[var(--text-secondary)]">{pageDict.settleHint}</p>
+        <form id="payroll-loan-settle-form" onSubmit={submitSettle} className="space-y-4">
+          <label className="block text-sm font-medium text-[var(--text-secondary)]">
+            {pageDict.settleReason}
+            <textarea className="input mt-1 min-h-20" value={settleForm.data.reason} onChange={(event) => settleForm.setData('reason', event.target.value)} required />
+          </label>
+        </form>
+      </Modal>
     </AppLayout>
   );
 }

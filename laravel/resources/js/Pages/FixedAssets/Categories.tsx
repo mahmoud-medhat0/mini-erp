@@ -1,7 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatAccountingAmount } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -261,14 +261,37 @@ export default function FixedAssetCategories({ locale, can }: CategoriesProps) {
         />
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {editingCategory ? appDict.editAssetCategory : appDict.createAssetCategory}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingCategory ? appDict.editAssetCategory : appDict.createAssetCategory}
+        closeLabel={appDict.back}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              title={appDict.back}
+              aria-label={appDict.back}
+              className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] rounded-md hover:opacity-80 cursor-pointer"
+            >
+              {appDict.back}
+            </button>
+            <button
+              type="submit"
+              form="asset-category-form"
+              disabled={processing}
+              title={categorySubmitLabel}
+              aria-label={categorySubmitLabel}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+            >
+              {categorySubmitLabel}
+            </button>
+          </>
+        }
+      >
+            <form id="asset-category-form" onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {appDict.code}
@@ -350,30 +373,8 @@ export default function FixedAssetCategories({ locale, can }: CategoriesProps) {
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  title={appDict.back}
-                  aria-label={appDict.back}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
-                >
-                  {appDict.back}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={categorySubmitLabel}
-                  aria-label={categorySubmitLabel}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {categorySubmitLabel}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </AppLayout>
   );
 }

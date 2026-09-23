@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Button, Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -362,14 +362,24 @@ export default function TreasuryTransfersIndex({
         />
       </Card>
 
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {editingTransfer ? pageDict.editTransfer : pageDict.createTransfer}
-            </h2>
-
-            <form onSubmit={submit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingTransfer ? pageDict.editTransfer : pageDict.createTransfer}
+        closeLabel={pageDict.cancelTransfer}
+        size="2xl"
+        footer={
+          <>
+            <button type="button" onClick={() => setShowModal(false)} title={pageDict.cancelTransfer} aria-label={pageDict.cancelTransfer} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer">
+              {pageDict.cancelTransfer}
+            </button>
+            <button type="submit" form="treasury-transfer-form" disabled={processing} title={pageDict.saveTransfer} aria-label={pageDict.saveTransfer} className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50">
+              {processing ? pageDict.saving : pageDict.saveTransfer}
+            </button>
+          </>
+        }
+      >
+            <form id="treasury-transfer-form" onSubmit={submit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">{pageDict.date}</label>
@@ -462,18 +472,8 @@ export default function TreasuryTransfersIndex({
                 <textarea value={data.description} onChange={(e) => setData('description', e.target.value)} className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs text-[var(--text-primary)]" rows={3} />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button type="button" onClick={() => setShowModal(false)} title={pageDict.cancelTransfer} aria-label={pageDict.cancelTransfer} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer">
-                  {pageDict.cancelTransfer}
-                </button>
-                <button type="submit" disabled={processing} title={pageDict.saveTransfer} aria-label={pageDict.saveTransfer} className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50">
-                  {processing ? pageDict.saving : pageDict.saveTransfer}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       <SensitiveActionModal
         isOpen={postingTransferId !== null}

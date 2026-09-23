@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -487,14 +487,37 @@ export default function PurchaseReturnsIndex({
         />
       </Card>
 
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
-            <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
-              {editingReturn ? dict.app.pages.purchasingPurchaseReturns.editPurchaseReturn : dict.app.pages.purchasingPurchaseReturns.createPurchaseReturn_2}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={editingReturn ? dict.app.pages.purchasingPurchaseReturns.editPurchaseReturn : dict.app.pages.purchasingPurchaseReturns.createPurchaseReturn_2}
+        closeLabel={pageDict.cancel_2}
+        size="3xl"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeModal}
+              title={pageDict.cancel_2}
+              aria-label={pageDict.cancel_2}
+              className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.purchasingPurchaseReturns.cancel_2}
+            </button>
+            <button
+              type="submit"
+              form="purchase-return-form"
+              disabled={processing}
+              title={purchaseReturnSubmitLabel}
+              aria-label={purchaseReturnSubmitLabel}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            >
+              {purchaseReturnSubmitLabel}
+            </button>
+          </>
+        }
+      >
+            <form id="purchase-return-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <SearchableSelect
                   label={dict.app.pages.purchasingPurchaseReturns.supplier_2}
@@ -613,30 +636,8 @@ export default function PurchaseReturnsIndex({
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  title={pageDict.cancel_2}
-                  aria-label={pageDict.cancel_2}
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
-                >
-                  {dict.app.pages.purchasingPurchaseReturns.cancel_2}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={purchaseReturnSubmitLabel}
-                  aria-label={purchaseReturnSubmitLabel}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {purchaseReturnSubmitLabel}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       <SensitiveActionModal
         isOpen={pendingSensitiveAction !== null}

@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import AppLayout from '../../../Components/AppLayout';
 import DatePicker from '../../../Components/DatePicker';
 import SearchableSelect from '../../../Components/SearchableSelect';
-import { Card, PageHeader } from '../../../Components/Primitives';
+import { Card, Modal, PageHeader } from '../../../Components/Primitives';
 import { getDictionary } from '../../../lib/i18n';
 import type { SharedPageProps } from '../../../Types/page';
 
@@ -199,13 +199,37 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
       </div>
 
       {/* Modal for Creating New Tax Rate */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <Card className="w-full max-w-md p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {taxDict.newTaxRate}
-            </h3>
-            <form onSubmit={handleCreateRate} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={taxDict.newTaxRate}
+        closeLabel={taxDict.cancel}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              title={taxDict.cancel}
+              aria-label={taxDict.cancel}
+              className="px-4 py-2 bg-[var(--background)] text-[var(--text-primary)] rounded-lg hover:opacity-80 transition text-sm font-medium cursor-pointer"
+            >
+              {taxDict.cancel}
+            </button>
+            <button
+              type="submit"
+              form="tax-rate-form"
+              disabled={processing}
+              title={taxDict.save}
+              aria-label={taxDict.save}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50 cursor-pointer"
+            >
+              {taxDict.save}
+            </button>
+          </>
+        }
+      >
+            <form id="tax-rate-form" onSubmit={handleCreateRate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   {taxDict.code} *
@@ -251,30 +275,8 @@ export default function TaxRatesIndex({ locale, taxRates, taxCodes, filters }: R
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  title={taxDict.cancel}
-                  aria-label={taxDict.cancel}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 transition text-sm font-medium"
-                >
-                  {taxDict.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={taxDict.save}
-                  aria-label={taxDict.save}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-50"
-                >
-                  {taxDict.save}
-                </button>
-              </div>
             </form>
-          </Card>
-        </div>
-      )}
+      </Modal>
     </AppLayout>
   );
 }

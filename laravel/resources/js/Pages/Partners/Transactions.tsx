@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -244,33 +244,36 @@ export default function PartnerTransactions({ locale, partners, cashAccounts, ba
         />
       </Card>
 
-      {postTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{pageDict.postTitle}</h3>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">{pageDict.postHint}</p>
-            <form onSubmit={submitPost} className="mt-4 space-y-4">
-              <SearchableSelect
-                label={pageDict.settlementMethod}
-                value={postForm.data.settlement_method}
-                onChange={(value) => postForm.setData('settlement_method', value || 'cash')}
-                options={settlementMethods.map((item) => ({ value: item, label: pageDict.settlementMethods[item as keyof typeof pageDict.settlementMethods] || item }))}
-                isClearable={false}
-                required
-              />
-              {postForm.data.settlement_method === 'cash' ? (
-                <SearchableSelect label={pageDict.cashAccount} value={postForm.data.cash_account_id || null} onChange={(value) => postForm.setData('cash_account_id', value || '')} options={cashAccountOptions} isClearable={false} required error={postForm.errors.cash_account_id} />
-              ) : (
-                <SearchableSelect label={pageDict.bankAccount} value={postForm.data.bank_account_id || null} onChange={(value) => postForm.setData('bank_account_id', value || '')} options={bankAccountOptions} isClearable={false} required error={postForm.errors.bank_account_id} />
-              )}
-              <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setPostTarget(null)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={postForm.processing}>{pageDict.confirmPost}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <Modal
+        isOpen={Boolean(postTarget)}
+        onClose={() => setPostTarget(null)}
+        title={pageDict.postTitle}
+        closeLabel={pageDict.cancelAction}
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setPostTarget(null)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="partner-transaction-post-form" disabled={postForm.processing}>{pageDict.confirmPost}</Button>
+          </>
+        }
+      >
+        <p className="mb-4 text-xs text-[var(--text-secondary)]">{pageDict.postHint}</p>
+        <form id="partner-transaction-post-form" onSubmit={submitPost} className="space-y-4">
+          <SearchableSelect
+            label={pageDict.settlementMethod}
+            value={postForm.data.settlement_method}
+            onChange={(value) => postForm.setData('settlement_method', value || 'cash')}
+            options={settlementMethods.map((item) => ({ value: item, label: pageDict.settlementMethods[item as keyof typeof pageDict.settlementMethods] || item }))}
+            isClearable={false}
+            required
+          />
+          {postForm.data.settlement_method === 'cash' ? (
+            <SearchableSelect label={pageDict.cashAccount} value={postForm.data.cash_account_id || null} onChange={(value) => postForm.setData('cash_account_id', value || '')} options={cashAccountOptions} isClearable={false} required error={postForm.errors.cash_account_id} />
+          ) : (
+            <SearchableSelect label={pageDict.bankAccount} value={postForm.data.bank_account_id || null} onChange={(value) => postForm.setData('bank_account_id', value || '')} options={bankAccountOptions} isClearable={false} required error={postForm.errors.bank_account_id} />
+          )}
+        </form>
+      </Modal>
     </AppLayout>
   );
 }

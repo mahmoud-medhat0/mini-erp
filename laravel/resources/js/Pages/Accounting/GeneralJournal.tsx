@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, PageHeader, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, StatusBadge } from '../../Components/Primitives';
 import { formatDate } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -145,39 +145,54 @@ export default function GeneralJournal({ locale, filters }: GeneralJournalProps)
       />
 
       {/* Journal Entry Number Details Modal */}
-      {selectedJournal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <Card className="w-full max-w-lg border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
-                  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                    {dict.app.actions.numberDetails}
-                  </h3>
-                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {selectedJournal.number || accDict.draftBadge}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedJournal(null)}
-                title={dict.app.actions.close}
-                aria-label={dict.app.actions.close}
-                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      <Modal
+        isOpen={Boolean(selectedJournal)}
+        onClose={() => setSelectedJournal(null)}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-sm">
+            <div>
+              <div>{dict.app.actions.numberDetails}</div>
+              {selectedJournal ? (
+                <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                  {selectedJournal.number || accDict.draftBadge}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        }
+        closeLabel={dict.app.actions.close}
+        footer={
+          <div className="flex w-full items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setSelectedJournal(null)}
+              title={dict.app.actions.close}
+              aria-label={dict.app.actions.close}
+              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              {dict.app.actions.close}
+            </button>
+            {selectedJournal ? (
+              <Link
+                href={`/accounting/journal/${selectedJournal.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
+              >
+                <span>{accDict.viewFullVoucher}</span>
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            ) : null}
+          </div>
+        }
+      >
+            {selectedJournal ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
                 <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.entryDate}</span>
                 <span className="font-mono font-bold text-[var(--text-primary)]">{formatDate(selectedJournal.entry_date)}</span>
@@ -201,30 +216,8 @@ export default function GeneralJournal({ locale, filters }: GeneralJournalProps)
                 <span className="text-[var(--text-primary)] font-semibold">{selectedJournal.creator_name || accDict.systemActor}</span>
               </div>
             </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
-              <button
-                type="button"
-                onClick={() => setSelectedJournal(null)}
-                title={dict.app.actions.close}
-                aria-label={dict.app.actions.close}
-                className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                {dict.app.actions.close}
-              </button>
-              <Link
-                href={`/accounting/journal/${selectedJournal.id}`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
-              >
-                <span>{accDict.viewFullVoucher}</span>
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+            ) : null}
+      </Modal>
 
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

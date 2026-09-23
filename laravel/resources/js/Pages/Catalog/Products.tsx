@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
 import { getLocalizedName } from '../../lib/accountingHelpers';
@@ -405,16 +405,36 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
       </Card>
 
       {/* Create / Edit Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="flex w-full max-w-lg max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
-            <h3 className="shrink-0 border-b border-[var(--border)] px-6 py-4 text-base font-bold text-[var(--text-primary)]">
-              {editingProduct
-                ? pageDict.editProductService
-                : pageDict.createProductService}
-            </h3>
-
-            <form id="product-form" onSubmit={handleSubmit} className="space-y-4 overflow-y-auto px-6 py-4">
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={editingProduct ? pageDict.editProductService : pageDict.createProductService}
+        closeLabel={pageDict.cancel}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeModal}
+              title={pageDict.cancel}
+              aria-label={pageDict.cancel}
+              className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {pageDict.cancel}
+            </button>
+            <button
+              type="submit"
+              form="product-form"
+              disabled={processing}
+              title={productSubmitLabel}
+              aria-label={productSubmitLabel}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            >
+              {productSubmitLabel}
+            </button>
+          </>
+        }
+      >
+            <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
@@ -578,31 +598,7 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
               </div>
 
             </form>
-
-            <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--border)] px-6 py-4">
-              <button
-                type="button"
-                onClick={closeModal}
-                title={pageDict.cancel}
-                aria-label={pageDict.cancel}
-                className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
-              >
-                {pageDict.cancel}
-              </button>
-              <button
-                type="submit"
-                form="product-form"
-                disabled={processing}
-                title={productSubmitLabel}
-                aria-label={productSubmitLabel}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-              >
-                {productSubmitLabel}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

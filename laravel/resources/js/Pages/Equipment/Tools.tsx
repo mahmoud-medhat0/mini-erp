@@ -2,7 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -400,30 +400,39 @@ export default function Tools({ locale, categories = [], branches = [], employee
         />
       </Card>
 
-      {custodyAction ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {custodyAction.type === 'issue' ? pageDict.issueTitle : null}
-              {custodyAction.type === 'return' ? pageDict.returnTitle : null}
-              {custodyAction.type === 'transfer' ? pageDict.transferTitle : null}
-              {custodyAction.type === 'status' ? pageDict.statusTitle : null}
-            </h3>
-
-            <form onSubmit={submitCustodyAction} className="mt-4 space-y-4">
-              {custodyAction.type === 'issue' ? (
+      <Modal
+        isOpen={Boolean(custodyAction)}
+        onClose={() => setCustodyAction(null)}
+        title={
+          (custodyAction?.type === 'issue' ? pageDict.issueTitle : null) ||
+          (custodyAction?.type === 'return' ? pageDict.returnTitle : null) ||
+          (custodyAction?.type === 'transfer' ? pageDict.transferTitle : null) ||
+          (custodyAction?.type === 'status' ? pageDict.statusTitle : null) ||
+          ''
+        }
+        closeLabel={pageDict.cancel}
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setCustodyAction(null)}>{pageDict.cancel}</Button>
+            <Button type="submit" form="tool-custody-form" disabled={custodyForm.processing}>{pageDict.confirm}</Button>
+          </>
+        }
+      >
+            <form id="tool-custody-form" onSubmit={submitCustodyAction} className="space-y-4">
+              {custodyAction?.type === 'issue' ? (
                 <SearchableSelect options={employeeOptions} value={custodyForm.data.custodian_employee_id || null} onChange={(value) => custodyForm.setData('custodian_employee_id', value || '')} label={pageDict.custodianEmployee} required error={custodyForm.errors.custodian_employee_id} />
               ) : null}
 
-              {custodyAction.type === 'issue' || custodyAction.type === 'transfer' ? (
+              {custodyAction?.type === 'issue' || custodyAction?.type === 'transfer' ? (
                 <SearchableSelect options={branchOptions} value={custodyForm.data.branch_id || null} onChange={(value) => custodyForm.setData('branch_id', value || '')} label={pageDict.targetBranch} error={custodyForm.errors.branch_id} />
               ) : null}
 
-              {custodyAction.type === 'transfer' ? (
+              {custodyAction?.type === 'transfer' ? (
                 <SearchableSelect options={employeeOptions} value={custodyForm.data.custodian_employee_id || null} onChange={(value) => custodyForm.setData('custodian_employee_id', value || '')} label={pageDict.targetCustodian} error={custodyForm.errors.custodian_employee_id} />
               ) : null}
 
-              {custodyAction.type === 'status' ? (
+              {custodyAction?.type === 'status' ? (
                 <SearchableSelect options={statusChangeOptions} value={custodyForm.data.status} onChange={(value) => custodyForm.setData('status', value || 'available')} label={pageDict.newStatus} required error={custodyForm.errors.status} />
               ) : null}
 
@@ -432,14 +441,8 @@ export default function Tools({ locale, categories = [], branches = [], employee
                 <textarea className="input mt-1 min-h-20" value={custodyForm.data.reason} onChange={(event) => custodyForm.setData('reason', event.target.value)} />
               </label>
 
-              <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setCustodyAction(null)}>{pageDict.cancel}</Button>
-                <Button type="submit" disabled={custodyForm.processing}>{pageDict.confirm}</Button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

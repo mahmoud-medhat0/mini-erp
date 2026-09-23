@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -214,14 +214,36 @@ export default function BankReconciliationsIndex({
       </Card>
 
       {/* Creation Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {dict.app.pages.bankReconciliations.newBankReconciliation_2}
-            </h2>
-
-            <form onSubmit={submit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={dict.app.pages.bankReconciliations.newBankReconciliation_2}
+        closeLabel={dict.app.pages.bankReconciliations.cancel}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              title={dict.app.pages.bankReconciliations.cancel}
+              aria-label={dict.app.pages.bankReconciliations.cancel}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.bankReconciliations.cancel}
+            </button>
+            <button
+              type="submit"
+              form="bank-reconciliation-form"
+              disabled={processing}
+              title={dict.app.pages.bankReconciliations.createOpenWorkspace}
+              aria-label={dict.app.pages.bankReconciliations.createOpenWorkspace}
+              className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
+            >
+              {processing ? dict.app.pages.bankReconciliations.creating : dict.app.pages.bankReconciliations.createOpenWorkspace}
+            </button>
+          </>
+        }
+      >
+            <form id="bank-reconciliation-form" onSubmit={submit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                   {dict.app.pages.bankReconciliations.bankAccount_2} *
@@ -310,30 +332,8 @@ export default function BankReconciliationsIndex({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  title={dict.app.pages.bankReconciliations.cancel}
-                  aria-label={dict.app.pages.bankReconciliations.cancel}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
-                >
-                  {dict.app.pages.bankReconciliations.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={dict.app.pages.bankReconciliations.createOpenWorkspace}
-                  aria-label={dict.app.pages.bankReconciliations.createOpenWorkspace}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
-                >
-                  {processing ? dict.app.pages.bankReconciliations.creating : dict.app.pages.bankReconciliations.createOpenWorkspace}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

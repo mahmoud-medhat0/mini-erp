@@ -2,7 +2,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, SearchableSelect, SensitiveActionModal } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { SharedPageProps } from '../../Types/page';
@@ -639,14 +639,37 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
         </Card>
       </div>
 
-      {showCapitalizeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {appDict.capitalizeAsset} ({asset.asset_number})
-            </h3>
-
-            <form onSubmit={handleCapitalize} className="mt-4 space-y-4">
+      <Modal
+        isOpen={showCapitalizeModal}
+        onClose={() => setShowCapitalizeModal(false)}
+        title={`${appDict.capitalizeAsset} (${asset.asset_number})`}
+        closeLabel={appDict.cancel}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowCapitalizeModal(false)}
+              title={appDict.cancel}
+              aria-label={appDict.cancel}
+              className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] rounded-md hover:opacity-80 cursor-pointer"
+            >
+              {appDict.cancel}
+            </button>
+            <button
+              type="submit"
+              form="asset-capitalize-form"
+              disabled={processing || (data.reason || '').trim().length < 3}
+              title={appDict.capitalizeAsset}
+              aria-label={appDict.capitalizeAsset}
+              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+            >
+              {appDict.capitalizeAsset}
+            </button>
+          </>
+        }
+      >
+            <form id="asset-capitalize-form" onSubmit={handleCapitalize} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   {appDict.capitalizationMode}
@@ -703,38 +726,16 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 rtl:space-x-reverse pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCapitalizeModal(false)}
-                  title={appDict.cancel}
-                  aria-label={appDict.cancel}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
-                >
-                  {appDict.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing || (data.reason || '').trim().length < 3}
-                  title={appDict.capitalizeAsset}
-                  aria-label={appDict.capitalizeAsset}
-                  className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {appDict.capitalizeAsset}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      )}
-      {showMoveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              {appDict.moveAsset} ({asset.asset_number})
-            </h3>
-
-            <form onSubmit={handleMoveAsset} className="mt-4 space-y-4">
+      </Modal>
+      <Modal
+        isOpen={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        title={`${appDict.moveAsset} (${asset.asset_number})`}
+        closeLabel={appDict.cancel}
+        size="lg"
+      >
+            <form onSubmit={handleMoveAsset} className="space-y-4">
               <DatePicker
                 label={appDict.movementDate}
                 value={moveForm.data.movement_date}
@@ -793,7 +794,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                   onClick={() => setShowMoveModal(false)}
                   title={appDict.cancel}
                   aria-label={appDict.cancel}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
+                  className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] rounded-md hover:opacity-80 cursor-pointer"
                 >
                   {appDict.cancel}
                 </button>
@@ -802,23 +803,21 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                   disabled={moveForm.processing}
                   title={appDict.recordMovement}
                   aria-label={appDict.recordMovement}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
                 >
                   {appDict.recordMovement}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
       {/* Dispose Asset Modal */}
-      {showDisposeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
-              {disposalDict.disposeAsset}
-            </h3>
-
+      <Modal
+        isOpen={showDisposeModal}
+        onClose={() => setShowDisposeModal(false)}
+        title={disposalDict.disposeAsset}
+        closeLabel={appDict.cancel}
+        size="md"
+      >
             <form onSubmit={handlePostDisposal} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -891,7 +890,7 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                   onClick={() => setShowDisposeModal(false)}
                   title={disposalDict.cancel}
                   aria-label={disposalDict.cancel}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200"
+                  className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--background)] rounded-md hover:opacity-80 cursor-pointer"
                 >
                   {disposalDict.cancel}
                 </button>
@@ -900,15 +899,13 @@ export default function FixedAssetShow({ locale, asset, attachments = [], branch
                   disabled={disposeForm.processing || (disposeForm.data.reason || '').trim().length < 3}
                   title={disposalDict.postDisposal}
                   aria-label={disposalDict.postDisposal}
-                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-md hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
                 >
                   {disposalDict.postDisposal}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       <SensitiveActionModal
         isOpen={showReverseCapModal}

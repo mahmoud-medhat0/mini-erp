@@ -1,7 +1,7 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getCategoryLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { AccountCategoryItem, AccountGroupSubItem, AccountSubItem, AccountTypeItem, SharedPageProps } from '../../Types';
@@ -445,39 +445,29 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
       </div>
 
       {/* Groups Breakdown Modal */}
-      {selectedTypeGroupsDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 border-2 border-[var(--primary)]/30 shadow-2xl bg-[var(--surface)]">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    {selectedTypeGroupsDetails.code}
-                  </span>
-                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                    {getLocalizedName(selectedTypeGroupsDetails.name, locale)}
-                  </h3>
-                </div>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {pageDict.accountGroupsLinkedDescription.replace('{count}', String(selectedTypeGroupsDetails.groups_count ?? 0))}
-                </p>
+      <Modal
+        isOpen={Boolean(selectedTypeGroupsDetails)}
+        onClose={() => setSelectedTypeGroupsDetails(null)}
+        title={
+          selectedTypeGroupsDetails ? (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  {selectedTypeGroupsDetails.code}
+                </span>
+                <span>{getLocalizedName(selectedTypeGroupsDetails.name, locale)}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedTypeGroupsDetails(null)}
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
-              >
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>{actionsDict.close}</span>
-              </button>
+              <p className="mt-1 text-xs font-normal text-[var(--text-secondary)]">
+                {pageDict.accountGroupsLinkedDescription.replace('{count}', String(selectedTypeGroupsDetails.groups_count ?? 0))}
+              </p>
             </div>
-
-            <div className="overflow-y-auto flex-1">
-              {(selectedTypeGroupsDetails.groups?.length ?? 0) === 0 ? (
+          ) : ''
+        }
+        closeLabel={actionsDict.close}
+        size="3xl"
+      >
+            <div>
+              {(selectedTypeGroupsDetails?.groups?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
                   {pageDict.noAccountGroupsLinkedToThis}
                 </div>
@@ -491,7 +481,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
-                    {selectedTypeGroupsDetails.groups?.map((grp) => (
+                    {selectedTypeGroupsDetails?.groups?.map((grp) => (
                       <tr key={grp.id} className="hover:bg-[var(--background)]/50 transition-colors">
                         <td className={tableClasses.td}>
                           <span className="font-mono font-bold text-xs text-indigo-600 dark:text-indigo-400">{grp.code}</span>
@@ -508,44 +498,32 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 </table>
               )}
             </div>
-          </Card>
-        </div>
-      )}
+      </Modal>
 
       {/* Accounts Breakdown Modal */}
-      {selectedTypeAccountsDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 border-2 border-[var(--primary)]/30 shadow-2xl bg-[var(--surface)]">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    {selectedTypeAccountsDetails.code}
-                  </span>
-                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                    {getLocalizedName(selectedTypeAccountsDetails.name, locale)}
-                  </h3>
-                </div>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {pageDict.accountsLinkedDescription.replace('{count}', String(selectedTypeAccountsDetails.accounts_count ?? 0))}
-                </p>
+      <Modal
+        isOpen={Boolean(selectedTypeAccountsDetails)}
+        onClose={() => setSelectedTypeAccountsDetails(null)}
+        title={
+          selectedTypeAccountsDetails ? (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  {selectedTypeAccountsDetails.code}
+                </span>
+                <span>{getLocalizedName(selectedTypeAccountsDetails.name, locale)}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedTypeAccountsDetails(null)}
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
-              >
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>{actionsDict.close}</span>
-              </button>
+              <p className="mt-1 text-xs font-normal text-[var(--text-secondary)]">
+                {pageDict.accountsLinkedDescription.replace('{count}', String(selectedTypeAccountsDetails.accounts_count ?? 0))}
+              </p>
             </div>
-
-            <div className="overflow-y-auto flex-1">
-              {(selectedTypeAccountsDetails.accounts?.length ?? 0) === 0 ? (
+          ) : ''
+        }
+        closeLabel={actionsDict.close}
+        size="3xl"
+      >
+            <div>
+              {(selectedTypeAccountsDetails?.accounts?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
                   {pageDict.noAccountsLinkedToThisType}
                 </div>
@@ -561,7 +539,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
-                    {selectedTypeAccountsDetails.accounts?.map((acc) => (
+                    {selectedTypeAccountsDetails?.accounts?.map((acc) => (
                       <tr key={acc.id} className="hover:bg-[var(--background)]/50 transition-colors">
                         <td className={tableClasses.td}>
                           <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{acc.code}</span>
@@ -596,9 +574,7 @@ export default function AccountTypes({ locale, accountTypes = [], accountCategor
                 </table>
               )}
             </div>
-          </Card>
-        </div>
-      )}
+      </Modal>
     </AppLayout>
   );
 }

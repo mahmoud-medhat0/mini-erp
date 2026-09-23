@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -246,11 +246,20 @@ export default function Quotations({ locale, customers, products, currencies, st
         />
       </Card>
 
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4">
-          <div className="my-8 w-full max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
-            <h3 className="mb-4 text-base font-bold text-[var(--text-primary)]">{editing ? pageDict.editTitle : pageDict.createTitle}</h3>
-            <form onSubmit={submitForm} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={editing ? pageDict.editTitle : pageDict.createTitle}
+        closeLabel={pageDict.cancelAction}
+        size="3xl"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="sales-quotation-form" disabled={form.processing}>{editing ? pageDict.update : pageDict.save}</Button>
+          </>
+        }
+      >
+            <form id="sales-quotation-form" onSubmit={submitForm} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <SearchableSelect label={pageDict.customer} value={form.data.customer_id || null} onChange={(value) => form.setData('customer_id', value || '')} options={customerOptions} isClearable={false} required error={form.errors.customer_id} />
                 <DatePicker label={pageDict.date} value={form.data.quotation_date} onChange={(value) => form.setData('quotation_date', value || '')} required />
@@ -287,30 +296,27 @@ export default function Quotations({ locale, customers, products, currencies, st
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="secondary" onClick={() => setShowModal(false)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={form.processing}>{editing ? pageDict.update : pageDict.save}</Button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
-      {convertTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{pageDict.convertTitle}</h3>
-            <form onSubmit={submitConvert} className="mt-4 space-y-4">
+      <Modal
+        isOpen={Boolean(convertTarget)}
+        onClose={() => setConvertTarget(null)}
+        title={pageDict.convertTitle}
+        closeLabel={pageDict.cancelAction}
+        size="md"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setConvertTarget(null)}>{pageDict.cancelAction}</Button>
+            <Button type="submit" form="sales-quotation-convert-form" disabled={convertForm.processing}>{pageDict.confirmConvert}</Button>
+          </>
+        }
+      >
+            <form id="sales-quotation-convert-form" onSubmit={submitConvert} className="space-y-4">
               <DatePicker label={pageDict.orderDate} value={convertForm.data.order_date} onChange={(value) => convertForm.setData('order_date', value || '')} />
               <DatePicker label={pageDict.expectedDeliveryDate} value={convertForm.data.expected_delivery_date} onChange={(value) => convertForm.setData('expected_delivery_date', value || '')} />
-              <div className="flex justify-end gap-2.5 pt-2">
-                <Button type="button" variant="secondary" onClick={() => setConvertTarget(null)}>{pageDict.cancelAction}</Button>
-                <Button type="submit" disabled={convertForm.processing}>{pageDict.confirmConvert}</Button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

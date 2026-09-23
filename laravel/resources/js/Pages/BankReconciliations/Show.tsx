@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, PageHeader, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -359,14 +359,37 @@ export default function BankReconciliationShow({
       </Card>
 
       {/* Add Line Modal */}
-      {showAddLineModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <h2 className="text-base font-bold text-[var(--text-primary)] mb-4">
-              {dict.app.pages.bankReconciliationsShow.addStatementLine_2}
-            </h2>
-
-            <form onSubmit={submitAddLine} className="space-y-4">
+      <Modal
+        isOpen={showAddLineModal}
+        onClose={() => setShowAddLineModal(false)}
+        title={dict.app.pages.bankReconciliationsShow.addStatementLine_2}
+        closeLabel={dict.app.pages.bankReconciliationsShow.cancel}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowAddLineModal(false)}
+              title={dict.app.pages.bankReconciliationsShow.cancel}
+              aria-label={dict.app.pages.bankReconciliationsShow.cancel}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
+            >
+              {dict.app.pages.bankReconciliationsShow.cancel}
+            </button>
+            <button
+              type="submit"
+              form="bank-reconciliation-add-line-form"
+              disabled={addLineForm.processing}
+              title={dict.app.pages.bankReconciliationsShow.addLine}
+              aria-label={dict.app.pages.bankReconciliationsShow.addLine}
+              className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              {addLineForm.processing ? dict.app.pages.bankReconciliationsShow.adding : dict.app.pages.bankReconciliationsShow.addLine}
+            </button>
+          </>
+        }
+      >
+            <form id="bank-reconciliation-add-line-form" onSubmit={submitAddLine} className="space-y-4">
               <DatePicker
                 label={dict.app.pages.bankReconciliationsShow.statementDate}
                 value={addLineForm.data.statement_date}
@@ -425,39 +448,30 @@ export default function BankReconciliationShow({
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowAddLineModal(false)}
-                  title={dict.app.pages.bankReconciliationsShow.cancel}
-                  aria-label={dict.app.pages.bankReconciliationsShow.cancel}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
-                >
-                  {dict.app.pages.bankReconciliationsShow.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={addLineForm.processing}
-                  title={dict.app.pages.bankReconciliationsShow.addLine}
-                  aria-label={dict.app.pages.bankReconciliationsShow.addLine}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
-                >
-                  {addLineForm.processing ? dict.app.pages.bankReconciliationsShow.adding : dict.app.pages.bankReconciliationsShow.addLine}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* Matching Candidates Modal */}
-      {selectedLineForMatch ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <h2 className="text-base font-bold text-[var(--text-primary)] mb-2">
-              {dict.app.pages.bankReconciliationsShow.selectMatchingGlEntry}
-            </h2>
-            <p className="text-xs text-[var(--text-secondary)] mb-4">
+      <Modal
+        isOpen={Boolean(selectedLineForMatch)}
+        onClose={() => setSelectedLineForMatch(null)}
+        title={dict.app.pages.bankReconciliationsShow.selectMatchingGlEntry}
+        closeLabel={dict.app.pages.bankReconciliationsShow.close}
+        size="2xl"
+        footer={
+          <button
+            type="button"
+            onClick={() => setSelectedLineForMatch(null)}
+            title={dict.app.pages.bankReconciliationsShow.close}
+            aria-label={dict.app.pages.bankReconciliationsShow.close}
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
+          >
+            {dict.app.pages.bankReconciliationsShow.close}
+          </button>
+        }
+      >
+            {selectedLineForMatch ? (
+            <p className="mb-4 text-xs text-[var(--text-secondary)]">
               {interpolate(dict.app.pages.bankReconciliationsShow.matchLineLabel, {
                 date: selectedLineForMatch.statement_date,
                 desc: selectedLineForMatch.description || dict.app.pages.bankReconciliationsShow.noDesc,
@@ -465,8 +479,9 @@ export default function BankReconciliationShow({
                 credit: formatReconciliationMoney(selectedLineForMatch.credit_minor),
               })}
             </p>
+            ) : null}
 
-            <div className="max-h-96 overflow-y-auto rounded-xl border border-[var(--border)] mb-4">
+            <div className="max-h-96 overflow-y-auto rounded-xl border border-[var(--border)]">
               <ServerDataTable
                 ajaxUrl={`/bank-reconciliations/${reconciliation.id}/candidates/data`}
                 columns={candidateColumns}
@@ -478,21 +493,7 @@ export default function BankReconciliationShow({
                 tableId="bank-reconciliation-candidates-table"
               />
             </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setSelectedLineForMatch(null)}
-                title={dict.app.pages.bankReconciliationsShow.close}
-                aria-label={dict.app.pages.bankReconciliationsShow.close}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
-              >
-                {dict.app.pages.bankReconciliationsShow.close}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       <SensitiveActionModal
         isOpen={showFinalizeModal}

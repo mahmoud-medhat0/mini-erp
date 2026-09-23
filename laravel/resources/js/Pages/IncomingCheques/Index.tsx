@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Button, Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Button, Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -344,14 +344,36 @@ export default function IncomingChequesIndex({
       </Card>
 
       {/* Creation Modal */}
-      {showCreateModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4">
-              {dict.app.pages.incomingCheques.newIncomingCheque}
-            </h2>
-
-            <form onSubmit={submitCreate} className="space-y-4">
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={dict.app.pages.incomingCheques.newIncomingCheque}
+        closeLabel={dict.app.pages.incomingCheques.cancel}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              title={dict.app.pages.incomingCheques.cancel}
+              aria-label={dict.app.pages.incomingCheques.cancel}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.incomingCheques.cancel}
+            </button>
+            <button
+              type="submit"
+              form="incoming-cheque-create-form"
+              disabled={createForm.processing}
+              title={dict.app.pages.incomingCheques.saveCheque}
+              aria-label={dict.app.pages.incomingCheques.saveCheque}
+              className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
+            >
+              {createForm.processing ? dict.app.pages.incomingCheques.saving : dict.app.pages.incomingCheques.saveCheque}
+            </button>
+          </>
+        }
+      >
+            <form id="incoming-cheque-create-form" onSubmit={submitCreate} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-1">
                   {dict.app.pages.incomingCheques.customer_2} *
@@ -428,43 +450,51 @@ export default function IncomingChequesIndex({
                   />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  title={dict.app.pages.incomingCheques.cancel}
-                  aria-label={dict.app.pages.incomingCheques.cancel}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] cursor-pointer"
-                >
-                  {dict.app.pages.incomingCheques.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={createForm.processing}
-                  title={dict.app.pages.incomingCheques.saveCheque}
-                  aria-label={dict.app.pages.incomingCheques.saveCheque}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer disabled:opacity-50"
-                >
-                  {createForm.processing ? dict.app.pages.incomingCheques.saving : dict.app.pages.incomingCheques.saveCheque}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* Lifecycle Action Modal */}
-      {activeActionCheque && actionType ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <h2 className="text-base font-bold text-[var(--text-primary)] mb-2">
-              {interpolate(dict.app.pages.incomingCheques.updateStatusTitle, { number: activeActionCheque.cheque_number })}
-            </h2>
-            <p className="text-xs text-[var(--text-secondary)] mb-4">
+      <Modal
+        isOpen={Boolean(activeActionCheque && actionType)}
+        onClose={() => {
+          setActiveActionCheque(null);
+          setActionType(null);
+        }}
+        title={activeActionCheque ? interpolate(dict.app.pages.incomingCheques.updateStatusTitle, { number: activeActionCheque.cheque_number }) : ''}
+        closeLabel={dict.app.pages.incomingCheques.cancel_2}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveActionCheque(null);
+                setActionType(null);
+              }}
+              title={dict.app.pages.incomingCheques.cancel_2}
+              aria-label={dict.app.pages.incomingCheques.cancel_2}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
+            >
+              {dict.app.pages.incomingCheques.cancel_2}
+            </button>
+            <button
+              type="submit"
+              form="incoming-cheque-action-form"
+              disabled={actionForm.processing}
+              title={dict.app.pages.incomingCheques.confirmAction}
+              aria-label={dict.app.pages.incomingCheques.confirmAction}
+              className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              {actionForm.processing ? dict.app.pages.incomingCheques.processing : dict.app.pages.incomingCheques.confirmAction}
+            </button>
+          </>
+        }
+      >
+            <p className="mb-4 text-xs text-[var(--text-secondary)]">
               {interpolate(dict.app.pages.incomingCheques.targetAction, { action: (actionType ?? '').toUpperCase() })}
             </p>
 
-            <form onSubmit={submitAction} className="space-y-4">
+            <form id="incoming-cheque-action-form" onSubmit={submitAction} className="space-y-4">
               {actionType === 'receive' ? (
                 <>
                   <div>
@@ -572,33 +602,8 @@ export default function IncomingChequesIndex({
                 </>
               ) : null}
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveActionCheque(null);
-                    setActionType(null);
-                  }}
-                  title={dict.app.pages.incomingCheques.cancel_2}
-                  aria-label={dict.app.pages.incomingCheques.cancel_2}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs font-bold text-[var(--text-primary)] cursor-pointer"
-                >
-                  {dict.app.pages.incomingCheques.cancel_2}
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionForm.processing}
-                  title={dict.app.pages.incomingCheques.confirmAction}
-                  aria-label={dict.app.pages.incomingCheques.confirmAction}
-                  className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-xs cursor-pointer disabled:opacity-50"
-                >
-                  {actionForm.processing ? dict.app.pages.incomingCheques.processing : dict.app.pages.incomingCheques.confirmAction}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

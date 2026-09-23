@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
-import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge, tableClasses } from '../../Components/Primitives';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
@@ -654,16 +654,48 @@ export default function SupplierBillsIndex({
         </Card>
 
         {/* Modal Form */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-[var(--background)] p-6 shadow-xl border border-[var(--border)]">
-              <h2 className="text-lg font-bold mb-4">
-                {editingBill
-                  ? dict.app.pages.purchasingSupplierBills.editSupplierBill
-                  : dict.app.pages.purchasingSupplierBills.createSupplierBill_2}
-              </h2>
+        <Modal
+          isOpen={showModal}
+          onClose={closeModal}
+          title={editingBill
+            ? dict.app.pages.purchasingSupplierBills.editSupplierBill
+            : dict.app.pages.purchasingSupplierBills.createSupplierBill_2}
+          closeLabel={dict.app.pages.purchasingSupplierBills.cancel_2}
+          size="4xl"
+          footer={
+            <div className="flex w-full items-center justify-between">
+              <div className="text-base font-bold">
+                {dict.app.pages.purchasingSupplierBills.grandTotal}
+                <span className="font-mono">{formatMoney(previewTotalMinor, data.currency)}</span>
+              </div>
 
-              <form onSubmit={handleSubmitForm} className="space-y-4">
+              <div className="space-x-3 rtl:space-x-reverse">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  title={dict.app.pages.purchasingSupplierBills.cancel_2}
+                  aria-label={dict.app.pages.purchasingSupplierBills.cancel_2}
+                  className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--background)] cursor-pointer"
+                >
+                  {dict.app.pages.purchasingSupplierBills.cancel_2}
+                </button>
+                <button
+                  type="submit"
+                  form="supplier-bill-form"
+                  disabled={processing}
+                  title={supplierBillSubmitLabel}
+                  aria-label={supplierBillSubmitLabel}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                >
+                  {editingBill
+                    ? dict.app.pages.purchasingSupplierBills.saveChanges
+                    : dict.app.pages.purchasingSupplierBills.createBill}
+                </button>
+              </div>
+            </div>
+          }
+        >
+              <form id="supplier-bill-form" onSubmit={handleSubmitForm} className="space-y-4">
                 {/* Source Selection Mode */}
                 {!editingBill && (
                   <div className="space-y-2">
@@ -885,39 +917,8 @@ export default function SupplierBillsIndex({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
-                  <div className="text-base font-bold">
-                    {dict.app.pages.purchasingSupplierBills.grandTotal}
-                    <span className="font-mono">{formatMoney(previewTotalMinor, data.currency)}</span>
-                  </div>
-
-                  <div className="space-x-3 rtl:space-x-reverse">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      title={dict.app.pages.purchasingSupplierBills.cancel_2}
-                      aria-label={dict.app.pages.purchasingSupplierBills.cancel_2}
-                      className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium hover:bg-[var(--background)]"
-                    >
-                      {dict.app.pages.purchasingSupplierBills.cancel_2}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={processing}
-                      title={supplierBillSubmitLabel}
-                      aria-label={supplierBillSubmitLabel}
-                      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {editingBill
-                        ? dict.app.pages.purchasingSupplierBills.saveChanges
-                        : dict.app.pages.purchasingSupplierBills.createBill}
-                    </button>
-                  </div>
-                </div>
               </form>
-            </div>
-          </div>
-        )}
+        </Modal>
       </div>
 
       <SensitiveActionModal

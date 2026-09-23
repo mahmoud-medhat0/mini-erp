@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -464,16 +464,39 @@ export default function SalesOrdersIndex({ locale, customers, currencies, produc
       </Card>
 
       {/* Create / Edit Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
-            <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
-              {editingOrder
-                ? dict.app.pages.salesSalesOrders.editSalesOrder
-                : dict.app.pages.salesSalesOrders.createSalesOrder_2}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={editingOrder
+          ? dict.app.pages.salesSalesOrders.editSalesOrder
+          : dict.app.pages.salesSalesOrders.createSalesOrder_2}
+        closeLabel={pageDict.cancel_2}
+        size="3xl"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeModal}
+              title={pageDict.cancel_2}
+              aria-label={pageDict.cancel_2}
+              className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.salesSalesOrders.cancel_2}
+            </button>
+            <button
+              type="submit"
+              form="sales-order-form"
+              disabled={processing}
+              title={salesOrderSubmitLabel}
+              aria-label={salesOrderSubmitLabel}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            >
+              {salesOrderSubmitLabel}
+            </button>
+          </>
+        }
+      >
+            <form id="sales-order-form" onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <SearchableSelect
                   label={dict.app.pages.salesSalesOrders.customer_2}
@@ -670,30 +693,8 @@ export default function SalesOrdersIndex({ locale, customers, currencies, produc
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  title={pageDict.cancel_2}
-                  aria-label={pageDict.cancel_2}
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
-                >
-                  {dict.app.pages.salesSalesOrders.cancel_2}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={salesOrderSubmitLabel}
-                  aria-label={salesOrderSubmitLabel}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {salesOrderSubmitLabel}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

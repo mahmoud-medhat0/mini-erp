@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, tableClasses } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, tableClasses } from '../../Components/Primitives';
 import { getAccountTypeLabel, getLocalizedName, getAccountNatureLabel } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { AccountItem, CurrencyItem, FxRateItem, SharedPageProps } from '../../Types';
@@ -408,77 +408,76 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
       ) : null}
 
       {/* Delete confirmation modal */}
-      {deletingCurrency ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className="max-w-md w-full p-6 border-2 border-red-500/40 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-600 dark:text-red-400 mb-3">
-              <div className="p-2.5 rounded-xl bg-red-500/10">
-                <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </div>
-              <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">{accDict.deleteCurrencyTitle}</h3>
+      <Modal
+        isOpen={Boolean(deletingCurrency)}
+        onClose={() => setDeletingCurrency(null)}
+        title={
+          <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+            <div className="p-2.5 rounded-xl bg-red-500/10">
+              <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
             </div>
+            <span>{accDict.deleteCurrencyTitle}</span>
+          </div>
+        }
+        closeLabel={actionsDict.cancel}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              title={actionsDict.cancel}
+              aria-label={actionsDict.cancel}
+              onClick={() => setDeletingCurrency(null)}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
+            >
+              {actionsDict.cancel}
+            </button>
+            <button
+              type="button"
+              title={actionsDict.delete}
+              aria-label={actionsDict.delete}
+              onClick={handleDeleteConfirm}
+              className="rounded-xl bg-red-600 px-4.5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-md shadow-red-500/20 transition-all cursor-pointer"
+            >
+              {actionsDict.delete}
+            </button>
+          </>
+        }
+      >
+            {deletingCurrency ? (
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {accDict.confirmDeleteCurrencyNamed
                 .replace('{code}', deletingCurrency.code)
                 .replace('{name}', getName(deletingCurrency.name))}
             </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                title={actionsDict.cancel}
-                aria-label={actionsDict.cancel}
-                onClick={() => setDeletingCurrency(null)}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4.5 py-2 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-colors cursor-pointer"
-              >
-                {actionsDict.cancel}
-              </button>
-              <button
-                type="button"
-                title={actionsDict.delete}
-                aria-label={actionsDict.delete}
-                onClick={handleDeleteConfirm}
-                className="rounded-xl bg-red-600 px-4.5 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-md shadow-red-500/20 transition-all cursor-pointer"
-              >
-                {actionsDict.delete}
-              </button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+            ) : null}
+      </Modal>
 
       {/* Accounts Detail Modal */}
-      {selectedAccountsCurrency ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className="max-w-2xl w-full p-6 border border-[var(--border)] shadow-2xl bg-[var(--surface)]">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9 6 9-6M3 7l9-6 9 6" />
-                  </svg>
-                </div>
-                <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {accDict.linkedAccountsFor}{' '}
-                  <span className="font-mono text-[var(--primary)]">{selectedAccountsCurrency.code}</span> ({getName(selectedAccountsCurrency.name)})
-                </h3>
-              </div>
-              <button
-                type="button"
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                onClick={() => setSelectedAccountsCurrency(null)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
-              >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      <Modal
+        isOpen={Boolean(selectedAccountsCurrency)}
+        onClose={() => setSelectedAccountsCurrency(null)}
+        title={
+          selectedAccountsCurrency ? (
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9 6 9-6M3 7l9-6 9 6" />
                 </svg>
-                <span>{actionsDict.close}</span>
-              </button>
+              </div>
+              <span>
+                {accDict.linkedAccountsFor}{' '}
+                <span className="font-mono text-[var(--primary)]">{selectedAccountsCurrency.code}</span> ({getName(selectedAccountsCurrency.name)})
+              </span>
             </div>
-
-            {selectedAccountsCurrency.accounts && selectedAccountsCurrency.accounts.length > 0 ? (
+          ) : ''
+        }
+        closeLabel={actionsDict.close}
+        size="2xl"
+      >
+            {selectedAccountsCurrency?.accounts && selectedAccountsCurrency.accounts.length > 0 ? (
               <div className="max-h-80 overflow-y-auto rounded-xl border border-[var(--border)]">
                 <table className={tableClasses.table}>
                   <thead>
@@ -539,41 +538,31 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 {accDict.noAccountsLinked}
               </p>
             )}
-          </Card>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* FX Rates Detail Modal */}
-      {selectedFxRatesCurrency ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className="max-w-2xl w-full p-6 border border-[var(--border)] shadow-2xl bg-[var(--surface)]">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-                </div>
-                <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {accDict.recordedFxRatesFor}{' '}
-                  <span className="font-mono text-[var(--primary)]">{selectedFxRatesCurrency.code}</span> ({getName(selectedFxRatesCurrency.name)})
-                </h3>
-              </div>
-              <button
-                type="button"
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                onClick={() => setSelectedFxRatesCurrency(null)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer shadow-sm"
-              >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      <Modal
+        isOpen={Boolean(selectedFxRatesCurrency)}
+        onClose={() => setSelectedFxRatesCurrency(null)}
+        title={
+          selectedFxRatesCurrency ? (
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
-                <span>{actionsDict.close}</span>
-              </button>
+              </div>
+              <span>
+                {accDict.recordedFxRatesFor}{' '}
+                <span className="font-mono text-[var(--primary)]">{selectedFxRatesCurrency.code}</span> ({getName(selectedFxRatesCurrency.name)})
+              </span>
             </div>
-
-            {selectedFxRatesCurrency.exchange_rates && selectedFxRatesCurrency.exchange_rates.length > 0 ? (
+          ) : ''
+        }
+        closeLabel={actionsDict.close}
+        size="2xl"
+      >
+            {selectedFxRatesCurrency?.exchange_rates && selectedFxRatesCurrency.exchange_rates.length > 0 ? (
               <div className="max-h-80 overflow-y-auto rounded-xl border border-[var(--border)]">
                 <table className={tableClasses.table}>
                   <thead>
@@ -607,9 +596,7 @@ export default function Currencies({ locale, currencies = [] }: CurrenciesProps)
                 {accDict.noRatesRecorded}
               </p>
             )}
-          </Card>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* Filter / Search Bar */}
       <Card className="p-4 mb-6">

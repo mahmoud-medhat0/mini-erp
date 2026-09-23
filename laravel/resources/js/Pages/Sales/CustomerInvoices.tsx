@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatMoney, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -580,16 +580,41 @@ export default function CustomerInvoicesIndex({
       </Card>
 
       {/* Create / Edit Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
-            <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
-              {editingInvoice
-                ? dict.app.pages.salesCustomerInvoices.editCustomerInvoice
-                : dict.app.pages.salesCustomerInvoices.createCustomerInvoice_2}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={editingInvoice
+          ? dict.app.pages.salesCustomerInvoices.editCustomerInvoice
+          : dict.app.pages.salesCustomerInvoices.createCustomerInvoice_2}
+        closeLabel={dict.app.pages.salesCustomerInvoices.cancel_2}
+        size="4xl"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeModal}
+              title={dict.app.pages.salesCustomerInvoices.cancel_2}
+              aria-label={dict.app.pages.salesCustomerInvoices.cancel_2}
+              className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.salesCustomerInvoices.cancel_2}
+            </button>
+            <button
+              type="submit"
+              form="customer-invoice-form"
+              disabled={processing}
+              title={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}
+              aria-label={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            >
+              {processing
+                ? dict.app.pages.salesCustomerInvoices.saving
+                : dict.app.pages.salesCustomerInvoices.saveDraft}
+            </button>
+          </>
+        }
+      >
+            <form id="customer-invoice-form" onSubmit={handleSubmit} className="space-y-4">
               {/* Source Mode Toggle */}
               {!editingInvoice ? (
                 <div className="flex items-center gap-2 p-1 rounded-xl bg-[var(--background)] border border-[var(--border)] max-w-md mb-4">
@@ -815,32 +840,8 @@ export default function CustomerInvoicesIndex({
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  title={dict.app.pages.salesCustomerInvoices.cancel_2}
-                  aria-label={dict.app.pages.salesCustomerInvoices.cancel_2}
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
-                >
-                  {dict.app.pages.salesCustomerInvoices.cancel_2}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}
-                  aria-label={processing ? dict.app.pages.salesCustomerInvoices.saving : dict.app.pages.salesCustomerInvoices.saveDraft}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {processing
-                    ? dict.app.pages.salesCustomerInvoices.saving
-                    : dict.app.pages.salesCustomerInvoices.saveDraft}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
 
       <SensitiveActionModal
         isOpen={pendingSensitiveAction !== null}

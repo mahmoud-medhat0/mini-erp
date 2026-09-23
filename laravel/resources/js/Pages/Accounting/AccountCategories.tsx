@@ -1,7 +1,7 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Card, Modal, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import type { AccountCategoryItem, AccountTypeSubItem, SharedPageProps } from '../../Types';
@@ -387,39 +387,29 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
       </div>
 
       {/* Account Types Breakdown Modal */}
-      {selectedCategoryDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 border-2 border-[var(--primary)]/30 shadow-2xl bg-[var(--surface)]">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    {selectedCategoryDetails.code}
-                  </span>
-                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                    {getLocalizedName(selectedCategoryDetails.name, locale)}
-                  </h3>
-                </div>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {pageDict.accountTypesLinkedDescription.replace('{count}', String(selectedCategoryDetails.account_types_count ?? 0))}
-                </p>
+      <Modal
+        isOpen={Boolean(selectedCategoryDetails)}
+        onClose={() => setSelectedCategoryDetails(null)}
+        title={
+          selectedCategoryDetails ? (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  {selectedCategoryDetails.code}
+                </span>
+                <span>{getLocalizedName(selectedCategoryDetails.name, locale)}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedCategoryDetails(null)}
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--background)] transition-all cursor-pointer"
-              >
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>{actionsDict.close}</span>
-              </button>
+              <p className="mt-1 text-xs font-normal text-[var(--text-secondary)]">
+                {pageDict.accountTypesLinkedDescription.replace('{count}', String(selectedCategoryDetails.account_types_count ?? 0))}
+              </p>
             </div>
-
-            <div className="overflow-y-auto flex-1">
-              {(selectedCategoryDetails.account_types?.length ?? 0) === 0 ? (
+          ) : ''
+        }
+        closeLabel={actionsDict.close}
+        size="3xl"
+      >
+            <div>
+              {(selectedCategoryDetails?.account_types?.length ?? 0) === 0 ? (
                 <div className="p-8 text-center text-xs font-bold text-[var(--text-muted)]">
                   {pageDict.noAccountTypesLinkedToThis}
                 </div>
@@ -435,7 +425,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
-                    {selectedCategoryDetails.account_types?.map((type) => (
+                    {selectedCategoryDetails?.account_types?.map((type) => (
                       <tr key={type.id} className="hover:bg-[var(--background)]/50 transition-colors">
                         <td className={tableClasses.td}>
                           <span className="font-mono font-bold text-xs text-blue-600 dark:text-blue-400">{type.code}</span>
@@ -472,9 +462,7 @@ export default function AccountCategories({ locale, accountCategories = [] }: Ac
                 </table>
               )}
             </div>
-          </Card>
-        </div>
-      )}
+      </Modal>
     </AppLayout>
   );
 }

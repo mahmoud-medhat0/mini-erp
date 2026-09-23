@@ -1,7 +1,7 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, Modal, PageHeader, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { useCan } from '../../lib/permissions';
@@ -197,16 +197,39 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
       </Card>
 
       {/* Create / Edit Modal */}
-      {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
-              {editingUom
-                ? dict.app.pages.catalogUnitsOfMeasure.editUnitOfMeasure
-                : dict.app.pages.catalogUnitsOfMeasure.createUnitOfMeasure}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={editingUom
+          ? dict.app.pages.catalogUnitsOfMeasure.editUnitOfMeasure
+          : dict.app.pages.catalogUnitsOfMeasure.createUnitOfMeasure}
+        closeLabel={dict.app.pages.catalogUnitsOfMeasure.cancel}
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeModal}
+              title={dict.app.pages.catalogUnitsOfMeasure.cancel}
+              aria-label={dict.app.pages.catalogUnitsOfMeasure.cancel}
+              className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+            >
+              {dict.app.pages.catalogUnitsOfMeasure.cancel}
+            </button>
+            <button
+              type="submit"
+              form="unit-of-measure-form"
+              disabled={processing}
+              title={uomSubmitLabel}
+              aria-label={uomSubmitLabel}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+            >
+              {uomSubmitLabel}
+            </button>
+          </>
+        }
+      >
+            <form id="unit-of-measure-form" onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
                   {dict.app.pages.catalogUnitsOfMeasure.code_2} *
@@ -262,30 +285,8 @@ export default function UnitsOfMeasureIndex({ locale, uoms, filters }: UomsProps
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  title={dict.app.pages.catalogUnitsOfMeasure.cancel}
-                  aria-label={dict.app.pages.catalogUnitsOfMeasure.cancel}
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)]"
-                >
-                  {dict.app.pages.catalogUnitsOfMeasure.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={uomSubmitLabel}
-                  aria-label={uomSubmitLabel}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {uomSubmitLabel}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }

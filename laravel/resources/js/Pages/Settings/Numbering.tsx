@@ -2,7 +2,7 @@ import { Head, useForm } from '@inertiajs/react';
 import { useState, type FormEvent } from 'react';
 
 import AppLayout from '../../Components/AppLayout';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
+import { Card, EmptyState, Modal, PageHeader, SearchableSelect, StatusBadge, tableClasses, ToggleSwitch } from '../../Components/Primitives';
 import { getDictionary } from '../../lib/i18n';
 import type { NumberingFormData, SequenceRow, SharedPageProps } from '../../Types';
 
@@ -258,35 +258,28 @@ function SequenceDetailModal({
   const accDict = dict.app.accounting;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-      <Card className="w-full max-w-lg border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
-              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                {sequence.docType}
-              </h3>
-              <p className="m-0 font-mono text-xs text-[var(--text-muted)]">{sequence.key}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            title={dict.app.actions.close}
-            aria-label={dict.app.actions.close}
-            className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={
+        <div>
+          <div>{sequence.docType}</div>
+          <p className="m-0 font-mono text-xs font-normal text-[var(--text-muted)]">{sequence.key}</p>
         </div>
-
+      }
+      closeLabel={dict.app.actions.close}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          title={dict.app.actions.close}
+          aria-label={dict.app.actions.close}
+          className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
+        >
+          {dict.app.actions.close}
+        </button>
+      }
+    >
         {/* Formatted Live Preview Badge */}
         <div className="mb-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
           <span className="block text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-1">
@@ -324,20 +317,7 @@ function SequenceDetailModal({
             </span>
           </div>
         </div>
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            title={dict.app.actions.close}
-            aria-label={dict.app.actions.close}
-            className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors"
-          >
-            {dict.app.actions.close}
-          </button>
-        </div>
-      </Card>
-    </div>
+    </Modal>
   );
 }
 

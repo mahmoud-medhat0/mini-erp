@@ -2,7 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import AttachmentPanel from '../../Components/AttachmentPanel';
-import { Card, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
+import { Card, Modal, SearchableSelect, SensitiveActionModal, StatusBadge } from '../../Components/Primitives';
 import { formatDate, formatMoney, formatPeriodLabel, getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -302,39 +302,38 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
       </div>
 
       {/* Number Details Modal */}
-      {showNumberModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <Card className="w-full max-w-lg border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
-                  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                    {dict.app.actions.numberDetails}
-                  </h3>
-                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {journal.number || accDict.unassignedDraft}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNumberModal(false)}
-                title={dict.app.actions.close}
-                aria-label={dict.app.actions.close}
-                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-              >
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      <Modal
+        isOpen={showNumberModal}
+        onClose={() => setShowNumberModal(false)}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-blue-500/10 p-2.5 text-blue-500 border border-blue-500/20">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+              </svg>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-sm">
+            <div>
+              <div>{dict.app.actions.numberDetails}</div>
+              <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                {journal.number || accDict.unassignedDraft}
+              </span>
+            </div>
+          </div>
+        }
+        closeLabel={dict.app.actions.close}
+        footer={
+          <button
+            type="button"
+            onClick={() => setShowNumberModal(false)}
+            title={dict.app.actions.close}
+            aria-label={dict.app.actions.close}
+            className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
+          >
+            {dict.app.actions.close}
+          </button>
+        }
+      >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div className="rounded-xl bg-[var(--background)] p-3 border border-[var(--border)]">
                 <span className="block text-xs text-[var(--text-muted)] font-semibold mb-1">{accDict.sequenceKey}</span>
                 <span className="font-mono font-bold text-[var(--text-primary)]">journal.entry</span>
@@ -355,59 +354,58 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-[var(--border)]">
-              <button
-                type="button"
-                onClick={() => setShowNumberModal(false)}
-                title={dict.app.actions.close}
-                aria-label={dict.app.actions.close}
-                className="rounded-xl bg-[var(--primary)] px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-[var(--primary-hover)] transition-colors cursor-pointer"
-              >
-                {dict.app.actions.close}
-              </button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* Reverse Modal Panel */}
-      {showReverseModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <Card className="w-full max-w-lg border border-red-500/30 bg-[var(--surface)] p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-red-500/10 p-2.5 text-red-500 border border-red-500/20">
-                  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="m-0 text-base font-bold text-[var(--text-primary)]">
-                    {accDict.reverseJournalEntry}
-                  </h3>
-                  <span className="font-mono text-xs text-[var(--text-muted)]">
-                    {journal.number || accDict.draftBadge}
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowReverseModal(false)}
-                title={dict.app.actions.close}
-                aria-label={dict.app.actions.close}
-                className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-              >
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+      <Modal
+        isOpen={showReverseModal}
+        onClose={() => setShowReverseModal(false)}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-red-500/10 p-2.5 text-red-500 border border-red-500/20">
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
             </div>
-
-            <p className="text-xs leading-relaxed text-[var(--text-secondary)] mb-4">
+            <div>
+              <div>{accDict.reverseJournalEntry}</div>
+              <span className="font-mono text-xs font-normal text-[var(--text-muted)]">
+                {journal.number || accDict.draftBadge}
+              </span>
+            </div>
+          </div>
+        }
+        closeLabel={dict.app.actions.close}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowReverseModal(false)}
+              title={dict.app.actions.cancel || 'Cancel'}
+              aria-label={dict.app.actions.cancel || 'Cancel'}
+              className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
+            >
+              {dict.app.actions.cancel || 'Cancel'}
+            </button>
+            <button
+              type="submit"
+              form="journal-reverse-form"
+              disabled={reverseForm.processing || (reverseForm.data.reason || '').trim().length < 3}
+              title={accDict.reverseEntry}
+              aria-label={accDict.reverseEntry}
+              className="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
+            >
+              {accDict.reverseEntry}
+            </button>
+          </>
+        }
+      >
+            <p className="mb-4 text-xs leading-relaxed text-[var(--text-secondary)]">
               {accDict.reverseEntryDescription}
             </p>
 
             <form
+              id="journal-reverse-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 reverseForm.post(`/accounting/journal/${journal.id}/reverse`, { preserveScroll: true });
@@ -443,30 +441,8 @@ export default function JournalDetail({ locale, journal, openPeriods = [] }: Jou
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => setShowReverseModal(false)}
-                  title={dict.app.actions.cancel || 'Cancel'}
-                  aria-label={dict.app.actions.cancel || 'Cancel'}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
-                >
-                  {dict.app.actions.cancel || 'Cancel'}
-                </button>
-                <button
-                  type="submit"
-                  disabled={reverseForm.processing || (reverseForm.data.reason || '').trim().length < 3}
-                  title={accDict.reverseEntry}
-                  aria-label={accDict.reverseEntry}
-                  className="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-red-500/20 hover:bg-red-700 disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {accDict.reverseEntry}
-                </button>
-              </div>
             </form>
-          </Card>
-        </div>
-      ) : null}
+      </Modal>
 
       {/* Main Details & Audit Trail Layout Grid */}
       <div className="grid gap-6 lg:grid-cols-3 items-start mb-6">

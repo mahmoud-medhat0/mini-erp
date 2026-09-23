@@ -2,7 +2,7 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, EmptyState, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
+import { Card, EmptyState, Modal, PageHeader, SearchableSelect, StatusBadge, tableClasses } from '../../Components/Primitives';
 import { getLocalizedName } from '../../lib/accountingHelpers';
 import { getDictionary, interpolate } from '../../lib/i18n';
 import { useCan } from '../../lib/permissions';
@@ -1001,29 +1001,36 @@ export default function FinancialStatementMappings({
           </div>
         )}
 
-        {showAddModal ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <Card className="w-full max-w-lg space-y-4 p-6 bg-[var(--surface)] border border-[var(--border)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                  {editingLine
-                    ? accDict.editStatementLine
-                    : accDict.addStatementLine}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  title={actionsDict.close}
-                  aria-label={actionsDict.close}
-                  className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-primary)]"
-                >
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <form onSubmit={submitLineForm} className="space-y-4">
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title={editingLine ? accDict.editStatementLine : accDict.addStatementLine}
+          closeLabel={actionsDict.close}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                title={actionsDict.cancel}
+                aria-label={actionsDict.cancel}
+                className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] cursor-pointer"
+              >
+                {actionsDict.cancel}
+              </button>
+              <button
+                type="submit"
+                form="financial-statement-line-form"
+                disabled={lineForm.processing}
+                title={actionsDict.save}
+                aria-label={actionsDict.save}
+                className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-600 disabled:opacity-50 cursor-pointer"
+              >
+                {editingLine ? actionsDict.save : actionsDict.add}
+              </button>
+            </>
+          }
+        >
+              <form id="financial-statement-line-form" onSubmit={submitLineForm} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">
@@ -1141,30 +1148,8 @@ export default function FinancialStatementMappings({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 border-t border-[var(--border)] pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    title={actionsDict.cancel}
-                    aria-label={actionsDict.cancel}
-                    className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)]"
-                  >
-                    {actionsDict.cancel}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={lineForm.processing}
-                    title={actionsDict.save}
-                    aria-label={actionsDict.save}
-                    className="rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-600 disabled:opacity-50"
-                  >
-                    {editingLine ? actionsDict.save : actionsDict.add}
-                  </button>
-                </div>
               </form>
-            </Card>
-          </div>
-        ) : null}
+        </Modal>
       </div>
     </AppLayout>
   );

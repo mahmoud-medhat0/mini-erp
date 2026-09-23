@@ -3,7 +3,7 @@ import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import AppLayout from '../../Components/AppLayout';
 import DatePicker from '../../Components/DatePicker';
 import ServerDataTable, { type DataTableSlots } from '../../Components/ServerDataTable';
-import { Card, PageHeader } from '../../Components/Primitives';
+import { Card, Modal, PageHeader } from '../../Components/Primitives';
 import SearchableSelect from '../../Components/SearchableSelect';
 import { getDictionary } from '../../lib/i18n';
 import type { AuditLogRow, SharedPageProps, UserOption } from '../../Types';
@@ -331,33 +331,35 @@ export default function AuditLogIndex({
       </Card>
 
       {/* Expandable JSON Payload Drawer / Modal */}
-      {selectedPayload ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border-[var(--border)] bg-[var(--surface)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
-              <div>
-                <h3 className="m-0 text-sm font-bold text-[var(--text-primary)]">
-                  {auditDict.payloadTitle}
-                </h3>
-                <span className="text-xs text-[var(--text-muted)] font-mono">
-                  {selectedPayload.action} • {selectedPayload.entity_type} #{selectedPayload.entity_id}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedPayload(null)}
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-              >
-                <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-4 overflow-y-auto space-y-4 font-mono text-xs">
-              {selectedPayload.before_json ? (
+      <Modal
+        isOpen={Boolean(selectedPayload)}
+        onClose={() => setSelectedPayload(null)}
+        title={
+          <div>
+            <div>{auditDict.payloadTitle}</div>
+            {selectedPayload ? (
+              <span className="text-xs font-normal text-[var(--text-muted)] font-mono">
+                {selectedPayload.action} • {selectedPayload.entity_type} #{selectedPayload.entity_id}
+              </span>
+            ) : null}
+          </div>
+        }
+        closeLabel={actionsDict.close}
+        size="2xl"
+        footer={
+          <button
+            type="button"
+            onClick={() => setSelectedPayload(null)}
+            title={actionsDict.close}
+            aria-label={actionsDict.close}
+            className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
+          >
+            {actionsDict.close}
+          </button>
+        }
+      >
+            <div className="space-y-4 font-mono text-xs">
+              {selectedPayload?.before_json ? (
                 <div>
                   <h5 className="m-0 mb-1 font-bold text-amber-600 dark:text-amber-400">
                     {auditDict.stateBefore}
@@ -368,7 +370,7 @@ export default function AuditLogIndex({
                 </div>
               ) : null}
 
-              {selectedPayload.after_json ? (
+              {selectedPayload?.after_json ? (
                 <div>
                   <h5 className="m-0 mb-1 font-bold text-emerald-600 dark:text-emerald-400">
                     {auditDict.stateAfter}
@@ -379,21 +381,7 @@ export default function AuditLogIndex({
                 </div>
               ) : null}
             </div>
-
-            <div className="border-t border-[var(--border)] p-3 text-end bg-[var(--background)]/50">
-              <button
-                type="button"
-                onClick={() => setSelectedPayload(null)}
-                title={actionsDict.close}
-                aria-label={actionsDict.close}
-                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] transition-all cursor-pointer"
-            >
-                {actionsDict.close}
-              </button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+      </Modal>
     </AppLayout>
   );
 }
