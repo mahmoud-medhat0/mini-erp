@@ -406,15 +406,15 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
 
       {/* Create / Edit Modal */}
       {showModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl my-8">
-            <h3 className="text-base font-bold text-[var(--text-primary)] mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
+          <div className="flex w-full max-w-lg max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+            <h3 className="shrink-0 border-b border-[var(--border)] px-6 py-4 text-base font-bold text-[var(--text-primary)]">
               {editingProduct
                 ? pageDict.editProductService
                 : pageDict.createProductService}
             </h3>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="product-form" onSubmit={handleSubmit} className="space-y-4 overflow-y-auto px-6 py-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-1">
@@ -577,27 +577,29 @@ export default function ProductsIndex({ locale, uoms, categories, filters }: Pro
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  title={pageDict.cancel}
-                  aria-label={pageDict.cancel}
-                  className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
-                >
-                  {pageDict.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  title={productSubmitLabel}
-                  aria-label={productSubmitLabel}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-                >
-                  {productSubmitLabel}
-                </button>
-              </div>
             </form>
+
+            <div className="flex shrink-0 items-center justify-end gap-3 border-t border-[var(--border)] px-6 py-4">
+              <button
+                type="button"
+                onClick={closeModal}
+                title={pageDict.cancel}
+                aria-label={pageDict.cancel}
+                className="rounded-xl border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--background)] cursor-pointer"
+              >
+                {pageDict.cancel}
+              </button>
+              <button
+                type="submit"
+                form="product-form"
+                disabled={processing}
+                title={productSubmitLabel}
+                aria-label={productSubmitLabel}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+              >
+                {productSubmitLabel}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
