@@ -779,7 +779,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   ]);
 
   const salesGroupVisible = isGroupSearchVisible(showSalesGroup, dict.app.nav.layoutKeys.salesOperations, [
-    dict.app.nav.layoutKeys.quotations, dict.app.nav.layoutKeys.salesOrders,
+    dict.app.nav.layoutKeys.salesQuotations, dict.app.nav.layoutKeys.salesOrders,
     dict.app.nav.layoutKeys.deliveryNotes, dict.app.nav.layoutKeys.customerInvoices,
     dict.app.nav.layoutKeys.salesReturns, dict.app.nav.layoutKeys.creditNotes,
     dict.app.nav.layoutKeys.invoiceRevisions
@@ -793,15 +793,15 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   ]);
 
   const inventoryGroupVisible = isGroupSearchVisible(showInventoryGroup, dict.app.nav.layoutKeys.inventoryOperations, [
-    dict.app.nav.layoutKeys.stockBalances, dict.app.nav.layoutKeys.inventoryWarehouses,
-    dict.app.nav.layoutKeys.inventoryTransfers, dict.app.nav.layoutKeys.stockCounts,
+    dict.app.nav.layoutKeys.stockBalances, dict.app.nav.layoutKeys.warehouses,
+    dict.app.nav.layoutKeys.stockTransfers, dict.app.nav.layoutKeys.stockCounts,
     dict.app.nav.layoutKeys.stockAdjustments
   ]);
 
-  const fixedAssetsGroupVisible = isGroupSearchVisible(showFixedAssetsGroup, dict.app.nav.layoutKeys.fixedAssetsOperations, [
-    dict.app.nav.layoutKeys.fixedAssets, dict.app.nav.layoutKeys.fixedAssetCategories,
-    dict.app.nav.layoutKeys.fixedAssetLocations, dict.app.nav.layoutKeys.fixedAssetDepreciations,
-    dict.app.nav.layoutKeys.fixedAssetDisposals
+  const fixedAssetsGroupVisible = isGroupSearchVisible(showFixedAssetsGroup, accDict.fixedAssets, [
+    accDict.fixedAssets, accDict.fixedAssetCategories,
+    accDict.fixedAssetLocations, accDict.depreciationRuns,
+    accDict.disposals
   ]);
 
   const projectsGroupVisible = isGroupSearchVisible(showProjectsCostCentersGroup, dict.app.nav.layoutKeys.projectsCostCenters, [
@@ -814,16 +814,16 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
     dict.app.nav.layoutKeys.supplierStatement, dict.app.nav.layoutKeys.arAging,
     dict.app.nav.layoutKeys.apAging, dict.app.nav.layoutKeys.cashBook,
     dict.app.nav.layoutKeys.bankBook, dict.app.nav.layoutKeys.chequeRegister,
-    dict.app.nav.layoutKeys.balanceSheet, dict.app.nav.layoutKeys.incomeStatement,
-    dict.app.nav.layoutKeys.cashFlow, dict.app.nav.layoutKeys.equityStatement,
-    dict.app.nav.layoutKeys.financialRatios, dict.app.nav.layoutKeys.vatRegister,
-    dict.app.nav.layoutKeys.vatSummary
+    accDict.balanceSheet, accDict.incomeStatement,
+    accDict.cashFlowStatement, dict.app.pages.equityStatement.title,
+    accDict.financialRatios, taxesDict.taxCodes,
+    taxesDict.taxRates
   ]);
 
-  const adminGroupVisible = isGroupSearchVisible(showAdministrationGroup, dict.app.nav.layoutKeys.settingsAudit, [
-    dict.app.nav.layoutKeys.companyProfile, dict.app.nav.layoutKeys.branches,
-    dict.app.nav.layoutKeys.numbering, dict.app.nav.layoutKeys.usersRoles,
-    dict.app.nav.layoutKeys.branchApprovalRules, dict.app.nav.layoutKeys.auditLog
+  const adminGroupVisible = isGroupSearchVisible(showAdministrationGroup, dict.app.nav.groups.administration, [
+    dict.app.settings.sections.company.title, dict.app.settings.sections.branches.title,
+    dict.app.settings.sections.numbering.title, dict.app.settings.sections.users.title,
+    dict.app.settings.sections.branchApprovalRules.title, dict.app.nav.auditLog
   ]);
 
   const hasAnyNavMatch =
@@ -972,7 +972,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                   type="text"
                   value={navSearchQuery}
                   onChange={(e) => setNavSearchQuery(e.target.value)}
-                  placeholder={isAr ? 'بحث في القائمة...' : 'Search menu...'}
+                  placeholder={isRtl ? 'بحث في القائمة...' : 'Search menu...'}
                   className={`w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
                     isRtl ? 'pr-8.5 pl-7' : 'pl-8.5 pr-7'
                   }`}
@@ -981,7 +981,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                   <button
                     type="button"
                     onClick={() => setNavSearchQuery('')}
-                    title={isAr ? 'مسح البحث' : 'Clear search'}
+                    title={isRtl ? 'مسح البحث' : 'Clear search'}
                     className={`absolute text-[var(--text-muted)] hover:text-[var(--text-primary)] ${
                       isRtl ? 'left-2.5' : 'right-2.5'
                     }`}
@@ -1001,7 +1001,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                   setSidebarCollapsed(false);
                   setTimeout(() => sidebarSearchInputRef.current?.focus(), 150);
                 }}
-                title={isAr ? 'بحث في القائمة' : 'Search menu'}
+                title={isRtl ? 'بحث في القائمة' : 'Search menu'}
                 className="flex size-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)] hover:text-[var(--primary)] hover:border-blue-500/50 transition-all"
               >
                 <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
