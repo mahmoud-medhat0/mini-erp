@@ -452,6 +452,44 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
   const sidebarNavRef = useRef<HTMLDivElement | null>(null);
 
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+  const sidebarSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const normalizedNavSearch = navSearchQuery.trim().toLowerCase();
+  const isNavSearching = normalizedNavSearch.length > 0;
+
+  const matchesNavSearch = (text?: string | null) => {
+    if (!isNavSearching) return true;
+    if (!text) return false;
+    return text.toLowerCase().includes(normalizedNavSearch);
+  };
+
+  const isSubItemVisible = (groupTitle: string, subItemLabel: string) => {
+    if (!isNavSearching) return true;
+    return matchesNavSearch(groupTitle) || matchesNavSearch(subItemLabel);
+  };
+
+  const isGroupSearchVisible = (
+    showGroup: boolean,
+    groupTitle: string,
+    subItemLabels: string[]
+  ) => {
+    if (!showGroup) return false;
+    if (!isNavSearching) return true;
+    if (matchesNavSearch(groupTitle)) return true;
+    return subItemLabels.some((label) => matchesNavSearch(label));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && navSearchQuery) {
+        setNavSearchQuery('');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navSearchQuery]);
+
   // Auto-expand active group when active route changes
   useEffect(() => {
     if (isAccountingActive) setAccountingExpanded(true);
@@ -686,6 +724,131 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
   const showReportsGroup = can('reports.view');
   const showAdministrationGroup = navAllowed('settings');
 
+  const accGroupVisible = isGroupSearchVisible(showAccountingGroup, accDict.title, [
+    accDict.coa, accDict.accountCategories, accDict.accountTypes, accDict.statementMappings,
+    accDict.accountMappings, accDict.journal, accDict.ledger, accDict.trialBalance,
+    accDict.periods, accDict.openingBalances, accDict.fxRates, accDict.currencies,
+    taxesDict.taxCodes, taxesDict.taxRates, taxesDict.periods.title, taxesDict.taxTypes.withholding
+  ]);
+
+  const arGroupVisible = isGroupSearchVisible(showArGroup, dict.app.nav.layoutKeys.customersAr, [
+    dict.app.nav.layoutKeys.customers, dict.app.nav.layoutKeys.customerOpeningBalances,
+    dict.app.nav.layoutKeys.customerReceipts, dict.app.nav.layoutKeys.arAllocations
+  ]);
+
+  const apGroupVisible = isGroupSearchVisible(showApGroup, dict.app.nav.layoutKeys.suppliersAp, [
+    dict.app.nav.layoutKeys.suppliers, dict.app.nav.layoutKeys.supplierOpeningBalances,
+    dict.app.nav.layoutKeys.supplierPayments, dict.app.nav.layoutKeys.apAllocations
+  ]);
+
+  const expensesGroupVisible = isGroupSearchVisible(showExpensesGroup, dict.app.nav.layoutKeys.expensesOperations, [
+    dict.app.nav.layoutKeys.expenses, dict.app.nav.layoutKeys.expenseCategories,
+    dict.app.nav.layoutKeys.prepaidSchedules, dict.app.nav.layoutKeys.accrualSchedules,
+    dict.app.nav.layoutKeys.recurringTemplates
+  ]);
+
+  const payrollGroupVisible = isGroupSearchVisible(showPayrollGroup, dict.app.nav.layoutKeys.payrollOperations, [
+    dict.app.nav.layoutKeys.payrollRuns, dict.app.nav.layoutKeys.payrollLoans,
+    dict.app.nav.layoutKeys.employees, dict.app.nav.layoutKeys.payrollComponents
+  ]);
+
+  const rentalsGroupVisible = isGroupSearchVisible(showRentalsGroup, dict.app.nav.layoutKeys.rentalsOperations, [
+    dict.app.nav.layoutKeys.rentalContracts, dict.app.nav.layoutKeys.rentalInvoices,
+    dict.app.nav.layoutKeys.rentalHandovers, dict.app.nav.layoutKeys.rentalReturns,
+    dict.app.nav.layoutKeys.rentalItems
+  ]);
+
+  const equipmentGroupVisible = isGroupSearchVisible(showEquipmentGroup, dict.app.nav.layoutKeys.equipmentOperations, [
+    dict.app.nav.layoutKeys.tools, dict.app.nav.layoutKeys.toolCategories
+  ]);
+
+  const partnersGroupVisible = isGroupSearchVisible(showPartnersGroup, dict.app.nav.layoutKeys.partnersOperations, [
+    dict.app.nav.layoutKeys.partners, dict.app.nav.layoutKeys.partnerTransactions,
+    dict.app.nav.layoutKeys.partnerLoans
+  ]);
+
+  const cashBankGroupVisible = isGroupSearchVisible(showCashBankGroup, dict.app.nav.layoutKeys.cashBankCheques, [
+    dict.app.nav.layoutKeys.cashAccounts, dict.app.nav.layoutKeys.bankAccounts,
+    dict.app.nav.layoutKeys.treasuryTransfers, dict.app.nav.layoutKeys.incomingCheques,
+    dict.app.nav.layoutKeys.outgoingCheques, dict.app.nav.layoutKeys.bankReconciliations
+  ]);
+
+  const catalogGroupVisible = isGroupSearchVisible(showCatalogGroup, dict.app.nav.layoutKeys.catalog, [
+    dict.app.nav.layoutKeys.productsServices, dict.app.nav.layoutKeys.productCategories,
+    dict.app.nav.layoutKeys.unitsOfMeasure
+  ]);
+
+  const salesGroupVisible = isGroupSearchVisible(showSalesGroup, dict.app.nav.layoutKeys.salesOperations, [
+    dict.app.nav.layoutKeys.quotations, dict.app.nav.layoutKeys.salesOrders,
+    dict.app.nav.layoutKeys.deliveryNotes, dict.app.nav.layoutKeys.customerInvoices,
+    dict.app.nav.layoutKeys.salesReturns, dict.app.nav.layoutKeys.creditNotes,
+    dict.app.nav.layoutKeys.invoiceRevisions
+  ]);
+
+  const purchasingGroupVisible = isGroupSearchVisible(showPurchasingGroup, dict.app.nav.layoutKeys.purchasingOperations, [
+    dict.app.nav.layoutKeys.purchaseRequests, dict.app.nav.layoutKeys.purchaseOrders,
+    dict.app.nav.layoutKeys.goodsReceipts, dict.app.nav.layoutKeys.landedCosts,
+    dict.app.nav.layoutKeys.supplierBills, dict.app.nav.layoutKeys.purchaseReturns,
+    dict.app.nav.layoutKeys.adjustmentNotes
+  ]);
+
+  const inventoryGroupVisible = isGroupSearchVisible(showInventoryGroup, dict.app.nav.layoutKeys.inventoryOperations, [
+    dict.app.nav.layoutKeys.stockBalances, dict.app.nav.layoutKeys.inventoryWarehouses,
+    dict.app.nav.layoutKeys.inventoryTransfers, dict.app.nav.layoutKeys.stockCounts,
+    dict.app.nav.layoutKeys.stockAdjustments
+  ]);
+
+  const fixedAssetsGroupVisible = isGroupSearchVisible(showFixedAssetsGroup, dict.app.nav.layoutKeys.fixedAssetsOperations, [
+    dict.app.nav.layoutKeys.fixedAssets, dict.app.nav.layoutKeys.fixedAssetCategories,
+    dict.app.nav.layoutKeys.fixedAssetLocations, dict.app.nav.layoutKeys.fixedAssetDepreciations,
+    dict.app.nav.layoutKeys.fixedAssetDisposals
+  ]);
+
+  const projectsGroupVisible = isGroupSearchVisible(showProjectsCostCentersGroup, dict.app.nav.layoutKeys.projectsCostCenters, [
+    dict.app.nav.layoutKeys.projects, dict.app.nav.layoutKeys.costCenters,
+    dict.app.nav.layoutKeys.budgets, dict.app.nav.layoutKeys.budgetVariance
+  ]);
+
+  const reportsGroupVisible = isGroupSearchVisible(showReportsGroup, dict.app.nav.layoutKeys.reportsHub, [
+    dict.app.nav.layoutKeys.reportsHub, dict.app.nav.layoutKeys.customerStatement,
+    dict.app.nav.layoutKeys.supplierStatement, dict.app.nav.layoutKeys.arAging,
+    dict.app.nav.layoutKeys.apAging, dict.app.nav.layoutKeys.cashBook,
+    dict.app.nav.layoutKeys.bankBook, dict.app.nav.layoutKeys.chequeRegister,
+    dict.app.nav.layoutKeys.balanceSheet, dict.app.nav.layoutKeys.incomeStatement,
+    dict.app.nav.layoutKeys.cashFlow, dict.app.nav.layoutKeys.equityStatement,
+    dict.app.nav.layoutKeys.financialRatios, dict.app.nav.layoutKeys.vatRegister,
+    dict.app.nav.layoutKeys.vatSummary
+  ]);
+
+  const adminGroupVisible = isGroupSearchVisible(showAdministrationGroup, dict.app.nav.layoutKeys.settingsAudit, [
+    dict.app.nav.layoutKeys.companyProfile, dict.app.nav.layoutKeys.branches,
+    dict.app.nav.layoutKeys.numbering, dict.app.nav.layoutKeys.usersRoles,
+    dict.app.nav.layoutKeys.branchApprovalRules, dict.app.nav.layoutKeys.auditLog
+  ]);
+
+  const hasAnyNavMatch =
+    !isNavSearching ||
+    matchesNavSearch(dict.app.nav.dashboard) ||
+    matchesNavSearch(dict.app.nav.notifications) ||
+    matchesNavSearch(dict.app.nav.diagnostics) ||
+    accGroupVisible ||
+    arGroupVisible ||
+    apGroupVisible ||
+    expensesGroupVisible ||
+    payrollGroupVisible ||
+    rentalsGroupVisible ||
+    equipmentGroupVisible ||
+    partnersGroupVisible ||
+    cashBankGroupVisible ||
+    catalogGroupVisible ||
+    salesGroupVisible ||
+    purchasingGroupVisible ||
+    inventoryGroupVisible ||
+    fixedAssetsGroupVisible ||
+    projectsGroupVisible ||
+    reportsGroupVisible ||
+    adminGroupVisible;
+
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200">
       <div
@@ -789,6 +952,65 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
             </button>
           </div>
 
+          {/* Sidebar Search Bar */}
+          {!sidebarCollapsed ? (
+            <div className="px-3 pt-3 pb-1 shrink-0 print:hidden">
+              <div className="relative flex items-center">
+                <svg
+                  className={`pointer-events-none absolute size-3.5 text-[var(--text-muted)] ${
+                    isRtl ? 'right-3' : 'left-3'
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  ref={sidebarSearchInputRef}
+                  type="text"
+                  value={navSearchQuery}
+                  onChange={(e) => setNavSearchQuery(e.target.value)}
+                  placeholder={isAr ? 'بحث في القائمة...' : 'Search menu...'}
+                  className={`w-full rounded-xl border border-[var(--border)] bg-[var(--background)] py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                    isRtl ? 'pr-8.5 pl-7' : 'pl-8.5 pr-7'
+                  }`}
+                />
+                {navSearchQuery ? (
+                  <button
+                    type="button"
+                    onClick={() => setNavSearchQuery('')}
+                    title={isAr ? 'مسح البحث' : 'Clear search'}
+                    className={`absolute text-[var(--text-muted)] hover:text-[var(--text-primary)] ${
+                      isRtl ? 'left-2.5' : 'right-2.5'
+                    }`}
+                  >
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center pt-2.5 pb-1 shrink-0 print:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setSidebarCollapsed(false);
+                  setTimeout(() => sidebarSearchInputRef.current?.focus(), 150);
+                }}
+                title={isAr ? 'بحث في القائمة' : 'Search menu'}
+                className="flex size-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--text-muted)] hover:text-[var(--primary)] hover:border-blue-500/50 transition-all"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           {/* Navigation Items List */}
           <div
             ref={sidebarNavRef}
@@ -797,7 +1019,13 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
             }`}
           >
             {/* GROUP 1: STANDALONE INDIVIDUAL ITEMS */}
-            <div className="space-y-1">
+            <div className={`space-y-1 ${
+              matchesNavSearch(dict.app.nav.dashboard) ||
+              matchesNavSearch(dict.app.nav.notifications) ||
+              matchesNavSearch(dict.app.nav.diagnostics)
+                ? ''
+                : 'hidden'
+            }`}>
               {!sidebarCollapsed ? (
                 <p className="px-3 text-[10px] font-extrabold uppercase tracking-widest text-[var(--text-muted)]">
                   {dict.app.nav.groups.overview}
@@ -808,108 +1036,114 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
 
               <div className="space-y-1">
                 {/* Dashboard Link */}
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileMenuOpen(false)}
-                  data-active={active === 'dashboard' ? 'true' : undefined}
-                  title={sidebarCollapsed ? dict.app.nav.dashboard : undefined}
-                  className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
-                    sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
-                  } ${
-                    active === 'dashboard'
-                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
-                    <svg
-                      className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                        active === 'dashboard' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    {!sidebarCollapsed ? <span>{dict.app.nav.dashboard}</span> : null}
-                  </div>
-                </Link>
-
-                {/* Notifications Link */}
-                <Link
-                  href="/notifications"
-                  onClick={() => setMobileMenuOpen(false)}
-                  data-active={active === 'notifications' ? 'true' : undefined}
-                  title={sidebarCollapsed ? dict.app.nav.notifications : undefined}
-                  className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
-                    sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
-                  } ${
-                    active === 'notifications'
-                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
-                    <div className="relative">
+                {matchesNavSearch(dict.app.nav.dashboard) ? (
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-active={active === 'dashboard' ? 'true' : undefined}
+                    title={sidebarCollapsed ? dict.app.nav.dashboard : undefined}
+                    className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
+                    } ${
+                      active === 'dashboard'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
                       <svg
                         className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                          active === 'notifications' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                          active === 'dashboard' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                         strokeWidth={2}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                       </svg>
-                      {sidebarCollapsed && unreadNotifications > 0 ? (
-                        <span className="absolute -top-1 -end-1 size-2 rounded-full bg-red-500 ring-2 ring-[var(--surface)]" />
-                      ) : null}
+                      {!sidebarCollapsed ? <span>{dict.app.nav.dashboard}</span> : null}
                     </div>
-                    {!sidebarCollapsed ? <span>{dict.app.nav.notifications}</span> : null}
-                  </div>
-                  {!sidebarCollapsed && unreadNotifications > 0 ? (
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        active === 'notifications' ? 'bg-white/20 text-white' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                      }`}
-                    >
-                      {unreadNotifications}
-                    </span>
-                  ) : null}
-                </Link>
+                  </Link>
+                ) : null}
+
+                {/* Notifications Link */}
+                {matchesNavSearch(dict.app.nav.notifications) ? (
+                  <Link
+                    href="/notifications"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-active={active === 'notifications' ? 'true' : undefined}
+                    title={sidebarCollapsed ? dict.app.nav.notifications : undefined}
+                    className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
+                    } ${
+                      active === 'notifications'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
+                      <div className="relative">
+                        <svg
+                          className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
+                            active === 'notifications' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        {sidebarCollapsed && unreadNotifications > 0 ? (
+                          <span className="absolute -top-1 -end-1 size-2 rounded-full bg-red-500 ring-2 ring-[var(--surface)]" />
+                        ) : null}
+                      </div>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.notifications}</span> : null}
+                    </div>
+                    {!sidebarCollapsed && unreadNotifications > 0 ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          active === 'notifications' ? 'bg-white/20 text-white' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                        }`}
+                      >
+                        {unreadNotifications}
+                      </span>
+                    ) : null}
+                  </Link>
+                ) : null}
 
                 {/* System Diagnostics Link */}
-                <Link
-                  href="/foundation"
-                  onClick={() => setMobileMenuOpen(false)}
-                  data-active={active === 'foundation' ? 'true' : undefined}
-                  title={sidebarCollapsed ? dict.app.nav.diagnostics : undefined}
-                  className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
-                    sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
-                  } ${
-                    active === 'foundation'
-                      ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
-                    <svg
-                      className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
-                        active === 'foundation' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    {!sidebarCollapsed ? <span>{dict.app.nav.diagnostics}</span> : null}
-                  </div>
-                </Link>
+                {matchesNavSearch(dict.app.nav.diagnostics) ? (
+                  <Link
+                    href="/foundation"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-active={active === 'foundation' ? 'true' : undefined}
+                    title={sidebarCollapsed ? dict.app.nav.diagnostics : undefined}
+                    className={`group relative flex items-center gap-3 rounded-xl py-2.5 text-xs font-semibold no-underline transition-all ${
+                      sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3 justify-between'
+                    } ${
+                      active === 'foundation'
+                        ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center gap-0' : 'gap-3'}`}>
+                      <svg
+                        className={`size-4 shrink-0 transition-transform group-hover:scale-110 ${
+                          active === 'foundation' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      {!sidebarCollapsed ? <span>{dict.app.nav.diagnostics}</span> : null}
+                    </div>
+                  </Link>
+                ) : null}
               </div>
             </div>
 
@@ -921,11 +1155,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </p>
               ) : (
                 <div className="my-1 border-t border-[var(--border)]" />
-              )}
-
-              <div className="space-y-2">
-                {/* 1. Accounting Core Dropdown Group */}
-                <div className={`space-y-1 ${showAccountingGroup ? '' : 'hidden'}`}>
+              )}                {/* 1. Accounting Core Dropdown Group */}
+                <div className={`space-y-1 ${accGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -981,7 +1212,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(accountingExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? accGroupVisible : accountingExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'accounting.coa' as NavKey, href: '/accounting/coa', label: accDict.coa, icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
@@ -1000,7 +1231,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'taxes.rates.index' as NavKey, href: '/taxes/rates', label: taxesDict.taxRates, icon: 'M4 19L20 5M7 7h.01M17 17h.01' },
                         { key: 'taxes.periods.index' as NavKey, href: '/taxes/periods', label: taxesDict.periods.title, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
                         { key: 'taxes.withholding.index' as NavKey, href: '/taxes/withholding', label: taxesDict.taxTypes.withholding, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(accDict.title, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1037,7 +1268,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 2. AR / Customers Dropdown Group */}
-                <div className={`space-y-1 ${showArGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${arGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1073,14 +1304,14 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(arExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? arGroupVisible : arExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'customers.index' as NavKey, href: '/customers', label: dict.app.nav.layoutKeys.customers },
                         { key: 'customer-opening-balances.index' as NavKey, href: '/customer-opening-balances', label: dict.app.nav.layoutKeys.customerOpeningBalances },
                         { key: 'customer-receipts.index' as NavKey, href: '/customer-receipts', label: dict.app.nav.layoutKeys.customerReceipts },
                          { key: 'receivable-allocations.index' as NavKey, href: '/receivable-allocations', label: dict.app.nav.layoutKeys.arAllocations },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.customersAr, subItem.label)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -1098,7 +1329,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 3. AP / Suppliers Dropdown Group */}
-                <div className={`space-y-1 ${showApGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${apGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1134,14 +1365,14 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(apExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? apGroupVisible : apExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'suppliers.index' as NavKey, href: '/suppliers', label: dict.app.nav.layoutKeys.suppliers },
                         { key: 'supplier-opening-balances.index' as NavKey, href: '/supplier-opening-balances', label: dict.app.nav.layoutKeys.supplierOpeningBalances },
                         { key: 'supplier-payments.index' as NavKey, href: '/supplier-payments', label: dict.app.nav.layoutKeys.supplierPayments },
-                         { key: 'payable-allocations.index' as NavKey, href: '/payable-allocations', label: dict.app.nav.layoutKeys.apAllocations },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                          { key: 'payable-allocations.index' as NavKey, href: '/payable-allocations', label: dict.app.nav.layoutKeys.apAllocations },
+                        ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.suppliersAp, subItem.label)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -1159,7 +1390,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 4. Expenses Dropdown Group */}
-                <div className={`space-y-1 ${showExpensesGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${expensesGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1195,7 +1426,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(expensesExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? expensesGroupVisible : expensesExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'expenses.index' as NavKey, href: '/expenses', label: dict.app.nav.layoutKeys.expenses },
@@ -1203,7 +1434,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'prepaid-schedules.index' as NavKey, href: '/expenses/prepaids', label: dict.app.nav.layoutKeys.prepaidSchedules },
                         { key: 'accrual-schedules.index' as NavKey, href: '/expenses/accruals', label: dict.app.nav.layoutKeys.accrualSchedules },
                         { key: 'recurring.templates.index' as NavKey, href: '/recurring/templates', label: dict.app.nav.layoutKeys.recurringTemplates },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => (
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.expensesOperations, subItem.label)).map((subItem) => (
                         <Link
                           key={subItem.key}
                           href={subItem.href}
@@ -1218,10 +1449,8 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                       ))}
                     </div>
                   ) : null}
-                </div>
-
-                {/* 5. Payroll Dropdown Group */}
-                <div className={`space-y-1 ${showPayrollGroup ? '' : 'hidden'}`}>
+                </div>                  {/* 5. Payroll Dropdown Group */}
+                <div className={`space-y-1 ${payrollGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1257,14 +1486,14 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(payrollExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? payrollGroupVisible : payrollExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'payroll.runs.index' as NavKey, href: '/payroll/runs', label: dict.app.nav.layoutKeys.payrollRuns },
                         { key: 'payroll.loans.index' as NavKey, href: '/payroll/loans', label: dict.app.nav.layoutKeys.payrollLoans },
                         { key: 'payroll.employees.index' as NavKey, href: '/payroll/employees', label: dict.app.nav.layoutKeys.employees },
                         { key: 'payroll.components.index' as NavKey, href: '/payroll/components', label: dict.app.nav.layoutKeys.payrollComponents },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.payrollOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1286,7 +1515,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 6. Rentals Dropdown Group */}
-                <div className={`space-y-1 ${showRentalsGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${rentalsGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1322,7 +1551,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(rentalsExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? rentalsGroupVisible : rentalsExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'rentals.contracts.index' as NavKey, href: '/rentals/contracts', label: dict.app.nav.layoutKeys.rentalContracts },
@@ -1330,7 +1559,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'rentals.handovers.index' as NavKey, href: '/rentals/handovers', label: dict.app.nav.layoutKeys.rentalHandovers },
                         { key: 'rentals.returns.index' as NavKey, href: '/rentals/returns', label: dict.app.nav.layoutKeys.rentalReturns },
                         { key: 'rentals.items.index' as NavKey, href: '/rentals/items', label: dict.app.nav.layoutKeys.rentalItems },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.rentalsOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1352,7 +1581,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 6b. Equipment Dropdown Group */}
-                <div className={`space-y-1 ${showEquipmentGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${equipmentGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1388,12 +1617,12 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(equipmentExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? equipmentGroupVisible : equipmentExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'equipment.tools.index' as NavKey, href: '/equipment/tools', label: dict.app.nav.layoutKeys.tools },
                         { key: 'equipment.categories.index' as NavKey, href: '/equipment/categories', label: dict.app.nav.layoutKeys.toolCategories },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.equipmentOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1415,7 +1644,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 6c. Partners & Equity Dropdown Group */}
-                <div className={`space-y-1 ${showPartnersGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${partnersGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1451,13 +1680,13 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(partnersExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? partnersGroupVisible : partnersExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'partners.index' as NavKey, href: '/partners', label: dict.app.nav.layoutKeys.partners },
                         { key: 'partners.transactions.index' as NavKey, href: '/partners/transactions', label: dict.app.nav.layoutKeys.partnerTransactions },
                         { key: 'partners.loans.index' as NavKey, href: '/partners/loans', label: dict.app.nav.layoutKeys.partnerLoans },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.partnersOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1477,8 +1706,9 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     </div>
                   ) : null}
                 </div>
-                            {/* 7. Cash, Bank & Cheques Dropdown Group */}
-                <div className={`space-y-1 ${showCashBankGroup ? '' : 'hidden'}`}>
+
+                {/* 7. Cash, Bank & Cheques Dropdown Group */}
+                <div className={`space-y-1 ${cashBankGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1514,7 +1744,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(cashBankExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? cashBankGroupVisible : cashBankExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'cash-accounts.index' as NavKey, href: '/cash-accounts', label: dict.app.nav.layoutKeys.cashAccounts },
@@ -1523,7 +1753,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'incoming-cheques.index' as NavKey, href: '/incoming-cheques', label: dict.app.nav.layoutKeys.incomingCheques },
                         { key: 'outgoing-cheques.index' as NavKey, href: '/outgoing-cheques', label: dict.app.nav.layoutKeys.outgoingCheques },
                          { key: 'bank-reconciliations.index' as NavKey, href: '/bank-reconciliations', label: dict.app.nav.layoutKeys.bankReconciliations },
-                        ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                        ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.cashBankCheques, subItem.label)).map((subItem) => {
                           const isSubActive = active === subItem.key || (subItem.key === 'bank-reconciliations.index' && active === 'bank-reconciliations.show');
                           return (
                             <Link
@@ -1545,7 +1775,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 5. Catalog Dropdown Group */}
-                <div className={`space-y-1 ${showCatalogGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${catalogGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1581,13 +1811,13 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(catalogExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? catalogGroupVisible : catalogExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'products.index' as NavKey, href: '/catalog/products', label: dict.app.nav.layoutKeys.productsServices },
                         { key: 'product-categories.index' as NavKey, href: '/catalog/categories', label: dict.app.nav.layoutKeys.productCategories },
                         { key: 'uoms.index' as NavKey, href: '/catalog/uoms', label: dict.app.nav.layoutKeys.unitsOfMeasure },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.catalog, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1609,7 +1839,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 6. Sales Dropdown Group */}
-                <div className={`space-y-1 ${showSalesGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${salesGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1645,7 +1875,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(salesExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? salesGroupVisible : salesExpanded) && !sidebarCollapsed) ? (
                     <div className="border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1">
                       {[
                         { key: 'sales-quotations.index' as NavKey, href: '/sales/quotations', label: dict.app.nav.layoutKeys.salesQuotations },
@@ -1655,7 +1885,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'sales-returns.index' as NavKey, href: '/sales/returns', label: dict.app.nav.layoutKeys.salesReturns },
                         { key: 'customer-credit-notes.index' as NavKey, href: '/sales/credit-notes', label: dict.app.nav.layoutKeys.creditNotes },
                         { key: 'invoice-revisions.index' as NavKey, href: '/sales/invoice-revisions', label: dict.app.nav.layoutKeys.invoiceRevisions },
-                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                      ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.salesOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key || (subItem.key === 'invoice-revisions.index' && active === 'invoice-revisions.show');
                         return (
                           <Link
@@ -1677,7 +1907,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 7. Purchasing Dropdown Group */}
-                <div className={`space-y-1 ${showPurchasingGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${purchasingGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1713,7 +1943,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(purchasingExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? purchasingGroupVisible : purchasingExpanded) && !sidebarCollapsed) ? (
                     <div className="border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1">
                       {[
                         { key: 'purchase-requests.index' as NavKey, href: '/purchasing/requests', label: dict.app.nav.layoutKeys.purchaseRequests },
@@ -1723,7 +1953,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'supplier-bills.index' as NavKey, href: '/purchasing/bills', label: dict.app.nav.layoutKeys.supplierBills },
                         { key: 'purchase-returns.index' as NavKey, href: '/purchasing/returns', label: dict.app.nav.layoutKeys.purchaseReturns },
                         { key: 'supplier-adjustment-notes.index' as NavKey, href: '/purchasing/adjustment-notes', label: dict.app.nav.layoutKeys.adjustmentNotes },
-                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                      ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.purchasingOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1745,7 +1975,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 8. Inventory Dropdown Group */}
-                <div className={`space-y-1 ${showInventoryGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${inventoryGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1781,7 +2011,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(inventoryExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? inventoryGroupVisible : inventoryExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'warehouses.index' as NavKey, href: '/inventory/warehouses', label: dict.app.nav.layoutKeys.warehouses },
@@ -1789,7 +2019,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'stock-counts.index' as NavKey, href: '/inventory/stock-counts', label: dict.app.nav.layoutKeys.stockCounts },
                         { key: 'stock-adjustments.index' as NavKey, href: '/inventory/adjustments', label: dict.app.nav.layoutKeys.stockAdjustments },
                         { key: 'stock-balances.index' as NavKey, href: '/inventory/stock-balances', label: dict.app.nav.layoutKeys.stockBalances },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.inventoryOperations, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1811,7 +2041,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 7. Fixed Assets Dropdown Group */}
-                <div className={`space-y-1 ${showFixedAssetsGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${fixedAssetsGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1847,7 +2077,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(fixedAssetsExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? fixedAssetsGroupVisible : fixedAssetsExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'fixed-assets.index' as NavKey, href: '/fixed-assets', label: accDict.fixedAssets },
@@ -1855,7 +2085,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'fixed-asset-locations.index' as NavKey, href: '/fixed-asset-locations', label: accDict.fixedAssetLocations },
                         { key: 'fixed-assets.depreciation-runs.index' as NavKey, href: '/fixed-assets-depreciation-runs', label: accDict.depreciationRuns },
                         { key: 'fixed-assets-disposals.index' as NavKey, href: '/fixed-assets-disposals', label: accDict.disposals },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(accDict.fixedAssets, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1877,7 +2107,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* Projects & Cost Centers Dropdown Group */}
-                <div className={`space-y-1 ${showProjectsCostCentersGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${projectsGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1919,14 +2149,14 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(projectsCostCentersExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? projectsGroupVisible : projectsCostCentersExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'projects.index' as NavKey, href: '/projects', label: dict.app.nav.layoutKeys.projects },
                         { key: 'cost-centers.index' as NavKey, href: '/cost-centers', label: dict.app.nav.layoutKeys.costCenters },
                         { key: 'budgeting.budgets' as NavKey, href: '/budgeting/budgets', label: dict.app.nav.layoutKeys.budgets },
                         { key: 'budgeting.variance' as NavKey, href: '/budgeting/variance', label: dict.app.nav.layoutKeys.budgetVariance },
-                      ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                      ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.projectsCostCenters, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -1948,7 +2178,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 6. Reports & Subledgers Dropdown Group */}
-                <div className={`space-y-1 ${showReportsGroup ? '' : 'hidden'}`}>
+                <div className={`space-y-1 ${reportsGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -1984,7 +2214,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(reportsExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? reportsGroupVisible : reportsExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {[
                         { key: 'reports.index' as NavKey, href: '/reports', label: dict.app.nav.layoutKeys.reportsHub },
@@ -2009,7 +2239,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'reports.forecast' as NavKey, href: '/reports/forecast', label: dict.app.pages.forecast.title },
                         { key: 'reports.equity-statement' as NavKey, href: '/reports/equity-statement', label: dict.app.pages.equityStatement.title },
                         { key: 'reports.reorder-level' as NavKey, href: '/reports/reorder-level', label: dict.app.pages.reorderLevel.title },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.layoutKeys.reportsSubledgers, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
                         return (
                           <Link
@@ -2031,8 +2261,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                 </div>
 
                 {/* 2. Administration & Settings Dropdown Group */}
-                {showAdministrationGroup ? (
-                <div className="space-y-1">
+                <div className={`space-y-1 ${adminGroupVisible ? '' : 'hidden'}`}>
                   <div
                     className={`group relative flex items-center justify-between rounded-xl py-2.5 text-xs font-semibold transition-all ${
                       sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
@@ -2088,35 +2317,37 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     ) : null}
                   </div>
 
-                  {(adminExpanded && !sidebarCollapsed) ? (
+                  {((isNavSearching ? adminGroupVisible : adminExpanded) && !sidebarCollapsed) ? (
                     <div className={sidebarCollapsed ? 'space-y-1 pt-1' : 'border-s-2 border-blue-500/20 ms-4 ps-2 space-y-1 pt-1 mt-1'}>
                       {/* Settings Main Overview Link */}
-                      <Link
-                        href="/settings"
-                        onClick={() => setMobileMenuOpen(false)}
-                        data-active={active === 'settings' ? 'true' : undefined}
-                        title={sidebarCollapsed ? dict.app.nav.settings : undefined}
-                        className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
-                          sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
-                        } ${
-                          active === 'settings'
-                            ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                        }`}
-                      >
-                        <svg
-                          className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
-                            active === 'settings' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                      {isSubItemVisible(dict.app.nav.groups.administration, dict.app.nav.settings) ? (
+                        <Link
+                          href="/settings"
+                          onClick={() => setMobileMenuOpen(false)}
+                          data-active={active === 'settings' ? 'true' : undefined}
+                          title={sidebarCollapsed ? dict.app.nav.settings : undefined}
+                          className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-xs font-medium no-underline transition-all ${
+                            sidebarCollapsed ? 'size-10 justify-center mx-auto px-0' : 'px-3'
+                          } ${
+                            active === 'settings'
+                              ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30 font-bold'
+                              : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
                           }`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                        {!sidebarCollapsed ? <span className="truncate">{dict.app.nav.settings}</span> : null}
-                      </Link>
+                          <svg
+                            className={`size-3.5 shrink-0 transition-transform group-hover:scale-110 ${
+                              active === 'settings' ? 'text-white' : 'text-[var(--text-muted)] group-hover:text-[var(--primary)]'
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          {!sidebarCollapsed ? <span className="truncate">{dict.app.nav.settings}</span> : null}
+                        </Link>
+                      ) : null}
 
                       {/* Sub-items (Companies, Branches, Numbering, Users) */}
                       {[
@@ -2126,7 +2357,7 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                         { key: 'settings.branch_approval_rules' as NavKey, href: '/settings/branch-approval-rules', label: dict.app.settings.sections.branchApprovalRules.title, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
                         { key: 'settings.users' as NavKey, href: '/settings/users', label: dict.app.settings.sections.users.title, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
                          { key: 'audit.view' as NavKey, href: '/audit-log', label: dict.app.nav.auditLog, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                       ].filter((subItem) => navAllowed(subItem.key)).map((subItem) => {
+                       ].filter((subItem) => navAllowed(subItem.key) && isSubItemVisible(dict.app.nav.groups.administration, subItem.label)).map((subItem) => {
                         const isSubActive = active === subItem.key;
 
                         return (
@@ -2162,9 +2393,18 @@ export default function AppLayout({ active, children, pagination = 'auto' }: App
                     </div>
                   ) : null}
                 </div>
-                ) : null}
               </div>
-            </div>
+
+            {/* Empty Search Results Feedback */}
+            {isNavSearching && !hasAnyNavMatch ? (
+              <div className="py-8 text-center text-[var(--text-muted)]">
+                <svg className="mx-auto size-8 opacity-40 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <p className="text-xs font-medium">{isRtl ? 'لا توجد نتائج مطابقة' : 'No matching items'}</p>
+                <p className="text-[10px] mt-1 text-[var(--text-muted)] opacity-70">{isRtl ? 'جرّب البحث بكلمة مختلفة' : 'Try a different search query'}</p>
+              </div>
+            ) : null}
           </div>
 
           {/* Sidebar Footer System Health & Expand Toggle */}
